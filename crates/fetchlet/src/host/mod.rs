@@ -10,7 +10,13 @@ pub use policy::FetchPolicy;
 pub use service::FetchService;
 pub use transport::{FetchTransport, TransportFuture, transport_fn};
 
-#[cfg(any(feature = "quickjs", feature = "boa", feature = "v8", test))]
+#[cfg(any(
+    feature = "boa",
+    feature = "quickjs",
+    feature = "v8",
+    feature = "fuzzing",
+    test
+))]
 pub(crate) use service::Redirect;
 
 #[cfg(test)]

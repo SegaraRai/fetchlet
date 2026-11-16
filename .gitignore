@@ -15,6 +15,7 @@
 /fuzz/coverage/
 /fuzz/corpus/fetch_service/*
 !/fuzz/corpus/fetch_service/*.json
+/fuzz/corpus/bridge_bodies/
 
 /examples/*/.svelte-kit/
 /examples/*/build/

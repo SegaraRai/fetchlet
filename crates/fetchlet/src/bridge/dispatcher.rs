@@ -14,7 +14,7 @@ use crate::host::{Redirect, TransportFuture};
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
 use crate::{Body, Error, HostServices, Limits, Response, Result};
 
-#[cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 use super::crypto;
 
 struct PendingFetch {
@@ -138,6 +138,10 @@ impl HostBridge {
         }
     }
 
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
     pub fn wake_signal(&self) -> WakeSignal {
         self.wake.clone()
     }
@@ -216,7 +220,7 @@ impl HostBridge {
     }
 
     /// Let JavaScript in the current invocation read `body` on demand.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "fuzzing"))]
     pub fn open_body(
         &self,
         body: Body,
@@ -258,7 +262,7 @@ impl HostBridge {
             "fetch.cancel" => self.cancel_fetch(input),
             "body.read" => self.read_body(input),
             "body.cancel" => self.cancel_body(input),
-            #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
+            #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
             "random" | "sha256" => crypto::dispatch(operation, input, &limits),
             _ => Err(Error::PermissionDenied),
         }

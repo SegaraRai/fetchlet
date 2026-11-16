@@ -136,7 +136,7 @@ workspace移行後はRust本体・axum worker・3VMの互換性・host往復・b
 
 ## 共有handleと2つのframework
 
-AppHandleの3試験とfetchlet-axumの4試験を3VMで確認しています。Astro 7.4.12 / @astrojs/svelte 9.1.6の例を追加し、QuickJS＋FormatJSでSSRとSvelte islandを実行します。SvelteKit例はQuickJSを使い、両例で同じRust APIとartifact builderを利用します。各9項目の結果はresults/example-{framework}-axum.jsonです。
+AppHandleの3試験、streamingの13試験、fetchlet-axumの5試験を3VMで確認しています。Astro 7.4.12 / @astrojs/svelte 9.1.6の例を追加し、QuickJS＋FormatJSでSSRとSvelte islandを実行します。SvelteKit例はQuickJSを使い、両例で同じRust APIとartifact builderを利用します。Astro例はRequest本文をstreamingで受け、chunked uploadの受信と予算超過を検査します。結果（SvelteKit 9項目、Astro 10項目）はresults/example-{framework}-axum.jsonです。
 
 AstroのIntl.DateTimeFormat要求はbuild backendに応じて満たします。QuickJS / BoaへはFormatJSの依存とlocaleデータを追加し、V8向けbundleはnative Intlを使います。[選択と実測](../packages/build/README.md)を参照してください。共通profileにはRustの単調時計に接続したperformance.now / timeOriginを追加しました。Web API層をframework評価前に初期化する順序を@fetchlet/buildで揃えています。
 

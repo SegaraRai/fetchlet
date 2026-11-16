@@ -1,4 +1,4 @@
-#![cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
+#![cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 
 use std::future::{Future, poll_fn};
 use std::num::NonZeroUsize;

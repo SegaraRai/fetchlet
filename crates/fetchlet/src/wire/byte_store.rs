@@ -26,7 +26,13 @@ impl Default for WireBytes {
 
 /// How a body that is not in memory reaches JavaScript.
 #[cfg_attr(
-    not(any(feature = "quickjs", feature = "boa", feature = "v8", test)),
+    not(any(
+        feature = "boa",
+        feature = "quickjs",
+        feature = "v8",
+        feature = "fuzzing",
+        test
+    )),
     allow(dead_code)
 )]
 pub(crate) enum BodyTransfer {
@@ -82,7 +88,13 @@ impl ByteTransport for InlineBytes {
 /// an untaken one. Guest code therefore cannot keep memory outside the engine
 /// heap. Buffers from Rust are bounded by the body budgets of their sources.
 #[cfg_attr(
-    not(any(feature = "quickjs", feature = "boa", feature = "v8", test)),
+    not(any(
+        feature = "quickjs",
+        feature = "boa",
+        feature = "v8",
+        feature = "fuzzing",
+        test
+    )),
     allow(dead_code)
 )]
 #[derive(Default)]
@@ -93,7 +105,13 @@ pub(crate) struct ByteStore {
 }
 
 #[cfg_attr(
-    not(any(feature = "quickjs", feature = "boa", feature = "v8", test)),
+    not(any(
+        feature = "quickjs",
+        feature = "boa",
+        feature = "v8",
+        feature = "fuzzing",
+        test
+    )),
     allow(dead_code)
 )]
 impl ByteStore {

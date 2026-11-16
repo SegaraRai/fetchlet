@@ -4,6 +4,12 @@ mod types;
 
 pub use adapter::FetchApp;
 pub use body::Body;
-#[cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
-pub(crate) use body::BodySender;
 pub use types::{Request, Response};
+
+#[cfg(any(
+    feature = "boa",
+    feature = "quickjs",
+    feature = "v8",
+    feature = "fuzzing"
+))]
+pub(crate) use body::BodySender;

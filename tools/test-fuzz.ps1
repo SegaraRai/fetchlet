@@ -41,28 +41,35 @@ try {
   }
 
   New-Item -ItemType Directory -Path '.cache', 'results' -Force | Out-Null
-  $log = Join-Path $root '.cache\fuzz-asan.log'
-
-  cargo +nightly fuzz run fetch_service -- "-runs=$Runs" "-max_total_time=$Seconds" -max_len=16384 *> $log
-  $fuzzExit = $LASTEXITCODE
-  $output = Get-Content -LiteralPath $log -Raw
-  $completed = [regex]::Match($output, 'Done (\d+) runs')
-  $status = if ($fuzzExit -eq 0 -and $completed.Success) { 'pass' } else { 'fail' }
+  # fetch_service: the Rust host fetch boundary. bridge_bodies: byte handles
+  # and body sources as a guest drives them through the native protocol.
+  $targets = @('fetch_service', 'bridge_bodies')
+  $results = foreach ($target in $targets) {
+    $log = Join-Path $root ".cache\fuzz-$target.log"
+    cargo +nightly fuzz run $target -- "-runs=$Runs" "-max_total_time=$Seconds" -max_len=16384 *> $log
+    $fuzzExit = $LASTEXITCODE
+    $output = Get-Content -LiteralPath $log -Raw
+    $completed = [regex]::Match($output, 'Done (\d+) runs')
+    Write-Host "== $target"
+    Get-Content -LiteralPath $log -Tail 8 | Write-Host
+    [ordered]@{
+      target = $target
+      status = if ($fuzzExit -eq 0 -and $completed.Success) { 'pass' } else { 'fail' }
+      completedRuns = if ($completed.Success) { [long]$completed.Groups[1].Value } else { 0 }
+    }
+  }
 
   [ordered]@{
     checkedAt = [DateTime]::UtcNow.ToString('o')
-    target = 'fetch_service'
     sanitizer = 'address'
-    status = $status
-    completedRuns = if ($completed.Success) { [long]$completed.Groups[1].Value } else { 0 }
     requestedRuns = $Runs
     timeBudgetSeconds = $Seconds
     compiler = (& rustc +nightly --version)
     maxInputBytes = 16384
-  } | ConvertTo-Json | Set-Content -LiteralPath 'results\fuzz-smoke.json' -Encoding utf8
+    targets = @($results)
+  } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'results\fuzz-smoke.json' -Encoding utf8
 
-  Get-Content -LiteralPath $log -Tail 12
-  if ($status -ne 'pass') {
+  if (@($results | Where-Object { $_.status -ne 'pass' }).Count -gt 0) {
     exit 1
   }
 } finally {

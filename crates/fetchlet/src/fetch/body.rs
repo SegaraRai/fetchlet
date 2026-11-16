@@ -16,7 +16,7 @@ use crate::{Error, Result};
 pub(crate) type BodyChunk = Result<(Bytes, bool)>;
 
 #[cfg_attr(
-    not(any(feature = "quickjs", feature = "boa", feature = "v8")),
+    not(any(feature = "boa", feature = "quickjs", feature = "v8")),
     allow(dead_code)
 )]
 pub(crate) type BodySender = mpsc::Sender<BodyChunk>;
@@ -33,7 +33,7 @@ pub struct Body {
 }
 
 #[cfg_attr(
-    not(any(feature = "quickjs", feature = "boa", feature = "v8")),
+    not(any(feature = "boa", feature = "quickjs", feature = "v8")),
     allow(dead_code)
 )]
 #[derive(Debug)]
@@ -105,7 +105,13 @@ impl Body {
 
     /// A streaming body whose chunks arrive through a bounded channel.
     #[cfg_attr(
-        not(any(feature = "quickjs", feature = "boa", feature = "v8", test)),
+        not(any(
+            feature = "quickjs",
+            feature = "boa",
+            feature = "v8",
+            feature = "fuzzing",
+            test
+        )),
         allow(dead_code)
     )]
     pub(crate) fn channel(prefix: Bytes, capacity: usize) -> (BodySender, Self) {
@@ -147,7 +153,13 @@ impl Body {
 
     /// Whether every byte of the body is already in memory.
     #[cfg_attr(
-        not(any(feature = "quickjs", feature = "boa", feature = "v8", test)),
+        not(any(
+            feature = "quickjs",
+            feature = "boa",
+            feature = "v8",
+            feature = "fuzzing",
+            test
+        )),
         allow(dead_code)
     )]
     pub(crate) fn is_buffered(&self) -> bool {
@@ -235,7 +247,13 @@ impl Body {
 
     /// The bytes of a buffered body, without copying.
     #[cfg_attr(
-        not(any(feature = "quickjs", feature = "boa", feature = "v8", test)),
+        not(any(
+            feature = "quickjs",
+            feature = "boa",
+            feature = "v8",
+            feature = "fuzzing",
+            test
+        )),
         allow(dead_code)
     )]
     pub(crate) fn into_bytes(self) -> Result<Bytes> {

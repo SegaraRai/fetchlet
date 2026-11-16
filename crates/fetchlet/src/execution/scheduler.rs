@@ -19,6 +19,10 @@ impl WakeSignal {
         Waker::from(Arc::new(self.clone()))
     }
 
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
     pub async fn wait(&self, timer_delay: Option<Duration>) {
         match timer_delay {
             Some(delay) => {
@@ -42,14 +46,14 @@ impl Wake for WakeSignal {
     }
 }
 
-#[cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 #[derive(serde::Deserialize)]
 pub(crate) struct LoopState {
     pub progress: bool,
     delay: Option<u64>,
 }
 
-#[cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 impl LoopState {
     pub fn timer_delay(&self) -> Option<Duration> {
         self.delay.map(Duration::from_millis)

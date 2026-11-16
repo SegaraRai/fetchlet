@@ -27,7 +27,13 @@ pub enum Error {
 
 impl Error {
     /// Keep provider diagnostics and configuration values on the Rust side.
-    #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8", test))]
+    #[cfg(any(
+        feature = "boa",
+        feature = "quickjs",
+        feature = "v8",
+        feature = "fuzzing",
+        test
+    ))]
     pub(crate) fn guest_message(&self) -> &'static str {
         match self {
             Self::Configuration(_) => "invalid host configuration",
@@ -44,7 +50,13 @@ impl Error {
         }
     }
 
-    #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8", test))]
+    #[cfg(any(
+        feature = "boa",
+        feature = "quickjs",
+        feature = "v8",
+        feature = "fuzzing",
+        test
+    ))]
     pub(crate) fn code(&self) -> &'static str {
         match self {
             Self::Configuration(_) => "CONFIGURATION",

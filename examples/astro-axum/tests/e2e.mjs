@@ -80,6 +80,40 @@ check("input budget and the following Astro request", async () => {
   assert.equal((await fetch(suite.base)).status, 200);
 });
 
+// A chunked upload without Content-Length, produced over time.
+function upload(chunks, size) {
+  const chunk = new Uint8Array(size).fill(97);
+  const body = new ReadableStream({
+    async start(controller) {
+      for (let index = 0; index < chunks; index += 1) {
+        controller.enqueue(chunk);
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+      controller.close();
+    },
+  });
+  return fetch(suite.base + "/api/upload", {
+    method: "POST",
+    headers: { "content-type": "application/octet-stream" },
+    body,
+    duplex: "half",
+  });
+}
+
+check("streamed uploads reach the endpoint in chunks within the budget", async () => {
+  const response = await upload(3, 1000);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.bytes, 3000);
+  assert.ok(result.chunks >= 2, `chunks: ${result.chunks}`);
+
+  // Undeclared excess errors the endpoint's body stream.
+  const oversized = await upload(5, 1000);
+  assert.equal(oversized.status, 413);
+  assert.deepEqual(await oversized.json(), { error: "LIMIT_EXCEEDED" });
+  assert.equal((await fetch(suite.base)).status, 200);
+});
+
 check("concurrent Astro requests keep their own values", async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {

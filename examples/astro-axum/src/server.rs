@@ -28,7 +28,9 @@ pub(crate) async fn run(config: Config) -> Result<()> {
         .limits(config.limits())
         .spawn(WorkerOptions::new(config.queue_capacity))
         .await?;
+    // Endpoints read uploads as they arrive; declared oversize bodies get 413.
     let rendering = FetchletService::new(app.clone(), &origin)?
+        .stream_request_bodies()
         .on_error(|error| eprintln!("request failed: {error:#}"));
     let assets = ServeDir::new(config.build_directory.join("client"))
         .call_fallback_on_method_not_allowed(true)

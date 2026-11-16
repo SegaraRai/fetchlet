@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-16T14:04:13.305Z",
+  "checkedAt": "2026-11-16T14:14:25.659Z",
   "summary": {
-    "passed": 9,
+    "passed": 10,
     "failed": 0
   },
   "browser": "159.0.8154.6",
@@ -32,6 +32,10 @@
     },
     {
       "name": "input budget and the following Astro request",
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach the endpoint in chunks within the budget",
       "status": "pass"
     },
     {

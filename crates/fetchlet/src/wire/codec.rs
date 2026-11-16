@@ -90,7 +90,13 @@ pub(super) fn headers_from_wire(
 }
 
 impl WireRequest {
-    #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8", test))]
+    #[cfg(any(
+        feature = "boa",
+        feature = "quickjs",
+        feature = "v8",
+        feature = "fuzzing",
+        test
+    ))]
     pub fn into_http(self, limits: &Limits, bytes: &mut impl ByteTransport) -> Result<Request> {
         check_limit(limits.url_bytes, self.url.len(), "URL bytes")?;
         if self.stream.is_some() {
@@ -197,7 +203,13 @@ impl WireResponse {
         Ok(response)
     }
 
-    #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8", test))]
+    #[cfg(any(
+        feature = "boa",
+        feature = "quickjs",
+        feature = "v8",
+        feature = "fuzzing",
+        test
+    ))]
     pub fn from_http(
         response: Response,
         limits: &Limits,

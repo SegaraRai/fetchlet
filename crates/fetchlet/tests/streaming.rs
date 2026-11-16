@@ -1,4 +1,4 @@
-#![cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
+#![cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 
 use std::num::NonZeroUsize;
 use std::time::Duration;
@@ -220,6 +220,9 @@ async fn dropping_a_body_cancels_the_javascript_stream() -> anyhow::Result<()> {
         let mut body = handle.fetch(get("/pending")).await?.into_body();
         let first = next_frame(&mut body).await.unwrap()?;
         assert_eq!(first.as_ref(), b"start;");
+        // The head carried the first chunk; let the worker enter the pull
+        // that never settles before dropping the body.
+        tokio::time::sleep(Duration::from_millis(100)).await;
         drop(body);
         assert_eq!(number(&handle, "sequence").await?, 1);
         assert_eq!(number(&handle, "cancelled").await?, 0);

@@ -45,6 +45,15 @@ WPTとTest262の原本はライセンス・固定commit・hashを保存して検
 
 `fuzz/fuzz_targets/fetch_service.rs` はURL、method、header、本文、rewrite先、redirect列を変異させ、実際のRust FetchServiceとmock transportを実行します。transportへ渡る全Requestのorigin、method、framing headerとredirect回数を検査します。対象はRustのhost fetch境界です。
 
+`fuzz/fuzz_targets/bridge_bodies.rs` はguestがnative callbackで行える操作列を変異させます。対象はbyte handleの格納・取得、本文sourceの `body.read` / `body.cancel` / `fetch.poll`、任意のhost operation、生産者のchunk・終端・中断、Invocationの開始・終了です。結果をモデルと照合し、次を検査します。
+
+- guestのbufferは一度だけ取り出せ、未取得のものは最新の1つだけが残る
+- handleと本文idはInvocationを越えて届かない
+- 本文の読み取りは生産者のchunkを順に、予算の範囲で返す
+- 完了・エラー・cancel・Invocation終了で生産者を解放し、同じ本文の読み取りは同時に1つ
+
+private bridgeへは `fuzzing` featureの隠しharness（`BridgeHarness`）から接続します。生産者の解放を故意に止める変異は数秒でモデルが検出することを確認しています。
+
 corpusの種は `fuzz/corpus/fetch_service/*.json`、生成corpusとcrash artifactはローカル保存です。failureは最小化して回帰テストへ取り込みます。fuzz crateは通常のライブラリとCargo workspace / Cargo.lockを共有します。
 
 ```powershell
@@ -54,7 +63,7 @@ vp run test:fuzz
 
 nightly Rustを使います。WindowsではVisual Studio C++ AddressSanitizerが必要です。`tools/test-fuzz.ps1` はMSVCを検出し、ASan runtimeのPATHを設定します。[公式Windows setup](https://rust-fuzz.github.io/book/cargo-fuzz/windows/setup.html)
 
-既定のsmoke runはAddressSanitizer付きで最大100万回・30秒です。実行回数と時間予算はスクリプトの引数で変更できます。[fuzz-smoke.json](../results/fuzz-smoke.json)にcompilerと結果を残します。
+既定のsmoke runは各targetをAddressSanitizer付きで最大100万回・30秒実行します。実行回数と時間予算はスクリプトの引数で変更できます。[fuzz-smoke.json](../results/fuzz-smoke.json)にcompilerと結果を残します。
 
 ## 継続検証
 

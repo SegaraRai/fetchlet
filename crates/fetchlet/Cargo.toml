@@ -10,6 +10,8 @@ default = ["quickjs"]
 quickjs = ["dep:rquickjs", "dep:getrandom", "dep:sha2"]
 boa = ["dep:boa_engine", "dep:getrandom", "dep:sha2"]
 v8 = ["dep:deno_core", "dep:deno_error", "dep:getrandom", "dep:sha2"]
+# Exposes a hidden harness over the private host bridge for cargo-fuzz targets.
+fuzzing = []
 
 [dependencies]
 anyhow.workspace = true
