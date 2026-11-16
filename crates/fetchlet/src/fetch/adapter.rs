@@ -9,7 +9,7 @@ pub struct FetchApp<I> {
 impl<I: Instance> FetchApp<I> {
     pub async fn handle(&mut self, request: Request) -> Result<Response> {
         let limits = Limits::default();
-        let wire = WireRequest::from_http(request, &limits)?;
+        let wire = WireRequest::from_http(request, &limits).await?;
         let input =
             serde_json::to_value(wire).map_err(|error| Error::InvalidRequest(error.to_string()))?;
         let value = self

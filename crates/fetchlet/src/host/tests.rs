@@ -218,7 +218,7 @@ async fn post_redirect_semantics_and_transport_headers() {
             let first = req.uri().path() == "/start";
             capture.lock().unwrap().push((
                 req.method().clone(),
-                req.body().buffered().to_vec(),
+                req.body().buffered().unwrap().to_vec(),
                 req.headers().clone(),
             ));
             async move {

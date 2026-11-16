@@ -65,10 +65,17 @@ impl Instance for Boa {
     }
 
     async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
+        self.evaluate(invocation(export, args)?).await
+    }
+}
+
+impl Boa {
+    /// Evaluate an invocation expression and drive its Promise to completion.
+    /// The invocation script owns timer and response-body cleanup.
+    pub(crate) async fn evaluate(&mut self, expression: String) -> Result<Value> {
         if self.poisoned {
             anyhow::bail!("Instance cannot be reused after an interrupted call");
         }
-        let expression = invocation(export, args)?;
         self.poisoned = true;
         let result = self
             .context
@@ -83,9 +90,6 @@ impl Instance for Boa {
                 .map_err(|error| anyhow!("{error}"))?;
             match promise.state() {
                 PromiseState::Fulfilled(value) => {
-                    self.context
-                        .eval(Source::from_bytes("globalThis.__fetchletClearTimers?.()"))
-                        .map_err(|error| anyhow!("{error}"))?;
                     self.poisoned = false;
                     let json = value
                         .as_string()
@@ -94,9 +98,6 @@ impl Instance for Boa {
                     return Ok(serde_json::from_str(&json)?);
                 }
                 PromiseState::Rejected(value) => {
-                    self.context
-                        .eval(Source::from_bytes("globalThis.__fetchletClearTimers?.()"))
-                        .map_err(|error| anyhow!("{error}"))?;
                     self.poisoned = false;
                     return Err(anyhow!(
                         "{}",

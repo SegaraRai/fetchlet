@@ -73,13 +73,25 @@ impl FetchService {
 
     pub(crate) async fn execute(
         &self,
-        mut request: Request,
+        request: Request,
         redirect: Redirect,
         limits: Limits,
     ) -> Result<Response> {
+        // Redirects may resend the body, and policy checks inspect it, so a
+        // streaming body is collected once within the request budget.
+        let (parts, body) = request.into_parts();
+        let body = body
+            .into_buffered(limits.request_body_bytes, "request body bytes")
+            .await?;
+        let mut request = Request::from_parts(parts, body);
         for redirects_followed in 0..=FETCH_REDIRECT_LIMIT {
             let prepared = self.prepare_request(request, &limits)?;
             let response = self.transport.send(prepared.outgoing).await?;
+            let (parts, body) = response.into_parts();
+            let body = body
+                .into_buffered(limits.response_body_bytes, "response body bytes")
+                .await?;
+            let response = Response::from_parts(parts, body);
             validate_response(&response, &limits)?;
 
             if !is_redirect(&response) {
@@ -127,7 +139,7 @@ impl FetchService {
             .parse()
             .map_err(|_| Error::InvalidRequest("invalid rewritten URL".into()))?;
 
-        let before_credentials = copy_request(&request);
+        let before_credentials = copy_request(&request)?;
 
         if let Some(credentials) = &self.credentials {
             credentials(&url, request.headers_mut())?;
@@ -145,14 +157,11 @@ impl FetchService {
 }
 
 fn validate_request_body(request: &Request, limits: &Limits) -> Result<()> {
-    check_limit(
-        limits.request_body_bytes,
-        request.body().buffered().len(),
-        "request body bytes",
-    )?;
+    let body = request.body().buffered()?;
+    check_limit(limits.request_body_bytes, body.len(), "request body bytes")?;
 
     let method_has_no_body = matches!(*request.method(), Method::GET | Method::HEAD);
-    if method_has_no_body && !request.body().buffered().is_empty() {
+    if method_has_no_body && !body.is_empty() {
         return Err(Error::InvalidRequest("GET/HEAD request has a body".into()));
     }
 
@@ -164,7 +173,7 @@ fn validate_response(response: &Response, limits: &Limits) -> Result<()> {
 
     check_limit(
         limits.response_body_bytes,
-        response.body().buffered().len(),
+        response.body().buffered()?.len(),
         "response body bytes",
     )?;
 
@@ -220,12 +229,12 @@ fn request_for_redirect(
     Ok(request)
 }
 
-fn copy_request(request: &Request) -> Request {
-    let mut copied = Request::new(Body::from(request.body().buffered().to_vec()));
+fn copy_request(request: &Request) -> Result<Request> {
+    let mut copied = Request::new(Body::from(request.body().buffered()?.to_vec()));
     *copied.method_mut() = request.method().clone();
     *copied.uri_mut() = request.uri().clone();
     *copied.headers_mut() = request.headers().clone();
-    copied
+    Ok(copied)
 }
 
 fn remove_credentials(headers: &mut HeaderMap) {

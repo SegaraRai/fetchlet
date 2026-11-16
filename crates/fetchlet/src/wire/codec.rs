@@ -19,7 +19,11 @@ pub(crate) struct WireRequest {
 pub(crate) struct WireResponse {
     pub status: u16,
     pub headers: Vec<(String, String)>,
+    /// The complete body, or the bytes already available when `stream` is set.
     pub body: Vec<u8>,
+    /// A JavaScript response body that remains open in the current invocation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stream: Option<u64>,
 }
 
 /// Apply Fetch's method rules: https://fetch.spec.whatwg.org/#concept-method-normalize
@@ -102,14 +106,15 @@ impl WireRequest {
         Ok(request)
     }
 
-    pub fn from_http(request: Request, limits: &Limits) -> Result<Self> {
+    pub async fn from_http(request: Request, limits: &Limits) -> Result<Self> {
         validate_headers(request.headers(), limits.header_bytes)?;
         let (parts, body) = request.into_parts();
         let url = parts.uri.to_string();
         check_limit(limits.url_bytes, url.len(), "URL bytes")?;
         let method = normalize_fetch_method(&parts.method)?;
-        let data = body.buffered();
-        check_limit(limits.request_body_bytes, data.len(), "request body bytes")?;
+        let data = body
+            .collect_within(limits.request_body_bytes, "request body bytes")
+            .await?;
         if matches!(method, Method::GET | Method::HEAD) && !data.is_empty() {
             return Err(Error::InvalidRequest("GET/HEAD request has a body".into()));
         }
@@ -144,7 +149,8 @@ impl WireResponse {
         if !(200..=599).contains(&self.status) {
             return Err(Error::InvalidRequest("invalid response status".into()));
         }
-        if matches!(self.status, 204 | 205 | 304) && !self.body.is_empty() {
+        let has_body = !self.body.is_empty() || self.stream.is_some();
+        if matches!(self.status, 204 | 205 | 304) && has_body {
             return Err(Error::InvalidRequest("body on a null-body response".into()));
         }
         let mut response = Response::new(Body::from(self.body));
@@ -158,9 +164,10 @@ impl WireResponse {
     pub fn from_http(response: Response, limits: &Limits) -> Result<Self> {
         validate_headers(response.headers(), limits.header_bytes)?;
         let (parts, body) = response.into_parts();
+        let data = body.buffered()?;
         check_limit(
             limits.response_body_bytes,
-            body.buffered().len(),
+            data.len(),
             "response body bytes",
         )?;
         let wire = Self {
@@ -179,7 +186,8 @@ impl WireResponse {
                         })
                 })
                 .collect::<Result<_>>()?,
-            body: body.buffered().to_vec(),
+            body: data.to_vec(),
+            stream: None,
         };
         if !(200..=599).contains(&wire.status)
             || matches!(wire.status, 204 | 205 | 304) && !wire.body.is_empty()

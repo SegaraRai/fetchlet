@@ -7,6 +7,12 @@ pub struct WorkerOptions {
     pub queue_capacity: NonZeroUsize,
     /// An explicit native thread stack size. None uses the platform setting.
     pub stack_size_bytes: Option<NonZeroUsize>,
+    /// Response body messages buffered ahead of the consumer.
+    ///
+    /// The worker pulls the next chunk from JavaScript only when the queue has
+    /// room, so this sets how far production runs ahead of the HTTP client.
+    /// The default of one keeps production demand-driven.
+    pub response_body_queue: NonZeroUsize,
 }
 
 impl WorkerOptions {
@@ -14,6 +20,7 @@ impl WorkerOptions {
         Self {
             queue_capacity,
             stack_size_bytes: None,
+            response_body_queue: NonZeroUsize::MIN,
         }
     }
 }

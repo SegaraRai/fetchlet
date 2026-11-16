@@ -13,6 +13,7 @@ fn binary_response_and_repeated_cookies_survive_conversion() {
             ("set-cookie".into(), "second=2".into()),
         ],
         body: vec![0, 128, 255],
+        stream: None,
     };
 
     let limits = Limits::default();
@@ -36,6 +37,7 @@ fn invalid_guest_headers_do_not_reach_http() {
             status: 200,
             headers,
             body: Vec::new(),
+            stream: None,
         };
 
         assert!(matches!(
@@ -52,6 +54,7 @@ fn invalid_status_and_null_body_combinations_are_rejected() {
             status,
             headers: Vec::new(),
             body,
+            stream: None,
         };
 
         assert!(response.into_http(&Limits::default()).is_err());
@@ -81,7 +84,46 @@ fn standard_methods_are_normalized_and_extension_methods_are_preserved() {
 }
 
 #[test]
-fn request_url_budget_applies_in_both_directions() {
+fn an_open_stream_on_a_null_body_status_is_rejected() {
+    let response = WireResponse {
+        status: 204,
+        headers: Vec::new(),
+        body: Vec::new(),
+        stream: Some(1),
+    };
+
+    assert!(response.into_http(&Limits::default()).is_err());
+}
+
+#[tokio::test]
+async fn a_streaming_request_body_is_collected_within_the_request_budget() {
+    let limits = Limits {
+        request_body_bytes: Some(4),
+        ..Limits::default()
+    };
+    let (sender, body) = Body::channel(bytes::Bytes::from_static(b"ab"), 2);
+    sender
+        .send(Ok((bytes::Bytes::from_static(b"cd"), false)))
+        .await
+        .unwrap();
+    sender
+        .send(Ok((bytes::Bytes::from_static(b"e"), true)))
+        .await
+        .unwrap();
+    let request = http::Request::builder()
+        .method(Method::POST)
+        .uri("https://example.test/")
+        .body(body)
+        .unwrap();
+
+    assert!(matches!(
+        WireRequest::from_http(request, &limits).await,
+        Err(Error::LimitExceeded("request body bytes"))
+    ));
+}
+
+#[tokio::test]
+async fn request_url_budget_applies_in_both_directions() {
     let limits = Limits {
         url_bytes: Some(8),
         ..Limits::default()
@@ -91,7 +133,7 @@ fn request_url_budget_applies_in_both_directions() {
         .body(Body::empty())
         .unwrap();
     assert!(matches!(
-        WireRequest::from_http(request, &limits),
+        WireRequest::from_http(request, &limits).await,
         Err(Error::LimitExceeded("URL bytes"))
     ));
 

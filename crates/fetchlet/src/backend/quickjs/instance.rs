@@ -70,11 +70,18 @@ impl Instance for QuickJs {
     }
 
     async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
+        self.evaluate(invocation(export, args)?).await
+    }
+}
+
+impl QuickJs {
+    /// Evaluate an invocation expression and drive its Promise to completion.
+    /// The invocation script owns timer and response-body cleanup.
+    pub(crate) async fn evaluate(&mut self, expression: String) -> Result<Value> {
         if self.poisoned {
             anyhow::bail!("Instance cannot be reused after an interrupted call");
         }
 
-        let expression = invocation(export, args)?;
         self.poisoned = true;
         let promise = self.context.with(|context| -> Result<_> {
             let promise: Promise = context.eval(expression)?;
@@ -86,7 +93,6 @@ impl Instance for QuickJs {
                 let promise = promise.clone().restore(&context)?;
                 match promise.finish::<String>() {
                     Ok(json) => {
-                        context.eval::<(), _>("globalThis.__fetchletClearTimers?.()")?;
                         self.poisoned = false;
                         Ok((Some(json), None))
                     }
@@ -97,7 +103,6 @@ impl Instance for QuickJs {
                     }
                     Err(error) => {
                         let exception = context.catch();
-                        context.eval::<(), _>("globalThis.__fetchletClearTimers?.()")?;
                         self.poisoned = false;
                         Err(anyhow!("{error}: {exception:?}"))
                     }

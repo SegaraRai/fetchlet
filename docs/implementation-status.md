@@ -6,17 +6,18 @@
 
 App / Module / Backend、任意関数の呼び出し、Fetch adapter、明示的envとservice、Rust経由の非同期fetchを実装しています。公開型はrootから再公開します。
 
-| 経路                  | 現在の動作                                                             |
-| --------------------- | ---------------------------------------------------------------------- |
-| App::call / call_json | Serde / JSONの引数、同期値とPromise、例外とrejectionを回収             |
-| App::fetch            | http Request / Response、buffered Body、binaryと複数Cookieを保持       |
-| Instance / FetchApp   | 低水準の関数呼び出しとFetch adapter                                    |
-| HostServices          | 固定env、名前付きservice、外向きservice                                |
-| FetchService          | rewrite、最終originの認可、credentials、redirect制御                   |
-| 実行管理              | InvocationによるFuture所有、通知駆動、協調的期限、中断後のInstance退役 |
-| 構成                  | optional Limits、QuickJS heap / stack、V8 worker stack                 |
+| 経路                  | 現在の動作                                                              |
+| --------------------- | ----------------------------------------------------------------------- |
+| App::call / call_json | Serde / JSONの引数、同期値とPromise、例外とrejectionを回収              |
+| App::fetch            | http Request / Response、本文の全量回収、binaryと複数Cookieを保持       |
+| AppHandle::fetch      | Response本文をstreaming。需要駆動のpull、累積予算、期限、drop時のcancel |
+| Instance / FetchApp   | 低水準の関数呼び出しとFetch adapter                                     |
+| HostServices          | 固定env、名前付きservice、外向きservice                                 |
+| FetchService          | rewrite、最終originの認可、credentials、redirect制御                    |
+| 実行管理              | InvocationによるFuture所有、通知駆動、協調的期限、中断後のInstance退役  |
+| 構成                  | optional Limits、QuickJS heap / stack、V8 worker stack                  |
 
-bundleはIIFEの `fetchletExports` に関数を公開します。JSON境界の値を扱い、JS固有のhandleは将来の値・resource ABIで設計します。現在のBodyは全量回収し、その間Instanceを保持します。
+bundleはIIFEの `fetchletExports` に関数を公開します。JSON境界の値を扱い、JS固有のhandleは将来の値・resource ABIで設計します。streaming本文は完了・cancelまでInvocationとInstanceを保持します。所有関係と制約は[設計方針](design-proposal.md#streamingとbackground)にまとめています。
 
 ## 適合性の実測
 
@@ -56,7 +57,7 @@ SvelteKit **3.2.0** / Svelte **5.57.3** は実際のsveltekit buildとgenerateSe
 | Crypto               | secure random、UUID v4、SHA-256                                                                                                                  |
 | timer / job          | PromiseとsetTimeout / clearTimeout、Future通知による駆動                                                                                         |
 | fetch / env          | Rust serviceへの非同期bridge、origin policy、固定binding                                                                                         |
-| 本文・background     | buffered転送と終了時のtimer回収。次にBody lease / streaming / 明示的backgroundを設計                                                             |
+| 本文・background     | Response本文のstreaming（`__fetchletResponseBodies`）と終了時のtimer回収。次にRequest本文のstreamingと明示的background                           |
 | 実行制御             | optionalな協調的期限とengine options。hard interruptとprocess境界を拡張                                                                          |
 
 23プローブとframework fixtureはアプリ互換性の足場です。標準適合の評価はAPIごとの試験とWPTへ広げ、Deno / LLRT等の既存実装も比較します。

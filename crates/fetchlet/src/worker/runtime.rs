@@ -38,7 +38,8 @@ pub(super) fn spawn(
                 if initialized.send(Ok(())).is_err() {
                     return Ok(());
                 }
-                executor.block_on(serve(receiver, shutdown, app, builder));
+                let response_body_queue = options.response_body_queue.get();
+                executor.block_on(serve(receiver, shutdown, app, builder, response_body_queue));
                 Ok(())
             }));
             let outcome = match result {
@@ -56,6 +57,7 @@ async fn serve(
     mut shutdown: watch::Receiver<bool>,
     mut app: App,
     builder: AppBuilder,
+    response_body_queue: usize,
 ) {
     let mut draining = false;
     loop {
@@ -82,6 +84,6 @@ async fn serve(
                 }
             };
         }
-        command.execute(&mut app).await;
+        command.execute(&mut app, response_body_queue).await;
     }
 }

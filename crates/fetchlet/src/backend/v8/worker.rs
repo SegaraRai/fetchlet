@@ -11,11 +11,10 @@ use super::V8Options;
 use super::runtime::V8Runtime;
 use crate::Instance;
 use crate::bridge::HostBridge;
-use crate::execution::WakeSignal;
+use crate::execution::{WakeSignal, invocation};
 
 struct Call {
-    export: String,
-    args: Vec<Value>,
+    expression: String,
     cancelled: Arc<AtomicBool>,
     reply: oneshot::Sender<(Result<Value>, bool)>,
 }
@@ -70,7 +69,7 @@ impl V8 {
             let _ = ready.send(Ok(local.isolate_handle()));
             while let Ok(Some(call)) = receiver.recv() {
                 local.set_cancellation(call.cancelled);
-                let result = executor.block_on(local.call_json(&call.export, &call.args));
+                let result = executor.block_on(local.evaluate(call.expression));
                 let _ = call.reply.send((result, local.is_reusable()));
             }
         })?;
@@ -91,6 +90,13 @@ impl Instance for V8 {
     }
 
     async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
+        self.evaluate(invocation(export, args)?).await
+    }
+}
+
+impl V8 {
+    /// Evaluate an invocation expression on the isolate's worker thread.
+    pub(crate) async fn evaluate(&mut self, expression: String) -> Result<Value> {
         if self.poisoned {
             anyhow::bail!("Instance cannot be reused after an interrupted call");
         }
@@ -105,8 +111,7 @@ impl Instance for V8 {
         let (reply, receive) = oneshot::channel();
         self.sender
             .send(Some(Call {
-                export: export.to_owned(),
-                args: args.to_vec(),
+                expression,
                 cancelled: flag,
                 reply,
             }))

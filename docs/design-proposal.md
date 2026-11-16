@@ -55,16 +55,21 @@ host FutureはInvocationが直接所有します。waker通知と次のJS timer�
 
 ## streamingとbackground
 
-現在のBodyはbuffer方式で `http_body::Body` を実装します。双方向streamingへ進める際は次の所有関係を採用します。
+`Body` はbuffered本文とstreaming本文の両方を `http_body::Body` として提供します。Response本文は次の所有関係で流れます。
 
 ```text
-Rust Request Body → bounded queue → JS ReadableStream
-JS Response body → bounded queue → Rust Response Body
+JS Response body → registry pull（需要駆動）→ bounded queue → Rust Response Body
                          ↓
              Invocation / Instance lease
 ```
 
-キュー容量は構成可能にし、読み取り需要に応じて生成側を駆動します。Response Bodyがleaseを保持し、本文完了・cancelまでInstanceを維持します。Rust Bodyのdropと接続切断は、JS stream cancelとhost I/Oへ伝播します。
+- `AppHandle::fetch` はhandlerがheadを返した時点でResponseを返し、本文をworkerがqueueの空きに応じてpullします。queue容量は `WorkerOptions::response_body_queue`（既定1）です。
+- 未完了の本文はInvocationのscope・期限・Instanceを保持し、完了・エラー・cancelでInvocationを終えてtimerを回収します。それまで同じworkerは次の呼び出しを開始しません。
+- `Limits::timeout` は本文の完了までを含み、`response_body_bytes` は本文全体の累積で検査します。超過時はJS streamをcancelします。
+- Rust Bodyをpullの間にdropするとJS streamを協調的にcancelし、Instanceを再利用します。pull実行中のdropは評価を放棄し、Instanceを退役させて次の呼び出しで再構築します。
+- `App::fetch` は同じ経路で本文を全量回収します。
+
+JS側は使用可能なchunkを64 KiBまでまとめて1回のbridge messageにします。これはbackpressureの粒度で、本文の予算は `response_body_bytes` が持ちます。chunkは現在JSON数値配列で転送します。Request本文はRust側で `request_body_bytes` の範囲で回収してからJSへ渡します。Request本文のJS ReadableStreamへのstreamingと、外向きhost I/Oへのcancel伝播は次の段階です。
 
 background処理はwaitUntil相当の明示的登録を検討します。呼び出しごとの期限と件数予算を設け、本文とbackgroundの両方が終了した時点でInstanceを再利用します。現profileのtimerは呼び出し終了時に回収します。
 
@@ -81,7 +86,7 @@ AOTはnative artifactのABI、compiler / runtime版、初期化・解放、値�
 ## 次の実装
 
 1. Request / Response、Blob / multipart等の適合性を既存実装の評価とWPT・回帰試験で整え、backend能力と構成要求の照合を広げる。
-2. Bodyのlease、backpressure、双方向streamingとcancel伝播を実装する。
+2. Request本文のstreaming、外向きhost fetch本文のstreamingとcancel伝播、binary chunk転送へ広げる（Response本文のlease・backpressure・cancelは実装済み）。
 3. backendごとの強制力とprocess境界を整備し、poolの再利用条件を検証する。
 4. framework adapterとRustの内部fetchを接続し、origin登録、信頼できるContext、任意のrouter統合と再入の契約を検証する。
 5. AOTのRustリンクとABIを継続検証し、利用できる能力からAppへ接続する。
@@ -94,4 +99,4 @@ AOTはnative artifactのABI、compiler / runtime版、初期化・解放、値�
 
 Rust本体は `crates/fetchlet/`、共通JS支援とframework adapterは `packages/`、実アプリとE2Eは `examples/` に置きます。最初のSvelteKit + axum例から、frameworkとRust HTTPサーバを独立して追加する構成を育てます。[追加方針](../examples/README.md)を参照してください。
 
-共有実行はAppHandle、axumのHTTP接続はfetchlet-axumへ実装しました。SvelteKitとAstroは@fetchlet/buildのartifact形式を共有し、同じRust integrationで動作します。次は追加のframeworkとstreaming等の能力を、この境界の上に拡張します。
+共有実行はAppHandle、axumのHTTP接続はfetchlet-axumへ実装しました。SvelteKitとAstroは@fetchlet/buildのartifact形式を共有し、同じRust integrationで動作します。Response本文はこの境界でstreamingします。次は追加のframeworkと能力を、この境界の上に拡張します。

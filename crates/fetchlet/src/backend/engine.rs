@@ -30,6 +30,18 @@ impl Engine {
         };
         result.map_err(|error| Error::JavaScript(error.to_string()))
     }
+
+    /// Evaluate a prepared invocation expression (see `execution::script`).
+    pub(crate) async fn evaluate(&mut self, expression: String) -> anyhow::Result<Value> {
+        match self {
+            #[cfg(feature = "quickjs")]
+            Self::QuickJs(engine) => engine.evaluate(expression).await,
+            #[cfg(feature = "boa")]
+            Self::Boa(engine) => engine.evaluate(expression).await,
+            #[cfg(feature = "v8")]
+            Self::V8(engine) => engine.evaluate(expression).await,
+        }
+    }
 }
 
 impl Instance for Engine {

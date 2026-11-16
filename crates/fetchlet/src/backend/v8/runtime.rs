@@ -70,8 +70,15 @@ impl Instance for V8Runtime {
     }
 
     async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
+        self.evaluate(invocation(export, args)?).await
+    }
+}
+
+impl V8Runtime {
+    /// Evaluate an invocation expression and drive its Promise to completion.
+    /// The invocation script owns timer and response-body cleanup.
+    pub(super) async fn evaluate(&mut self, expression: String) -> Result<Value> {
         self.reusable = false;
-        let expression = invocation(export, args)?;
         let promise = self
             .runtime
             .execute_script("fetchlet:call", expression)
@@ -98,9 +105,6 @@ impl Instance for V8Runtime {
                 }
             };
             if let Some(json) = result {
-                self.runtime
-                    .execute_script("fetchlet:cleanup", "globalThis.__fetchletClearTimers?.()")
-                    .map_err(|error| anyhow!("{error}"))?;
                 self.reusable = true;
                 return Ok(serde_json::from_str(&json?)?);
             }

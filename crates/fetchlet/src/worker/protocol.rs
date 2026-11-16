@@ -3,7 +3,8 @@ use std::future::Future;
 use serde_json::Value;
 use tokio::sync::oneshot;
 
-use crate::{App, Error, Request, Response, Result};
+use super::streaming::stream_response_body;
+use crate::{App, Body, Error, Request, Response, Result};
 
 pub(super) enum Command {
     Call {
@@ -37,7 +38,9 @@ impl Command {
         }
     }
 
-    pub async fn execute(self, app: &mut App) {
+    /// Execute on the worker. A streaming Fetch response keeps the worker,
+    /// and with it the instance, until its body finishes or is dropped.
+    pub async fn execute(self, app: &mut App, response_body_queue: usize) {
         match self {
             Self::Call {
                 export,
@@ -49,15 +52,38 @@ impl Command {
             Self::Fetch {
                 request,
                 context,
-                reply,
+                mut reply,
             } => {
-                let execution = async {
-                    match context {
-                        Some(context) => app.fetch_with_context(*request, &context).await,
-                        None => app.fetch(*request).await,
+                let head = tokio::select! {
+                    head = app.fetch_head(*request, context) => head,
+                    () = reply.closed() => return,
+                };
+                let (response, open) = match head {
+                    Ok(head) => head,
+                    Err(error) => {
+                        let _ = reply.send(Err(error));
+                        return;
                     }
                 };
-                complete(reply, execution).await;
+                let Some(open) = open else {
+                    let _ = reply.send(Ok(response));
+                    return;
+                };
+                let (parts, body) = response.into_parts();
+                let prefix = match body.collect_within(None, "response body bytes").await {
+                    Ok(prefix) => prefix,
+                    Err(error) => {
+                        app.cancel_response_body(open).await;
+                        let _ = reply.send(Err(error));
+                        return;
+                    }
+                };
+                let (sender, body) = Body::channel(prefix, response_body_queue);
+                if reply.send(Ok(Response::from_parts(parts, body))).is_err() {
+                    app.cancel_response_body(open).await;
+                    return;
+                }
+                stream_response_body(app, open, sender).await;
             }
         }
     }
