@@ -4,7 +4,7 @@ RustアプリケーションにJavaScriptの関数とFetchハンドラを組み�
 
 選べるバックエンドと、その能力に合わせたWeb API・polyfillを通じて、サーバーサイドJSをRustアプリへ手軽に統合します。
 
-主用途は、Hono JSX、SvelteKit、Astroなどのサーバー側処理をRustアプリへ組み込み、リッチなWeb UIを提供することです。特にCLI付属UI、ローカルツール、セルフホストなど、一つのRust配布物にまとめたい用途を重視します。RustがRequestを渡し、JSで生成したResponseを受け取ります。任意の同期・非同期関数も同じ実行基盤から呼び出せます。
+主用途は、Hono JSX、SvelteKit、Astro、Nuxt、React Routerなどのサーバー側処理をRustアプリへ組み込み、リッチなWeb UIを提供することです。特にCLI付属UI、ローカルツール、セルフホストなど、一つのRust配布物にまとめたい用途を重視します。RustがRequestを渡し、JSで生成したResponseを受け取ります。任意の同期・非同期関数も同じ実行基盤から呼び出せます。
 
 ```rust
 use std::num::NonZeroUsize;
@@ -64,7 +64,7 @@ vp run example:sveltekit-axum
 
 ブラウザで `http://127.0.0.1:3000` を開きます。HTTPサーバはRustが起動し、専用スレッドでJSを実行します。
 
-Astro＋axumの例も `vp run example:astro-axum` で起動できます（http://127.0.0.1:3100、QuickJS＋FormatJS）。両例は同じRustの公開APIを使います。adapterのbackend設定から不足するIntl APIを選び、localeとタイムゾーンデータを絞って組み込みます。[polyfillの選択](packages/build/README.md)を参照してください。
+Astro＋axumの例も `vp run example:astro-axum` で起動できます（http://127.0.0.1:3100、QuickJS＋FormatJS）。[Nuxt + axum](examples/nuxt-axum/README.md)（`vp run example:nuxt-axum`、http://127.0.0.1:3200）はNitro presetで、[React Router + axum](examples/react-router-axum/README.md)（`vp run example:react-router-axum`、http://127.0.0.1:3300）はReact Router presetでbuildします。4つの例は同じRustの公開APIを使います。adapterのbackend設定から不足するIntl APIを選び、localeとタイムゾーンデータを絞って組み込みます。[polyfillの選択](packages/build/README.md)を参照してください。
 
 ## Workspace
 
@@ -79,8 +79,12 @@ packages/runtime/            共通Web APIとFetch entryの接続
 packages/build/              共通artifact builder
 packages/sveltekit-adapter/   SvelteKit adapter
 packages/astro-adapter/       Astro adapter
+packages/nitro-preset/        Nitro / Nuxt向けNitro preset
+packages/react-router-preset/ React Router preset
 examples/sveltekit-axum/      QuickJSで動くSvelteKit例
 examples/astro-axum/          QuickJS＋Intl polyfillで動くAstro例
+examples/nuxt-axum/           QuickJSで動くNuxt例
+examples/react-router-axum/   QuickJSで動くReact Router例
 fixtures/                    backend互換性の回帰試験
 fuzz/                        Rust host境界のfuzzing
 ```

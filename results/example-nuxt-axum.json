@@ -1,0 +1,54 @@
+{
+  "checkedAt": "2026-11-16T17:56:30.702Z",
+  "summary": {
+    "passed": 11,
+    "failed": 0
+  },
+  "browser": "159.0.8154.6",
+  "results": [
+    {
+      "name": "Nuxt SSR, escaping, runtime config and the Rust service binding",
+      "status": "pass"
+    },
+    {
+      "name": "Nuxt JavaScript, CSS and public files",
+      "status": "pass"
+    },
+    {
+      "name": "Nitro JSON route",
+      "status": "pass"
+    },
+    {
+      "name": "form post, Set-Cookie and redirect",
+      "status": "pass"
+    },
+    {
+      "name": "Nitro client address and host bindings",
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with Nuxt",
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following Nuxt request",
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach the Nitro route in chunks within the budget",
+      "status": "pass"
+    },
+    {
+      "name": "event.waitUntil work runs after the response and before the next request",
+      "status": "pass"
+    },
+    {
+      "name": "concurrent Nuxt requests keep their own values",
+      "status": "pass"
+    },
+    {
+      "name": "hydration, form submission and Nuxt navigation",
+      "status": "pass"
+    }
+  ]
+}

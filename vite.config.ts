@@ -31,7 +31,7 @@ export default defineConfig({
       "test:native": { command: "pwsh -NoProfile -File tools/test-native-link.ps1", cache: false },
       "check:types": {
         command:
-          "tsc --noEmit && tsc --noEmit -p packages/astro-adapter/tsconfig.json && vp run --filter @fetchlet/example-* check:types",
+          "tsc --noEmit && tsc --noEmit -p packages/astro-adapter/tsconfig.json && tsc --noEmit -p packages/react-router-preset/tsconfig.json && vp run --filter @fetchlet/example-* check:types",
         cache: false,
       },
       "check:format": {
@@ -53,6 +53,22 @@ export default defineConfig({
       },
       "test:example:astro-axum": {
         command: "pwsh -NoProfile -File tools/test-example.ps1 -Name astro-axum",
+        cache: false,
+      },
+      "example:nuxt-axum": {
+        command: "vp run --filter @fetchlet/example-nuxt-axum serve",
+        cache: false,
+      },
+      "test:example:nuxt-axum": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name nuxt-axum",
+        cache: false,
+      },
+      "example:react-router-axum": {
+        command: "vp run --filter @fetchlet/example-react-router-axum serve",
+        cache: false,
+      },
+      "test:example:react-router-axum": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name react-router-axum",
         cache: false,
       },
       "test:examples": {

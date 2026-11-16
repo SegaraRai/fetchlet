@@ -23,3 +23,6 @@
 /packages/*/node_modules/
 
 /examples/*/.astro/
+/examples/*/.nuxt/
+/examples/*/.output/
+/examples/*/.react-router/

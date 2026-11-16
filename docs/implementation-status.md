@@ -134,9 +134,9 @@ RustのWindows用スクリプトはCC / CXXをprocess内でclang-clに設定し�
 
 workspace移行後はRust本体・axum worker・3VMの互換性・host往復・browser E2E・ASan fuzzingを再検証しています。TypeScriptはSvelteKitのCompiler API互換範囲に揃え、通常のtsconfigでも型チェックを通しています。frameworkをIIFEへbundleする際の上流import.meta.dirname警告は残っています。
 
-## 共有handleと2つのframework
+## 共有handleとframework
 
-AppHandleの3試験、streamingの13試験を3VMで確認しています。Rust HTTP統合はfetchlet-tower、fetchlet-hyper、fetchlet-axum、fetchlet-actixの4crateで、共通契約の8試験（公開origin・headers・binary・Set-Cookie・接続元、context、回収本文、streaming本文、エラー詳細とworker終了、信頼できるContext、切断によるcancel、origin検証）をそれぞれ3VMで実行します。fetchlet-hyperはloopbackの実TCP接続で実行します。Astro 7.4.12 / @astrojs/svelte 9.1.6の例を追加し、QuickJS＋FormatJSでSSRとSvelte islandを実行します。SvelteKit例はQuickJSを使い、両例で同じRust APIとartifact builderを利用します。Astro例はRequest本文をstreamingで受け、chunked uploadの受信と予算超過を検査します。結果（SvelteKit 9項目、Astro 10項目）はresults/example-{framework}-axum.jsonです。
+AppHandleの3試験、streamingの13試験を3VMで確認しています。Rust HTTP統合はfetchlet-tower、fetchlet-hyper、fetchlet-axum、fetchlet-actixの4crateで、共通契約の8試験（公開origin・headers・binary・Set-Cookie・接続元、context、回収本文、streaming本文、エラー詳細とworker終了、信頼できるContext、切断によるcancel、origin検証）をそれぞれ3VMで実行します。fetchlet-hyperはloopbackの実TCP接続で実行します。Astro 7.4.12 / @astrojs/svelte 9.1.6の例を追加し、QuickJS＋FormatJSでSSRとSvelte islandを実行します。SvelteKit例はQuickJSを使い、両例で同じRust APIとartifact builderを利用します。Astro例はRequest本文をstreamingで受け、chunked uploadの受信と予算超過を検査します。Nuxt 4.6.4（nitropack 2.13.6）の例は@fetchlet/nitro-presetでbuildし、11項目を確認します。React Router 7.18.5 / React 19.3.1の例は@fetchlet/react-router-presetでbuildし、遅延データのstreaming SSRを含む12項目を確認します。React Routerの例はQuickJSのstack上限を4 MiBに設定しています。既定の1 MiBではRustのdebug buildでReactがstack overflowから描画をやり直し、head内に `<link` の断片を残しました。結果はresults/example-{framework}-axum.jsonです。
 
 AstroのIntl.DateTimeFormat要求はbuild backendに応じて満たします。QuickJS / BoaへはFormatJSの依存とlocaleデータを追加し、V8向けbundleはnative Intlを使います。[選択と実測](../packages/build/README.md)を参照してください。共通profileにはRustの単調時計に接続したperformance.now / timeOriginを追加しました。Web API層をframework評価前に初期化する順序を@fetchlet/buildで揃えています。
 

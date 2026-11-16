@@ -1,0 +1,30 @@
+{
+  "name": "@fetchlet/react-router-preset",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.mjs"
+    },
+    "./context": "./src/context.ts"
+  },
+  "dependencies": {
+    "@fetchlet/build": "workspace:*",
+    "@fetchlet/runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@react-router/dev": "7.18.5",
+    "@types/node": "^26.6.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "7.18.5",
+    "typescript": "~6.0.3",
+    "vite-plus": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@react-router/dev": "^7.18.5",
+    "react-router": "^7.18.5"
+  }
+}

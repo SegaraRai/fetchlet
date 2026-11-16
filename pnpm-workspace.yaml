@@ -7,3 +7,5 @@ overrides:
   vitest: 4.1.11
 allowBuilds:
   core-js-pure: true
+  # The platform binary comes from an optional dependency; the script only verifies it.
+  esbuild: false

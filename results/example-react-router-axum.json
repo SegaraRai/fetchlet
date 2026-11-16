@@ -1,0 +1,58 @@
+{
+  "checkedAt": "2026-11-16T17:56:34.589Z",
+  "summary": {
+    "passed": 12,
+    "failed": 0
+  },
+  "browser": "159.0.8154.6",
+  "results": [
+    {
+      "name": "React Router SSR, escaping and the Rust service binding",
+      "status": "pass"
+    },
+    {
+      "name": "React Router JavaScript, CSS and public files",
+      "status": "pass"
+    },
+    {
+      "name": "deferred loader data streams after the shell",
+      "status": "pass"
+    },
+    {
+      "name": "resource route JSON action",
+      "status": "pass"
+    },
+    {
+      "name": "document form action and Set-Cookie",
+      "status": "pass"
+    },
+    {
+      "name": "client address and host bindings in the load context",
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with React Router",
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following React Router request",
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach the resource route in chunks within the budget",
+      "status": "pass"
+    },
+    {
+      "name": "context.waitUntil work runs after the response and before the next request",
+      "status": "pass"
+    },
+    {
+      "name": "concurrent React Router requests keep their own values",
+      "status": "pass"
+    },
+    {
+      "name": "hydration, client actions and React Router navigation",
+      "status": "pass"
+    }
+  ]
+}

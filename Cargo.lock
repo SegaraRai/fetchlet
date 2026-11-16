@@ -1078,6 +1078,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-nuxt-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
+name = "example-react-router-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
 name = "example-sveltekit-axum"
 version = "0.0.0"
 dependencies = [
