@@ -21,7 +21,10 @@ async function invokeResponseBody(operation, bodyId) {
   } finally {
     if (invocationEnds) {
       bodies.closeAll();
-      globalThis.__fetchletClearTimers?.();
+      // Background work keeps its timers until Rust settles it.
+      if ((globalThis.__fetchletBackground?.pending() ?? 0) <= 0) {
+        globalThis.__fetchletClearTimers?.();
+      }
     }
   }
 }

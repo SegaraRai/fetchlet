@@ -9,7 +9,9 @@ use super::response_body::OpenResponseBody;
 use crate::backend::Engine;
 use crate::bridge::{HostBridge, InvocationScope};
 use crate::config::check_limit;
-use crate::execution::{deadline_after, fetch_invocation, invocation, with_deadline};
+use crate::execution::{
+    BACKGROUND_SETTLE, deadline_after, fetch_invocation, invocation, with_deadline,
+};
 use crate::wire::{WireRequest, WireResponse};
 use crate::{Backend, Body, Error, HostServices, Instance, Limits, Request, Response, Result};
 
@@ -24,6 +26,14 @@ pub struct App {
     pub(super) limits: Limits,
     pub(super) handler: String,
     pub(super) reusable: bool,
+    /// An ended invocation whose `fetchlet.waitUntil` work has not settled.
+    pub(super) background: Option<PendingBackground>,
+}
+
+/// The open scope of background work and its deadline.
+pub(super) struct PendingBackground {
+    scope: InvocationScope,
+    deadline: Option<Instant>,
 }
 
 impl App {
@@ -41,7 +51,35 @@ impl App {
         self.reusable && self.engine.is_reusable()
     }
 
+    /// Whether background work registered by an earlier call is still open.
+    pub fn has_background(&self) -> bool {
+        self.background.is_some()
+    }
+
+    /// Run background work registered with `fetchlet.waitUntil` to completion.
+    ///
+    /// A call or Fetch response ends before its background work. That work
+    /// keeps the invocation's host scope and timers, and runs here within
+    /// `Limits::background_timeout`, counted from the end of the result or
+    /// body. The next call runs it first if the caller has not. Work that
+    /// cannot settle in time retires the instance with `DeadlineExceeded`.
+    pub async fn finish_background(&mut self) -> Result<()> {
+        let Some(background) = self.background.take() else {
+            return Ok(());
+        };
+        let result = self
+            .evaluate(BACKGROUND_SETTLE.to_owned(), background.deadline)
+            .await;
+        // Settled work leaves nothing behind; anything left retires the instance.
+        if background.scope.has_pending() || background.scope.has_background() {
+            self.reusable = false;
+        }
+        drop(background.scope);
+        result.map(drop)
+    }
+
     pub async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
+        self.finish_background().await?;
         let scope = self.begin()?;
         let expression = invocation(export, args).map_err(invalid_request)?;
         let result = self
@@ -109,6 +147,7 @@ impl App {
         request: Request,
         context: Option<Value>,
     ) -> Result<(Response, Option<OpenResponseBody>)> {
+        self.finish_background().await?;
         if !self.is_reusable() {
             return Err(Error::InstanceUnavailable);
         }
@@ -203,8 +242,17 @@ impl App {
         result?.map_err(|error| Error::JavaScript(error.to_string()))
     }
 
-    /// End an invocation. Unfinished host operations retire the instance.
+    /// End an invocation's result or body. Background work keeps the scope
+    /// open for [`App::finish_background`]; otherwise unfinished host
+    /// operations retire the instance.
     pub(super) fn close(&mut self, scope: InvocationScope) {
+        if self.reusable && scope.has_background() {
+            self.background = Some(PendingBackground {
+                scope,
+                deadline: deadline_after(self.limits.background_timeout),
+            });
+            return;
+        }
         if scope.has_pending() {
             self.reusable = false;
         }

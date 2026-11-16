@@ -57,7 +57,10 @@ async function invokeExport(exportName, argumentsList, streamResponseBody) {
     bodies?.endCall();
     if (!invocationRemainsOpen) {
       bodies?.closeAll();
-      globalThis.__fetchletClearTimers?.();
+      // Background work keeps its timers until Rust settles it.
+      if ((globalThis.__fetchletBackground?.pending() ?? 0) <= 0) {
+        globalThis.__fetchletClearTimers?.();
+      }
     }
   }
 }

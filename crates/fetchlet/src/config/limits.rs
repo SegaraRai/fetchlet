@@ -28,17 +28,26 @@ pub struct Limits {
     pub subrequests: Option<usize>,
     /// Redirects followed per fetch, within the Fetch specification's limit.
     pub redirects: Option<usize>,
+    /// Cooperative duration of background work registered with
+    /// `fetchlet.waitUntil`, from the end of the invocation's result or body.
+    pub background_timeout: Option<Duration>,
+    /// `fetchlet.waitUntil` registrations during one invocation.
+    pub background_tasks: Option<usize>,
 }
 
 impl Limits {
     pub(crate) fn validate(&self) -> Result<()> {
-        let exceeds_clock_range = self
-            .timeout
-            .is_some_and(|timeout| Instant::now().checked_add(timeout).is_none());
-        if exceeds_clock_range {
-            return Err(Error::Configuration(
-                "timeout exceeds the platform clock range".into(),
-            ));
+        for (name, timeout) in [
+            ("timeout", self.timeout),
+            ("background_timeout", self.background_timeout),
+        ] {
+            let exceeds_clock_range =
+                timeout.is_some_and(|timeout| Instant::now().checked_add(timeout).is_none());
+            if exceeds_clock_range {
+                return Err(Error::Configuration(format!(
+                    "{name} exceeds the platform clock range"
+                )));
+            }
         }
 
         Ok(())

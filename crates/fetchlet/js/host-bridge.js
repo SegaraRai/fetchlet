@@ -390,6 +390,7 @@
       // Nothing from an earlier invocation is reachable from this one.
       responseBodyRegistry.closeAll();
       pendingReads.clear();
+      backgroundTasks.clear();
       streamingCall = streaming;
     },
     endCall() {
@@ -453,6 +454,53 @@
     configurable: false,
   });
 
+  // Background work registered with fetchlet.waitUntil. The invocation stays
+  // open, with its timers and host scope, until every task settles; Rust
+  // bounds that with Limits::background_timeout. Rejections are absorbed: a
+  // task's outcome does not change the response.
+  const backgroundTasks = new Set();
+
+  function waitUntil(promise) {
+    // Throws outside an invocation or over Limits::background_tasks.
+    dispatch("background.register", null);
+    const task = Promise.resolve(promise)
+      .then(
+        () => {},
+        () => {},
+      )
+      .then(() => {
+        backgroundTasks.delete(task);
+        try {
+          dispatch("background.settle", null);
+        } catch {
+          // The invocation ended; nothing waits for this task any more.
+        }
+      });
+    backgroundTasks.add(task);
+  }
+
+  const backgroundRegistry = Object.freeze({
+    pending() {
+      return backgroundTasks.size;
+    },
+    // Resolve once every task, including ones registered meanwhile, settled.
+    async settle() {
+      while (backgroundTasks.size > 0) {
+        await Promise.all(Array.from(backgroundTasks));
+      }
+    },
+    // Forget tasks of an invocation that ended without settling them.
+    clear() {
+      backgroundTasks.clear();
+    },
+  });
+
+  Object.defineProperty(globalThis, "__fetchletBackground", {
+    value: backgroundRegistry,
+    writable: false,
+    configurable: false,
+  });
+
   const env = Object.assign(Object.create(null), bindings.env);
   for (const serviceName of bindings.services) {
     env[serviceName] = Object.freeze({
@@ -463,6 +511,7 @@
   Object.defineProperty(globalThis, "fetchlet", {
     value: Object.freeze({
       env: Object.freeze(env),
+      waitUntil,
     }),
     writable: false,
     configurable: false,

@@ -85,7 +85,16 @@ Rust Body（入力Request・上流Response）→ body source（Invocation所有�
 - JS streamのcancel、fetchのsignalのabort、本文のエラーまたは完了、Invocationの終了でbody sourceをdropし、生産者（HTTP接続など）へcancelを伝えます。trailersは本文に含めません。
 - 外向きRequest本文はredirectで再送するため、JS内で全量を読み取ってから渡します。
 
-background処理はwaitUntil相当の明示的登録を検討します。呼び出しごとの期限と件数予算を設け、本文とbackgroundの両方が終了した時点でInstanceを再利用します。現profileのtimerは呼び出し終了時に回収します。
+応答後の処理は `fetchlet.waitUntil(promise)` で明示的に登録します。
+
+- 登録はInvocation中に限ります。件数は `Limits::background_tasks` で制限し、超過した登録はhandler内で例外（code `LIMIT_EXCEEDED`）になります。Invocation外の登録は `INVOCATION_CLOSED` です。
+- 結果または本文が終わった時点で未完了の処理があれば、Invocationはhost scope・timerとともに開いたまま残ります。host fetchや上流本文の読み取りも続けられます。
+- `App::finish_background` が処理の完了を待ちます。期限は `Limits::background_timeout` で、結果または本文の終了時点から数えます。期限内に終わらない処理はInstanceを退役させ、`DeadlineExceeded` を返します。
+- `AppHandle` のworkerは応答を返した後、次のcommandの前に処理を完了します。そのworkerに並ぶ次の呼び出しは、この時間を待ちます。`App` を直接使う場合は次の呼び出しの前に完了し、明示的に `finish_background` も呼べます。
+- 処理のrejectionは応答を変えず、吸収します。完了後は通常の呼び出しと同じく、未完了のhost fetchが残ればInstanceを退役させます。
+- @fetchlet/runtimeは `waitUntil` を提供し、SvelteKitでは `platform.context.waitUntil`、Astroでは `Astro.locals.waitUntil` へ渡します。
+
+background処理のない呼び出しでは、timerを呼び出し終了時に回収します。
 
 ## backend能力と強制力
 
@@ -100,7 +109,7 @@ AOTはnative artifactのABI、compiler / runtime版、初期化・解放、値�
 ## 次の実装
 
 1. Request / Response、Blob / multipart等の適合性を既存実装の評価とWPT・回帰試験で整え、backend能力と構成要求の照合を広げる。
-2. 外向きRequest本文のstreaming（redirectの再送条件を含む）と、明示的なbackground処理を設計する（Request / Response本文・上流本文のstreaming、binary転送、cancel伝播は実装済み）。
+2. 外向きRequest本文のstreaming（redirectの再送条件を含む）を設計する（Request / Response本文・上流本文のstreaming、binary転送、cancel伝播、`waitUntil` のbackground処理は実装済み）。
 3. backendごとの強制力とprocess境界を整備し、poolの再利用条件を検証する。
 4. framework adapterとRustの内部fetchを接続し、origin登録、信頼できるContext、任意のrouter統合と再入の契約を検証する。
 5. AOTのRustリンクとABIを継続検証し、利用できる能力からAppへ接続する。

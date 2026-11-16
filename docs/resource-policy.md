@@ -18,6 +18,8 @@
 | digest_bytes         | SHA-256へ渡す入力バイト数                                                                          |
 | subrequests          | 一回のInvocationで開始を試みるhost fetch数。失敗・中断でも消費を保持                               |
 | redirects            | 一回のfetchで追うredirect数。Fetchの仕様上限の範囲で適用                                           |
+| background_timeout   | `fetchlet.waitUntil` の処理の協調的な経過時間。結果または本文の終了時点から数える                  |
+| background_tasks     | 一回のInvocationでの `fetchlet.waitUntil` の登録数。完了済みの登録も数える                         |
 
 `Some(0)` はゼロの予算です。timeoutでは呼び出し開始前の期限切れになります。Bodyの `collect(limit)` に渡す値も呼び出し側の予算です。
 

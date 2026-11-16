@@ -78,7 +78,7 @@ transportはstreaming本文を返せます（`Body::from_http_body`）。guest�
 
 Invocation終了時には所有するtransport Futureを同期的にdropします。通常の完了や、処理の残っていないJS例外の後はInstanceを再利用できます。Rust Futureの中断、期限切れ、未完了のhost fetchを残したreturnの後はInstanceを退役させます。`App::is_reusable()` で状態を確認でき、退役後の呼び出しは `InstanceUnavailable` を返します。
 
-現profileでは呼び出し終了時に残ったtimerを破棄します。streaming本文はInvocationを保持するleaseで、本文完了・cancelまで実行環境を維持します。background処理は明示的な登録と寿命管理を設計します。
+現profileでは呼び出し終了時に残ったtimerを破棄します。streaming本文はInvocationを保持するleaseで、本文完了・cancelまで実行環境を維持します。`fetchlet.waitUntil` で登録したbackground処理は、Invocationのhost scopeとtimerを保持したまま応答後に実行し、`background_timeout` と `background_tasks` の予算で制限します（[設計方針](design-proposal.md#streamingとbackground)）。
 
 ## 資源予算
 

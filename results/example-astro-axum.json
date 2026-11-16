@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-16T14:14:25.659Z",
+  "checkedAt": "2026-11-16T14:34:32.918Z",
   "summary": {
-    "passed": 10,
+    "passed": 11,
     "failed": 0
   },
   "browser": "159.0.8154.6",
@@ -36,6 +36,10 @@
     },
     {
       "name": "streamed uploads reach the endpoint in chunks within the budget",
+      "status": "pass"
+    },
+    {
+      "name": "background work runs after the response and before the next request",
       "status": "pass"
     },
     {

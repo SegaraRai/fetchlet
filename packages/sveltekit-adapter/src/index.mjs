@@ -46,7 +46,7 @@ export default function fetchletAdapter({ out = "build", backend = "portable", i
       writeFileSync(
         entry,
         `
-        import { createFetchHandler, getBindings } from "@fetchlet/runtime/adapter";
+        import { createFetchHandler, getBindings, waitUntil } from "@fetchlet/runtime/adapter";
         import { server } from "./server-instance.js";
 
         const bindings = getBindings();
@@ -60,7 +60,12 @@ export default function fetchletAdapter({ out = "build", backend = "portable", i
           await initialization;
           return server.respond(request, {
             getClientAddress: () => context.clientAddress,
-            platform: { env: bindings },
+            platform: {
+              env: bindings,
+              context: {
+                waitUntil,
+              },
+            },
           });
         });
       `,

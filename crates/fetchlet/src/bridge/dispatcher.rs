@@ -32,6 +32,9 @@ struct InvocationState {
     bodies: BodySources,
     /// Outstanding `body.read` tickets and the body each one reads.
     pending_reads: BTreeMap<String, u64>,
+    /// `fetchlet.waitUntil` registrations, and those not yet settled.
+    background_registered: usize,
+    background_pending: usize,
 }
 
 impl InvocationState {
@@ -176,6 +179,8 @@ impl HostBridge {
             bytes: ByteStore::default(),
             bodies: BodySources::default(),
             pending_reads: BTreeMap::new(),
+            background_registered: 0,
+            background_pending: 0,
         });
 
         Ok(InvocationScope {
@@ -262,6 +267,8 @@ impl HostBridge {
             "fetch.cancel" => self.cancel_fetch(input),
             "body.read" => self.read_body(input),
             "body.cancel" => self.cancel_body(input),
+            "background.register" => self.register_background(),
+            "background.settle" => self.settle_background(),
             #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
             "random" | "sha256" => crypto::dispatch(operation, input, &limits),
             _ => Err(Error::PermissionDenied),
@@ -401,6 +408,30 @@ impl HostBridge {
         Ok(Value::Null)
     }
 
+    pub(super) fn register_background(&self) -> Result<Value> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let registered = invocation
+            .background_registered
+            .checked_add(1)
+            .ok_or(Error::LimitExceeded("background tasks"))?;
+        check_limit(
+            invocation.limits.background_tasks,
+            registered,
+            "background tasks",
+        )?;
+        invocation.background_registered = registered;
+        invocation.background_pending += 1;
+        Ok(Value::Null)
+    }
+
+    pub(super) fn settle_background(&self) -> Result<Value> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.background_pending = invocation.background_pending.saturating_sub(1);
+        Ok(Value::Null)
+    }
+
     pub(super) fn read_body(&self, input: &str) -> Result<Value> {
         let id: u64 = serde_json::from_str(input)
             .map_err(|_| Error::InvalidRequest("invalid body id".into()))?;
@@ -440,6 +471,17 @@ pub(crate) struct InvocationScope {
 }
 
 impl InvocationScope {
+    /// Whether `fetchlet.waitUntil` work of this invocation has not settled.
+    pub fn has_background(&self) -> bool {
+        let Ok(state) = self.bridge.lock_state() else {
+            return false;
+        };
+
+        state.invocation.as_ref().is_some_and(|invocation| {
+            invocation.generation == self.generation && invocation.background_pending > 0
+        })
+    }
+
     pub fn has_pending(&self) -> bool {
         let Ok(state) = self.bridge.lock_state() else {
             return true;

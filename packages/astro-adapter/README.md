@@ -15,7 +15,7 @@ export default defineConfig({
 });
 ```
 
-Rustの固定bindingはAstro.locals.envへ渡します。clientAddressは呼び出し固有のcontext、getSecretは固定した文字列bindingへ接続します。本文はbuffered profileです。
+Rustの固定bindingはAstro.locals.env、応答後の処理を登録する `waitUntil` はAstro.locals.waitUntilへ渡します。clientAddressは呼び出し固有のcontext、getSecretは固定した文字列bindingへ接続します。本文はbuffered profileです。
 
 AstroのIntl.DateTimeFormat要求を共通builderへ渡します。backendがquickjs / boaならFormatJSと依存API、選択したlocale・タイムゾーンデータを追加します。v8ならnative Intlを使います。backendの既定値portableは、いずれのVMでも補えるbundleを作ります。Rust側のbackendとbuild設定を合わせると、native APIを活かしてbundleを小さくできます。
 

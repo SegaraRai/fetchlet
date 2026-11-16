@@ -23,7 +23,7 @@ AppHandleが所有スレッド、キュー、キャンセルとInstance再生成
 
 config.jsonで待受、キュー、本文予算、期限、出力先を設定します。このローカル例はキュー8件、Request本文1 MiB、協調的期限10秒を選んでいます。public_originはproxyの外側のorigin指定に使えます。詳細な設定方法はSvelteKit例と共通です。
 
-AstroとSvelte 5の同期SSRを使い、本文はRustへbufferとして返します。Request本文は `stream_request_bodies()` でendpointへReadableStreamとして渡し、`/api/upload` が受信しながら数えます。Content-Lengthで予算超過を宣言した本文は実行前に413、宣言のない超過はendpointのstreamのエラーとして扱います。Svelte islandはSSR後にブラウザでhydrationします。cookieはローカルHTTP用で、HTTPSではsecureを設定します。
+AstroとSvelte 5の同期SSRを使い、本文はRustへbufferとして返します。Request本文は `stream_request_bodies()` でendpointへReadableStreamとして渡し、`/api/upload` が受信しながら数えます。Content-Lengthで予算超過を宣言した本文は実行前に413、宣言のない超過はendpointのstreamのエラーとして扱います。`/api/background` は `Astro.locals.waitUntil` で応答後の処理を登録し、同じworkerは次のリクエストの前にその処理を完了します（config.jsonのbackground_timeout_ms / background_tasksが予算）。Svelte islandはSSR後にブラウザでhydrationします。cookieはローカルHTTP用で、HTTPSではsecureを設定します。
 
 ## 検証
 

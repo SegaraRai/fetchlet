@@ -17,6 +17,6 @@ export default defineConfig({
 });
 ```
 
-出力は `server.js`、`client/`、`fetchlet.json`。Rust側のFetch entryは `handle` です。contextにclientAddressを渡すとSvelteKitのgetClientAddressへ接続します。固定bindingはplatform.envへ、文字列bindingはserver.initのenvへ渡します。
+出力は `server.js`、`client/`、`fetchlet.json`。Rust側のFetch entryは `handle` です。contextにclientAddressを渡すとSvelteKitのgetClientAddressへ接続します。固定bindingはplatform.envへ、応答後の処理を登録する `waitUntil` はplatform.context.waitUntilへ、文字列bindingはserver.initのenvへ渡します。
 
 Rustサーバとの接続例とE2Eは `examples/sveltekit-axum` を参照してください。次の拡張対象はserver側asset read、streaming、追加のrendering profileです。

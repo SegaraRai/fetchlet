@@ -85,5 +85,8 @@ async fn serve(
             };
         }
         command.execute(&mut app, response_body_queue).await;
+        // Background work runs after the reply, before the next command. A
+        // failure retires the instance, which the next command rebuilds.
+        let _ = app.finish_background().await;
     }
 }

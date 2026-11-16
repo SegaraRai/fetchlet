@@ -49,18 +49,18 @@ SvelteKit **3.2.0** / Svelte **5.57.3** は実際のsveltekit buildとgenerateSe
 
 入口は `packages/runtime/src/index.ts`、各APIの実装は `packages/runtime/src/web/` にあります。URL、base64、structuredClone、DOMExceptionはcore-js-pure、Streamsはweb-streams-polyfill、Encodingは@exodus/bytes 1.16.0のencoding-liteを利用します。Rustのgetrandom / sha2をhost operation経由で使います。
 
-| 範囲                 | 現在の実装と次の適合対象                                                                                                                                                                      |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Headers / Body       | validation、record変換、二重消費、byte stream本文（BYOBを3VMで提供）、textStream、structuredCloneするclone、pipeToによる全量読み取り、binary、Cookie。guard / filtering / response typeへ拡張 |
-| Request              | 読み取り専用の属性accessor（mode、credentials、cache、referrer等）とRequestInitの検証。no-corsのheader guardへ拡張                                                                            |
-| FormData / multipart | 重複項目とFile、byte単位のmultipart解析（行頭の区切り、preamble / epilogue、quoted boundary、UTF-8とescape、不正入力のTypeError）                                                             |
-| Encoding             | UTF-8 / UTF-16 / single-byte、streaming / fatal、TextEncoderStream / TextDecoderStream                                                                                                        |
-| Abort                | AbortSignal.abort / timeout / any、DOMException reason、本文読み取りとhost fetchのabort                                                                                                       |
-| Crypto               | secure random、UUID v4、SHA-256                                                                                                                                                               |
-| timer / job          | PromiseとsetTimeout / clearTimeout、Future通知による駆動                                                                                                                                      |
-| fetch / env          | Rust serviceへの非同期bridge、origin policy、固定binding                                                                                                                                      |
-| 本文・background     | Response本文のstreaming（`__fetchletResponseBodies`）、Request本文と上流Response本文のReadableStream化、byte storeによるbinary転送、終了時のtimer回収。次に明示的background                   |
-| 実行制御             | optionalな協調的期限とengine options。hard interruptとprocess境界を拡張                                                                                                                       |
+| 範囲                 | 現在の実装と次の適合対象                                                                                                                                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Headers / Body       | validation、record変換、二重消費、byte stream本文（BYOBを3VMで提供）、textStream、structuredCloneするclone、pipeToによる全量読み取り、binary、Cookie。guard / filtering / response typeへ拡張                              |
+| Request              | 読み取り専用の属性accessor（mode、credentials、cache、referrer等）とRequestInitの検証。no-corsのheader guardへ拡張                                                                                                         |
+| FormData / multipart | 重複項目とFile、byte単位のmultipart解析（行頭の区切り、preamble / epilogue、quoted boundary、UTF-8とescape、不正入力のTypeError）                                                                                          |
+| Encoding             | UTF-8 / UTF-16 / single-byte、streaming / fatal、TextEncoderStream / TextDecoderStream                                                                                                                                     |
+| Abort                | AbortSignal.abort / timeout / any、DOMException reason、本文読み取りとhost fetchのabort                                                                                                                                    |
+| Crypto               | secure random、UUID v4、SHA-256                                                                                                                                                                                            |
+| timer / job          | PromiseとsetTimeout / clearTimeout、Future通知による駆動                                                                                                                                                                   |
+| fetch / env          | Rust serviceへの非同期bridge、origin policy、固定binding                                                                                                                                                                   |
+| 本文・background     | Response本文のstreaming（`__fetchletResponseBodies`）、Request本文と上流Response本文のReadableStream化、byte storeによるbinary転送、`fetchlet.waitUntil` による応答後のbackground処理（期限・件数予算）、終了時のtimer回収 |
+| 実行制御             | optionalな協調的期限とengine options。hard interruptとprocess境界を拡張                                                                                                                                                    |
 
 23プローブとframework fixtureはアプリ互換性の足場です。標準適合の評価はAPIごとの試験とWPTへ広げ、Deno / LLRT等の既存実装も比較します。
 

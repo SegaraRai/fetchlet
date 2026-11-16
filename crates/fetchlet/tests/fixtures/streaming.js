@@ -119,6 +119,16 @@ globalThis.Response = class {
 
 let sequence = 0;
 let cancelled = 0;
+let backgroundDone = 0;
+let backgroundBytes = 0;
+
+// waitUntil needs an invocation; module evaluation has none.
+let topLevelWaitUntil = "accepted";
+try {
+  fetchlet.waitUntil(Promise.resolve());
+} catch (error) {
+  topLevelWaitUntil = error.code;
+}
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const bytes = (text) => new Uint8Array(Array.from(text, (character) => character.charCodeAt(0)));
@@ -198,6 +208,9 @@ function routes(url) {
 globalThis.fetchletExports = {
   sequence: () => ++sequence,
   cancelled: () => cancelled,
+  backgroundDone: () => backgroundDone,
+  backgroundBytes: () => backgroundBytes,
+  topLevelWaitUntil: () => topLevelWaitUntil,
   pendingTimers: () => timers.size,
   openBodies: () => globalThis.__fetchletResponseBodies.openCount(),
   // Try to read a body by a guessed id from a later invocation.
@@ -275,6 +288,72 @@ globalThis.fetchletExports = {
       }
       const text = String.fromCharCode(...first.value) + "|" + outcome;
       return { status: 200, headers: [], body: bytes(text) };
+    }
+    if (request.url.includes("/background")) {
+      const { path, parameters } = parse(request.url);
+      const finish = () => {
+        backgroundDone += 1;
+      };
+      let registered = 0;
+      let refusal = "none";
+      try {
+        switch (path) {
+          case "/background":
+            // A timer the invocation keeps for its background work.
+            fetchlet.waitUntil(delay(Number(parameters.wait ?? 20)).then(finish));
+            registered += 1;
+            break;
+          case "/background-forever":
+            fetchlet.waitUntil(new Promise(() => {}));
+            registered += 1;
+            break;
+          case "/background-rejected":
+            fetchlet.waitUntil(Promise.reject(new Error("ignored")));
+            fetchlet.waitUntil(delay(5).then(finish));
+            registered += 2;
+            break;
+          case "/background-many":
+            for (let index = 0; index < Number(parameters.count); index += 1) {
+              fetchlet.waitUntil(delay(5).then(finish));
+              registered += 1;
+            }
+            break;
+          case "/background-upstream":
+            // Read an upstream body after the response was sent.
+            fetchlet.waitUntil(
+              fetch("https://upstream.test/body").then(async (upstream) => {
+                const reader = upstream.body.getReader();
+                for (;;) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  backgroundBytes += value.byteLength;
+                }
+                finish();
+              }),
+            );
+            registered += 1;
+            break;
+          case "/background-stream": {
+            fetchlet.waitUntil(delay(5).then(finish));
+            registered += 1;
+            const id = bodies.register(routes("https://stream.test/ticks?count=2&wait=5"));
+            const initial = await bodies.pull(id, false);
+            return {
+              status: 200,
+              headers: [],
+              body: initial.chunk,
+              ...(initial.done ? {} : { stream: id }),
+            };
+          }
+        }
+      } catch (error) {
+        refusal = error.code;
+      }
+      return {
+        status: 202,
+        headers: [],
+        body: bytes(registered + ":" + refusal),
+      };
     }
     if (request.url.endsWith("/ignore")) {
       return { status: 200, headers: [], body: [] };

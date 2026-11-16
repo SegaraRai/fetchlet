@@ -51,3 +51,7 @@ pub(crate) const PRELUDE: &str = include_str!("../../js/runtime.js");
 pub(crate) const HOST_BOOTSTRAP: &str = include_str!("../../js/host-bridge.js");
 
 pub(crate) const LOOP_STEP: &str = include_str!("../../js/event-loop.js");
+
+/// Settle the background work of the open invocation.
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) const BACKGROUND_SETTLE: &str = include_str!("../../js/background.js");

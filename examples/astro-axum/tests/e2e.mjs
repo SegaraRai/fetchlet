@@ -114,6 +114,21 @@ check("streamed uploads reach the endpoint in chunks within the budget", async (
   assert.equal((await fetch(suite.base)).status, 200);
 });
 
+check("background work runs after the response and before the next request", async () => {
+  const label = "job-" + Date.now();
+  const response = await fetch(suite.base + "/api/background", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ label }),
+  });
+  assert.equal(response.status, 202);
+  const accepted = await response.json();
+  assert.equal(accepted.accepted, label);
+  assert.ok(!accepted.completed.includes(label), "sent before the work finished");
+  const { completed } = await (await fetch(suite.base + "/api/background")).json();
+  assert.ok(completed.includes(label));
+});
+
 check("concurrent Astro requests keep their own values", async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {

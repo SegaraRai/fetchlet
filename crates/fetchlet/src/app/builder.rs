@@ -53,6 +53,7 @@ impl AppBuilder {
             limits: self.limits,
             handler: self.handler,
             reusable: true,
+            background: None,
         })
     }
 }

@@ -428,3 +428,36 @@ fn an_untaken_guest_buffer_is_dropped_by_the_next_one() {
         b"second"
     );
 }
+
+#[test]
+fn background_work_is_counted_per_invocation_within_its_budget() {
+    let bridge = HostBridge::default();
+    let limits = Limits {
+        background_tasks: Some(2),
+        ..Limits::default()
+    };
+    assert!(matches!(
+        bridge.register_background(),
+        Err(Error::InvocationClosed)
+    ));
+
+    let scope = bridge.begin(limits.clone()).unwrap();
+    assert!(!scope.has_background());
+    bridge.register_background().unwrap();
+    bridge.register_background().unwrap();
+    // The budget counts registrations, settled or not.
+    bridge.settle_background().unwrap();
+    assert!(matches!(
+        bridge.register_background(),
+        Err(Error::LimitExceeded("background tasks"))
+    ));
+    assert!(scope.has_background());
+    bridge.settle_background().unwrap();
+    assert!(!scope.has_background());
+    drop(scope);
+
+    // A new invocation starts with its own count.
+    let scope = bridge.begin(limits).unwrap();
+    bridge.register_background().unwrap();
+    assert!(scope.has_background());
+}

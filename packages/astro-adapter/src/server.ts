@@ -1,4 +1,4 @@
-import { createFetchHandler, getBindings } from "@fetchlet/runtime/handler";
+import { createFetchHandler, getBindings, waitUntil } from "@fetchlet/runtime/handler";
 import { createApp } from "astro/app/entrypoint";
 import { setGetEnv } from "astro/env/setup";
 
@@ -20,6 +20,7 @@ async function render(request: Request, context: RequestContext = {}): Promise<R
     clientAddress: context.clientAddress,
     locals: {
       env: getBindings(),
+      waitUntil,
     },
     addCookieHeader: true,
   });
