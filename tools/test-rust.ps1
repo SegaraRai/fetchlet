@@ -35,7 +35,7 @@ try {
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   cargo check --locked -p fetchlet-axum --no-default-features
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-  cargo clippy --locked -p example-sveltekit-axum -p example-astro-axum -p example-nuxt-axum -p example-react-router-axum --all-targets -- -D warnings
+  cargo clippy --locked -p example-sveltekit-axum -p example-astro-axum -p example-nuxt-axum -p example-react-router-axum -p example-honox-axum -p example-tanstack-start-axum -p example-solidstart-axum -p example-qwik-city-axum -p example-waku-axum -p example-vinext-axum --all-targets -- -D warnings
   exit $LASTEXITCODE
 } finally {
   $env:CC = $previousCC

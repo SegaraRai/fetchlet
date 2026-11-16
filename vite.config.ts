@@ -31,7 +31,7 @@ export default defineConfig({
       "test:native": { command: "pwsh -NoProfile -File tools/test-native-link.ps1", cache: false },
       "check:types": {
         command:
-          "tsc --noEmit && tsc --noEmit -p packages/astro-adapter/tsconfig.json && tsc --noEmit -p packages/react-router-preset/tsconfig.json && vp run --filter @fetchlet/example-* check:types",
+          "tsc --noEmit && tsc --noEmit -p packages/astro-adapter/tsconfig.json && tsc --noEmit -p packages/react-router-preset/tsconfig.json && tsc --noEmit -p packages/hono/tsconfig.json && vp run --filter @fetchlet/example-* check:types",
         cache: false,
       },
       "check:format": {
@@ -69,6 +69,54 @@ export default defineConfig({
       },
       "test:example:react-router-axum": {
         command: "pwsh -NoProfile -File tools/test-example.ps1 -Name react-router-axum",
+        cache: false,
+      },
+      "example:honox-axum": {
+        command: "vp run --filter @fetchlet/example-honox-axum serve",
+        cache: false,
+      },
+      "test:example:honox-axum": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name honox-axum",
+        cache: false,
+      },
+      "example:tanstack-start-axum": {
+        command: "vp run --filter @fetchlet/example-tanstack-start-axum serve",
+        cache: false,
+      },
+      "test:example:tanstack-start-axum": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name tanstack-start-axum",
+        cache: false,
+      },
+      "example:solidstart-axum": {
+        command: "vp run --filter @fetchlet/example-solidstart-axum serve",
+        cache: false,
+      },
+      "test:example:solidstart-axum": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name solidstart-axum",
+        cache: false,
+      },
+      "example:qwik-city-axum": {
+        command: "vp run --filter @fetchlet/example-qwik-city-axum serve",
+        cache: false,
+      },
+      "test:example:qwik-city-axum": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name qwik-city-axum",
+        cache: false,
+      },
+      "example:waku-axum": {
+        command: "vp run --filter @fetchlet/example-waku-axum serve",
+        cache: false,
+      },
+      "test:example:waku-axum": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name waku-axum",
+        cache: false,
+      },
+      "example:vinext-axum": {
+        command: "vp run --filter @fetchlet/example-vinext-axum serve",
+        cache: false,
+      },
+      "test:example:vinext-axum": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name vinext-axum",
         cache: false,
       },
       "test:examples": {

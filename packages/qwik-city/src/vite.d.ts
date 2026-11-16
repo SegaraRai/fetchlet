@@ -1,0 +1,19 @@
+import type { Plugin } from "vite";
+
+export interface FetchletQwikCityOptions {
+  /** The server entry that default-exports `createQwikCity(...)`. Defaults to "src/entry.fetchlet.tsx". */
+  entry?: string;
+  /** Where server.js and fetchlet.json are written, next to the client build in `client/`. Defaults to "build". */
+  outDir?: string;
+  /** The engine the artifact targets. */
+  backend?: "portable" | "quickjs" | "boa" | "v8";
+  /** Intl data for engines without native Intl, as in @fetchlet/build. */
+  intl?: {
+    locales?: string[];
+    timeZoneData?: "utc" | "golden" | "all";
+    apis?: string[];
+  };
+}
+
+/** Build the Qwik City SSR build into a fetchlet artifact. */
+export function fetchletAdapter(options?: FetchletQwikCityOptions): Plugin;

@@ -1,0 +1,24 @@
+{
+  "name": "@fetchlet/tanstack-start",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.mjs"
+    }
+  },
+  "dependencies": {
+    "@fetchlet/build": "workspace:*",
+    "@fetchlet/runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "~6.0.3",
+    "vite-plus": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@tanstack/react-start": "^1.169.5"
+  }
+}

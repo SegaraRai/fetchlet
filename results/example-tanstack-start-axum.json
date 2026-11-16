@@ -1,0 +1,50 @@
+{
+  "checkedAt": "2026-11-16T22:19:18.700Z",
+  "summary": {
+    "passed": 10,
+    "failed": 0
+  },
+  "browser": "159.0.8154.6",
+  "results": [
+    {
+      "name": "TanStack Start SSR, escaping and the Rust service binding",
+      "status": "pass"
+    },
+    {
+      "name": "TanStack Start JavaScript, CSS and public files",
+      "status": "pass"
+    },
+    {
+      "name": "TanStack Start JSON endpoint",
+      "status": "pass"
+    },
+    {
+      "name": "TanStack Start client address and host bindings",
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with TanStack Start",
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following TanStack Start request",
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach TanStack Start in chunks within the budget",
+      "status": "pass"
+    },
+    {
+      "name": "TanStack Start background work runs after the response and before the next request",
+      "status": "pass"
+    },
+    {
+      "name": "concurrent TanStack Start requests keep their own values",
+      "status": "pass"
+    },
+    {
+      "name": "TanStack Start hydration and client navigation",
+      "status": "pass"
+    }
+  ]
+}

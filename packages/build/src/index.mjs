@@ -6,6 +6,7 @@ import { build } from "vite-plus";
 
 import { planPolyfills } from "./polyfills/plan.mjs";
 import { nativeCapabilityCheck } from "./polyfills/bootstrap.mjs";
+import { serializedAsyncContext } from "./async-context.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -21,6 +22,8 @@ export async function buildArtifact({
   requirements = [],
   backend = "portable",
   intl = {},
+  asyncContext,
+  conditions = [],
 }) {
   const plan = planPolyfills({ backend, requirements, intl });
   const input = resolve(entry);
@@ -42,11 +45,15 @@ export async function buildArtifact({
     );
     await build({
       configFile: false,
+      // Frameworks copy their public files into the client directory.
+      publicDir: false,
       resolve: {
         mainFields: ["module", "main"],
-        conditions: ["module", "production"],
+        // Adapters add conditions for dependencies a framework left external,
+        // such as "workerd" for react-dom/server.edge.
+        conditions: [...conditions, "module", "production"],
       },
-      plugins,
+      plugins: asyncContext === "serialized" ? [serializedAsyncContext(), ...plugins] : plugins,
       define: {
         "process.env.NODE_ENV": JSON.stringify("production"),
       },
@@ -87,6 +94,7 @@ export async function buildArtifact({
         profile: "portable-web",
         framework,
         rendering,
+        ...(asyncContext ? { asyncContext } : {}),
         requirements: plan.requirements,
         backend: plan.backend,
         nativeRequirements: plan.nativeRequirements,

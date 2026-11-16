@@ -1,0 +1,17 @@
+{
+  "name": "@fetchlet/example-solidstart-axum",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@solidjs/meta": "0.29.4",
+    "@solidjs/router": "1.0.3",
+    "@solidjs/start": "2.2.3",
+    "solid-js": "1.9.19"
+  },
+  "devDependencies": {
+    "@fetchlet/solid-start": "workspace:*",
+    "@types/node": "^26.6.6",
+    "typescript": "~6.0.3",
+    "vite-plus": "^1.6.0"
+  }
+}

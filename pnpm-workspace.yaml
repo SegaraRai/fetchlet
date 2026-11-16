@@ -9,3 +9,9 @@ allowBuilds:
   core-js-pure: true
   # The platform binary comes from an optional dependency; the script only verifies it.
   esbuild: false
+  # Qwik City lists it for optional image optimization, which the examples do not use.
+  sharp: false
+minimumReleaseAgeExclude:
+  - hono@4.13.19
+  - '@solidjs/start@2.2.3'
+  - vinext@1.4.6

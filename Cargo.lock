@@ -1078,7 +1078,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-honox-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
 name = "example-nuxt-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
+name = "example-qwik-city-axum"
 version = "0.0.0"
 dependencies = [
  "anyhow",
@@ -1106,7 +1134,63 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-solidstart-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
 name = "example-sveltekit-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
+name = "example-tanstack-start-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
+name = "example-vinext-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
+name = "example-waku-axum"
 version = "0.0.0"
 dependencies = [
  "anyhow",

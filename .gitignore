@@ -26,3 +26,9 @@
 /examples/*/.nuxt/
 /examples/*/.output/
 /examples/*/.react-router/
+/examples/*/dist/
+/examples/*/.tanstack/
+/examples/*/src/routeTree.gen.ts
+/examples/*/.vinext/
+/examples/*/.next/
+/examples/*/next-env.d.ts

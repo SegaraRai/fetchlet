@@ -1,0 +1,16 @@
+[package]
+name = "example-qwik-city-axum"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "Qwik City SSR and browser assets served by axum through fetchlet"
+
+[dependencies]
+fetchlet = { workspace = true, features = ["quickjs"] }
+fetchlet-axum = { workspace = true, features = ["quickjs"] }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["net", "signal"] }
+axum.workspace = true
+tower-http.workspace = true

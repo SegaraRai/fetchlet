@@ -38,6 +38,16 @@ intl.timeZoneDataはutc（既定）/ golden / allです。utcはUTC用の基本�
 
 localeとtimezone packはDateTimeFormat等のpolyfillを選んだ場合にbundleされます。v8ではnative ICUのデータを使います。CLDR / timezone更新により表示や過去・将来の時差が変わるため、依存更新時に実行結果を再確認します。
 
+## framework向けの設定
+
+| 設定                         | 内容                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asyncContext: "serialized"` | `node:async_hooks` を、1つのinvocationの間だけstoreを保持する `AsyncLocalStorage` に置き換える。`run` はcallbackのPromiseが決着するまでstoreを保ち、`snapshot` / `bind` は全storageの値を捕捉する。Appはinvocationを直列に実行するため、invocation単位のcontextは正しく引き継がれる。1つのinvocation内で並行する `run` の分離はしない |
+| `conditions`                 | 再bundleで追加するpackage解決の条件。frameworkが外部に残した依存を、`workerd` などの条件でWeb標準の入口へ解決する                                                                                                                                                                                                                     |
+| `plugins`                    | 再bundleに加えるVite plugin。vinextのNode APIの置き換えに使う                                                                                                                                                                                                                                                                         |
+
+再bundleは `publicDir: false` で行います。公開ファイルは各adapterがclient/へ置き、server.jsの隣には複製しません。HonoX、TanStack Start、SolidStart、Waku、vinextのadapterが `asyncContext: "serialized"` を使います。
+
 ## artifactと検証
 
 出力はserver.js、client/への参照、fetchlet.jsonです。client assetsの生成は各framework adapterが担当します。manifestにはbackend、要求API、native前提、実際に選んだpolyfill / moduleとlocale・timezoneの設定を保存します。RustのModuleは現在ソースを受け取るため、これらのmetadataを用いるRust側の自動選択は次の統合対象です。

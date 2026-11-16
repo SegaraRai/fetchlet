@@ -1,0 +1,50 @@
+{
+  "checkedAt": "2026-11-16T22:19:34.854Z",
+  "summary": {
+    "passed": 10,
+    "failed": 0
+  },
+  "browser": "159.0.8154.6",
+  "results": [
+    {
+      "name": "Waku SSR, escaping and the Rust service binding",
+      "status": "pass"
+    },
+    {
+      "name": "Waku JavaScript, CSS and public files",
+      "status": "pass"
+    },
+    {
+      "name": "Waku JSON endpoint",
+      "status": "pass"
+    },
+    {
+      "name": "Waku client address and host bindings",
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with Waku",
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following Waku request",
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach Waku in chunks within the budget",
+      "status": "pass"
+    },
+    {
+      "name": "Waku background work runs after the response and before the next request",
+      "status": "pass"
+    },
+    {
+      "name": "concurrent Waku requests keep their own values",
+      "status": "pass"
+    },
+    {
+      "name": "Waku hydration and client navigation",
+      "status": "pass"
+    }
+  ]
+}

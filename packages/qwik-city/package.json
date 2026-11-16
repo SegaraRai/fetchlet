@@ -1,0 +1,29 @@
+{
+  "name": "@fetchlet/qwik-city",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./middleware": {
+      "types": "./src/middleware.d.ts",
+      "default": "./src/middleware.mjs"
+    },
+    "./vite": {
+      "types": "./src/vite.d.ts",
+      "default": "./src/vite.mjs"
+    }
+  },
+  "dependencies": {
+    "@fetchlet/build": "workspace:*",
+    "@fetchlet/runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "~6.0.3",
+    "vite-plus": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@builder.io/qwik": "^1.20.4",
+    "@builder.io/qwik-city": "^1.20.4"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@fetchlet/waku",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/adapter.d.ts",
+      "default": "./src/adapter.mjs"
+    },
+    "./build-enhancer": "./src/build-enhancer.mjs",
+    "./context": {
+      "types": "./src/context.d.ts",
+      "default": "./src/context.mjs"
+    }
+  },
+  "dependencies": {
+    "@fetchlet/build": "workspace:*",
+    "@fetchlet/runtime": "workspace:*",
+    "hono": "4.13.19"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "~6.0.3",
+    "vite-plus": "^1.6.0"
+  },
+  "peerDependencies": {
+    "waku": "1.0.0-rc.5"
+  }
+}

@@ -523,9 +523,13 @@
     configurable: false,
   });
 
+  // A WebIDL operation: frameworks such as Next.js wrap the global fetch. A
+  // replacement still reaches the host through this function, and the Rust
+  // FetchPolicy authorizes every request it sends.
   Object.defineProperty(globalThis, "fetch", {
     value: (input, init) => hostFetch(input, init),
-    writable: false,
-    configurable: false,
+    writable: true,
+    enumerable: true,
+    configurable: true,
   });
 })();

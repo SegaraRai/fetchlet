@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet('sveltekit-axum', 'astro-axum', 'nuxt-axum', 'react-router-axum')]
+  [ValidateSet('sveltekit-axum', 'astro-axum', 'nuxt-axum', 'react-router-axum', 'honox-axum', 'tanstack-start-axum', 'solidstart-axum', 'qwik-city-axum', 'waku-axum', 'vinext-axum')]
   [string]$Name
 )
 

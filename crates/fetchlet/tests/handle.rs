@@ -162,3 +162,27 @@ async fn startup_errors_reach_the_caller() -> anyhow::Result<()> {
     }
     Ok(())
 }
+
+const PATCHED_FETCH: &str = include_str!("fixtures/patched-fetch.js");
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_replaced_global_fetch_still_passes_the_policy() -> anyhow::Result<()> {
+    for backend in backends() {
+        let policy = FetchPolicy::deny_all().allow_origin("https://allowed.test")?;
+        let outbound = FetchService::new(
+            transport_fn(|_| async { Ok(Response::new(Body::empty())) }),
+            policy,
+        );
+        let handle = App::builder(backend)
+            .module(Module::new(PATCHED_FETCH))
+            .host_services(HostServices::new().outbound(outbound))
+            .spawn(WorkerOptions::new(NonZeroUsize::new(1).unwrap()))
+            .await?;
+        assert_eq!(
+            handle.call_json("patched", &[]).await?,
+            json!({ "status": 200, "denied": "rejected", "calls": 2 }),
+        );
+        handle.shutdown().await?;
+    }
+    Ok(())
+}

@@ -1,0 +1,50 @@
+{
+  "checkedAt": "2026-11-16T22:19:25.246Z",
+  "summary": {
+    "passed": 10,
+    "failed": 0
+  },
+  "browser": "159.0.8154.6",
+  "results": [
+    {
+      "name": "SolidStart SSR, escaping and the Rust service binding",
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart JavaScript, CSS and public files",
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart JSON endpoint",
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart client address and host bindings",
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with SolidStart",
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following SolidStart request",
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach SolidStart in chunks within the budget",
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart background work runs after the response and before the next request",
+      "status": "pass"
+    },
+    {
+      "name": "concurrent SolidStart requests keep their own values",
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart hydration and client navigation",
+      "status": "pass"
+    }
+  ]
+}
