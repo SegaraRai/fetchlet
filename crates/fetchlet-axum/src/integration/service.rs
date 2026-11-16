@@ -19,6 +19,8 @@ use super::{Error, RequestContext};
 
 type ContextFactory = Arc<dyn Fn(&Parts) -> Result<Value, Error> + Send + Sync>;
 
+type TrustedContextFactory = Arc<dyn Fn(&Parts) -> fetchlet::Context + Send + Sync>;
+
 type ErrorCallback = Arc<dyn Fn(&Error) + Send + Sync>;
 
 /// A cloneable axum service for a shared fetchlet application.
@@ -32,6 +34,7 @@ pub struct FetchletService {
     app: AppHandle,
     origin: Origin,
     context: ContextFactory,
+    trusted_context: Option<TrustedContextFactory>,
     on_error: Option<ErrorCallback>,
     stream_request_bodies: bool,
 }
@@ -44,6 +47,7 @@ impl FetchletService {
             context: Arc::new(|parts| {
                 serde_json::to_value(RequestContext::from_parts(parts)).map_err(Error::Context)
             }),
+            trusted_context: None,
             on_error: None,
             stream_request_bodies: false,
         })
@@ -57,6 +61,22 @@ impl FetchletService {
     {
         self.context =
             Arc::new(move |parts| serde_json::to_value(context(parts)).map_err(Error::Context));
+        self
+    }
+
+    /// Derive the trusted [`fetchlet::Context`] of each request in Rust.
+    ///
+    /// The Context stays out of JavaScript. Host fetches of the request carry
+    /// it to in-process routes registered with
+    /// [`fetchlet::OriginRouter::internal`], for example an axum router served
+    /// through [`router_transport`](crate::router_transport). Use it for the
+    /// authenticated principal, tenant or trace data instead of request headers
+    /// that JavaScript can set.
+    pub fn trusted_context(
+        mut self,
+        context: impl Fn(&Parts) -> fetchlet::Context + Send + Sync + 'static,
+    ) -> Self {
+        self.trusted_context = Some(Arc::new(context));
         self
     }
 
@@ -83,6 +103,10 @@ impl FetchletService {
         let (mut parts, body) = request.into_parts();
         parts.uri = self.origin.apply(parts.uri)?;
         let context = (self.context)(&parts)?;
+        if let Some(trusted) = &self.trusted_context {
+            let trusted = trusted(&parts);
+            parts.extensions.insert(trusted);
+        }
         let body = if self.stream_request_bodies {
             // The invocation applies the budget to the bytes it reads.
             fetchlet::Body::from_http_body(body)

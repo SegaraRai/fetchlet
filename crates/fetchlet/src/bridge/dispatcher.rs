@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::task::{Context, Poll};
+use std::task::Poll;
 
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
@@ -8,11 +8,12 @@ use serde_json::{Value, json};
 
 use super::body_source::{BodyRead, BodySources};
 use super::clock::Clock;
+use super::reentry;
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
 use crate::host::{Redirect, TransportFuture};
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
-use crate::{Body, Error, HostServices, Limits, Response, Result};
+use crate::{Body, Context, Error, HostServices, Limits, Response, Result};
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 use super::crypto;
@@ -35,6 +36,8 @@ struct InvocationState {
     /// `fetchlet.waitUntil` registrations, and those not yet settled.
     background_registered: usize,
     background_pending: usize,
+    /// Trusted values attached to each host fetch of this invocation.
+    context: Option<Context>,
 }
 
 impl InvocationState {
@@ -118,6 +121,8 @@ pub(crate) struct HostBridge {
     limits: Limits,
     wake: WakeSignal,
     clock: Clock,
+    /// The application identity used to refuse reentrant calls.
+    key: u64,
 }
 
 impl Default for HostBridge {
@@ -138,7 +143,18 @@ impl HostBridge {
             limits,
             wake: WakeSignal::default(),
             clock: Clock::default(),
+            key: reentry::new_key(),
         }
+    }
+
+    /// Use the identity of an application whose worker recreates instances.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn with_key(mut self, key: u64) -> Self {
+        self.key = key;
+        self
     }
 
     #[cfg_attr(
@@ -158,7 +174,16 @@ impl HostBridge {
             .unwrap_or_else(|| self.limits.clone()))
     }
 
+    #[cfg(any(feature = "fuzzing", test))]
     pub fn begin(&self, limits: Limits) -> Result<InvocationScope> {
+        self.begin_with_context(limits, None)
+    }
+
+    pub fn begin_with_context(
+        &self,
+        limits: Limits,
+        context: Option<Context>,
+    ) -> Result<InvocationScope> {
         let mut state = self.lock_state()?;
         if state.invocation.is_some() {
             return Err(Error::InstanceUnavailable);
@@ -181,6 +206,7 @@ impl HostBridge {
             pending_reads: BTreeMap::new(),
             background_registered: 0,
             background_pending: 0,
+            context,
         });
 
         Ok(InvocationScope {
@@ -313,9 +339,12 @@ impl HostBridge {
         .cloned()
         .ok_or(Error::PermissionDenied)?;
 
-        let request = start
+        let mut request = start
             .request
             .into_http(&invocation.limits, &mut invocation.bytes)?;
+        if let Some(context) = &invocation.context {
+            request.extensions_mut().insert(context.clone());
+        }
         let limits = invocation.limits.clone();
         let future =
             Box::pin(async move { service.execute(request, start.redirect, limits).await });
@@ -335,8 +364,10 @@ impl HostBridge {
         // Engines pump host futures between microtasks and yield between pumps.
         // The futures stay in this scope; no detached tasks need to be aborted.
         let waker = self.wake.waker();
-        let mut context = Context::from_waker(&waker);
+        let mut context = std::task::Context::from_waker(&waker);
         let mut completed = Vec::new();
+        // Host code polled here must not call this application again.
+        let _polling = reentry::enter(self.key);
 
         let InvocationState {
             pending_fetches,
@@ -472,6 +503,10 @@ pub(crate) struct InvocationScope {
 
 impl InvocationScope {
     /// Whether `fetchlet.waitUntil` work of this invocation has not settled.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
     pub fn has_background(&self) -> bool {
         let Ok(state) = self.bridge.lock_state() else {
             return false;

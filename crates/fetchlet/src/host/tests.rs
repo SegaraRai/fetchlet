@@ -342,3 +342,105 @@ async fn fetch_redirect_algorithm_terminates_at_its_specification_limit() {
     assert!(matches!(result, Err(Error::LimitExceeded("redirect hops"))));
     assert_eq!(calls.load(Ordering::SeqCst), 21);
 }
+
+#[derive(Clone)]
+struct Marker(&'static str);
+
+fn with_context(url: &str) -> Request {
+    let mut request = request(url);
+    request
+        .extensions_mut()
+        .insert(Context::new().with(Marker("trusted")));
+    request
+}
+
+/// A transport that answers "/start" with a redirect to "/end" and records
+/// whether each hop carried the Context.
+fn recording(seen: Arc<Mutex<Vec<bool>>>) -> impl FetchTransport {
+    transport_fn(move |req: Request| {
+        let carried = Context::of(&req).and_then(|context| context.get::<Marker>());
+        seen.lock()
+            .unwrap()
+            .push(carried.is_some_and(|Marker(value)| *value == "trusted"));
+        let redirect = req.uri().path() == "/start";
+        async move {
+            Ok(if redirect {
+                response(302, Some("/end"))
+            } else {
+                response(200, None)
+            })
+        }
+    })
+}
+
+#[tokio::test]
+async fn the_context_is_withheld_unless_forwarded() {
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let plain = FetchService::new(recording(seen.clone()), policy());
+    plain
+        .fetch(
+            with_context("https://allowed.test/start"),
+            Limits::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(*seen.lock().unwrap(), [false, false]);
+
+    seen.lock().unwrap().clear();
+    let forwarding = plain.forward_context();
+    forwarding
+        .fetch(
+            with_context("https://allowed.test/start"),
+            Limits::default(),
+        )
+        .await
+        .unwrap();
+    // Each hop of a followed redirect carries it.
+    assert_eq!(*seen.lock().unwrap(), [true, true]);
+}
+
+#[tokio::test]
+async fn routed_origins_are_exact_and_scope_the_context() {
+    let internal = Arc::new(Mutex::new(Vec::new()));
+    let external = Arc::new(Mutex::new(Vec::new()));
+    let service = OriginRouter::new()
+        .internal("https://internal.test", recording(internal.clone()))
+        .unwrap()
+        .external("https://EXTERNAL.test:443", recording(external.clone()))
+        .unwrap()
+        .into_service();
+
+    for url in ["https://internal.test/start", "https://external.test/start"] {
+        service
+            .fetch(with_context(url), Limits::default())
+            .await
+            .unwrap();
+    }
+    assert_eq!(*internal.lock().unwrap(), [true, true]);
+    assert_eq!(*external.lock().unwrap(), [false, false]);
+
+    for url in [
+        "http://internal.test/",
+        "https://internal.test:8443/",
+        "https://other.test/",
+    ] {
+        assert!(matches!(
+            service.fetch(with_context(url), Limits::default()).await,
+            Err(Error::PermissionDenied)
+        ));
+    }
+    assert_eq!(internal.lock().unwrap().len(), 2);
+
+    assert!(matches!(
+        OriginRouter::new()
+            .internal("https://internal.test", recording(internal.clone()))
+            .unwrap()
+            .external("https://internal.test/", recording(external.clone())),
+        Err(Error::Configuration(_))
+    ));
+    assert!(
+        OriginRouter::new()
+            .internal("https://internal.test/api", recording(internal))
+            .is_err()
+    );
+}

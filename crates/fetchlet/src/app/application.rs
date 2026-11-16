@@ -13,7 +13,9 @@ use crate::execution::{
     BACKGROUND_SETTLE, deadline_after, fetch_invocation, invocation, with_deadline,
 };
 use crate::wire::{WireRequest, WireResponse};
-use crate::{Backend, Body, Error, HostServices, Instance, Limits, Request, Response, Result};
+use crate::{
+    Backend, Body, Context, Error, HostServices, Instance, Limits, Request, Response, Result,
+};
 
 /// A managed, reusable application instance with fixed host bindings.
 ///
@@ -44,6 +46,7 @@ impl App {
             hosts: HostServices::default(),
             limits: Limits::default(),
             handler: "handle".into(),
+            key: None,
         }
     }
 
@@ -80,7 +83,7 @@ impl App {
 
     pub async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
         self.finish_background().await?;
-        let scope = self.begin()?;
+        let scope = self.begin(None)?;
         let expression = invocation(export, args).map_err(invalid_request)?;
         let result = self
             .evaluate(expression, deadline_after(self.limits.timeout))
@@ -152,8 +155,11 @@ impl App {
             return Err(Error::InstanceUnavailable);
         }
         let deadline = deadline_after(self.limits.timeout);
+        // A trusted Context stays in Rust; JavaScript receives the wire request.
+        let mut request = request;
+        let trusted = request.extensions_mut().remove::<Context>();
         // The request body goes into this invocation's byte store.
-        let scope = self.begin()?;
+        let scope = self.begin(trusted)?;
         let expression = match self.fetch_expression(request, context, deadline).await {
             Ok(expression) => expression,
             Err(error) => {
@@ -222,11 +228,11 @@ impl App {
         fetch_invocation(&self.handler, &arguments).map_err(invalid_request)
     }
 
-    pub(super) fn begin(&mut self) -> Result<InvocationScope> {
+    pub(super) fn begin(&mut self, context: Option<Context>) -> Result<InvocationScope> {
         if !self.is_reusable() {
             return Err(Error::InstanceUnavailable);
         }
-        self.host.begin(self.limits.clone())
+        self.host.begin_with_context(self.limits.clone(), context)
     }
 
     /// Run one engine evaluation within the invocation deadline.

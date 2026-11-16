@@ -1,12 +1,16 @@
 //! Explicit host services and the policies applied before transport dispatch.
 
 mod bindings;
+mod context;
 mod policy;
+mod router;
 mod service;
 mod transport;
 
 pub use bindings::HostServices;
+pub use context::Context;
 pub use policy::FetchPolicy;
+pub use router::OriginRouter;
 pub use service::FetchService;
 pub use transport::{FetchTransport, TransportFuture, transport_fn};
 

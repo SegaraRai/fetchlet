@@ -10,6 +10,8 @@ pub struct AppBuilder {
     pub(super) hosts: HostServices,
     pub(super) limits: Limits,
     pub(super) handler: String,
+    /// The identity a worker keeps across the instances it recreates.
+    pub(super) key: Option<u64>,
 }
 
 impl AppBuilder {
@@ -33,6 +35,12 @@ impl AppBuilder {
         self
     }
 
+    /// Keep one application identity across the instances a worker builds.
+    pub(crate) fn keyed(mut self, key: u64) -> Self {
+        self.key = Some(key);
+        self
+    }
+
     /// Start an application on its owning worker thread.
     pub async fn spawn(self, options: crate::WorkerOptions) -> Result<AppHandle> {
         let limits = self.limits.clone();
@@ -45,7 +53,10 @@ impl AppBuilder {
         let module = self
             .module
             .ok_or_else(|| Error::Configuration("a module is required".into()))?;
-        let host = HostBridge::with_limits(self.hosts, self.limits.clone());
+        let mut host = HostBridge::with_limits(self.hosts, self.limits.clone());
+        if let Some(key) = self.key {
+            host = host.with_key(key);
+        }
         let engine = Engine::new(self.backend, &module, host.clone())?;
         Ok(App {
             engine,

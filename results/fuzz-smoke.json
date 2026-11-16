@@ -1,20 +1,20 @@
 {
-  "checkedAt": "2026-11-16T14:13:15.1118476Z",
+  "checkedAt": "2026-11-16T16:38:49.2342903Z",
   "sanitizer": "address",
   "requestedRuns": 1000000,
-  "timeBudgetSeconds": 20,
+  "timeBudgetSeconds": 30,
   "compiler": "rustc 1.102.0-nightly (8eb778d04 2026-11-12)",
   "maxInputBytes": 16384,
   "targets": [
     {
       "target": "fetch_service",
       "status": "pass",
-      "completedRuns": 223671
+      "completedRuns": 249850
     },
     {
       "target": "bridge_bodies",
-      "status": "fail",
-      "completedRuns": 0
+      "status": "pass",
+      "completedRuns": 53866
     }
   ]
 }

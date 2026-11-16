@@ -34,19 +34,26 @@ Rustが `MESSAGE` と `RUST` serviceを固定bindingとして渡します。adap
 
 ## プロセス内のRust API
 
-`src/services.rs` のProjectsApiは、`https://rust.fetchlet.test` をoriginとするRust APIです。transport_fnで同じFetchServiceを `RUST` bindingとglobal fetchの両方へ接続し、policyはこのoriginだけを許可します。JSからの呼び出しはsocketを使わずにRust関数へ届き、Rustのアプリ状態を共有します。
+`src/services.rs` の `api_router` は、Rust APIを一つのaxum routerとして定義します。
+
+- サーバは同じrouterを `/api/v1` へmountし、ブラウザーへ公開します。
+- `OriginRouter::internal("https://rust.fetchlet.test", router_transport(...))` で同じrouterをプロセス内に登録し、`RUST` bindingとglobal fetchの両方へ渡します。policyはこのoriginだけを許可します。
+- JSからの呼び出しはsocketを使わずにrouterへ届き、Rustのアプリ状態を共有します。
+- `FetchletService::trusted_context` が接続元IPから `Caller` を作り、`fetchlet::Context` としてSSRのInvocationへ渡します。`/caller` handlerはこのContextだけを使い、headersは参照しません。
 
 | route                    | 内容                                                                                 |
 | ------------------------ | ------------------------------------------------------------------------------------ |
 | /projects                | loadが `event.fetch` で一覧を取得し、actionが `RUST.fetch` で追加する。空の名前は400 |
 | /api/projects/[id]       | Rust APIのResponseをそのまま返す。存在しないidは404                                  |
-| /api/in-process/failure  | Rust handlerの `Err` がcode `TRANSPORT` のrejectになる                               |
+| /api/in-process/failure  | Rust handlerの500がそのままResponseとして届く                                        |
+| /api/in-process/caller   | `x-forwarded-for` を付けても、Contextの接続元（127.0.0.1）が返る                     |
 | /api/in-process/denied   | 許可外originはbinding、global fetch、`event.fetch` のいずれも `PERMISSION_DENIED`    |
 | /api/in-process/abort    | 50 msでabortし、同じInvocation内の次の呼び出しでRust handlerのdropを確認する         |
 | /api/in-process/internal | 同一originの `event.fetch` はSvelteKitがJS内で処理し、Rust APIを呼ばない             |
-| /api/rust/stats          | axumのnative route。Rust APIの呼び出し数とcancel数（Rust APIの `/stats` と同じ値）   |
+| /api/v1/*                | 同じrouterの公開HTTP。`/api/v1/caller` はContextがないため401                        |
+| /api/v1/stats            | Rust APIの呼び出し数とcancel数（プロセス内の `/stats` と同じ値）                     |
 
-HTTPエラーはResponse、実行エラー・権限拒否・cancelはrejectとしてJSへ届きます。
+HTTPエラーはResponse、権限拒否・cancel・transportのエラーはrejectとしてJSへ届きます。
 
 ## 応答後の処理
 
@@ -77,6 +84,6 @@ vp run test:example:sveltekit-axum
 
 インストール済みChromeを使う場合は `FETCHLET_BROWSER_CHANNEL=chrome` を環境変数に設定します。
 
-検査するのはSSRとescape、JS / CSS / 静的ファイル、JSON endpoint、form actionとSet-Cookie、client addressとenv、Rust route、本文予算、応答後の処理、プロセス内Rust API（HTTPエラー、実行エラー、origin policy、cancel、`event.fetch` の分担）、並行Request、hydrationとフォーム送信、クライアント遷移です。結果は `results/example-sveltekit-axum.json` に保存します。
+検査するのはSSRとescape、JS / CSS / 静的ファイル、JSON endpoint、form actionとSet-Cookie、client addressとenv、Rust route、本文予算、応答後の処理、プロセス内Rust API（公開HTTPとの共用、HTTPエラー、信頼できるContext、origin policy、cancel、`event.fetch` の分担）、並行Request、hydrationとフォーム送信、クライアント遷移です。結果は `results/example-sveltekit-axum.json` に保存します。
 
 adapterの入口は[SvelteKit adapter API](https://svelte.dev/docs/kit/writing-adapters)、HTTPと静的配信は[axum](https://docs.rs/axum/0.8.9/axum/)と[ServeDir](https://docs.rs/tower-http/0.7.1/tower_http/services/struct.ServeDir.html)を使用しています。

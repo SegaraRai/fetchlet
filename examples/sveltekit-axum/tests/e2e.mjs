@@ -84,7 +84,7 @@ check("input budget and the following request", async () => {
   assert.equal((await fetch(suite.base)).status, 200);
 });
 
-const stats = async () => (await fetch(suite.base + "/api/rust/stats")).json();
+const stats = async () => (await fetch(suite.base + "/api/v1/stats")).json();
 const inProcess = async (name) => (await fetch(suite.base + "/api/in-process/" + name)).json();
 
 check("in-process Rust API through event.fetch and the service binding", async () => {
@@ -107,15 +107,25 @@ check("in-process Rust API through event.fetch and the service binding", async (
   const found = await fetch(suite.base + "/api/projects/1");
   assert.equal(found.status, 200);
   assert.equal((await found.json()).id, 1);
+  // Browsers reach the same Rust router and state over public HTTP.
+  const listed = await (await fetch(suite.base + "/api/v1/projects")).json();
+  assert.ok(listed.some((project) => project.name === "検証"));
+
   const missing = await fetch(suite.base + "/api/projects/999");
   assert.equal(missing.status, 404);
   assert.deepEqual(await missing.json(), { error: "project not found" });
 });
 
-check("in-process execution errors reject without Rust details", async () => {
-  const { rejected } = await inProcess("failure");
-  assert.equal(rejected.code, "TRANSPORT");
-  assert.doesNotMatch(rejected.message, /database detail/);
+check("a Rust 500 reaches JavaScript as a Response", async () => {
+  assert.deepEqual(await inProcess("failure"), { status: 500, body: { error: "internal error" } });
+});
+
+check("the trusted caller comes from Rust, not from headers", async () => {
+  assert.deepEqual(await inProcess("caller"), { status: 200, body: { address: "127.0.0.1" } });
+  const response = await fetch(suite.base + "/api/v1/caller", {
+    headers: { "x-forwarded-for": "203.0.113.9" },
+  });
+  assert.equal(response.status, 401);
 });
 
 check("the fetch policy denies other origins on every path", async () => {

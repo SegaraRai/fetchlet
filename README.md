@@ -47,7 +47,7 @@ Cargo featureで `quickjs`（既定）、`boa`、`v8` を選択できます。�
 - [WPT / Test262による適合性評価](docs/conformance.md)
 - [コンセプトと方針](docs/project-brief.md)
 - [組み込みアプリ・配布・Tauri連携の方針](docs/embedded-applications.md)
-- [プロセス内fetchの設計案](docs/in-process-fetch.md)
+- [プロセス内fetch](docs/in-process-fetch.md)
 - [設計と拡張計画](docs/design-proposal.md)
 - [実装・検証状況](docs/implementation-status.md)
 - [既存Web API実装の調査](docs/backend-web-api-support.md)

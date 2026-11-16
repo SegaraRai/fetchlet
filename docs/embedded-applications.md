@@ -26,7 +26,7 @@ SPAやSSGの静的ファイルをRustへ埋め込む構成でも、単一バイ�
 
 主経路はRustがRequestを渡し、JSからResponseを回収する形です。逆向きには、frameworkのserver-side JSからfetchを使い、Rustのhandlerへ直接Requestを渡す経路を育てます。同じRequest / Responseの形で両方向を接続すると、framework側のデータ取得やフォームからRustの機能を利用しやすくなります。
 
-この内部fetchはRust関数・routerをプロセス内で呼ぶ設計で、内部呼び出しのためのHTTP接続や待受ポートを追加せずに扱うことを目標にします。ブラウザーへ配信するHTTPサーバの待受は、利用するアプリが別途担当します。[プロセス内fetchの設計案](in-process-fetch.md)に、現在の土台と拡張案を分けて記載しています。
+この内部fetchはRust関数・routerをプロセス内で呼び、内部呼び出しのためのHTTP接続や待受ポートを使いません。ブラウザーへ配信するHTTPサーバの待受は、利用するアプリが別途担当します。契約と試験は[プロセス内fetch](in-process-fetch.md)にまとめています。
 
 ## Tauriとの関係
 

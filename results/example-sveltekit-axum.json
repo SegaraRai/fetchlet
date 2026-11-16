@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-16T16:23:02.691Z",
+  "checkedAt": "2026-11-16T16:37:26.077Z",
   "summary": {
-    "passed": 15,
+    "passed": 16,
     "failed": 0
   },
   "browser": "159.0.8154.6",
@@ -39,7 +39,11 @@
       "status": "pass"
     },
     {
-      "name": "in-process execution errors reject without Rust details",
+      "name": "a Rust 500 reaches JavaScript as a Response",
+      "status": "pass"
+    },
+    {
+      "name": "the trusted caller comes from Rust, not from headers",
       "status": "pass"
     },
     {

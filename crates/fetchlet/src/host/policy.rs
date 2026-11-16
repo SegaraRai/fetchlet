@@ -17,14 +17,14 @@ impl FetchPolicy {
     }
 
     pub fn allow_origin(mut self, origin: &str) -> Result<Self> {
-        let url = parse_url(origin)?;
-        if url.path() != "/" || url.query().is_some() || url.fragment().is_some() {
-            return Err(Error::Configuration(
-                "an allowed origin must not contain a path, query, or fragment".into(),
-            ));
-        }
-        self.origins.insert(url.origin().ascii_serialization());
+        self.origins.insert(normalize_origin(origin)?);
         Ok(self)
+    }
+
+    pub(super) fn from_origins(origins: impl IntoIterator<Item = String>) -> Self {
+        Self {
+            origins: origins.into_iter().collect(),
+        }
     }
 
     /// Validate the actual URI after any rewrite. This performs no DNS lookup.
@@ -36,6 +36,17 @@ impl FetchPolicy {
         normalize_fetch_method(request.method())?;
         Ok(())
     }
+}
+
+/// The ASCII serialization of a configured origin, which must be bare.
+pub(super) fn normalize_origin(origin: &str) -> Result<String> {
+    let url = parse_url(origin)?;
+    if url.path() != "/" || url.query().is_some() || url.fragment().is_some() {
+        return Err(Error::Configuration(
+            "an origin must not contain a path, query, or fragment".into(),
+        ));
+    }
+    Ok(url.origin().ascii_serialization())
 }
 
 pub(crate) fn parse_url(input: &str) -> Result<Url> {

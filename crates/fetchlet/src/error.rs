@@ -23,6 +23,9 @@ pub enum Error {
     WorkerFailed(String),
     #[error("transport failed: {0}")]
     Transport(String),
+    /// A call to an application from its own host fetch would wait for itself.
+    #[error("an application cannot be called from its own host fetch")]
+    Reentrant,
 }
 
 impl Error {
@@ -47,6 +50,7 @@ impl Error {
             Self::Transport(_) => "host transport failed",
             Self::WorkerClosed => "application worker is closed",
             Self::WorkerFailed(_) => "application worker failed",
+            Self::Reentrant => "reentrant application call",
         }
     }
 
@@ -70,6 +74,7 @@ impl Error {
             Self::Transport(_) => "TRANSPORT",
             Self::WorkerClosed => "WORKER_CLOSED",
             Self::WorkerFailed(_) => "WORKER_FAILED",
+            Self::Reentrant => "REENTRANT",
         }
     }
 }

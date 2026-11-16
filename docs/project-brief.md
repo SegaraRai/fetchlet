@@ -24,7 +24,7 @@ Rust HTTPサーバ / アプリケーション
     → Rustがクライアントへ送信
 ```
 
-JSからRustへは、fetch(Request)をプロセス内のRust handler / routerへ渡す対称な経路を育てます。現在はFetchTransport / transport_fnと名前付きserviceが土台です。origin登録と信頼できるContextの伝播は[設計候補](in-process-fetch.md)として扱います。
+JSからRustへは、fetch(Request)をプロセス内のRust handler / routerへ渡す対称な経路を育てます。FetchTransport / transport_fn、名前付きservice、originで振り分ける `OriginRouter`、Rustが作る信頼できる `Context`、axum routerを使う `router_transport` で構成します（[プロセス内fetch](in-process-fetch.md)）。
 
 Request → Responseを主経路とし、名前を指定した任意の同期・非同期関数を呼び出すAPIも維持します。TS / TSX / Svelteはビルド時にJavaScriptへ変換します。
 
@@ -80,7 +80,7 @@ Perry / scriptcの固定版で実行ファイルと静的ライブラリを検�
 ## 関連する設計
 
 - [Rust配布物にWeb UIを組み込む](embedded-applications.md)
-- [プロセス内fetchの設計案](in-process-fetch.md)
+- [プロセス内fetch](in-process-fetch.md)
 - [backendに応じたpolyfillの選択](../packages/build/README.md)
 
 ## 参照

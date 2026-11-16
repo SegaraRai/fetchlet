@@ -47,9 +47,9 @@ poolは次の層として追加します。コンパイルcacheのキーはコ�
 
 JS fetchからRust async serviceへ接続し、全backendで同じpolicyを適用します。rewrite → 認可 → credentials → single-hop transportの順序を保ちます。redirectごとに宛先を認可し、秘密の寿命を送信単位にします。
 
-transportは実HTTP client、内部Rust service、mockを交換できる境界です。現在のFetchTransport::sendはRequestを受け取り、transport_fnで非同期クロージャを接続できます。origin別の登録と、信頼できるRust Contextの呼び出しごとの伝播は拡張候補です。[プロセス内fetch](in-process-fetch.md)に、既存APIとの対応、宛先・権限・エラー・cancel・再入の契約案をまとめています。
+transportは実HTTP client、内部Rust service、mockを交換できる境界です。現在のFetchTransport::sendはRequestを受け取り、transport_fnで非同期クロージャを接続できます。`OriginRouter` がorigin別にtransportを登録し、internal routeへ信頼できる `Context` を伝播します。[プロセス内fetch](in-process-fetch.md)に、宛先・権限・Context・エラー・cancel・再入の契約をまとめています。
 
-実HTTP adapterではDNSと接続先IP、受信中の容量、Future dropによる中断を一緒に実装します。内部serviceは直接bindingできます。SvelteKit自身が処理する内部fetchと外向き通信はadapterで区別します。自己Appへの再入はpool待ちと再帰の方針を合わせて設計します。
+実HTTP adapterではDNSと接続先IP、受信中の容量、Future dropによる中断を一緒に実装します。内部serviceは直接bindingできます。SvelteKit自身が処理する内部fetchと外向き通信はadapterで区別します。host Futureのpoll中に同じAppHandleへ依頼すると `Error::Reentrant` で即座に拒否します。poolでの容量待ちは導入時に設計します。
 
 host FutureはInvocationが直接所有します。waker通知と次のJS timer時刻でengineを駆動し、実行期限はAppの一か所で管理します。呼び出し側は[資源予算](resource-policy.md)を選択します。
 
@@ -111,7 +111,7 @@ AOTはnative artifactのABI、compiler / runtime版、初期化・解放、値�
 1. Request / Response、Blob / multipart等の適合性を既存実装の評価とWPT・回帰試験で整え、backend能力と構成要求の照合を広げる。
 2. 外向きRequest本文のstreaming（redirectの再送条件を含む）を設計する（Request / Response本文・上流本文のstreaming、binary転送、cancel伝播、`waitUntil` のbackground処理は実装済み）。
 3. backendごとの強制力とprocess境界を整備し、poolの再利用条件を検証する。
-4. framework adapterとRustの内部fetchを接続し、origin登録、信頼できるContext、任意のrouter統合と再入の契約を検証する。
+4. プロセス内fetchのContextを汎用関数呼び出しへ広げ、他frameworkの内部fetchの分担を確認する（origin登録、信頼できるContext、axum router統合、再入の検出は実装済み）。
 5. AOTのRustリンクとABIを継続検証し、利用できる能力からAppへ接続する。
 
 ## 配布とホストアプリへの統合

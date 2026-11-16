@@ -20,9 +20,18 @@ async function outcome(request: () => Promise<Response>) {
 
 export const GET: RequestHandler = async ({ params, fetch, platform }) => {
   switch (params.case) {
-    // The Rust handler returned Err: the fetch rejects with a general message.
+    // A Rust 500 is a Response, not a rejection.
     case "failure":
       return json(await outcome(() => platform!.env.RUST.fetch(API + "/failure")));
+    // The Rust Context identifies the caller; a header JavaScript sets does not.
+    case "caller":
+      return json(
+        await outcome(() =>
+          platform!.env.RUST.fetch(API + "/caller", {
+            headers: { "x-forwarded-for": "203.0.113.9" },
+          }),
+        ),
+      );
     // The FetchPolicy admits only the Rust API's origin.
     case "denied":
       return json({

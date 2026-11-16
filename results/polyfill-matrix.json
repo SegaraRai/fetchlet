@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-16T14:33:11.672Z",
+  "checkedAt": "2026-11-16T16:36:59.849Z",
   "summary": {
     "passed": 8,
     "failed": 0
@@ -34,12 +34,16 @@
         {
           "api": "Intl.getCanonicalLocales",
           "package": "@formatjs/intl-getcanonicallocales",
-          "modules": ["@formatjs/intl-getcanonicallocales/polyfill.js"]
+          "modules": [
+            "@formatjs/intl-getcanonicallocales/polyfill.js"
+          ]
         },
         {
           "api": "Intl.Locale",
           "package": "@formatjs/intl-locale",
-          "modules": ["@formatjs/intl-locale/polyfill.js"]
+          "modules": [
+            "@formatjs/intl-locale/polyfill.js"
+          ]
         },
         {
           "api": "Intl.PluralRules",
@@ -106,12 +110,16 @@
         {
           "api": "Intl.getCanonicalLocales",
           "package": "@formatjs/intl-getcanonicallocales",
-          "modules": ["@formatjs/intl-getcanonicallocales/polyfill.js"]
+          "modules": [
+            "@formatjs/intl-getcanonicallocales/polyfill.js"
+          ]
         },
         {
           "api": "Intl.Locale",
           "package": "@formatjs/intl-locale",
-          "modules": ["@formatjs/intl-locale/polyfill.js"]
+          "modules": [
+            "@formatjs/intl-locale/polyfill.js"
+          ]
         },
         {
           "api": "Intl.PluralRules",

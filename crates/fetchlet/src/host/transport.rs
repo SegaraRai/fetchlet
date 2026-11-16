@@ -1,5 +1,6 @@
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use crate::{Request, Response, Result};
 
@@ -13,6 +14,13 @@ pub type TransportFuture = Pin<Box<dyn Future<Output = Result<Response>> + Send 
 /// or private-network isolation.
 pub trait FetchTransport: Send + Sync + 'static {
     fn send(&self, request: Request) -> TransportFuture;
+}
+
+/// Share one transport, such as a network client, between services or routes.
+impl<T: FetchTransport + ?Sized> FetchTransport for Arc<T> {
+    fn send(&self, request: Request) -> TransportFuture {
+        (**self).send(request)
+    }
 }
 
 struct FunctionTransport<F>(F);

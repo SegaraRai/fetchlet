@@ -1,6 +1,7 @@
 mod body_source;
 mod clock;
 mod dispatcher;
+mod reentry;
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 mod crypto;
@@ -8,6 +9,8 @@ mod crypto;
 mod harness;
 
 pub(crate) use dispatcher::HostBridge;
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) use reentry::{is_polling, new_key};
 
 #[cfg(any(
     feature = "boa",

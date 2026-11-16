@@ -4,7 +4,7 @@ use http::{HeaderMap, Method, header};
 use url::Url;
 
 use super::policy::parse_url;
-use super::{FetchPolicy, FetchTransport};
+use super::{Context, FetchPolicy, FetchTransport};
 use crate::config::check_limit;
 use crate::execution::with_timeout;
 use crate::wire::{normalize_fetch_method, validate_headers};
@@ -24,6 +24,7 @@ pub struct FetchService {
     policy: FetchPolicy,
     rewrite: Option<RequestRewrite>,
     credentials: Option<CredentialProvider>,
+    forward_context: bool,
 }
 
 struct PreparedRequest {
@@ -39,7 +40,18 @@ impl FetchService {
             policy,
             rewrite: None,
             credentials: None,
+            forward_context: false,
         }
+    }
+
+    /// Pass the invocation's [`Context`] to the transport in request extensions.
+    ///
+    /// Use it for trusted in-process transports. Without it, the transport
+    /// never receives a `Context`. [`OriginRouter`](crate::OriginRouter)
+    /// enables it and decides per route.
+    pub fn forward_context(mut self) -> Self {
+        self.forward_context = true;
+        self
     }
 
     /// Execute a Rust request through the same checks used by guest fetch calls.
@@ -155,6 +167,9 @@ impl FetchService {
             credentials(&url, request.headers_mut())?;
         }
 
+        if !self.forward_context {
+            request.extensions_mut().remove::<Context>();
+        }
         strip_transport_headers(request.headers_mut());
         validate_headers(request.headers(), limits.header_bytes)?;
 
@@ -246,6 +261,8 @@ fn copy_request(request: &Request) -> Result<Request> {
     *copied.method_mut() = request.method().clone();
     *copied.uri_mut() = request.uri().clone();
     *copied.headers_mut() = request.headers().clone();
+    // Trusted values such as the Context follow the request to each hop.
+    *copied.extensions_mut() = request.extensions().clone();
     Ok(copied)
 }
 

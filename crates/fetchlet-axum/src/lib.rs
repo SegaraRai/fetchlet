@@ -4,4 +4,4 @@
 mod integration;
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-pub use integration::{Error, FetchletService, RequestContext};
+pub use integration::{Error, FetchletService, RequestContext, router_transport};

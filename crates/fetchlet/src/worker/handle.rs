@@ -7,6 +7,7 @@ use tokio::sync::{mpsc, oneshot, watch};
 use super::lifecycle::{WorkerStatus, wait_for_shutdown};
 use super::protocol::Command;
 use super::{WorkerOptions, runtime};
+use crate::bridge::{is_polling, new_key};
 use crate::{AppBuilder, Error, Limits, Request, Response, Result};
 
 struct Shared {
@@ -14,6 +15,8 @@ struct Shared {
     shutdown: watch::Sender<bool>,
     status: watch::Receiver<WorkerStatus>,
     limits: Limits,
+    /// The application identity, to refuse calls from its own host fetches.
+    key: u64,
 }
 
 /// A cloneable Send + Sync handle to one application on its owning thread.
@@ -36,6 +39,8 @@ impl AppHandle {
         let (shutdown, stopping) = watch::channel(false);
         let (report, status) = watch::channel(WorkerStatus::Running);
         let (initialized, ready) = oneshot::channel();
+        let key = new_key();
+        let builder = builder.keyed(key);
         runtime::spawn(builder, options, receiver, stopping, initialized, report)?;
         let handle = Self {
             shared: Arc::new(Shared {
@@ -43,6 +48,7 @@ impl AppHandle {
                 shutdown,
                 status,
                 limits,
+                key,
             }),
         };
         match ready.await {
@@ -117,6 +123,11 @@ impl AppHandle {
     }
 
     async fn enqueue(&self, command: Command) -> Result<()> {
+        // The worker is running the invocation whose host fetch makes this
+        // call, so the call could only complete after itself.
+        if is_polling(self.shared.key) {
+            return Err(Error::Reentrant);
+        }
         let mut stopping = self.shared.shutdown.subscribe();
         if *stopping.borrow() {
             return Err(Error::WorkerClosed);

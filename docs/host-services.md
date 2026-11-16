@@ -48,7 +48,7 @@ Fetch adapterはURL、method、header pairs、本文バイト列をWeb Request�
 
 上のtransport_fnの例は、Rust関数が直接Responseを作る構成です。HostServices::outboundへ渡せばglobal fetchから、serviceへ登録すればfetchlet.env.API.fetchから利用できます。内部呼び出しのためのHTTP接続やlistenを用意せず、同じFetchServiceの認可・資源予算を適用できます。
 
-現在のFetchTransport::sendはRequestだけを受け取ります。App::fetch_with_contextはJS entryへ渡す値を扱い、元のRust呼び出しの認証主体等をtransportへ自動伝播する機能は今後の拡張です。origin登録、信頼できるContext、同じRust routerのHTTP / 内部fetchでの再利用は[設計案](in-process-fetch.md)を参照してください。
+`OriginRouter` はoriginの完全一致でtransportを選び、登録したoriginだけを許可するserviceを作ります。internal routeは、`App::fetch` に渡したRequestのextensionsにある `Context`（認証主体等、JSから読めない値）をrequest extensionsで受け取ります。`fetchlet_axum::router_transport` は同じaxum routerを公開HTTPとプロセス内fetchで共用します。host fetchの処理中に同じ `AppHandle` を呼ぶと `Error::Reentrant` になります。詳細は[プロセス内fetch](in-process-fetch.md)を参照してください。
 
 ## fetchの処理順序
 
