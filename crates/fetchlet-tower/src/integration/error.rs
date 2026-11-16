@@ -1,9 +1,12 @@
 use std::error::Error as StdError;
 
-use axum::http::StatusCode;
-use axum::http::uri::InvalidUriParts;
-use axum::response::{IntoResponse, Response};
+use bytes::Bytes;
+use http::header::{CONTENT_TYPE, HeaderValue};
+use http::uri::InvalidUriParts;
+use http::{Response, StatusCode};
 use http_body_util::LengthLimitError;
+
+pub type BoxError = Box<dyn StdError + Send + Sync>;
 
 /// Conversion and execution failures available to the Rust error callback.
 #[derive(Debug, thiserror::Error)]
@@ -12,8 +15,10 @@ pub enum Error {
     InvalidOrigin,
     #[error("invalid request URI: {0}")]
     InvalidRequestUri(InvalidUriParts),
+    #[error("invalid request: {0}")]
+    InvalidRequest(String),
     #[error("request body could not be collected: {0}")]
-    Body(axum::Error),
+    Body(BoxError),
     #[error("request context could not be serialized: {0}")]
     Context(serde_json::Error),
     #[error(transparent)]
@@ -24,9 +29,9 @@ impl Error {
     pub fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidOrigin | Self::Context(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::InvalidRequestUri(_) => StatusCode::BAD_REQUEST,
+            Self::InvalidRequestUri(_) | Self::InvalidRequest(_) => StatusCode::BAD_REQUEST,
             Self::Body(error) => {
-                let mut cause: Option<&(dyn StdError + 'static)> = Some(error);
+                let mut cause: Option<&(dyn StdError + 'static)> = Some(error.as_ref());
                 while let Some(current) = cause {
                     if current.is::<LengthLimitError>() {
                         return StatusCode::PAYLOAD_TOO_LARGE;
@@ -50,15 +55,18 @@ impl Error {
             },
         }
     }
-}
 
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
+    /// A general HTTP response; details stay with the Rust error.
+    pub fn response(&self) -> Response<fetchlet::Body> {
         let status = self.status_code();
-        (
-            status,
-            status.canonical_reason().unwrap_or("Request failed"),
-        )
-            .into_response()
+        let reason = status.canonical_reason().unwrap_or("Request failed");
+        let mut response =
+            Response::new(fetchlet::Body::from(Bytes::from_static(reason.as_bytes())));
+        *response.status_mut() = status;
+        response.headers_mut().insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static("text/plain; charset=utf-8"),
+        );
+        response
     }
 }

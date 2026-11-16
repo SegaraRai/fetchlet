@@ -20,6 +20,15 @@ try {
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   cargo clippy --locked -p fetchlet --all-targets --no-default-features --features quickjs,boa,v8 -- -D warnings
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  # Rust HTTP integrations share tests/http-integrations/contract.rs.
+  foreach ($crate in 'fetchlet-tower', 'fetchlet-hyper', 'fetchlet-actix') {
+    cargo test --locked -p $crate --all-features
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    cargo clippy --locked -p $crate --all-targets --all-features -- -D warnings
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    cargo check --locked -p $crate --no-default-features
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  }
   cargo test --locked -p fetchlet-axum --all-features
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   cargo clippy --locked -p fetchlet-axum --all-targets --all-features -- -D warnings

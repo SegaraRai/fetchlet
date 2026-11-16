@@ -122,4 +122,4 @@ AOTはnative artifactのABI、compiler / runtime版、初期化・解放、値�
 
 Rust本体は `crates/fetchlet/`、共通JS支援とframework adapterは `packages/`、実アプリとE2Eは `examples/` に置きます。最初のSvelteKit + axum例から、frameworkとRust HTTPサーバを独立して追加する構成を育てます。[追加方針](../examples/README.md)を参照してください。
 
-共有実行はAppHandle、axumのHTTP接続はfetchlet-axumへ実装しました。SvelteKitとAstroは@fetchlet/buildのartifact形式を共有し、同じRust integrationで動作します。Response本文はこの境界でstreamingし、`FetchletService::stream_request_bodies` でRequest本文もstreamingできます。次は追加のframeworkと能力を、この境界の上に拡張します。
+共有実行はAppHandle、HTTP接続はfetchlet-tower（Tower / `http` 1系）、その上のfetchlet-hyper、fetchlet-axum、fetchlet-actix（actix-web 4）へ実装し、共通の契約試験で揃えています。SvelteKitとAstroは@fetchlet/buildのartifact形式を共有し、同じRust integrationで動作します。Response本文はこの境界でstreamingし、`FetchletService::stream_request_bodies` でRequest本文もstreamingできます。次は追加のframeworkと能力を、この境界の上に拡張します。

@@ -1,0 +1,48 @@
+[package]
+name = "fetchlet-actix"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "actix-web integration for fetchlet"
+
+[features]
+default = ["quickjs"]
+quickjs = ["_backend", "fetchlet/quickjs", "fetchlet-tower/quickjs"]
+boa = ["_backend", "fetchlet/boa", "fetchlet-tower/boa"]
+v8 = ["_backend", "fetchlet/v8", "fetchlet-tower/v8"]
+_backend = [
+  "dep:fetchlet",
+  "dep:fetchlet-tower",
+  "dep:actix-web",
+  "dep:bytes",
+  "dep:futures-core",
+  "dep:http",
+  "dep:http-body",
+  "dep:http-body-util",
+  "dep:serde",
+  "dep:serde_json",
+  "dep:tokio",
+]
+
+[dependencies]
+fetchlet = { workspace = true, optional = true }
+fetchlet-tower = { workspace = true, optional = true }
+actix-web = { workspace = true, optional = true }
+bytes = { version = "1", optional = true }
+futures-core = { version = "0.3", optional = true }
+http = { version = "1", optional = true }
+http-body = { version = "1", optional = true }
+http-body-util = { version = "0.1", optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+[dev-dependencies]
+actix-http = "3"
+futures-core = "0.3"
+http = "1"
+tokio.workspace = true
+actix-web = { workspace = true, features = ["macros"] }
+bytes = "1"
+http-body = "1"
+serde_json.workspace = true

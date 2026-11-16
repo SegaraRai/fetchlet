@@ -11,7 +11,10 @@ publish = false
 [workspace.dependencies]
 fetchlet = { path = "crates/fetchlet", default-features = false }
 fetchlet-axum = { path = "crates/fetchlet-axum", default-features = false }
+fetchlet-tower = { path = "crates/fetchlet-tower", default-features = false }
+actix-web = { version = "=4.19.0", default-features = false }
 axum = "=0.8.9"
+hyper = { version = "=1.12.0", features = ["http1", "server"] }
 tower = { version = "=0.5.3", features = ["util"] }
 tower-http = { version = "=0.7.1", features = ["fs"] }
 thiserror = "2"
