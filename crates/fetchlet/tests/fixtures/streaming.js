@@ -4,7 +4,10 @@ let nextTimer = 1;
 const timers = new Map();
 globalThis.setTimeout = (callback, delay = 0) => {
   const id = nextTimer++;
-  timers.set(id, { due: Date.now() + Math.max(0, Number(delay) || 0), callback });
+  timers.set(id, {
+    due: Date.now() + Math.max(0, Number(delay) || 0),
+    callback,
+  });
   return id;
 };
 globalThis.clearTimeout = (id) => {
@@ -89,7 +92,10 @@ function routes(url) {
           : { done: true, value: undefined },
       );
     case "/burst":
-      return source(async () => ({ done: false, value: new Uint8Array(40000).fill(98) }));
+      return source(async () => ({
+        done: false,
+        value: new Uint8Array(40000).fill(98),
+      }));
     case "/error":
       return source(async () => {
         if (index++ === 0) return { done: false, value: bytes("ok;") };
@@ -105,11 +111,34 @@ globalThis.fetchletExports = {
   sequence: () => ++sequence,
   cancelled: () => cancelled,
   pendingTimers: () => timers.size,
+  openBodies: () => globalThis.__fetchletResponseBodies.openCount(),
+  // Try to read a body by a guessed id from a later invocation.
+  async probe(id) {
+    try {
+      return (await globalThis.__fetchletResponseBodies.pull(id, false)).chunk.length;
+    } catch {
+      return null;
+    }
+  },
   async handle(request) {
-    const body = routes(request.url);
     const bodies = globalThis.__fetchletResponseBodies;
+    if (request.url.endsWith("/withheld")) {
+      // Register a body, start a timer, and answer without handing the body over.
+      const id = bodies.register(routes("https://stream.test/forever?wait=10"));
+      setTimeout(() => {}, 1000);
+      return {
+        status: 200,
+        headers: [["x-body", String(id)]],
+        body: [],
+      };
+    }
+    const body = routes(request.url);
     if (body === null || !bodies.streaming()) {
-      return { status: 404, headers: [], body: [] };
+      return {
+        status: 404,
+        headers: [],
+        body: [],
+      };
     }
     const id = bodies.register(body);
     const initial = await bodies.pull(id, false);

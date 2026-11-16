@@ -213,3 +213,28 @@ async fn a_stream_error_reaches_the_body_consumer() -> anyhow::Result<()> {
     }
     Ok(())
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_body_not_handed_to_the_host_ends_with_its_invocation() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn(backend, limits(Duration::from_secs(5), None)).await?;
+        let response = handle.fetch(get("/withheld")).await?;
+        let id: u64 = response.headers()["x-body"].to_str()?.parse()?;
+        assert!(response.into_body().collect(0).await?.is_empty());
+        // Nothing from that invocation stays reachable by a later one.
+        assert_eq!(number(&handle, "openBodies").await?, 0);
+        assert_eq!(number(&handle, "pendingTimers").await?, 0);
+        assert_eq!(handle.call_json("probe", &[json!(id)]).await?, Value::Null);
+        assert_eq!(number(&handle, "cancelled").await?, 1);
+
+        // A later Fetch call cannot name an earlier body as its own.
+        let open = handle.fetch(get("/forever?wait=10")).await?;
+        drop(open);
+        assert_eq!(
+            handle.call_json("probe", &[json!(id + 1)]).await?,
+            Value::Null
+        );
+        handle.shutdown().await?;
+    }
+    Ok(())
+}

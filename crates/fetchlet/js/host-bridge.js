@@ -180,7 +180,8 @@
   }
 
   // Fetch response bodies that stay open after the handler returns. Rust pulls
-  // them on demand; every entry belongs to the current invocation.
+  // them on demand. Every entry belongs to the current invocation: ids are only
+  // meaningful within it, and the registry is emptied when it begins and ends.
   const responseBodies = new Map();
   let nextResponseBody = 1;
   let streamingCall = false;
@@ -253,6 +254,8 @@
 
   const responseBodyRegistry = Object.freeze({
     beginCall(streaming) {
+      // Nothing from an earlier invocation is reachable from this one.
+      responseBodyRegistry.closeAll();
       streamingCall = streaming;
     },
     endCall() {
@@ -290,6 +293,17 @@
       const entry = responseBodies.get(id);
       responseBodies.delete(id);
       await entry?.reader.cancel().catch(() => {});
+    },
+    // Keep only the body handed to the host in the Fetch result; cancel the
+    // rest. Returns whether that body is still open.
+    retain(id) {
+      for (const [key, entry] of responseBodies) {
+        if (key !== id) {
+          responseBodies.delete(key);
+          void entry.reader.cancel().catch(() => {});
+        }
+      }
+      return responseBodies.has(id);
     },
     closeAll() {
       for (const entry of responseBodies.values()) {

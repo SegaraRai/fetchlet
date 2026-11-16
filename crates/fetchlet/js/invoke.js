@@ -23,7 +23,10 @@ async function invokeExport(exportName, argumentsList, streamResponseBody) {
       throw new TypeError("Result is not JSON serializable");
     }
 
-    invocationRemainsOpen = streamResponseBody === true && (bodies?.openCount() ?? 0) > 0;
+    // Only the body the result hands to the host stays open with the invocation.
+    if (streamResponseBody === true && bodies) {
+      invocationRemainsOpen = bodies.retain(result?.stream);
+    }
     return serializedResult;
   } finally {
     bodies?.endCall();
