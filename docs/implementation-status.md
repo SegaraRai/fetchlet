@@ -66,7 +66,7 @@ SvelteKit **3.2.0** / Svelte **5.57.3** は実際のsveltekit buildとgenerateSe
 
 ## 実アプリのE2E
 
-`examples/sveltekit-axum` はQuickJSでSSRを実行し、axumが静的assetsと動的Responseを配信します。14項目のHTTP / browser試験でhydration、form送信、client navigationと、transport_fnによるプロセス内Rust API（HTTPエラー、実行エラー、origin policy、cancel、`event.fetch` の分担）も確認します。[実行手順](../examples/sveltekit-axum/README.md)、[結果](../results/example-sveltekit-axum.json)を参照してください。
+`examples/sveltekit-axum` はQuickJSでSSRを実行し、axumが静的assetsと動的Responseを配信します。15項目のHTTP / browser試験でhydration、form送信、client navigation、`platform.context.waitUntil` と、transport_fnによるプロセス内Rust API（HTTPエラー、実行エラー、origin policy、cancel、`event.fetch` の分担）も確認します。[実行手順](../examples/sveltekit-axum/README.md)、[結果](../results/example-sveltekit-axum.json)を参照してください。
 
 ## Host servicesと資源管理
 

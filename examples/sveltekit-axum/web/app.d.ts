@@ -7,6 +7,9 @@ declare global {
         MESSAGE: string;
         RUST: ServiceBinding;
       };
+      context: {
+        waitUntil(promise: Promise<unknown>): void;
+      };
     }
   }
 }

@@ -30,13 +30,16 @@ export const GET: RequestHandler = async ({ params, fetch, platform }) => {
         global: await outcome(() => globalThis.fetch("https://example.com/")),
         event: await outcome(() => fetch("https://example.com/")),
       });
-    // Aborting drops the Rust handler's future.
+    // Aborting drops the Rust handler's future while this invocation continues:
+    // the following call already observes the cancellation.
     case "abort": {
+      const rust = platform!.env.RUST;
+      const before = await (await rust.fetch(API + "/stats")).json();
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 50);
-      return json(
-        await outcome(() => platform!.env.RUST.fetch(API + "/slow", { signal: controller.signal })),
-      );
+      const aborted = await outcome(() => rust.fetch(API + "/slow", { signal: controller.signal }));
+      const after = await (await rust.fetch(API + "/stats")).json();
+      return json({ ...aborted, cancelledDuringInvocation: after.cancelled - before.cancelled });
     }
     // A same-origin `event.fetch` is answered by SvelteKit inside JavaScript.
     case "internal":

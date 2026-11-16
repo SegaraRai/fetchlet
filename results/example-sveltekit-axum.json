@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-16T15:24:15.517Z",
+  "checkedAt": "2026-11-16T16:23:02.691Z",
   "summary": {
-    "passed": 14,
+    "passed": 15,
     "failed": 0
   },
   "browser": "159.0.8154.6",
@@ -47,11 +47,15 @@
       "status": "pass"
     },
     {
-      "name": "aborting an in-process fetch drops the Rust handler",
+      "name": "aborting an in-process fetch drops the Rust handler before the invocation ends",
       "status": "pass"
     },
     {
       "name": "same-origin event.fetch stays inside SvelteKit",
+      "status": "pass"
+    },
+    {
+      "name": "background work runs after the response and before the next request",
       "status": "pass"
     },
     {

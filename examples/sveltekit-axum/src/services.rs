@@ -96,12 +96,13 @@ impl ProjectsApi {
                 std::future::pending::<()>().await;
                 unreachable!()
             }
+            ("GET", "/stats") => Ok(json_response(200, &self.stats())),
             ("GET", "/failure") => Err(Error::Transport("database detail stays in Rust".into())),
             _ => Ok(json_response(404, &json!({ "error": "no such route" }))),
         }
     }
 
-    /// Calls and cancellations observed so far, for the native axum route.
+    /// Calls and cancellations observed so far.
     pub(crate) fn stats(&self) -> Value {
         json!({
             "calls": self.calls.load(Ordering::SeqCst),

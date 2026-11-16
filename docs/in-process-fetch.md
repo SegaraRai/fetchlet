@@ -34,7 +34,7 @@ coreのRequest / Responseはfetchlet::Bodyを使うhttp型です。coreはaxum�
 
 [sveltekit-axum](../examples/sveltekit-axum/README.md#プロセス内のrust-api)は、現在のtransport_fnだけでRust APIをプロセス内から呼ぶ構成を示します。
 
-- Rust側のProjectsApiはアプリ状態（プロジェクト一覧と呼び出し数）を保持し、Requestのmethodとpathで処理します。axumのnative route `/api/rust/stats` も同じ状態を読みます。
+- Rust側のProjectsApiはアプリ状態（プロジェクト一覧と呼び出し数）を保持し、Requestのmethodとpathで処理します。同じ状態をRust APIの `/stats` とaxumのnative route `/api/rust/stats` から読めます。
 - 一つのFetchServiceを `HostServices::service("RUST", …)` と `HostServices::outbound(…)` の両方へ渡します。policyは `https://rust.fetchlet.test` だけを許可します。
 - そのため `platform.env.RUST.fetch`、global fetch、SvelteKitの `event.fetch` による他origin宛てのfetchが、socketを使わずに同じRust関数へ届きます。
 
@@ -45,7 +45,7 @@ E2Eで次の結果を確認しています。
 | loadの `event.fetch`、actionの `RUST.fetch`      | Rustの状態を読み書きする。400はactionの `fail` へ、404はendpointのResponseへそのまま渡る |
 | handlerが `Err(Error::Transport)` を返す         | fetchがcode `TRANSPORT` でreject。Rust側の詳細はmessageに含まれない                      |
 | 許可外origin（binding / global / `event.fetch`） | すべてcode `PERMISSION_DENIED` でreject。Rust handlerは呼ばれない                        |
-| AbortSignalで中断                                | fetchがrejectし、Rust handlerのFutureがdropされる                                        |
+| AbortSignalで中断                                | fetchが `AbortError` でrejectし、Invocationの終了前にRust handlerのFutureがdropされる    |
 | 同一originの `event.fetch("/api/context")`       | SvelteKitがJS内で処理し、Rust handlerは呼ばれない                                        |
 
 この構成では、宛先の判定はFetchPolicyのorigin許可と、transportに渡したRust関数のpath処理が担います。

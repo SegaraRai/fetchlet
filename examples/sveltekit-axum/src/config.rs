@@ -15,6 +15,8 @@ pub(crate) struct Config {
     pub queue_capacity: NonZeroUsize,
     pub request_body_bytes: Option<usize>,
     pub invocation_timeout_ms: Option<u64>,
+    pub background_timeout_ms: Option<u64>,
+    pub background_tasks: Option<usize>,
     pub message: String,
     pub build_directory: PathBuf,
     pub public_origin: Option<String>,
@@ -38,6 +40,8 @@ impl Config {
         Limits {
             timeout: self.invocation_timeout_ms.map(Duration::from_millis),
             request_body_bytes: self.request_body_bytes,
+            background_timeout: self.background_timeout_ms.map(Duration::from_millis),
+            background_tasks: self.background_tasks,
             ..Limits::default()
         }
     }

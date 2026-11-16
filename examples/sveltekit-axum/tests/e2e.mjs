@@ -127,18 +127,17 @@ check("the fetch policy denies other origins on every path", async () => {
   assert.equal((await stats()).calls, before.calls, "denied before reaching Rust");
 });
 
-check("aborting an in-process fetch drops the Rust handler", async () => {
-  const before = await stats();
-  const { rejected } = await inProcess("abort");
-  assert.ok(rejected, "the fetch rejects");
-  let after = await stats();
-  for (let attempt = 0; attempt < 20 && after.cancelled === before.cancelled; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    after = await stats();
-  }
-  assert.equal(after.cancelled, before.cancelled + 1);
-  assert.equal((await fetch(suite.base)).status, 200);
-});
+check(
+  "aborting an in-process fetch drops the Rust handler before the invocation ends",
+  async () => {
+    const before = await stats();
+    const outcome = await inProcess("abort");
+    assert.equal(outcome.rejected?.name, "AbortError");
+    assert.equal(outcome.cancelledDuringInvocation, 1);
+    assert.equal((await stats()).cancelled, before.cancelled + 1);
+    assert.equal((await fetch(suite.base)).status, 200);
+  },
+);
 
 check("same-origin event.fetch stays inside SvelteKit", async () => {
   const before = await stats();
@@ -146,6 +145,21 @@ check("same-origin event.fetch stays inside SvelteKit", async () => {
   assert.equal(outcome.status, 200);
   assert.equal(outcome.body.message, "SvelteKitとRustへようこそ。");
   assert.equal((await stats()).calls, before.calls);
+});
+
+check("background work runs after the response and before the next request", async () => {
+  const label = "job-" + Date.now();
+  const response = await fetch(suite.base + "/api/background", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ label }),
+  });
+  assert.equal(response.status, 202);
+  const accepted = await response.json();
+  assert.equal(accepted.accepted, label);
+  assert.ok(!accepted.completed.includes(label), "sent before the work finished");
+  const { completed } = await (await fetch(suite.base + "/api/background")).json();
+  assert.ok(completed.includes(label));
 });
 
 check("concurrent requests keep their own values", async () => {

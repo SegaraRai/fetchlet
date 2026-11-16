@@ -42,11 +42,15 @@ Rustが `MESSAGE` と `RUST` serviceを固定bindingとして渡します。adap
 | /api/projects/[id]       | Rust APIのResponseをそのまま返す。存在しないidは404                                  |
 | /api/in-process/failure  | Rust handlerの `Err` がcode `TRANSPORT` のrejectになる                               |
 | /api/in-process/denied   | 許可外originはbinding、global fetch、`event.fetch` のいずれも `PERMISSION_DENIED`    |
-| /api/in-process/abort    | 50 msでabortし、Rust handlerのFutureをdropする                                       |
+| /api/in-process/abort    | 50 msでabortし、同じInvocation内の次の呼び出しでRust handlerのdropを確認する         |
 | /api/in-process/internal | 同一originの `event.fetch` はSvelteKitがJS内で処理し、Rust APIを呼ばない             |
-| /api/rust/stats          | axumのnative route。Rust APIの呼び出し数とcancel数                                   |
+| /api/rust/stats          | axumのnative route。Rust APIの呼び出し数とcancel数（Rust APIの `/stats` と同じ値）   |
 
 HTTPエラーはResponse、実行エラー・権限拒否・cancelはrejectとしてJSへ届きます。
+
+## 応答後の処理
+
+`/api/background` は `platform.context.waitUntil` で応答後の処理を登録し、同じworkerは次のリクエストの前にその処理を完了します。予算はconfig.jsonのbackground_timeout_ms（5秒）とbackground_tasks（8件）です。
 
 ## 設定と実行管理
 
@@ -73,6 +77,6 @@ vp run test:example:sveltekit-axum
 
 インストール済みChromeを使う場合は `FETCHLET_BROWSER_CHANNEL=chrome` を環境変数に設定します。
 
-検査するのはSSRとescape、JS / CSS / 静的ファイル、JSON endpoint、form actionとSet-Cookie、client addressとenv、Rust route、本文予算、プロセス内Rust API（HTTPエラー、実行エラー、origin policy、cancel、`event.fetch` の分担）、並行Request、hydrationとフォーム送信、クライアント遷移です。結果は `results/example-sveltekit-axum.json` に保存します。
+検査するのはSSRとescape、JS / CSS / 静的ファイル、JSON endpoint、form actionとSet-Cookie、client addressとenv、Rust route、本文予算、応答後の処理、プロセス内Rust API（HTTPエラー、実行エラー、origin policy、cancel、`event.fetch` の分担）、並行Request、hydrationとフォーム送信、クライアント遷移です。結果は `results/example-sveltekit-axum.json` に保存します。
 
 adapterの入口は[SvelteKit adapter API](https://svelte.dev/docs/kit/writing-adapters)、HTTPと静的配信は[axum](https://docs.rs/axum/0.8.9/axum/)と[ServeDir](https://docs.rs/tower-http/0.7.1/tower_http/services/struct.ServeDir.html)を使用しています。
