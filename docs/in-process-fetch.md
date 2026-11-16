@@ -30,7 +30,25 @@ JS側はFetchのRequest / ResponseでRustのAPIを利用します。内部宛先
 
 coreのRequest / Responseはfetchlet::Bodyを使うhttp型です。coreはaxumやTowerへ依存せず、axum統合は任意のfetchlet-axumに分けています。
 
-現在の例は、名前付きRUST serviceへtransport_fnのRust関数を接続します。JSのfetchlet.env.RUST.fetchから呼ぶ際に内部HTTP接続は発生しません。global fetchも渡したserviceのtransportを利用するので、ホストが独自に宛先を判定する実装は現APIで構成できます。
+## 現APIによる最小例
+
+[sveltekit-axum](../examples/sveltekit-axum/README.md#プロセス内のrust-api)は、現在のtransport_fnだけでRust APIをプロセス内から呼ぶ構成を示します。
+
+- Rust側のProjectsApiはアプリ状態（プロジェクト一覧と呼び出し数）を保持し、Requestのmethodとpathで処理します。axumのnative route `/api/rust/stats` も同じ状態を読みます。
+- 一つのFetchServiceを `HostServices::service("RUST", …)` と `HostServices::outbound(…)` の両方へ渡します。policyは `https://rust.fetchlet.test` だけを許可します。
+- そのため `platform.env.RUST.fetch`、global fetch、SvelteKitの `event.fetch` による他origin宛てのfetchが、socketを使わずに同じRust関数へ届きます。
+
+E2Eで次の結果を確認しています。
+
+| 場面                                             | 確認した結果                                                                             |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| loadの `event.fetch`、actionの `RUST.fetch`      | Rustの状態を読み書きする。400はactionの `fail` へ、404はendpointのResponseへそのまま渡る |
+| handlerが `Err(Error::Transport)` を返す         | fetchがcode `TRANSPORT` でreject。Rust側の詳細はmessageに含まれない                      |
+| 許可外origin（binding / global / `event.fetch`） | すべてcode `PERMISSION_DENIED` でreject。Rust handlerは呼ばれない                        |
+| AbortSignalで中断                                | fetchがrejectし、Rust handlerのFutureがdropされる                                        |
+| 同一originの `event.fetch("/api/context")`       | SvelteKitがJS内で処理し、Rust handlerは呼ばれない                                        |
+
+この構成では、宛先の判定はFetchPolicyのorigin許可と、transportに渡したRust関数のpath処理が担います。
 
 共通のorigin登録表とrouter adapterは次の設計対象です。また、fetch_with_contextの値はJSへ渡す引数です。現在のFetchTransport::sendはRequestだけを受け取り、元のRust呼び出しの認証主体やtrace情報を自動で受け取る経路は備えていません。
 
@@ -65,7 +83,13 @@ async (fetchlet::Request, Context) → fetchlet::Result<fetchlet::Response>
 
 ## frameworkとブラウザーのURL
 
-サーバー側の相対URLは、受信Request等の基準URLからframework adapterが解決し、framework独自fetchの扱いと合わせて整理します。SvelteKit等が自分で処理する内部fetchと、fetchletからRustへ渡すfetchは、それぞれのrouteの責任を明示します。
+frameworkが提供するfetchとfetchletの責任分担は次のとおりです。SvelteKitの `event.fetch` で確認済みです。
+
+- 同一originの相対URL・絶対URLは、frameworkが自身のrouteとしてJS内で処理します。fetchletのhost fetchは使いません。
+- 他originのURLはframeworkがglobal fetchへ渡し、fetchletの `HostServices::outbound` のpolicyとtransportが処理します。frameworkが付けるheaders（cookieの転送規則等）はframeworkの仕様に従います。
+- `platform.env.RUST` 等の名前付きbindingは、frameworkを経由せずに直接fetchletのserviceを呼びます。
+
+他frameworkの内部fetchも、adapterごとに同じ観点で確認します。
 
 内部originはserver-side JS用の宛先識別です。ブラウザーからのfetchは、公開HTTPの同じRust routerや、ホストが別途提供する接続経路を使います。例えばserver-side JSはhttps://rust.invalid/api/projects、ブラウザーは公開origin上の/api/projectsを使い、両方を同じRust handlerへつなぐ構成が候補になります。ブラウザー向けには公開URLだけを渡します。
 
@@ -103,9 +127,8 @@ HTTPエラーと実行エラーは、JSから見える結果を分けます。
 ## 検証する順序
 
 1. Request / Response、Body状態、Blob / multipartの適合性を整え、関連WPTと回帰試験を増やす。
-2. 現在のtransport_fnでRust APIを直接呼ぶ最小例を、origin policy、HTTPエラー、cancelとともに確認する。
-3. origin登録と信頼できるContextの契約を確定し、未登録・失敗・redirect時の宛先と権限を試験する。
-4. 任意のRust router adapterで、同じAPIを通常HTTPとプロセス内fetchから呼ぶE2Eを加える。
-5. artifactとassetsの埋め込み、CLI等の起動・終了、Tauriの読み込み経路を順に実測する。
+2. origin登録と信頼できるContextの契約を確定し、未登録・失敗・redirect時の宛先と権限を試験する（transport_fnによる最小例でorigin policy、HTTPエラー、実行エラー、cancel、`event.fetch` の分担は確認済み）。
+3. 任意のRust router adapterで、同じAPIを通常HTTPとプロセス内fetchから呼ぶE2Eを加える。
+4. artifactとassetsの埋め込み、CLI等の起動・終了、Tauriの読み込み経路を順に実測する。
 
 この順序は開発候補です。具体的な公開API、Rust frameworkごとの対応範囲、Tauri統合の成立は、各実装と試験で確定します。

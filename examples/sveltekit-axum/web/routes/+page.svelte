@@ -26,6 +26,7 @@
 
   <button type="button" onclick={() => clicks += 1}>クリック {clicks}</button>
   <a href="/about">このページについて</a>
+  <a href="/projects">プロジェクト</a>
 </main>
 
 <style>

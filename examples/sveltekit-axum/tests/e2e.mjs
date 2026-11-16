@@ -84,6 +84,70 @@ check("input budget and the following request", async () => {
   assert.equal((await fetch(suite.base)).status, 200);
 });
 
+const stats = async () => (await fetch(suite.base + "/api/rust/stats")).json();
+const inProcess = async (name) => (await fetch(suite.base + "/api/in-process/" + name)).json();
+
+check("in-process Rust API through event.fetch and the service binding", async () => {
+  const empty = await fetch(suite.base + "/projects", {
+    method: "POST",
+    headers: { origin: suite.base, "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ name: " " }),
+  });
+  assert.equal(empty.status, 400);
+  assert.match(await empty.text(), /name is required/);
+
+  const created = await fetch(suite.base + "/projects", {
+    method: "POST",
+    headers: { origin: suite.base, "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ name: "検証" }),
+  });
+  assert.equal(created.status, 200);
+  assert.match(await (await fetch(suite.base + "/projects")).text(), /\d+: 検証/);
+
+  const found = await fetch(suite.base + "/api/projects/1");
+  assert.equal(found.status, 200);
+  assert.equal((await found.json()).id, 1);
+  const missing = await fetch(suite.base + "/api/projects/999");
+  assert.equal(missing.status, 404);
+  assert.deepEqual(await missing.json(), { error: "project not found" });
+});
+
+check("in-process execution errors reject without Rust details", async () => {
+  const { rejected } = await inProcess("failure");
+  assert.equal(rejected.code, "TRANSPORT");
+  assert.doesNotMatch(rejected.message, /database detail/);
+});
+
+check("the fetch policy denies other origins on every path", async () => {
+  const before = await stats();
+  const outcome = await inProcess("denied");
+  for (const path of ["binding", "global", "event"]) {
+    assert.equal(outcome[path].rejected?.code, "PERMISSION_DENIED", path);
+  }
+  assert.equal((await stats()).calls, before.calls, "denied before reaching Rust");
+});
+
+check("aborting an in-process fetch drops the Rust handler", async () => {
+  const before = await stats();
+  const { rejected } = await inProcess("abort");
+  assert.ok(rejected, "the fetch rejects");
+  let after = await stats();
+  for (let attempt = 0; attempt < 20 && after.cancelled === before.cancelled; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    after = await stats();
+  }
+  assert.equal(after.cancelled, before.cancelled + 1);
+  assert.equal((await fetch(suite.base)).status, 200);
+});
+
+check("same-origin event.fetch stays inside SvelteKit", async () => {
+  const before = await stats();
+  const outcome = await inProcess("internal");
+  assert.equal(outcome.status, 200);
+  assert.equal(outcome.body.message, "SvelteKitとRustへようこそ。");
+  assert.equal((await stats()).calls, before.calls);
+});
+
 check("concurrent requests keep their own values", async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {

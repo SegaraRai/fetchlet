@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-16T14:34:26.793Z",
+  "checkedAt": "2026-11-16T15:24:15.517Z",
   "summary": {
-    "passed": 9,
+    "passed": 14,
     "failed": 0
   },
   "browser": "159.0.8154.6",
@@ -32,6 +32,26 @@
     },
     {
       "name": "input budget and the following request",
+      "status": "pass"
+    },
+    {
+      "name": "in-process Rust API through event.fetch and the service binding",
+      "status": "pass"
+    },
+    {
+      "name": "in-process execution errors reject without Rust details",
+      "status": "pass"
+    },
+    {
+      "name": "the fetch policy denies other origins on every path",
+      "status": "pass"
+    },
+    {
+      "name": "aborting an in-process fetch drops the Rust handler",
+      "status": "pass"
+    },
+    {
+      "name": "same-origin event.fetch stays inside SvelteKit",
       "status": "pass"
     },
     {

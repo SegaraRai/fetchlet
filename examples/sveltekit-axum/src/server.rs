@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use axum::Router;
@@ -11,7 +12,7 @@ use fetchlet::{App, Backend, Module, WorkerOptions};
 use fetchlet_axum::FetchletService;
 
 use crate::config::Config;
-use crate::services::host_services;
+use crate::services::{ProjectsApi, host_services};
 
 pub(crate) async fn run(config: Config) -> Result<()> {
     let source = std::fs::read_to_string(config.build_directory.join("server.js"))
@@ -22,9 +23,10 @@ pub(crate) async fn run(config: Config) -> Result<()> {
         .public_origin
         .clone()
         .unwrap_or_else(|| format!("http://{address}"));
+    let api = Arc::new(ProjectsApi::default());
     let app = App::builder(Backend::quickjs())
         .module(Module::new(source))
-        .host_services(host_services(&config.message)?)
+        .host_services(host_services(&config.message, api.clone())?)
         .limits(config.limits())
         .spawn(WorkerOptions::new(config.queue_capacity))
         .await?;
@@ -35,6 +37,10 @@ pub(crate) async fn run(config: Config) -> Result<()> {
         .fallback(rendering);
     let router = Router::new()
         .route("/api/rust", get(rust_endpoint))
+        .route(
+            "/api/rust/stats",
+            get(move || async move { axum::Json(api.stats()) }),
+        )
         .fallback_service(assets);
 
     println!("FETCHLET_LISTENING http://{address}");
