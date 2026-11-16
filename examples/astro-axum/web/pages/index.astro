@@ -1,0 +1,25 @@
+---
+import Page from "../layouts/Page.astro";
+import Counter from "../components/Counter.svelte";
+
+let name = Astro.url.searchParams.get("name") ?? "fetchlet";
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  name = String(form.get("name") ?? "").trim() || "fetchlet";
+  Astro.cookies.set("visitor", name, { path: "/", sameSite: "lax", secure: false });
+}
+const response = await Astro.locals.env.RUST.fetch("https://rust.fetchlet.test/greeting");
+const greeting = await response.json();
+---
+<Page title="Astroの挨拶">
+  <h1>こんにちは、{name}</h1>
+  <p>{Astro.locals.env.MESSAGE}</p>
+  <p>{greeting.message}</p>
+  <form method="POST">
+    <label for="name">名前</label>
+    <input id="name" name="name" value={name} />
+    <button type="submit">挨拶する</button>
+  </form>
+  <Counter client:load />
+  <a href="/about">このページについて</a>
+</Page>

@@ -1,0 +1,16 @@
+{
+  "name": "@fetchlet/example-sveltekit-axum",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet/runtime": "workspace:*",
+    "@fetchlet/sveltekit-adapter": "workspace:*",
+    "@sveltejs/kit": "^3.2.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/node": "^26.6.6",
+    "svelte": "^5.57.3",
+    "svelte-check": "4.7.8",
+    "typescript": "~6.0.3",
+    "vite-plus": "^1.6.0"
+  }
+}

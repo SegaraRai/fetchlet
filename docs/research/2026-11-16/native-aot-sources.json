@@ -1,0 +1,55 @@
+{
+  "checkedDate": "2026-11-16",
+  "timezone": "Asia/Tokyo",
+  "method": "Pinned upstream documentation/source inspection only; no compiler installation, native compilation, Rust linking, or framework execution",
+  "files": [
+    {
+      "project": "coop",
+      "repository": "PerryTS/coop",
+      "commit": "efa8ada8ce186fa581bfbbc30ad99c7c1fbff97b",
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/PerryTS/coop/efa8ada8ce186fa581bfbbc30ad99c7c1fbff97b/README.md",
+      "lines": 199
+    },
+    {
+      "project": "scriptc",
+      "repository": "vercel-labs/scriptc",
+      "commit": "e9ed4826e324236da131b822867221f62c710db8",
+      "path": "docs/content/docs/wasm.mdx",
+      "url": "https://raw.githubusercontent.com/vercel-labs/scriptc/e9ed4826e324236da131b822867221f62c710db8/docs/content/docs/wasm.mdx",
+      "lines": 120
+    },
+    {
+      "project": "scriptc",
+      "repository": "vercel-labs/scriptc",
+      "commit": "e9ed4826e324236da131b822867221f62c710db8",
+      "path": "docs/content/limitations/browser-embedding.mdx",
+      "url": "https://raw.githubusercontent.com/vercel-labs/scriptc/e9ed4826e324236da131b822867221f62c710db8/docs/content/limitations/browser-embedding.mdx",
+      "lines": 7
+    },
+    {
+      "project": "scriptc",
+      "repository": "vercel-labs/scriptc",
+      "commit": "e9ed4826e324236da131b822867221f62c710db8",
+      "path": "docs/content/docs/cli.mdx",
+      "url": "https://raw.githubusercontent.com/vercel-labs/scriptc/e9ed4826e324236da131b822867221f62c710db8/docs/content/docs/cli.mdx",
+      "lines": 472
+    },
+    {
+      "project": "coop",
+      "repository": "PerryTS/coop",
+      "commit": "efa8ada8ce186fa581bfbbc30ad99c7c1fbff97b",
+      "path": "docs/src/host-abi.md",
+      "url": "https://raw.githubusercontent.com/PerryTS/coop/efa8ada8ce186fa581bfbbc30ad99c7c1fbff97b/docs/src/host-abi.md",
+      "lines": 71
+    },
+    {
+      "project": "perry",
+      "repository": "PerryTS/perry",
+      "commit": "23c22f18bcc3b4e4cbaa430cfa19ebb855f140d8",
+      "path": "docs/src/cli/flags.md",
+      "url": "https://raw.githubusercontent.com/PerryTS/perry/23c22f18bcc3b4e4cbaa430cfa19ebb855f140d8/docs/src/cli/flags.md",
+      "lines": 769
+    }
+  ]
+}

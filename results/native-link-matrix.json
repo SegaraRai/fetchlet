@@ -1,0 +1,65 @@
+{
+  "checkedAt": "2026-11-15T22:07:56.2341088Z",
+  "target": "x86_64-pc-windows-msvc",
+  "perry": "0.5.1665",
+  "scriptc": "0.4.14",
+  "zig": "0.15.2",
+  "results": [
+    {
+      "backend": "perry",
+      "stage": "static-library",
+      "status": "pass",
+      "exitCode": 0,
+      "log": "results/logs/perry-static-build.log",
+      "diagnostics": "Collecting modules...\n  Compile package wildcard: expanded to 110 installed package(s)\n  Compile package wildcard: left 5 Node native-addon package(s) out of whole-package AOT routing (static pure-source subpaths can still compile; list explicitly for a hard error)\nFound 1 module(s): 1 native, 0 JavaScript, 0 pruned as unreferenced side-effect-free re-exports\nGenerating code...\n[perry] codegen: births pre-pass\n[perry] codegen: births pre-pass done in 0.0s\n[perry] codegen: whole-program facts\n[perry] codegen: whole-program facts done in 0.0s\n[perry] codegen: module options\n[perry] codegen: module options done in 0.0s\n[perry] codegen: modules finished 1/1 (100%; 0.0 min elapsed; ETA ~0.0 min)\nperry: in-process LLVM backend active (LLVM 22.1.8)\nAsset manifest: \\\\?\\F:\\Projects\\fetchlet\\node_modules\\.cache\\perry\\assets.json\nLinking (runtime-only)...\nWrote static archive: artifacts\\aot\\perry-native.lib\nWrote link manifest: artifacts\\aot\\perry-native.linkdeps.json"
+    },
+    {
+      "backend": "perry",
+      "stage": "rust-msvc-link",
+      "status": "fail",
+      "exitCode": 1,
+      "log": "results/logs/perry-rust-msvc.log",
+      "diagnostics": "error: linking with `link.exe` failed: exit code: 1169\n  |\n  = note: \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\18\\\\Community\\\\VC\\\\Tools\\\\MSVC\\\\14.51.36231\\\\bin\\\\HostX64\\\\x64\\\\link.exe\" \"/NOLOGO\" \"F:\\\\Projects\\\\fetchlet\\\\artifacts\\\\aot\\\\rustcc19TDT\\\\symbols.o\" \"<2 object files omitted>\" \"artifacts\\\\aot\\\\perry-native.lib\" \".cache\\\\tools\\\\perry\\\\perry_runtime.lib\" \".cache\\\\tools\\\\perry\\\\perry_stdlib.lib\" \"<sysroot>\\\\lib\\\\rustlib\\\\x86_64-pc-windows-msvc\\\\lib/{libstd-*,libpanic_unwind-*,libcfg_if-*,libwindows_link-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libunwind-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib\" \"kernel32.lib\" \"kernel32.lib\" \"ntdll.lib\" \"userenv.lib\" \"ws2_32.lib\" \"dbghelp.lib\" \"synchronization.lib\" \"/defaultlib:msvcrt\" \"/NXCOMPAT\" \"/LIBPATH:artifacts\\\\aot\" \"/LIBPATH:.cache\\\\tools\\\\perry\" \"/OUT:artifacts\\\\aot\\\\rust-perry-host.exe\" \"/OPT:REF,NOICF\" \"/DEBUG\" \"/PDBALTPATH:%_PDB%\" \"/NATVIS:<sysroot>\\\\lib\\\\rustlib\\\\etc\\\\intrinsic.natvis\" \"/NATVIS:<sysroot>\\\\lib\\\\rustlib\\\\etc\\\\liballoc.natvis\" \"/NATVIS:<sysroot>\\\\lib\\\\rustlib\\\\etc\\\\libcore.natvis\" \"/NATVIS:<sysroot>\\\\lib\\\\rustlib\\\\etc\\\\libstd.natvis\"\n  = note: some arguments are omitted. use `--verbose` to show all linker arguments\n  = note: perry_runtime.lib(perry_runtime-3d1feb3e3c410322.perry_runtime-9e6fe60149ac65ba.perry_runtime.2a4f8781f846ed9d-cgu.10.rcgu.o.rcgu.o) : error LNK2005: perry_atom_well_known_iterator は既に perry-native.lib(2018e57c3b87f77a.o) で定義されています。\n          libstd-389636fd4dca543a.rlib(std-389636fd4dca543a.std.7ac5527a03ca1e7b-cgu.0.rcgu.o) : error LNK2005: rust_eh_personality は既に perry_runtime.lib(perry_runtime-3d1feb3e3c410322.std-aa7578fc0f0662ea.std.8b95044478c12fa0-cgu.12.rcgu.o.rcgu.o) で定義されています。\n          artifacts\\aot\\rust-perry-host.exe : fatal error LNK1169: 1 つ以上の複数回定義されているシンボルが見つかりました。\n          \n\nerror: aborting due to 1 previous error\n"
+    },
+    {
+      "backend": "scriptc",
+      "stage": "static-library",
+      "status": "pass",
+      "exitCode": 0,
+      "log": "results/logs/scriptc-static-build.log",
+      "diagnostics": "F:\\Projects\\fetchlet\\artifacts\\aot\\scriptc-native.lib.a"
+    },
+    {
+      "backend": "scriptc",
+      "stage": "rust-msvc-link",
+      "status": "fail",
+      "exitCode": 1,
+      "log": "results/logs/scriptc-rust-msvc.log",
+      "diagnostics": "error: linking with `link.exe` failed: exit code: 1143\n  |\n  = note: \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\18\\\\Community\\\\VC\\\\Tools\\\\MSVC\\\\14.51.36231\\\\bin\\\\HostX64\\\\x64\\\\link.exe\" \"/NOLOGO\" \"F:\\\\Projects\\\\fetchlet\\\\artifacts\\\\aot\\\\rustcXOlNkm\\\\symbols.o\" \"<2 object files omitted>\" \"artifacts\\\\aot\\\\scriptc-native.lib\" \"<sysroot>\\\\lib\\\\rustlib\\\\x86_64-pc-windows-msvc\\\\lib/{libstd-*,libpanic_unwind-*,libcfg_if-*,libwindows_link-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libunwind-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib\" \"kernel32.lib\" \"kernel32.lib\" \"ntdll.lib\" \"userenv.lib\" \"ws2_32.lib\" \"dbghelp.lib\" \"synchronization.lib\" \"/defaultlib:msvcrt\" \"/NXCOMPAT\" \"/LIBPATH:artifacts\\\\aot\" \"/OUT:artifacts\\\\aot\\\\rust-scriptc-host.exe\" \"/OPT:REF,NOICF\" \"/DEBUG\" \"/PDBALTPATH:%_PDB%\" \"/NATVIS:<sysroot>\\\\lib\\\\rustlib\\\\etc\\\\intrinsic.natvis\" \"/NATVIS:<sysroot>\\\\lib\\\\rustlib\\\\etc\\\\liballoc.natvis\" \"/NATVIS:<sysroot>\\\\lib\\\\rustlib\\\\etc\\\\libcore.natvis\" \"/NATVIS:<sysroot>\\\\lib\\\\rustlib\\\\etc\\\\libstd.natvis\"\n  = note: some arguments are omitted. use `--verbose` to show all linker arguments\n  = note: scriptc-native.lib(scr_win.o) : fatal error LNK1143: ファイルが無効であるか、または壊れています: COMDAT セクション 0x5 のシンボルがありません。\n          \n\nerror: aborting due to 1 previous error\n"
+    },
+    {
+      "backend": "scriptc",
+      "stage": "rust-object",
+      "status": "pass",
+      "exitCode": 0,
+      "log": "results/logs/scriptc-rust-object.log",
+      "diagnostics": ""
+    },
+    {
+      "backend": "scriptc",
+      "stage": "rust-with-c-gnu-bootstrap-link",
+      "status": "pass",
+      "exitCode": 0,
+      "log": "results/logs/scriptc-gnu-link.log",
+      "diagnostics": ""
+    },
+    {
+      "backend": "scriptc",
+      "stage": "rust-with-c-gnu-bootstrap-execution",
+      "status": "pass",
+      "exitCode": 0,
+      "log": "results/logs/scriptc-gnu-run.log",
+      "diagnostics": "{\"rustStaticCalls\":true,\"bootstrap\":\"C main / Zig GNU CRT\"}"
+    }
+  ]
+}

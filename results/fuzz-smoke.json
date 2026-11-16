@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-11-16T09:41:12.5653847Z",
+  "target": "fetch_service",
+  "sanitizer": "address",
+  "status": "pass",
+  "completedRuns": 274345,
+  "requestedRuns": 1000000,
+  "timeBudgetSeconds": 30,
+  "compiler": "rustc 1.102.0-nightly (8eb778d04 2026-11-12)",
+  "maxInputBytes": 16384
+}

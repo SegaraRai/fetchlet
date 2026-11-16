@@ -1,0 +1,9 @@
+{
+  "url": "https://allowed.test/",
+  "method": "POST",
+  "headers": [
+    ["host", "evil.test"],
+    ["content-length", "999"]
+  ],
+  "body": [0, 128, 255]
+}

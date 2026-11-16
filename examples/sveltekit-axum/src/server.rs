@@ -1,0 +1,60 @@
+use std::net::SocketAddr;
+
+use anyhow::{Context, Result};
+use axum::Router;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use tokio::net::TcpListener;
+use tower_http::services::ServeDir;
+
+use fetchlet::{App, Backend, Module, WorkerOptions};
+use fetchlet_axum::FetchletService;
+
+use crate::config::Config;
+use crate::services::host_services;
+
+pub(crate) async fn run(config: Config) -> Result<()> {
+    let source = std::fs::read_to_string(config.build_directory.join("server.js"))
+        .context("build the SvelteKit frontend before starting the server")?;
+    let listener = TcpListener::bind(config.listen).await?;
+    let address = listener.local_addr()?;
+    let origin = config
+        .public_origin
+        .clone()
+        .unwrap_or_else(|| format!("http://{address}"));
+    let app = App::builder(Backend::quickjs())
+        .module(Module::new(source))
+        .host_services(host_services(&config.message)?)
+        .limits(config.limits())
+        .spawn(WorkerOptions::new(config.queue_capacity))
+        .await?;
+    let rendering = FetchletService::new(app.clone(), &origin)?
+        .on_error(|error| eprintln!("request failed: {error:#}"));
+    let assets = ServeDir::new(config.build_directory.join("client"))
+        .call_fallback_on_method_not_allowed(true)
+        .fallback(rendering);
+    let router = Router::new()
+        .route("/api/rust", get(rust_endpoint))
+        .fallback_service(assets);
+
+    println!("FETCHLET_LISTENING http://{address}");
+    let result = axum::serve(
+        listener,
+        router.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown())
+    .await;
+    app.shutdown().await?;
+    result?;
+    Ok(())
+}
+
+async fn rust_endpoint() -> impl IntoResponse {
+    axum::Json(serde_json::json!({ "message": "served by axum" }))
+}
+
+async fn shutdown() {
+    if let Err(error) = tokio::signal::ctrl_c().await {
+        eprintln!("shutdown signal failed: {error}");
+    }
+}

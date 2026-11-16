@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-11-16T12:43:58.464Z",
+  "summary": {
+    "passed": 9,
+    "failed": 0
+  },
+  "browser": "159.0.8154.6",
+  "results": [
+    {
+      "name": "SSR, escaping and the Rust service binding",
+      "status": "pass"
+    },
+    {
+      "name": "client JavaScript, CSS and static files",
+      "status": "pass"
+    },
+    {
+      "name": "SvelteKit JSON endpoint",
+      "status": "pass"
+    },
+    {
+      "name": "form action and Set-Cookie",
+      "status": "pass"
+    },
+    {
+      "name": "request context and environment",
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with SvelteKit",
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following request",
+      "status": "pass"
+    },
+    {
+      "name": "concurrent requests keep their own values",
+      "status": "pass"
+    },
+    {
+      "name": "browser hydration, form submission and client navigation",
+      "status": "pass"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+[package]
+name = "fetchlet-axum"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "axum request and response integration for fetchlet"
+
+[features]
+default = ["quickjs"]
+quickjs = ["_backend", "fetchlet/quickjs"]
+boa = ["_backend", "fetchlet/boa"]
+v8 = ["_backend", "fetchlet/v8"]
+_backend = [
+  "dep:fetchlet",
+  "dep:axum",
+  "dep:serde",
+  "dep:serde_json",
+  "dep:thiserror",
+  "dep:http-body-util",
+  "dep:tower-service",
+]
+
+[dependencies]
+fetchlet = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
+http-body-util = { version = "0.1", optional = true }
+tower-service = { version = "0.3", optional = true }
+
+[dev-dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+tower.workspace = true
+http-body = "1"

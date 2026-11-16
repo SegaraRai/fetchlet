@@ -1,0 +1,8 @@
+{
+  "listen": "127.0.0.1:3000",
+  "queue_capacity": 8,
+  "request_body_bytes": 1048576,
+  "invocation_timeout_ms": 10000,
+  "message": "SvelteKitとRustへようこそ。",
+  "build_directory": "build"
+}

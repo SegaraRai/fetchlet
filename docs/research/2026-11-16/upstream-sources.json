@@ -1,0 +1,345 @@
+{
+  "checkedDate": "2026-11-16",
+  "timezone": "Asia/Tokyo",
+  "method": "Source inspection only; no embedded runtime or framework execution",
+  "refs": {
+    "llrt": "5f62b24cf647d20ad832f793993fd90b3137b0a2",
+    "boa": "bea404d173bf74a64b7c7ae39b1bc2da639abeee",
+    "rustyscript": "ef6ccee0eb45378dba540ebe78005f05ed3aa81b",
+    "deno": "e7b39ebd55c85aaf6a29290c1f5a99e2e21e09dd",
+    "hono": "f6fbaf0299c48eea9e656e03e2ffe7ac755e8823",
+    "svelte": "407ef8cb1257d0d7529db6ebde1130654ffd8fe4"
+  },
+  "files": [
+    {
+      "project": "llrt",
+      "path": "modules/llrt_fetch/src/request.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_fetch/src/request.rs",
+      "lines": 916
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_fetch/src/response.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_fetch/src/response.rs",
+      "lines": 1552
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_fetch/src/headers.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_fetch/src/headers.rs",
+      "lines": 969
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_fetch/src/body_helpers.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_fetch/src/body_helpers.rs",
+      "lines": 266
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/src/fetch/request.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/src/fetch/request.rs",
+      "lines": 349
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/src/fetch/response.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/src/fetch/response.rs",
+      "lines": 537
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/src/fetch/headers.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/src/fetch/headers.rs",
+      "lines": 281
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/Cargo.toml",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/Cargo.toml",
+      "lines": 64
+    },
+    {
+      "project": "rustyscript",
+      "path": "Cargo.toml",
+      "url": "https://raw.githubusercontent.com/rscarson/rustyscript/ef6ccee0eb45378dba540ebe78005f05ed3aa81b/Cargo.toml",
+      "lines": 308
+    },
+    {
+      "project": "rustyscript",
+      "path": "src/ext/mod.rs",
+      "url": "https://raw.githubusercontent.com/rscarson/rustyscript/ef6ccee0eb45378dba540ebe78005f05ed3aa81b/src/ext/mod.rs",
+      "lines": 286
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/src/extensions.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/src/extensions.rs",
+      "lines": 174
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/src/text/mod.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/src/text/mod.rs",
+      "lines": 269
+    },
+    {
+      "project": "llrt",
+      "path": "llrt_core/Cargo.toml",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/llrt_core/Cargo.toml",
+      "lines": 98
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/src/fetch/mod.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/src/fetch/mod.rs",
+      "lines": 277
+    },
+    {
+      "project": "llrt",
+      "path": "llrt_modules/src/module_builder.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/llrt_modules/src/module_builder.rs",
+      "lines": 230
+    },
+    {
+      "project": "rustyscript",
+      "path": "src/ext/web/init_web.js",
+      "url": "https://raw.githubusercontent.com/rscarson/rustyscript/ef6ccee0eb45378dba540ebe78005f05ed3aa81b/src/ext/web/init_web.js",
+      "lines": 103
+    },
+    {
+      "project": "rustyscript",
+      "path": "src/ext/web_stub/init_stub.js",
+      "url": "https://raw.githubusercontent.com/rscarson/rustyscript/ef6ccee0eb45378dba540ebe78005f05ed3aa81b/src/ext/web_stub/init_stub.js",
+      "lines": 21
+    },
+    {
+      "project": "rustyscript",
+      "path": "src/ext/web/mod.rs",
+      "url": "https://raw.githubusercontent.com/rscarson/rustyscript/ef6ccee0eb45378dba540ebe78005f05ed3aa81b/src/ext/web/mod.rs",
+      "lines": 165
+    },
+    {
+      "project": "llrt",
+      "path": "llrt_core/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/llrt_core/src/lib.rs",
+      "lines": 23
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_crypto/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_crypto/src/lib.rs",
+      "lines": 399
+    },
+    {
+      "project": "rustyscript",
+      "path": "src/ext/web/init_fetch.js",
+      "url": "https://raw.githubusercontent.com/rscarson/rustyscript/ef6ccee0eb45378dba540ebe78005f05ed3aa81b/src/ext/web/init_fetch.js",
+      "lines": 23
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_abort/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_abort/src/lib.rs",
+      "lines": 26
+    },
+    {
+      "project": "llrt",
+      "path": "API.md",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/API.md",
+      "lines": 938
+    },
+    {
+      "project": "boa",
+      "path": "core/wintertc/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/wintertc/src/lib.rs",
+      "lines": 316
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_url/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_url/src/lib.rs",
+      "lines": 356
+    },
+    {
+      "project": "rustyscript",
+      "path": "src/ext/web/permissions.rs",
+      "url": "https://raw.githubusercontent.com/rscarson/rustyscript/ef6ccee0eb45378dba540ebe78005f05ed3aa81b/src/ext/web/permissions.rs",
+      "lines": 709
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_util/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_util/src/lib.rs",
+      "lines": 114
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_stream_web/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_stream_web/src/lib.rs",
+      "lines": 184
+    },
+    {
+      "project": "llrt",
+      "path": "llrt_modules/Cargo.toml",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/llrt_modules/Cargo.toml",
+      "lines": 169
+    },
+    {
+      "project": "llrt",
+      "path": "llrt_modules/README.md",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/llrt_modules/README.md",
+      "lines": 157
+    },
+    {
+      "project": "svelte",
+      "path": "packages/kit/src/runtime/server/index.js",
+      "url": "https://raw.githubusercontent.com/sveltejs/kit/407ef8cb1257d0d7529db6ebde1130654ffd8fe4/packages/kit/src/runtime/server/index.js",
+      "lines": 81
+    },
+    {
+      "project": "deno",
+      "path": "ext/fetch/README.md",
+      "url": "https://raw.githubusercontent.com/denoland/deno/e7b39ebd55c85aaf6a29290c1f5a99e2e21e09dd/ext/fetch/README.md",
+      "lines": 83
+    },
+    {
+      "project": "svelte",
+      "path": "packages/kit/package.json",
+      "url": "https://raw.githubusercontent.com/sveltejs/kit/407ef8cb1257d0d7529db6ebde1130654ffd8fe4/packages/kit/package.json",
+      "lines": 201
+    },
+    {
+      "project": "deno",
+      "path": "ext/web/README.md",
+      "url": "https://raw.githubusercontent.com/denoland/deno/e7b39ebd55c85aaf6a29290c1f5a99e2e21e09dd/ext/web/README.md",
+      "lines": 206
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_buffer/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_buffer/src/lib.rs",
+      "lines": 102
+    },
+    {
+      "project": "deno",
+      "path": "ext/fetch/20_headers.js",
+      "url": "https://raw.githubusercontent.com/denoland/deno/e7b39ebd55c85aaf6a29290c1f5a99e2e21e09dd/ext/fetch/20_headers.js",
+      "lines": 789
+    },
+    {
+      "project": "svelte",
+      "path": "packages/adapter-cloudflare/index.js",
+      "url": "https://raw.githubusercontent.com/sveltejs/kit/407ef8cb1257d0d7529db6ebde1130654ffd8fe4/packages/adapter-cloudflare/index.js",
+      "lines": 363
+    },
+    {
+      "project": "llrt",
+      "path": "llrt_core/src/clone.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/llrt_core/src/clone.rs",
+      "lines": 603
+    },
+    {
+      "project": "boa",
+      "path": "core/wintertc/Cargo.toml",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/wintertc/Cargo.toml",
+      "lines": 35
+    },
+    {
+      "project": "llrt",
+      "path": "llrt_core/src/vm.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/llrt_core/src/vm.rs",
+      "lines": 220
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_fetch/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_fetch/src/lib.rs",
+      "lines": 44
+    },
+    {
+      "project": "boa",
+      "path": "core/wintertc/src/fetch/mod.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/wintertc/src/fetch/mod.rs",
+      "lines": 25
+    },
+    {
+      "project": "llrt",
+      "path": "llrt_core/src/libs.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/llrt_core/src/libs.rs",
+      "lines": 15
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_stream_web/src/transform/stream.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_stream_web/src/transform/stream.rs",
+      "lines": 514
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/src/url.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/src/url.rs",
+      "lines": 917
+    },
+    {
+      "project": "boa",
+      "path": "core/runtime/src/abort/mod.rs",
+      "url": "https://raw.githubusercontent.com/boa-dev/boa/bea404d173bf74a64b7c7ae39b1bc2da639abeee/core/runtime/src/abort/mod.rs",
+      "lines": 237
+    },
+    {
+      "project": "svelte",
+      "path": "packages/kit/src/runtime/server/respond.js",
+      "url": "https://raw.githubusercontent.com/sveltejs/kit/407ef8cb1257d0d7529db6ebde1130654ffd8fe4/packages/kit/src/runtime/server/respond.js",
+      "lines": 863
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_buffer/src/blob.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_buffer/src/blob.rs",
+      "lines": 476
+    },
+    {
+      "project": "svelte",
+      "path": "packages/kit/src/runtime/server/page/render.js",
+      "url": "https://raw.githubusercontent.com/sveltejs/kit/407ef8cb1257d0d7529db6ebde1130654ffd8fe4/packages/kit/src/runtime/server/page/render.js",
+      "lines": 703
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_timers/src/lib.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_timers/src/lib.rs",
+      "lines": 557
+    },
+    {
+      "project": "llrt",
+      "path": "modules/llrt_abort/src/abort_signal.rs",
+      "url": "https://raw.githubusercontent.com/awslabs/llrt/5f62b24cf647d20ad832f793993fd90b3137b0a2/modules/llrt_abort/src/abort_signal.rs",
+      "lines": 281
+    },
+    {
+      "project": "svelte",
+      "path": "packages/adapter-cloudflare/files/worker.js",
+      "url": "https://raw.githubusercontent.com/sveltejs/kit/407ef8cb1257d0d7529db6ebde1130654ffd8fe4/packages/adapter-cloudflare/files/worker.js",
+      "lines": 97
+    },
+    {
+      "project": "svelte",
+      "path": "packages/kit/src/runtime/utils.js",
+      "url": "https://raw.githubusercontent.com/sveltejs/kit/407ef8cb1257d0d7529db6ebde1130654ffd8fe4/packages/kit/src/runtime/utils.js",
+      "lines": 88
+    },
+    {
+      "project": "hono",
+      "path": "src/request.ts",
+      "url": "https://raw.githubusercontent.com/honojs/hono/f6fbaf0299c48eea9e656e03e2ffe7ac755e8823/src/request.ts",
+      "lines": 521
+    },
+    {
+      "project": "hono",
+      "path": "src/hono-base.ts",
+      "url": "https://raw.githubusercontent.com/honojs/hono/f6fbaf0299c48eea9e656e03e2ffe7ac755e8823/src/hono-base.ts",
+      "lines": 565
+    }
+  ]
+}

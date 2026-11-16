@@ -1,0 +1,21 @@
+{
+  "profile_format": 1,
+  "name": "fetchlet_native",
+  "entry": "native.ts",
+  "emission": "llvm",
+  "abi": {
+    "prefix": "fetchlet_",
+    "init_symbol": "fetchlet_init",
+    "sink_register_symbol": "fetchlet_sink"
+  },
+  "callbacks": [],
+  "exports": [
+    { "export": "add", "symbol": "fetchlet_add", "params": ["f64", "f64"], "returns": "f64" },
+    {
+      "export": "multiply",
+      "symbol": "fetchlet_multiply",
+      "params": ["f64", "f64"],
+      "returns": "f64"
+    }
+  ]
+}

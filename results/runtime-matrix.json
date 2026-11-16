@@ -1,0 +1,520 @@
+{
+  "checkedAt": "2026-11-16T12:42:31.387Z",
+  "profile": "portable experimental Web APIs in embedded engines; native globals in Node reference",
+  "summary": {
+    "node-reference": {
+      "passed": 17,
+      "failed": 0
+    },
+    "quickjs": {
+      "passed": 17,
+      "failed": 0
+    },
+    "boa": {
+      "passed": 17,
+      "failed": 0
+    },
+    "v8": {
+      "passed": 17,
+      "failed": 0
+    }
+  },
+  "results": [
+    {
+      "backend": "node-reference",
+      "suite": "functions",
+      "id": "sync-add",
+      "status": "pass",
+      "durationMs": 63.5539
+    },
+    {
+      "backend": "node-reference",
+      "suite": "functions",
+      "id": "object-unicode",
+      "status": "pass",
+      "durationMs": 0.6022999999999996
+    },
+    {
+      "backend": "node-reference",
+      "suite": "functions",
+      "id": "promise",
+      "status": "pass",
+      "durationMs": 0.19790000000000418
+    },
+    {
+      "backend": "node-reference",
+      "suite": "functions",
+      "id": "state-reuse",
+      "status": "pass",
+      "durationMs": 0.2878000000000043
+    },
+    {
+      "backend": "node-reference",
+      "suite": "functions",
+      "id": "exception",
+      "status": "pass",
+      "durationMs": 0.1490000000000009
+    },
+    {
+      "backend": "node-reference",
+      "suite": "functions",
+      "id": "rejection",
+      "status": "pass",
+      "durationMs": 0.15859999999999275
+    },
+    {
+      "backend": "node-reference",
+      "suite": "functions",
+      "id": "usable-after-errors",
+      "status": "pass",
+      "durationMs": 0.16339999999999577
+    },
+    {
+      "backend": "node-reference",
+      "suite": "hono",
+      "id": "jsx-escaping",
+      "status": "pass",
+      "durationMs": 3.7353999999999985
+    },
+    {
+      "backend": "node-reference",
+      "suite": "hono",
+      "id": "json-post",
+      "status": "pass",
+      "durationMs": 0.6367000000000047
+    },
+    {
+      "backend": "node-reference",
+      "suite": "hono",
+      "id": "set-cookie",
+      "status": "pass",
+      "durationMs": 0.45889999999999986
+    },
+    {
+      "backend": "node-reference",
+      "suite": "hono",
+      "id": "stream-body",
+      "status": "pass",
+      "durationMs": 0.7591000000000037
+    },
+    {
+      "backend": "node-reference",
+      "suite": "hono",
+      "id": "not-found",
+      "status": "pass",
+      "durationMs": 0.415300000000002
+    },
+    {
+      "backend": "node-reference",
+      "suite": "web-api",
+      "id": "probe",
+      "status": "pass",
+      "durationMs": 18.114400000000003,
+      "details": {
+        "total": 23,
+        "passed": 23,
+        "failed": 0
+      }
+    },
+    {
+      "backend": "node-reference",
+      "suite": "sveltekit",
+      "id": "ssr-page",
+      "status": "pass",
+      "durationMs": 68.72789999999999
+    },
+    {
+      "backend": "node-reference",
+      "suite": "sveltekit",
+      "id": "escaped-query",
+      "status": "pass",
+      "durationMs": 1.189799999999991
+    },
+    {
+      "backend": "node-reference",
+      "suite": "sveltekit",
+      "id": "json-endpoint",
+      "status": "pass",
+      "durationMs": 0.662700000000001
+    },
+    {
+      "backend": "node-reference",
+      "suite": "sveltekit",
+      "id": "form-action",
+      "status": "pass",
+      "durationMs": 1.2869000000000028
+    },
+    {
+      "backend": "quickjs",
+      "suite": "functions",
+      "id": "sync-add",
+      "status": "pass",
+      "durationMs": 54.625299999999925
+    },
+    {
+      "backend": "quickjs",
+      "suite": "functions",
+      "id": "object-unicode",
+      "status": "pass",
+      "durationMs": 0.3451999999999771
+    },
+    {
+      "backend": "quickjs",
+      "suite": "functions",
+      "id": "promise",
+      "status": "pass",
+      "durationMs": 0.11140000000000327
+    },
+    {
+      "backend": "quickjs",
+      "suite": "functions",
+      "id": "state-reuse",
+      "status": "pass",
+      "durationMs": 0.2803000000000111
+    },
+    {
+      "backend": "quickjs",
+      "suite": "functions",
+      "id": "exception",
+      "status": "pass",
+      "durationMs": 0.2538999999999305
+    },
+    {
+      "backend": "quickjs",
+      "suite": "functions",
+      "id": "rejection",
+      "status": "pass",
+      "durationMs": 0.10099999999999909
+    },
+    {
+      "backend": "quickjs",
+      "suite": "functions",
+      "id": "usable-after-errors",
+      "status": "pass",
+      "durationMs": 0.19929999999999382
+    },
+    {
+      "backend": "quickjs",
+      "suite": "hono",
+      "id": "jsx-escaping",
+      "status": "pass",
+      "durationMs": 1.7904999999999518
+    },
+    {
+      "backend": "quickjs",
+      "suite": "hono",
+      "id": "json-post",
+      "status": "pass",
+      "durationMs": 0.9843000000000757
+    },
+    {
+      "backend": "quickjs",
+      "suite": "hono",
+      "id": "set-cookie",
+      "status": "pass",
+      "durationMs": 1.11099999999999
+    },
+    {
+      "backend": "quickjs",
+      "suite": "hono",
+      "id": "stream-body",
+      "status": "pass",
+      "durationMs": 0.6915000000000191
+    },
+    {
+      "backend": "quickjs",
+      "suite": "hono",
+      "id": "not-found",
+      "status": "pass",
+      "durationMs": 0.6764000000000578
+    },
+    {
+      "backend": "quickjs",
+      "suite": "web-api",
+      "id": "probe",
+      "status": "pass",
+      "durationMs": 7.118499999999926,
+      "details": {
+        "total": 23,
+        "passed": 23,
+        "failed": 0
+      }
+    },
+    {
+      "backend": "quickjs",
+      "suite": "sveltekit",
+      "id": "ssr-page",
+      "status": "pass",
+      "durationMs": 66.9724
+    },
+    {
+      "backend": "quickjs",
+      "suite": "sveltekit",
+      "id": "escaped-query",
+      "status": "pass",
+      "durationMs": 4.274099999999976
+    },
+    {
+      "backend": "quickjs",
+      "suite": "sveltekit",
+      "id": "json-endpoint",
+      "status": "pass",
+      "durationMs": 1.4378000000000384
+    },
+    {
+      "backend": "quickjs",
+      "suite": "sveltekit",
+      "id": "form-action",
+      "status": "pass",
+      "durationMs": 2.1142999999999574
+    },
+    {
+      "backend": "boa",
+      "suite": "functions",
+      "id": "sync-add",
+      "status": "pass",
+      "durationMs": 763.8096
+    },
+    {
+      "backend": "boa",
+      "suite": "functions",
+      "id": "object-unicode",
+      "status": "pass",
+      "durationMs": 1.2292999999999665
+    },
+    {
+      "backend": "boa",
+      "suite": "functions",
+      "id": "promise",
+      "status": "pass",
+      "durationMs": 1.0368000000000848
+    },
+    {
+      "backend": "boa",
+      "suite": "functions",
+      "id": "state-reuse",
+      "status": "pass",
+      "durationMs": 1.9716000000000804
+    },
+    {
+      "backend": "boa",
+      "suite": "functions",
+      "id": "exception",
+      "status": "pass",
+      "durationMs": 1.0338000000001557
+    },
+    {
+      "backend": "boa",
+      "suite": "functions",
+      "id": "rejection",
+      "status": "pass",
+      "durationMs": 1.0226000000000113
+    },
+    {
+      "backend": "boa",
+      "suite": "functions",
+      "id": "usable-after-errors",
+      "status": "pass",
+      "durationMs": 1.1533999999999196
+    },
+    {
+      "backend": "boa",
+      "suite": "hono",
+      "id": "jsx-escaping",
+      "status": "pass",
+      "durationMs": 35.410699999999906
+    },
+    {
+      "backend": "boa",
+      "suite": "hono",
+      "id": "json-post",
+      "status": "pass",
+      "durationMs": 15.3117000000002
+    },
+    {
+      "backend": "boa",
+      "suite": "hono",
+      "id": "set-cookie",
+      "status": "pass",
+      "durationMs": 23.09680000000003
+    },
+    {
+      "backend": "boa",
+      "suite": "hono",
+      "id": "stream-body",
+      "status": "pass",
+      "durationMs": 8.562800000000152
+    },
+    {
+      "backend": "boa",
+      "suite": "hono",
+      "id": "not-found",
+      "status": "pass",
+      "durationMs": 10.76260000000002
+    },
+    {
+      "backend": "boa",
+      "suite": "web-api",
+      "id": "probe",
+      "status": "pass",
+      "durationMs": 126.81760000000008,
+      "details": {
+        "total": 23,
+        "passed": 23,
+        "failed": 0
+      }
+    },
+    {
+      "backend": "boa",
+      "suite": "sveltekit",
+      "id": "ssr-page",
+      "status": "pass",
+      "durationMs": 1147.6798999999999
+    },
+    {
+      "backend": "boa",
+      "suite": "sveltekit",
+      "id": "escaped-query",
+      "status": "pass",
+      "durationMs": 89.98210000000017
+    },
+    {
+      "backend": "boa",
+      "suite": "sveltekit",
+      "id": "json-endpoint",
+      "status": "pass",
+      "durationMs": 23.07230000000027
+    },
+    {
+      "backend": "boa",
+      "suite": "sveltekit",
+      "id": "form-action",
+      "status": "pass",
+      "durationMs": 32.21109999999999
+    },
+    {
+      "backend": "v8",
+      "suite": "functions",
+      "id": "sync-add",
+      "status": "pass",
+      "durationMs": 60.216199999999844
+    },
+    {
+      "backend": "v8",
+      "suite": "functions",
+      "id": "object-unicode",
+      "status": "pass",
+      "durationMs": 0.4470000000001164
+    },
+    {
+      "backend": "v8",
+      "suite": "functions",
+      "id": "promise",
+      "status": "pass",
+      "durationMs": 0.2566999999999098
+    },
+    {
+      "backend": "v8",
+      "suite": "functions",
+      "id": "state-reuse",
+      "status": "pass",
+      "durationMs": 0.36149999999997817
+    },
+    {
+      "backend": "v8",
+      "suite": "functions",
+      "id": "exception",
+      "status": "pass",
+      "durationMs": 0.31189999999969586
+    },
+    {
+      "backend": "v8",
+      "suite": "functions",
+      "id": "rejection",
+      "status": "pass",
+      "durationMs": 0.25469999999995707
+    },
+    {
+      "backend": "v8",
+      "suite": "functions",
+      "id": "usable-after-errors",
+      "status": "pass",
+      "durationMs": 0.23229999999966822
+    },
+    {
+      "backend": "v8",
+      "suite": "hono",
+      "id": "jsx-escaping",
+      "status": "pass",
+      "durationMs": 5.3069000000000415
+    },
+    {
+      "backend": "v8",
+      "suite": "hono",
+      "id": "json-post",
+      "status": "pass",
+      "durationMs": 1.1698999999998705
+    },
+    {
+      "backend": "v8",
+      "suite": "hono",
+      "id": "set-cookie",
+      "status": "pass",
+      "durationMs": 0.8755000000001019
+    },
+    {
+      "backend": "v8",
+      "suite": "hono",
+      "id": "stream-body",
+      "status": "pass",
+      "durationMs": 1.1956999999997606
+    },
+    {
+      "backend": "v8",
+      "suite": "hono",
+      "id": "not-found",
+      "status": "pass",
+      "durationMs": 0.6588000000001557
+    },
+    {
+      "backend": "v8",
+      "suite": "web-api",
+      "id": "probe",
+      "status": "pass",
+      "durationMs": 11.339899999999943,
+      "details": {
+        "total": 23,
+        "passed": 23,
+        "failed": 0
+      }
+    },
+    {
+      "backend": "v8",
+      "suite": "sveltekit",
+      "id": "ssr-page",
+      "status": "pass",
+      "durationMs": 81.55540000000019
+    },
+    {
+      "backend": "v8",
+      "suite": "sveltekit",
+      "id": "escaped-query",
+      "status": "pass",
+      "durationMs": 2.5721999999996115
+    },
+    {
+      "backend": "v8",
+      "suite": "sveltekit",
+      "id": "json-endpoint",
+      "status": "pass",
+      "durationMs": 1.8940000000002328
+    },
+    {
+      "backend": "v8",
+      "suite": "sveltekit",
+      "id": "form-action",
+      "status": "pass",
+      "durationMs": 2.6368999999999687
+    }
+  ]
+}

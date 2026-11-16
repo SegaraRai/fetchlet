@@ -1,0 +1,207 @@
+{
+  "checkedDate": "2026-11-16",
+  "timezone": "Asia/Tokyo",
+  "registryApi": "https://crates.io/api/v1/crates/{crate}",
+  "registryNewestVersions": {
+    "rquickjs": "0.14.0",
+    "llrt_fetch": "0.8.1-beta",
+    "llrt_stream_web": "0.8.1-beta",
+    "boa_engine": "0.22.0",
+    "boa_runtime": "0.22.0",
+    "rustyscript": "0.12.3",
+    "deno_core": "0.413.0"
+  },
+  "method": "Read registry API and downloaded crate source archives; SHA-256 identifies the exact inspected archive. No crate was built or executed.",
+  "archives": [
+    {
+      "archive": "boa_runtime-0.22.0.crate",
+      "sha256": "c4f64cd1483c17ad23f3c9792cc1f949618178b79b0b25d3fee8f07d3019edd5",
+      "files": 43,
+      "vcs": {
+        "git": {
+          "sha1": "337a3668a0dc86dd401ea20906e782249a64a228"
+        },
+        "path_in_vcs": "core/runtime"
+      },
+      "url": "https://static.crates.io/crates/boa_runtime/boa_runtime-0.22.0.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "boa_wintertc-0.22.0.crate",
+      "sha256": "c66d29a1e767039bfa1981bf149966d4a4d7453190abe13ffccd8aaf95031299",
+      "files": 24,
+      "vcs": {
+        "git": {
+          "sha1": "337a3668a0dc86dd401ea20906e782249a64a228"
+        },
+        "path_in_vcs": "core/wintertc"
+      },
+      "url": "https://static.crates.io/crates/boa_wintertc/boa_wintertc-0.22.0.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "deno_fetch-0.237.0.crate",
+      "sha256": "7f05820261bcc82d377f79878625d61ac70b58c886345e5b1d68f6b012ae4765",
+      "files": 19,
+      "vcs": {
+        "git": {
+          "sha1": "5129d036ebd51b229adb7579e2c805859e3f95c0"
+        },
+        "path_in_vcs": "ext/fetch"
+      },
+      "url": "https://static.crates.io/crates/deno_fetch/deno_fetch-0.237.0.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "deno_web-0.244.0.crate",
+      "sha256": "55a863aae15f3dbccb11b3776e9dea399f510a9b1d4dac22a4dcfff96bcff9d7",
+      "files": 34,
+      "vcs": {
+        "git": {
+          "sha1": "5129d036ebd51b229adb7579e2c805859e3f95c0"
+        },
+        "path_in_vcs": "ext/web"
+      },
+      "url": "https://static.crates.io/crates/deno_web/deno_web-0.244.0.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "llrt_abort-0.8.1-beta.crate",
+      "sha256": "96f3b00def04dc42f1f16e6b7f09993e007e39aaaf15e1cccd7a78f4de6f0d07",
+      "files": 7,
+      "vcs": {
+        "git": {
+          "sha1": "2946a77260e8cdd314f92a9789635cd4f7b825bf",
+          "dirty": true
+        },
+        "path_in_vcs": "modules/llrt_abort"
+      },
+      "url": "https://static.crates.io/crates/llrt_abort/llrt_abort-0.8.1-beta.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "llrt_buffer-0.8.1-beta.crate",
+      "sha256": "73954ae0a8202982b83797ba4a982cdbb6f7bd9d99aafcc0aa45e98026fd7ab8",
+      "files": 9,
+      "vcs": {
+        "git": {
+          "sha1": "2946a77260e8cdd314f92a9789635cd4f7b825bf",
+          "dirty": true
+        },
+        "path_in_vcs": "modules/llrt_buffer"
+      },
+      "url": "https://static.crates.io/crates/llrt_buffer/llrt_buffer-0.8.1-beta.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "llrt_crypto-0.8.1-beta.crate",
+      "sha256": "53427a112c52b67ccff06c3f09d66c76058784a9b30a4842a71ac968dc81391d",
+      "files": 29,
+      "vcs": {
+        "git": {
+          "sha1": "2946a77260e8cdd314f92a9789635cd4f7b825bf",
+          "dirty": true
+        },
+        "path_in_vcs": "modules/llrt_crypto"
+      },
+      "url": "https://static.crates.io/crates/llrt_crypto/llrt_crypto-0.8.1-beta.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "llrt_fetch-0.8.1-beta.crate",
+      "sha256": "d789946fa9bbbe074e203292f28fcb43d04a79c5cf8a11cf7b9e8c6fe8361b8a",
+      "files": 13,
+      "vcs": {
+        "git": {
+          "sha1": "2946a77260e8cdd314f92a9789635cd4f7b825bf",
+          "dirty": true
+        },
+        "path_in_vcs": "modules/llrt_fetch"
+      },
+      "url": "https://static.crates.io/crates/llrt_fetch/llrt_fetch-0.8.1-beta.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "llrt_stream_web-0.8.1-beta.crate",
+      "sha256": "f53bc6376bb38daefecd18c7af425fb443c3c061ea5e8b81d9c96a1b5c709c3f",
+      "files": 33,
+      "vcs": {
+        "git": {
+          "sha1": "2946a77260e8cdd314f92a9789635cd4f7b825bf",
+          "dirty": true
+        },
+        "path_in_vcs": "modules/llrt_stream_web"
+      },
+      "url": "https://static.crates.io/crates/llrt_stream_web/llrt_stream_web-0.8.1-beta.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "llrt_timers-0.8.1-beta.crate",
+      "sha256": "371aa29ecc3ff576b5dbab7380eb1e399f1139a101ba378c3f6270b74c799a5d",
+      "files": 5,
+      "vcs": {
+        "git": {
+          "sha1": "2946a77260e8cdd314f92a9789635cd4f7b825bf",
+          "dirty": true
+        },
+        "path_in_vcs": "modules/llrt_timers"
+      },
+      "url": "https://static.crates.io/crates/llrt_timers/llrt_timers-0.8.1-beta.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "llrt_url-0.8.1-beta.crate",
+      "sha256": "c194b668c0dba8c3d2b877b2f8589a337dc214f5c00c4dfdc83088cdb96c6cbb",
+      "files": 7,
+      "vcs": {
+        "git": {
+          "sha1": "2946a77260e8cdd314f92a9789635cd4f7b825bf",
+          "dirty": true
+        },
+        "path_in_vcs": "modules/llrt_url"
+      },
+      "url": "https://static.crates.io/crates/llrt_url/llrt_url-0.8.1-beta.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "llrt_util-0.8.1-beta.crate",
+      "sha256": "d6fcda9ff20b1683d5a1f6bb49f033c7891891a31d468c4bd6306d61e60e7380",
+      "files": 7,
+      "vcs": {
+        "git": {
+          "sha1": "2946a77260e8cdd314f92a9789635cd4f7b825bf",
+          "dirty": true
+        },
+        "path_in_vcs": "modules/llrt_util"
+      },
+      "url": "https://static.crates.io/crates/llrt_util/llrt_util-0.8.1-beta.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    },
+    {
+      "archive": "rustyscript-0.12.3.crate",
+      "sha256": "d7022cabe11c65c8a34a3b0e92ca1d55a0add1f873cec4def14c5b82938003d6",
+      "files": 153,
+      "vcs": {
+        "git": {
+          "sha1": "8ef98fb1b9d83aa9c528a4a6c89905745bf43c39"
+        },
+        "path_in_vcs": ""
+      },
+      "url": "https://static.crates.io/crates/rustyscript/rustyscript-0.12.3.crate",
+      "sourceOnly": true,
+      "builtOrExecuted": false
+    }
+  ]
+}

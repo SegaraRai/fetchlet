@@ -1,0 +1,180 @@
+{
+  "checkedAt": "2026-11-16T12:43:14.590Z",
+  "summary": {
+    "passed": 8,
+    "failed": 0
+  },
+  "nativeCapabilities": {
+    "quickjs": {
+      "Intl.getCanonicalLocales": false,
+      "Intl.Locale": false,
+      "Intl.PluralRules": false,
+      "Intl.NumberFormat": false,
+      "Intl.DateTimeFormat": false
+    },
+    "boa": {
+      "Intl.getCanonicalLocales": false,
+      "Intl.Locale": false,
+      "Intl.PluralRules": false,
+      "Intl.NumberFormat": false,
+      "Intl.DateTimeFormat": false
+    },
+    "v8": {
+      "Intl.getCanonicalLocales": true,
+      "Intl.Locale": true,
+      "Intl.PluralRules": true,
+      "Intl.NumberFormat": true,
+      "Intl.DateTimeFormat": true
+    }
+  },
+  "artifacts": {
+    "quickjs": {
+      "bytes": 2714773,
+      "polyfills": [
+        {
+          "api": "Intl.getCanonicalLocales",
+          "package": "@formatjs/intl-getcanonicallocales",
+          "modules": [
+            "@formatjs/intl-getcanonicallocales/polyfill.js"
+          ]
+        },
+        {
+          "api": "Intl.Locale",
+          "package": "@formatjs/intl-locale",
+          "modules": [
+            "@formatjs/intl-locale/polyfill.js"
+          ]
+        },
+        {
+          "api": "Intl.PluralRules",
+          "package": "@formatjs/intl-pluralrules",
+          "modules": [
+            "@formatjs/intl-pluralrules/polyfill.js",
+            "@formatjs/intl-pluralrules/locale-data/en.js",
+            "@formatjs/intl-pluralrules/locale-data/ja.js"
+          ]
+        },
+        {
+          "api": "Intl.NumberFormat",
+          "package": "@formatjs/intl-numberformat",
+          "modules": [
+            "@formatjs/intl-numberformat/polyfill.js",
+            "@formatjs/intl-numberformat/locale-data/en.js",
+            "@formatjs/intl-numberformat/locale-data/ja.js"
+          ]
+        },
+        {
+          "api": "Intl.DateTimeFormat",
+          "package": "@formatjs/intl-datetimeformat",
+          "modules": [
+            "@formatjs/intl-datetimeformat/polyfill.js",
+            "@formatjs/intl-datetimeformat/locale-data/en.js",
+            "@formatjs/intl-datetimeformat/locale-data/ja.js",
+            "@formatjs/intl-datetimeformat/add-golden-tz.js"
+          ]
+        }
+      ],
+      "formatjsModules": [
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.3.1/node_modules/@formatjs/intl-getcanonicallocales/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+fast-memoize@3.1.7/node_modules/@formatjs/fast-memoize/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-supportedvaluesof@3.0.1/node_modules/@formatjs/intl-supportedvaluesof/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.3.1/node_modules/@formatjs/intl-getcanonicallocales/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-locale@5.4.3/node_modules/@formatjs/intl-locale/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-localematcher@0.10.1/node_modules/@formatjs/intl-localematcher/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+bigdecimal@0.2.10/node_modules/@formatjs/bigdecimal/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.0.4/node_modules/@formatjs/intl-numberformat/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.0.4/node_modules/@formatjs/intl-numberformat/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.0.4/node_modules/@formatjs/intl-numberformat/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.0.3/node_modules/@formatjs/intl-datetimeformat/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.0.3/node_modules/@formatjs/intl-datetimeformat/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.0.3/node_modules/@formatjs/intl-datetimeformat/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.0.3/node_modules/@formatjs/intl-datetimeformat/add-golden-tz.js"
+      ]
+    },
+    "v8": {
+      "bytes": 382022,
+      "polyfills": [],
+      "formatjsModules": []
+    },
+    "plain": {
+      "bytes": 381928,
+      "polyfills": [],
+      "formatjsModules": []
+    },
+    "plural": {
+      "bytes": 1032373,
+      "polyfills": [
+        {
+          "api": "Intl.getCanonicalLocales",
+          "package": "@formatjs/intl-getcanonicallocales",
+          "modules": [
+            "@formatjs/intl-getcanonicallocales/polyfill.js"
+          ]
+        },
+        {
+          "api": "Intl.Locale",
+          "package": "@formatjs/intl-locale",
+          "modules": [
+            "@formatjs/intl-locale/polyfill.js"
+          ]
+        },
+        {
+          "api": "Intl.PluralRules",
+          "package": "@formatjs/intl-pluralrules",
+          "modules": [
+            "@formatjs/intl-pluralrules/polyfill.js",
+            "@formatjs/intl-pluralrules/locale-data/ja.js"
+          ]
+        }
+      ],
+      "formatjsModules": [
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.3.1/node_modules/@formatjs/intl-getcanonicallocales/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+fast-memoize@3.1.7/node_modules/@formatjs/fast-memoize/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-supportedvaluesof@3.0.1/node_modules/@formatjs/intl-supportedvaluesof/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.3.1/node_modules/@formatjs/intl-getcanonicallocales/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-locale@5.4.3/node_modules/@formatjs/intl-locale/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-localematcher@0.10.1/node_modules/@formatjs/intl-localematcher/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+bigdecimal@0.2.10/node_modules/@formatjs/bigdecimal/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/locale-data/ja.js"
+      ]
+    }
+  },
+  "results": [
+    {
+      "name": "default backend Intl capabilities match the build catalog",
+      "status": "pass"
+    },
+    {
+      "name": "quickjs executes selected Intl APIs with Japanese and Tokyo data",
+      "status": "pass"
+    },
+    {
+      "name": "boa executes selected Intl APIs with Japanese and Tokyo data",
+      "status": "pass"
+    },
+    {
+      "name": "v8 executes selected Intl APIs with Japanese and Tokyo data",
+      "status": "pass"
+    },
+    {
+      "name": "V8 and unrequested Intl contribute zero FormatJS modules",
+      "status": "pass"
+    },
+    {
+      "name": "plural-only artifacts contain their dependencies and selected locale",
+      "status": "pass"
+    },
+    {
+      "name": "native requirements fail clearly on an incompatible runtime",
+      "status": "pass"
+    },
+    {
+      "name": "invalid APIs, backend names and locale data fail at build planning",
+      "status": "pass"
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "runtimeLabel": "embedded portable profile",
+  "checkedAt": "2026-11-16T12:42:28.818Z",
+  "globals": {
+    "Request": "function",
+    "Response": "function",
+    "Headers": "function",
+    "URL": "function",
+    "URLSearchParams": "function",
+    "FormData": "function",
+    "Blob": "function",
+    "File": "function",
+    "ReadableStream": "function",
+    "WritableStream": "function",
+    "TransformStream": "function",
+    "TextEncoder": "function",
+    "TextDecoder": "function",
+    "TextEncoderStream": "function",
+    "TextDecoderStream": "function",
+    "AbortController": "function",
+    "AbortSignal": "function",
+    "DOMException": "function",
+    "Event": "undefined",
+    "EventTarget": "undefined",
+    "fetch": "function",
+    "setTimeout": "function",
+    "queueMicrotask": "function",
+    "structuredClone": "function",
+    "crypto": "object",
+    "CompressionStream": "undefined",
+    "DecompressionStream": "undefined"
+  },
+  "checks": [
+    {
+      "id": "request-properties",
+      "status": "pass"
+    },
+    {
+      "id": "url-search-params-live",
+      "status": "pass"
+    },
+    {
+      "id": "response-text-status-headers",
+      "status": "pass"
+    },
+    {
+      "id": "response-json-static",
+      "status": "pass"
+    },
+    {
+      "id": "response-binary-array-buffer",
+      "status": "pass"
+    },
+    {
+      "id": "response-body-used-and-double-read",
+      "status": "pass"
+    },
+    {
+      "id": "response-clone-and-header-independence",
+      "status": "pass"
+    },
+    {
+      "id": "request-json-clone-and-double-read",
+      "status": "pass"
+    },
+    {
+      "id": "headers-set-cookie-preserved",
+      "status": "pass"
+    },
+    {
+      "id": "form-data-duplicates-first-value",
+      "status": "pass"
+    },
+    {
+      "id": "request-urlencoded-form-data",
+      "status": "pass"
+    },
+    {
+      "id": "request-multipart-file-roundtrip",
+      "status": "pass"
+    },
+    {
+      "id": "readable-response-body",
+      "status": "pass"
+    },
+    {
+      "id": "response-clone-stream-tee",
+      "status": "pass"
+    },
+    {
+      "id": "transform-stream-read-write",
+      "status": "pass"
+    },
+    {
+      "id": "readable-cancel-propagates",
+      "status": "pass"
+    },
+    {
+      "id": "text-encoding-roundtrip",
+      "status": "pass"
+    },
+    {
+      "id": "text-encoder-stream",
+      "status": "pass"
+    },
+    {
+      "id": "abort-controller-request",
+      "status": "pass"
+    },
+    {
+      "id": "timers-and-microtasks",
+      "status": "pass"
+    },
+    {
+      "id": "structured-clone-cycle-and-bytes",
+      "status": "pass"
+    },
+    {
+      "id": "webcrypto-digest",
+      "status": "pass"
+    },
+    {
+      "id": "synthetic-fetch-handler",
+      "status": "pass"
+    }
+  ],
+  "summary": {
+    "total": 23,
+    "passed": 23,
+    "failed": 0
+  }
+}

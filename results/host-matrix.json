@@ -1,0 +1,174 @@
+{
+  "checkedAt": "2026-11-16T12:42:35.556Z",
+  "summary": {
+    "passed": 33,
+    "failed": 0
+  },
+  "results": [
+    {
+      "backend": "quickjs",
+      "name": "outbound-denied-by-default",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "transport-completion-wakes-engine",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "explicit-frozen-bindings",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "binary-post-credentials-and-cookies",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "allowed-redirect",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "denied-redirect",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "denied-rewritten-destination",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "named-rust-service",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "abort-and-reuse",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "unfinished-host-work-retires-instance",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "abort-while-reading-request-body",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "outbound-denied-by-default",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "transport-completion-wakes-engine",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "explicit-frozen-bindings",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "binary-post-credentials-and-cookies",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "allowed-redirect",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "denied-redirect",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "denied-rewritten-destination",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "named-rust-service",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "abort-and-reuse",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "unfinished-host-work-retires-instance",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "abort-while-reading-request-body",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "outbound-denied-by-default",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "transport-completion-wakes-engine",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "explicit-frozen-bindings",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "binary-post-credentials-and-cookies",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "allowed-redirect",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "denied-redirect",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "denied-rewritten-destination",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "named-rust-service",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "abort-and-reuse",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "unfinished-host-work-retires-instance",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "abort-while-reading-request-body",
+      "status": "pass"
+    }
+  ]
+}

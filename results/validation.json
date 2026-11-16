@@ -1,0 +1,307 @@
+{
+  "checkedAt": "2026-11-16T12:22:46.426Z",
+  "directory": "F:\\Projects\\fetchlet",
+  "workspace": {
+    "rust": [
+      "crates/fetchlet",
+      "crates/fetchlet-axum",
+      "examples/sveltekit-axum",
+      "examples/astro-axum",
+      "fuzz"
+    ],
+    "javascript": [
+      "packages/runtime",
+      "packages/build",
+      "packages/sveltekit-adapter",
+      "packages/astro-adapter",
+      "examples/sveltekit-axum",
+      "examples/astro-axum",
+      "fixtures/sveltekit"
+    ],
+    "frozenInstall": "pass",
+    "typescript": "6.0.3"
+  },
+  "rust": {
+    "allFeatures": {
+      "unit": 31,
+      "integration": 5,
+      "failed": 0
+    },
+    "noDefaultFeatures": {
+      "unit": 31,
+      "failed": 0
+    },
+    "axum": {
+      "integration": 4,
+      "failed": 0,
+      "noDefaultFeatures": "pass"
+    },
+    "executedTests": 71,
+    "clippy": {
+      "allFeatures": "pass",
+      "noDefaultFeatures": "pass",
+      "axum": "pass",
+      "examples": "pass"
+    },
+    "format": "pass"
+  },
+  "runtime": {
+    "node-reference": {
+      "passed": 17,
+      "failed": 0
+    },
+    "quickjs": {
+      "passed": 17,
+      "failed": 0
+    },
+    "boa": {
+      "passed": 17,
+      "failed": 0
+    },
+    "v8": {
+      "passed": 17,
+      "failed": 0
+    }
+  },
+  "webApi": {
+    "quickjs": "23/23",
+    "boa": "23/23",
+    "v8": "23/23"
+  },
+  "host": {
+    "passed": 33,
+    "failed": 0
+  },
+  "example": {
+    "sveltekitAxum": {
+      "passed": 9,
+      "failed": 0,
+      "backend": "quickjs",
+      "browser": "157.0.8103.51"
+    },
+    "astroAxum": {
+      "passed": 9,
+      "failed": 0,
+      "backend": "quickjs",
+      "browser": "157.0.8103.51",
+      "intl": {
+        "locales": [
+          "en"
+        ],
+        "timeZoneData": "utc"
+      },
+      "artifactBytes": 2138907
+    },
+    "documentedStartup": {
+      "sveltekitAxum": "vp run example:sveltekit-axum -> HTTP 200 with rendered SvelteKit page",
+      "astroAxum": "vp run example:astro-axum -> HTTP 200, rendered greeting and astro-island, QuickJS + FormatJS"
+    }
+  },
+  "fuzz": {
+    "checkedAt": "2026-11-16T09:41:12.5653847Z",
+    "target": "fetch_service",
+    "sanitizer": "address",
+    "status": "pass",
+    "completedRuns": 274345,
+    "requestedRuns": 1000000,
+    "timeBudgetSeconds": 30,
+    "compiler": "rustc 1.102.0-nightly (8eb778d04 2026-11-12)",
+    "maxInputBytes": 16384,
+    "scope": "Retained prior AddressSanitizer smoke for unchanged Rust FetchService; JS Body/multipart fuzzing is a separate future target"
+  },
+  "aot": {
+    "passed": 2,
+    "failed": 8,
+    "evidence": "results/aot-matrix.json",
+    "scope": "experimental compiler matrix; plain functions pass in Perry/scriptc; Perry Hono regressed at native utf-16be TextDecoder initialization after Encoding dependency update",
+    "inputHashes": "all recorded input files match the final source/bundles"
+  },
+  "nativeLinkEvidence": {
+    "evidence": "results/native-link-matrix.json",
+    "scope": "prior ABI experiment retained"
+  },
+  "types": "pass",
+  "javascriptFormat": "pass",
+  "conventions": {
+    "moduleIndexes": "pass",
+    "publicReexports": "pass",
+    "siblingModuleFiles": "pass",
+    "documentLinks": "pass"
+  },
+  "warnings": [
+    "Windows all-feature linking: LNK4098 libcmt.lib conflict",
+    "SvelteKit IIFE build: upstream import.meta.dirname warnings",
+    "Astro synchronous Svelte SSR build: upstream node:async_hooks externalization warning; asynchronous server rendering remains outside this example profile"
+  ],
+  "ci": "configured for Windows and Linux, including browser E2E; pending remote execution",
+  "cargoLockSha256": "c07c3ccd67aed2235b89ed2dd50d20fcbe14188cc249acbc03b0bf5c3e4d6a5c",
+  "polyfills": {
+    "passed": 8,
+    "failed": 0,
+    "evidence": "results/polyfill-matrix.json",
+    "selection": "build-time backend capabilities + explicit API requirements + transitive dependencies",
+    "apis": [
+      "Intl.getCanonicalLocales",
+      "Intl.Locale",
+      "Intl.PluralRules",
+      "Intl.NumberFormat",
+      "Intl.DateTimeFormat"
+    ],
+    "backends": {
+      "quickjs": {
+        "Intl.getCanonicalLocales": false,
+        "Intl.Locale": false,
+        "Intl.PluralRules": false,
+        "Intl.NumberFormat": false,
+        "Intl.DateTimeFormat": false
+      },
+      "boa": {
+        "Intl.getCanonicalLocales": false,
+        "Intl.Locale": false,
+        "Intl.PluralRules": false,
+        "Intl.NumberFormat": false,
+        "Intl.DateTimeFormat": false
+      },
+      "v8": {
+        "Intl.getCanonicalLocales": true,
+        "Intl.Locale": true,
+        "Intl.PluralRules": true,
+        "Intl.NumberFormat": true,
+        "Intl.DateTimeFormat": true
+      }
+    },
+    "bundleBytes": {
+      "quickjs": 2703625,
+      "v8": 370874,
+      "plain": 370780,
+      "plural": 1021225
+    },
+    "measurementScope": "unminified Intl fixture including common Web APIs; quickjs uses en/ja and golden timezones; v8 uses native Intl; sizes exclude Rust and engine binaries",
+    "commonWebApis": "shared portable profile retained; per-backend exclusion currently implemented for Intl"
+  },
+  "conformance": {
+    "evidence": "results/conformance.json",
+    "scope": "Pinned, selected upstream tests; WPT shell and Test262 script subsets",
+    "sources": {
+      "wpt": {
+        "repository": "web-platform-tests/wpt",
+        "revision": "c43f14b481a9960c6bc553c68e2e489bf6f95ac9",
+        "selectedFiles": 24
+      },
+      "test262": {
+        "repository": "tc39/test262",
+        "revision": "2e58f87d8350ad51224617a041c6e041d52f8444",
+        "selectedFiles": 44
+      }
+    },
+    "summary": {
+      "regressions/boa": {
+        "pass": 15,
+        "fail": 0,
+        "expectedFailures": 0,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "regressions/node-reference": {
+        "pass": 15,
+        "fail": 0,
+        "expectedFailures": 0,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "regressions/quickjs": {
+        "pass": 15,
+        "fail": 0,
+        "expectedFailures": 0,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "regressions/v8": {
+        "pass": 15,
+        "fail": 0,
+        "expectedFailures": 0,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "test262/boa": {
+        "pass": 88,
+        "fail": 0,
+        "expectedFailures": 0,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "test262/node-reference": {
+        "pass": 88,
+        "fail": 0,
+        "expectedFailures": 0,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "test262/quickjs": {
+        "pass": 88,
+        "fail": 0,
+        "expectedFailures": 0,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "test262/v8": {
+        "pass": 88,
+        "fail": 0,
+        "expectedFailures": 0,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "wpt/boa": {
+        "pass": 414,
+        "fail": 4,
+        "expectedFailures": 4,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "wpt/node-reference": {
+        "pass": 416,
+        "fail": 2,
+        "expectedFailures": 2,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "wpt/quickjs": {
+        "pass": 415,
+        "fail": 3,
+        "expectedFailures": 3,
+        "unsupported": 0,
+        "errors": 0
+      },
+      "wpt/v8": {
+        "pass": 415,
+        "fail": 3,
+        "expectedFailures": 3,
+        "unsupported": 0,
+        "errors": 0
+      }
+    },
+    "verdict": {
+      "unexpected": 0,
+      "expectations": 12,
+      "stale": []
+    },
+    "runnerSelfTests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "strictMode": "verified: a known WPT assertion failure exits with code 1",
+    "sourceRestoration": "pinned update and checksum-verified restoration passed",
+    "limitations": [
+      "Selected upstream subsets only",
+      "Test262 module/raw/negative modes require additional host/evaluation support",
+      "WPT shell environment; browser/HTTP/WebDriver environments are separate"
+    ]
+  },
+  "encoding": {
+    "provider": "@exodus/bytes",
+    "version": "1.16.0",
+    "entry": "encoding-lite.js",
+    "scope": "UTF-8, UTF-16, single-byte encodings and Encoding Streams; selected WPT and regressions verified"
+  },
+  "pnpmLockSha256": "88cb04ab3f5ced5381884d4d881c150b2d916887a68c4ec93d0cc7d077067a10"
+}

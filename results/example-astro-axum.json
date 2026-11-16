@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-11-16T12:44:04.133Z",
+  "summary": {
+    "passed": 9,
+    "failed": 0
+  },
+  "browser": "159.0.8154.6",
+  "results": [
+    {
+      "name": "Astro SSR, escaping and the Rust service binding",
+      "status": "pass"
+    },
+    {
+      "name": "Astro JavaScript, CSS and static files",
+      "status": "pass"
+    },
+    {
+      "name": "Astro JSON endpoint",
+      "status": "pass"
+    },
+    {
+      "name": "Astro form and Set-Cookie",
+      "status": "pass"
+    },
+    {
+      "name": "Astro client address and environment",
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with Astro",
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following Astro request",
+      "status": "pass"
+    },
+    {
+      "name": "concurrent Astro requests keep their own values",
+      "status": "pass"
+    },
+    {
+      "name": "island hydration, form submission and Astro navigation",
+      "status": "pass"
+    }
+  ]
+}

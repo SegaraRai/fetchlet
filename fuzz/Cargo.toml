@@ -1,0 +1,24 @@
+[package]
+name = "fetchlet-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+fetchlet.workspace = true
+libfuzzer-sys = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "time"] }
+url = "2"
+
+[[bin]]
+name = "fetch_service"
+path = "fuzz_targets/fetch_service.rs"
+test = false
+doc = false
+bench = false
+
