@@ -57,3 +57,17 @@ export function clampedLongLong(value: unknown): number {
   }
   return lower % 2 === 0 ? lower : lower + 1;
 }
+
+/** Web IDL regular attributes are enumerable, configurable prototype accessors. */
+export function exposeAttributes(prototype: object, names: readonly string[]) {
+  for (const name of names) {
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, name);
+    if (!descriptor?.get) {
+      throw new TypeError(`Missing attribute getter: ${name}`);
+    }
+    Object.defineProperty(prototype, name, {
+      ...descriptor,
+      enumerable: true,
+    });
+  }
+}

@@ -3,6 +3,7 @@ use boa_engine::builtins::promise::PromiseState;
 use boa_engine::{Context, JsArgs, JsString, NativeFunction, Source, js_string};
 use serde_json::Value;
 
+use super::array_buffer;
 use crate::Instance;
 use crate::bridge::HostBridge;
 use crate::execution::{HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation};
@@ -24,6 +25,7 @@ impl Boa {
         // Host-defined data contains no JS values and stays with its Context.
         let wake = host.wake_signal();
         context.insert_data(BoaHost(host));
+        array_buffer::install(&mut context).map_err(|error| anyhow!("{error}"))?;
         context
             .register_global_callable(
                 js_string!("__fetchletHost"),

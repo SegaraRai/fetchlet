@@ -129,3 +129,164 @@ promise_test(async () => {
   }
   assert_equals(text, "あ");
 }, "TextDecoderStream retains a multibyte character across chunks");
+
+function multipartResponse(body, type = "multipart/form-data; boundary=b0") {
+  return new Response(body, { headers: { "content-type": type } });
+}
+
+promise_test(async () => {
+  const body =
+    'preamble\r\n--b0\r\nContent-Disposition: form-data; name="a"\r\n\r\n' +
+    "x\r\n\r\ny-\r\n" +
+    '\r\n--b0\r\ncontent-disposition: FORM-DATA; NAME="b"\r\n\r\n\r\n--b0--\r\nepilogue';
+  const form = await multipartResponse(body).formData();
+  assert_array_equals([...form.keys()], ["a", "b"]);
+  assert_equals(form.get("a"), "x\r\n\r\ny-\r\n");
+  assert_equals(form.get("b"), "");
+}, "multipart keeps blank lines in content and ignores a preamble and epilogue");
+
+promise_test(async () => {
+  const form = new FormData();
+  form.append('名前 "q"\r\n', "値");
+  form.append("file", new File(["a\r\nb"], 'ファイル".txt', { type: "text/csv" }));
+  const parsed = await new Response(form).formData();
+  assert_array_equals([...parsed.keys()], ['名前 "q"\r\n', "file"]);
+  assert_equals(parsed.get('名前 "q"\r\n'), "値");
+  const file = parsed.get("file");
+  assert_equals(file.name, 'ファイル".txt');
+  assert_equals(file.type, "text/csv");
+  assert_equals(await file.text(), "a\r\nb");
+}, "multipart round-trips UTF-8 and escaped names, filenames and CRLF content");
+
+promise_test(async () => {
+  const body = '--a;b\r\nContent-Disposition: form-data; name="f"; filename=""\r\n\r\nz\r\n--a;b--';
+  const form = await multipartResponse(body, 'Multipart/Form-Data; Boundary="a;b"').formData();
+  const file = form.get("f");
+  assert_true(file instanceof File);
+  assert_equals(file.name, "");
+  assert_equals(file.type, "text/plain");
+}, "multipart parses quoted boundaries case-insensitively and defaults file types");
+
+promise_test(async (t) => {
+  const part = '--b0\r\nContent-Disposition: form-data; name="a"\r\n\r\nv\r\n';
+  for (const body of [
+    part,
+    "--b0\r\nContent-Type: text/plain\r\n\r\nv\r\n--b0--",
+    '--b0\r\nContent-Disposition: attachment; name="a"\r\n\r\nv\r\n--b0--',
+    '--b0\r\nContent-Disposition: form-data; filename="a"\r\n\r\nv\r\n--b0--',
+    '--b0junk\r\nContent-Disposition: form-data; name="a"\r\n\r\nv\r\n--b0--',
+    '--b0\r\nContent-Disposition: form-data; name="a"\r\nv\r\n--b0--',
+    '--b0\r\nContent-Disposition: form-data; name="a"\r\n\r\nv\r\n--b0z\r\n--b0--',
+    "no delimiter",
+  ]) {
+    await promise_rejects_js(
+      t,
+      TypeError,
+      multipartResponse(body).formData(),
+      JSON.stringify(body),
+    );
+  }
+  await promise_rejects_js(
+    t,
+    TypeError,
+    multipartResponse(part + "--b0--", "multipart/form-data").formData(),
+  );
+}, "malformed multipart bodies and missing boundaries are TypeErrors");
+
+test(() => {
+  const names = [
+    "method",
+    "url",
+    "headers",
+    "destination",
+    "referrer",
+    "referrerPolicy",
+    "mode",
+    "credentials",
+    "cache",
+    "redirect",
+    "integrity",
+    "keepalive",
+    "isReloadNavigation",
+    "isHistoryNavigation",
+    "signal",
+    "body",
+    "bodyUsed",
+    "duplex",
+  ];
+  const request = new Request("https://example.test/");
+  for (const name of names) {
+    assert_false(Object.hasOwn(request, name), name + " is not an own property");
+    let prototype = Request.prototype;
+    let descriptor;
+    while (prototype && !(descriptor = Object.getOwnPropertyDescriptor(prototype, name))) {
+      prototype = Object.getPrototypeOf(prototype);
+    }
+    assert_equals(typeof descriptor?.get, "function", name + " getter");
+    assert_equals(descriptor.set, undefined, name + " is read-only");
+    assert_true(descriptor.enumerable, name + " is enumerable");
+    assert_throws_js(TypeError, () => descriptor.get.call({}), name + " brand check");
+  }
+  assert_equals(request.destination, "");
+  assert_equals(request.referrer, "about:client");
+  assert_equals(request.referrerPolicy, "");
+  assert_equals(request.mode, "cors");
+  assert_equals(request.credentials, "same-origin");
+  assert_equals(request.cache, "default");
+  assert_equals(request.integrity, "");
+  assert_false(request.keepalive);
+  assert_false(request.isReloadNavigation);
+  assert_false(request.isHistoryNavigation);
+  assert_equals(request.duplex, "half");
+}, "Request exposes its Web IDL attributes as read-only prototype accessors");
+
+test(() => {
+  const init = {
+    method: "post",
+    referrer: "https://referrer.test/page",
+    referrerPolicy: "no-referrer",
+    mode: "same-origin",
+    credentials: "include",
+    cache: "only-if-cached",
+    redirect: "manual",
+    integrity: "sha256-abc",
+    keepalive: 1,
+  };
+  const request = new Request("https://example.test/", init);
+  const copies = [request.clone(), new Request(request)];
+  for (const copy of [request, ...copies]) {
+    assert_equals(copy.method, "POST");
+    assert_equals(copy.referrer, "https://referrer.test/page");
+    assert_equals(copy.referrerPolicy, "no-referrer");
+    assert_equals(copy.mode, "same-origin");
+    assert_equals(copy.credentials, "include");
+    assert_equals(copy.cache, "only-if-cached");
+    assert_equals(copy.redirect, "manual");
+    assert_equals(copy.integrity, "sha256-abc");
+    assert_true(copy.keepalive);
+  }
+  const reset = new Request(request, { method: "PUT" });
+  assert_equals(reset.referrer, "about:client");
+  assert_equals(reset.referrerPolicy, "");
+  assert_equals(reset.mode, "same-origin");
+  assert_equals(new Request(request, { referrer: "" }).referrer, "");
+}, "Request copies its attributes and resets referrer fields for a non-empty init");
+
+test(() => {
+  const url = "https://example.test/";
+  for (const [member, value] of [
+    ["mode", "navigate"],
+    ["mode", "other"],
+    ["credentials", "other"],
+    ["cache", "other"],
+    ["redirect", "other"],
+    ["referrerPolicy", "other"],
+    ["priority", "other"],
+    ["duplex", "full"],
+    ["referrer", "not a url"],
+  ]) {
+    assert_throws_js(TypeError, () => new Request(url, { [member]: value }), member + "=" + value);
+  }
+  assert_throws_js(TypeError, () => new Request(url, { cache: "only-if-cached" }));
+  assert_equals(new Request(url, { priority: "high" }).url, url);
+}, "Request validates RequestInit enumerations and mode constraints");

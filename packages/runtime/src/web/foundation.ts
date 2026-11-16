@@ -15,6 +15,7 @@ import URLImpl from "core-js-pure/actual/url/index.js";
 import * as streams from "web-streams-polyfill";
 
 import { runtime } from "./runtime";
+import { conformAsyncIteratorPrototype } from "./stream-state";
 
 runtime.URL ??= URLImpl;
 runtime.URLSearchParams ??= URLSearchParamsImpl;
@@ -24,6 +25,9 @@ runtime.structuredClone ??= cloneImpl;
 runtime.DOMException ??= DOMExceptionImpl;
 for (const [name, value] of Object.entries(streams)) {
   runtime[name] ??= value;
+}
+if (runtime.ReadableStream === streams.ReadableStream) {
+  conformAsyncIteratorPrototype();
 }
 runtime.TextEncoder ??= TextEncoder;
 runtime.TextDecoder ??= TextDecoder;

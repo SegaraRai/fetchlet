@@ -75,7 +75,13 @@
         "fetch/api/response/response-stream-disturbed-5.any.js",
         "fetch/api/response/response-stream-disturbed-6.any.js",
         "fetch/api/response/response-stream-with-broken-then.any.js",
+        "streams/readable-byte-streams/tee.any.js",
+        "streams/readable-streams/async-iterator.any.js",
+        "streams/readable-streams/cancel.any.js",
         "streams/readable-streams/constructor.any.js",
+        "streams/readable-streams/default-reader.any.js",
+        "streams/readable-streams/general.any.js",
+        "streams/readable-streams/tee.any.js",
         "xhr/formdata/append.any.js",
         "xhr/formdata/constructor.any.js",
         "xhr/formdata/delete.any.js",
@@ -408,8 +414,48 @@
           "sha256": "7a108d7cfa98ac413ddb38f82fd509fb2037dfcc25ccf466567520cbb6bdf1fa"
         },
         {
+          "path": "streams/readable-byte-streams/tee.any.js",
+          "sha256": "2b8716b846367254c20b3662674e79ec2eb559b36d0f0460346822829f567020"
+        },
+        {
+          "path": "streams/readable-streams/async-iterator.any.js",
+          "sha256": "23642e42322aebd262ad9084ba78e12c1c0ec0562fec3a7b124f10ef421e543c"
+        },
+        {
+          "path": "streams/readable-streams/cancel.any.js",
+          "sha256": "bd50daffad0c780fd72cc665fe5e791f3ef69cb552745947dfd053d0bb4596a0"
+        },
+        {
           "path": "streams/readable-streams/constructor.any.js",
           "sha256": "5a80b6aea8ce78ffc639bc85ab9ec9bfb64a4b102dcee53a6eaee1d904f4205c"
+        },
+        {
+          "path": "streams/readable-streams/default-reader.any.js",
+          "sha256": "97061c83a2371d0a48244f4d81a80046e178c0d88fd3cb23daac26d23221681c"
+        },
+        {
+          "path": "streams/readable-streams/general.any.js",
+          "sha256": "6bb8158125422ff00a320d754f5f4e25aa4530dea07a774337493e6e8905a068"
+        },
+        {
+          "path": "streams/readable-streams/tee.any.js",
+          "sha256": "098f2a7d34ca59cd739ff3ac6189a7ae6dd6d9b3c78010c5ec48b65358f29a3e"
+        },
+        {
+          "path": "streams/resources/recording-streams.js",
+          "sha256": "7c90125c056643aa82b07eb00584e5d52ed39778b23adfeac82db2890a4a92ca"
+        },
+        {
+          "path": "streams/resources/rs-test-templates.js",
+          "sha256": "7a0d0d4860ca6b397fa4aa008f802a734b99b40adff7ad60524721367d838042"
+        },
+        {
+          "path": "streams/resources/rs-utils.js",
+          "sha256": "e4ac017aecf1eb2f83b0f22ece95998fec7d42a6de1d94fa1497351369bec04b"
+        },
+        {
+          "path": "streams/resources/test-utils.js",
+          "sha256": "6ba682d4fa67f654de9c0d3516b6c3e0cdf1f0017085c866418cf93ced85cce7"
         },
         {
           "path": "xhr/formdata/append.any.js",

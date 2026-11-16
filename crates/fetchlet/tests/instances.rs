@@ -70,3 +70,29 @@ async fn independent_instances() -> Result<()> {
     isolation(fetchlet::V8::new(SOURCE)?, fetchlet::V8::new(SOURCE)?).await?;
     Ok(())
 }
+
+async fn array_buffer_transfer(mut instance: impl Instance) -> Result<()> {
+    assert_eq!(
+        instance.call_json("transfer", &[]).await?,
+        json!({
+            "detached": [true, false],
+            "sourceLength": 0,
+            "shorter": [1, 2],
+            "longer": [4, 0, 0],
+            "again": "TypeError",
+            "invalidThis": "TypeError",
+        })
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn every_engine_transfers_array_buffers() -> Result<()> {
+    #[cfg(feature = "quickjs")]
+    array_buffer_transfer(fetchlet::QuickJs::new(SOURCE)?).await?;
+    #[cfg(feature = "boa")]
+    array_buffer_transfer(fetchlet::Boa::new(SOURCE)?).await?;
+    #[cfg(feature = "v8")]
+    array_buffer_transfer(fetchlet::V8::new(SOURCE)?).await?;
+    Ok(())
+}

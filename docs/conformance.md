@@ -67,26 +67,25 @@ Windowsローカル、固定版と選定範囲での実測です。
 
 | 構成     | WPT 成功 / 失敗 | Test262 成功 / 失敗 | 独自回帰 成功 / 失敗 |
 | -------- | --------------- | ------------------- | -------------------- |
-| QuickJS  | 1020 / 246      | 88 / 0              | 15 / 0               |
-| Boa      | 1012 / 254      | 88 / 0              | 15 / 0               |
-| V8       | 1091 / 175      | 88 / 0              | 15 / 0               |
-| Node参照 | 1093 / 173      | 88 / 0              | 15 / 0               |
+| QuickJS  | 1210 / 241      | 88 / 0              | 22 / 0               |
+| Boa      | 1210 / 241      | 88 / 0              | 22 / 0               |
+| V8       | 1281 / 170      | 88 / 0              | 22 / 0               |
+| Node参照 | 1278 / 173      | 88 / 0              | 22 / 0               |
 
-WPTは80ファイル、各構成1266 subtestです。失敗はすべて[expectations.json](../tests/conformance/expectations.json)で分類と理由を記録した既知差分で、新規失敗は0件です。分類ごとの件数（QuickJS / Boa / V8 / Node）と範囲は次のとおりです。
+WPTは86ファイル、各構成1451 subtestです。失敗はすべて[expectations.json](../tests/conformance/expectations.json)で分類と理由を記録した既知差分で、新規失敗は0件です。分類ごとの件数（QuickJS / Boa / V8 / Node）と範囲は次のとおりです。
 
 | 分類                 | 件数                  | 対象と理由                                                                                                                                                                                                                                                        |
 | -------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | server-profile       | 145 / 145 / 145 / 143 | 文書の基準URLに対する相対URLの解決（`new Request("")`等）。サーバーprofileはglobalな基準URLを持たず、サーバー側の相対URLはframework adapterが受信Requestから解決します（[設計](in-process-fetch.md)）。Node参照も同じく失敗。Set-Cookieのresponse guardもこの分類 |
 | host-capability      | 22 / 22 / 22 / 22     | WPT HTTP serverのresourceをfetchする試験と、MessageChannel。外向きfetchはRustのhost行列で検証しています                                                                                                                                                           |
-| backend-capability   | 71 / 79 / 0 / 0       | QuickJS / BoaのSharedArrayBuffer非公開（ArrayBuffer版は成功）。BoaはArrayBuffer transferを持たないため、Body / BlobのBYOBと`transfer()`によるdetach試験                                                                                                           |
-| provider-limitation  | 5 / 5 / 5 / 5         | web-streams-polyfill 4.5.1のread()結果が通常のPromiseで解決され、改変した`Object.prototype.then`から観測できる。Node参照も同じ試験で失敗                                                                                                                          |
+| backend-capability   | 71 / 71 / 0 / 0       | QuickJS / BoaのSharedArrayBuffer非公開（ArrayBuffer版は成功）                                                                                                                                                                                                     |
 | profile-selection    | 2 / 2 / 2 / 0         | encoding-liteはUTF-8 / UTF-16 / single-byteを提供し、legacy multi-byte decoderを含めない構成                                                                                                                                                                      |
 | upstream-comparison  | 1 / 1 / 1 / 1         | 空FormDataの本文にmultipart終端を出力。空文字列を期待する固定WPTと差があり、Node参照も失敗                                                                                                                                                                        |
-| reference-difference | 0 / 0 / 0 / 2         | Node参照のTextDecoderの終端処理の差                                                                                                                                                                                                                               |
+| reference-difference | 0 / 0 / 0 / 7         | Node参照のTextDecoderの終端処理の差と、undiciの本文読み取りが改変した`Object.prototype.then`から観測できる差                                                                                                                                                      |
 
 ### 選定と除外
 
-80ファイルはFetch（Headers / Request / Response / Body）、FileAPI（Blob / File）、FormData、Encoding、DOM Abort、Streams constructorです。WPT serverを前提とするファイル（header-values、json、response-cancel-stream、response-headers-guard）は選定外です。request-disturbed / request-structureはtop-levelで相対URLのRequestを生成し、ファイル全体がrunner-errorになるため除外しています。encodeInto-tail-unmodifiedは6万回超の反復を行う試験で、Boaのdebug buildがprocess期限30秒を超えるため除外し、同じ範囲をencodeInto.any.jsで評価しています。
+86ファイルはFetch（Headers / Request / Response / Body）、FileAPI（Blob / File）、FormData、Encoding、DOM Abort、Streams（constructor、tee、cancel、async iterator、default reader、byte streamのtee）です。WPT serverを前提とするファイル（header-values、json、response-cancel-stream、response-headers-guard）は選定外です。request-disturbed / request-structure / request-keepaliveはtop-levelで相対URLのRequestを生成し、ファイル全体がrunner-errorになるため除外しています。Request属性のWeb IDLは独自回帰で検証しています。encodeInto-tail-unmodifiedは6万回超の反復を行う試験で、Boaのdebug buildがprocess期限30秒を超えるため除外し、同じ範囲をencodeInto.any.jsで評価しています。
 
 ### この選定で修正した動作
 
@@ -94,6 +93,11 @@ WPTは80ファイル、各構成1266 subtestです。失敗はすべて[expectat
 - Body / BlobのtextStream()、文字列・ArrayBuffer・URLSearchParams本文のbyte stream化（BYOB）、clone時の第2分岐へのstructuredClone
 - formData()が型判定より先に本文を読み、streamのエラーを伝播
 - Headersのrecord変換順序とSymbolキーの拒否、File / FormData constructorの引数検証、constructor名、FormDataでのlastModified保持
+- BoaでArrayBuffer transferを提供し、Body / BlobのBYOBとbyte streamのteeを全VMで有効化（Boa 0.22は`experimental` featureの背後に置くため、backendが `transfer` / `transferToFixedLength` / `detached` を補います。resizable bufferは固定長として転送）
+- Streams providerのasync iteratorを%AsyncIteratorPrototype%へ接続
+- 本文の全量読み取りをpipeToの内部read requestで行い、改変した`Object.prototype.then`から本文を観測・置換できない構成へ変更
+- multipart/form-dataをbyte単位で解析。行頭の区切りのみ認識し、preamble / epilogue、大小文字を区別しないMIME型と引数、quoted boundary、UTF-8と%0D / %0A / %22のescapeを扱い、不正な区切り・header・未終端をTypeErrorにする
+- Requestの属性（mode、credentials、cache、referrer、referrerPolicy、integrity、keepalive、duplex等）を読み取り専用のprototype accessorとして公開し、RequestInitのenumerationとonly-if-cachedの制約を検証
 
 CIにWindows / Linuxのrunner自己試験と適合性行列を組み込んでいます。remote CIの実行結果は、今後その環境で確認します。
 
@@ -122,7 +126,7 @@ upstream/はvite.config.tsのfmt.ignorePatternsで整形対象から外してい
 
 ## 次に広げる範囲
 
-Streamsの追加WPT（tee、cancel、async iterator）、multipartの複雑な入力、Request属性のWeb IDL、Test262のhost機能とnegative / module試験へ順に広げます。read()結果をPromise経由で返さないStreams provider、transfer対応のstructuredCloneは、provider選択の評価対象です。以前の修正は、Bodyのdisturbed状態、byte bodyのsnapshot、constructor / static method検証、HeadersとFormDataのlive iteration、Blobのslice / bytes、UTF-8 / BOM等を回帰試験へ結び付けています。
+Test262のhost機能とnegative / module試験、Streamsのwritable / transform / piping、Requestのno-corsのheader guardへ順に広げます。Request属性のうちreferrerは環境のoriginを持たないため、URLを解析した値を保持します（Node参照と同じ扱い）。以前の修正は、Bodyのdisturbed状態、byte bodyのsnapshot、constructor / static method検証、HeadersとFormDataのlive iteration、Blobのslice / bytes、UTF-8 / BOM等を回帰試験へ結び付けています。
 
 Rustまで含むストリーミングと、JS側multipart / Bodyのfuzzingはそれぞれ追加の検証経路を整えます。現在のRust host境界のfuzzingと、Web API適合試験は対象を分けて維持します。
 

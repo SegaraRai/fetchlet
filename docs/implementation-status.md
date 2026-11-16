@@ -21,7 +21,7 @@ bundleはIIFEの `fetchletExports` に関数を公開します。JSON境界の�
 
 ## 適合性の実測
 
-[WPT / Test262の基盤](conformance.md)を追加しました。固定したWPT 80ファイル（各構成1266 subtest）、Test262 44ファイルのstrict / sloppy 88ケース、独自回帰15件を、Node参照と3VMで実行します。WPTはQuickJS 1020、Boa 1012、V8 1091、Node 1093成功で、残りはすべて分類・理由を記録した既知差分です。既知差分の多くは文書の基準URLやWPT serverを前提とする試験で、内訳は[適合性評価](conformance.md#現在の実測と既知差分)にまとめています。Test262と独自回帰は全構成で成功しています。結果は[conformance.json](../results/conformance.json)、既知差分は[expectations.json](../tests/conformance/expectations.json)です。通常の回帰判定とstrictな適合判定を分け、上流suite全体への評価は選定を広げて継続します。
+[WPT / Test262の基盤](conformance.md)を追加しました。固定したWPT 86ファイル（各構成1451 subtest）、Test262 44ファイルのstrict / sloppy 88ケース、独自回帰22件を、Node参照と3VMで実行します。WPTはQuickJS 1210、Boa 1210、V8 1281、Node 1278成功で、残りはすべて分類・理由を記録した既知差分です。既知差分の多くは文書の基準URLやWPT serverを前提とする試験で、内訳は[適合性評価](conformance.md#現在の実測と既知差分)にまとめています。Test262と独自回帰は全構成で成功しています。結果は[conformance.json](../results/conformance.json)、既知差分は[expectations.json](../tests/conformance/expectations.json)です。通常の回帰判定とstrictな適合判定を分け、上流suite全体への評価は選定を広げて継続します。
 
 ## VMの実測
 
@@ -48,17 +48,18 @@ SvelteKit **3.2.0** / Svelte **5.57.3** は実際のsveltekit buildとgenerateSe
 
 入口は `packages/runtime/src/index.ts`、各APIの実装は `packages/runtime/src/web/` にあります。URL、base64、structuredClone、DOMExceptionはcore-js-pure、Streamsはweb-streams-polyfill、Encodingは@exodus/bytes 1.16.0のencoding-liteを利用します。Rustのgetrandom / sha2をhost operation経由で使います。
 
-| 範囲                 | 現在の実装と次の適合対象                                                                                                                         |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Headers / Body       | validation、record変換、二重消費、byte stream本文、textStream、structuredCloneするclone、binary、Cookie。guard / filtering / response typeへ拡張 |
-| FormData / multipart | 重複項目とFileのfixture。パーサの標準適合と堅牢性を強化                                                                                          |
-| Encoding             | UTF-8 / UTF-16 / single-byte、streaming / fatal、TextEncoderStream / TextDecoderStream                                                           |
-| Abort                | AbortSignal.abort / timeout / any、DOMException reason、本文読み取りとhost fetchのabort                                                          |
-| Crypto               | secure random、UUID v4、SHA-256                                                                                                                  |
-| timer / job          | PromiseとsetTimeout / clearTimeout、Future通知による駆動                                                                                         |
-| fetch / env          | Rust serviceへの非同期bridge、origin policy、固定binding                                                                                         |
-| 本文・background     | Response本文のstreaming（`__fetchletResponseBodies`）と終了時のtimer回収。次にRequest本文のstreamingと明示的background                           |
-| 実行制御             | optionalな協調的期限とengine options。hard interruptとprocess境界を拡張                                                                          |
+| 範囲                 | 現在の実装と次の適合対象                                                                                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Headers / Body       | validation、record変換、二重消費、byte stream本文（BYOBを3VMで提供）、textStream、structuredCloneするclone、pipeToによる全量読み取り、binary、Cookie。guard / filtering / response typeへ拡張 |
+| Request              | 読み取り専用の属性accessor（mode、credentials、cache、referrer等）とRequestInitの検証。no-corsのheader guardへ拡張                                                                            |
+| FormData / multipart | 重複項目とFile、byte単位のmultipart解析（行頭の区切り、preamble / epilogue、quoted boundary、UTF-8とescape、不正入力のTypeError）                                                             |
+| Encoding             | UTF-8 / UTF-16 / single-byte、streaming / fatal、TextEncoderStream / TextDecoderStream                                                                                                        |
+| Abort                | AbortSignal.abort / timeout / any、DOMException reason、本文読み取りとhost fetchのabort                                                                                                       |
+| Crypto               | secure random、UUID v4、SHA-256                                                                                                                                                               |
+| timer / job          | PromiseとsetTimeout / clearTimeout、Future通知による駆動                                                                                                                                      |
+| fetch / env          | Rust serviceへの非同期bridge、origin policy、固定binding                                                                                                                                      |
+| 本文・background     | Response本文のstreaming（`__fetchletResponseBodies`）と終了時のtimer回収。次にRequest本文のstreamingと明示的background                                                                        |
+| 実行制御             | optionalな協調的期限とengine options。hard interruptとprocess境界を拡張                                                                                                                       |
 
 23プローブとframework fixtureはアプリ互換性の足場です。標準適合の評価はAPIごとの試験とWPTへ広げ、Deno / LLRT等の既存実装も比較します。
 

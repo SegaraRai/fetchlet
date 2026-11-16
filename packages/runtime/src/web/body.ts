@@ -1,5 +1,7 @@
 import { concatBytes, decode, encode } from "./bytes";
 import { multipart } from "./form-data";
+import { exposeAttributes } from "./idl";
+import { essence, multipartBoundary, parseMultipart } from "./multipart";
 import { runtime } from "./runtime";
 import { isDisturbed, supportsByteStreams } from "./stream-state";
 import { teeBody } from "./tee";
@@ -12,10 +14,15 @@ export class BodyImpl {
   protected consumed = false;
   protected contentType: string | null = null;
 
-  headers: any;
+  #headers: any;
+
+  /** Web IDL brand check for the Body attribute getters. */
+  static #check(value: BodyImpl) {
+    if (!(#headers in value)) throw new TypeError("Illegal invocation");
+  }
 
   constructor(body: any = null, headers?: any) {
-    this.headers = new runtime.Headers(headers);
+    this.#headers = new runtime.Headers(headers);
     if (body == null) {
       return;
     }
@@ -55,57 +62,77 @@ export class BodyImpl {
     }
   }
 
+  get headers() {
+    BodyImpl.#check(this);
+    return this.#headers;
+  }
+
   get body() {
+    BodyImpl.#check(this);
     return this.stream;
   }
 
   get bodyUsed() {
+    BodyImpl.#check(this);
     return this.stream !== null && (this.consumed || isDisturbed(this.stream));
   }
 
-  async arrayBuffer(): Promise<ArrayBuffer> {
-    if (this.bodyUsed || this.stream?.locked) {
-      throw new TypeError("Body already consumed or locked");
-    }
-    if (!this.stream) {
-      return new ArrayBuffer(0);
-    }
-    this.consumed = true;
-    const reader = this.stream.getReader();
-    const chunks: Uint8Array[] = [];
-    try {
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) {
-          break;
-        }
-        if (!(value instanceof Uint8Array)) {
-          throw new TypeError("Expected byte chunk");
-        }
-        chunks.push(value);
+  /**
+   * Fetch's "fully read body", then convert the bytes.
+   *
+   * Reads go through pipeTo's internal read requests, and every intermediate
+   * promise settles with undefined, so a patched Object.prototype.then cannot
+   * observe or replace chunks. Only the final result is resolved, as in Fetch.
+   */
+  #consume<T>(convert: (bytes: Uint8Array) => T): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      if (this.bodyUsed || this.stream?.locked) {
+        throw new TypeError("Body already consumed or locked");
       }
-    } finally {
-      reader.releaseLock();
-    }
-    return concatBytes(chunks).buffer as ArrayBuffer;
-  }
-
-  async bytes() {
-    return new Uint8Array(await this.arrayBuffer());
-  }
-
-  async text() {
-    return decode(await this.bytes());
-  }
-
-  async json() {
-    return JSON.parse(await this.text());
-  }
-
-  async blob() {
-    return new runtime.Blob([await this.arrayBuffer()], {
-      type: this.headers.get("content-type") ?? "",
+      const complete = (bytes: Uint8Array) => {
+        try {
+          resolve(convert(bytes));
+        } catch (error) {
+          reject(error);
+        }
+      };
+      if (!this.stream) {
+        complete(new Uint8Array(0));
+        return;
+      }
+      this.consumed = true;
+      const chunks: Uint8Array[] = [];
+      const sink = new runtime.WritableStream({
+        write(chunk: unknown) {
+          if (!(chunk instanceof Uint8Array)) {
+            throw new TypeError("Expected byte chunk");
+          }
+          chunks.push(chunk);
+        },
+      });
+      this.stream.pipeTo(sink).then(() => complete(concatBytes(chunks)), reject);
     });
+  }
+
+  arrayBuffer(): Promise<ArrayBuffer> {
+    return this.#consume((bytes) => bytes.buffer as ArrayBuffer);
+  }
+
+  bytes() {
+    return this.#consume((bytes) => bytes);
+  }
+
+  text() {
+    return this.#consume(decode);
+  }
+
+  json() {
+    return this.#consume((bytes) => JSON.parse(decode(bytes)));
+  }
+
+  blob() {
+    const type = this.headers.get("content-type") ?? "";
+    return this.#consume((bytes) => new runtime.Blob([bytes], { type }));
   }
 
   /** Decode the body as UTF-8 text chunks; a null body yields a new empty stream each time. */
@@ -125,54 +152,10 @@ export class BodyImpl {
     return this.stream.pipeThrough(decoder);
   }
 
-  async formData() {
+  formData() {
     const type = this.headers.get("content-type") ?? "";
     // Consume the body before parsing, so stream errors take precedence over type errors.
-    const bytes = await this.bytes();
-    const data = new runtime.FormData();
-    if (type.startsWith("application/x-www-form-urlencoded")) {
-      for (const [key, value] of new runtime.URLSearchParams(decode(bytes))) {
-        data.append(key, value);
-      }
-      return data;
-    }
-    const match = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(type);
-    if (!type.startsWith("multipart/form-data") || !match) {
-      throw new TypeError("Unsupported form content type");
-    }
-    let raw = "";
-    for (const byte of bytes) {
-      raw += String.fromCharCode(byte);
-    }
-    const boundary = "--" + (match[1] ?? match[2]);
-    if (!raw.startsWith(boundary + "--") && !raw.includes("\r\n" + boundary + "--")) {
-      throw new TypeError("Multipart body has no closing boundary");
-    }
-    for (const part of raw.split(boundary).slice(1, -1)) {
-      const split = part.indexOf("\r\n\r\n");
-      if (split < 0) {
-        throw new TypeError("Invalid multipart");
-      }
-      const header = part.slice(0, split);
-      const content = part.slice(split + 4, -2);
-      const name = /\bname="([^"]*)"/.exec(header)?.[1];
-      if (name === undefined) {
-        continue;
-      }
-      const chunk = Uint8Array.from(content, (character: string) => character.charCodeAt(0));
-      const filename = /\bfilename="([^"]*)"/.exec(header)?.[1];
-      if (filename !== undefined) {
-        data.append(
-          name,
-          new runtime.File([chunk], filename, {
-            type: /Content-Type: ([^\r\n]+)/i.exec(header)?.[1] ?? "application/octet-stream",
-          }),
-        );
-      } else {
-        data.append(name, decode(chunk));
-      }
-    }
-    return data;
+    return this.#consume((bytes) => parseForm(bytes, type));
   }
 
   protected cloneStream() {
@@ -187,3 +170,33 @@ export class BodyImpl {
     return cloned;
   }
 }
+
+/** Parse a fully read body as `application/x-www-form-urlencoded` or `multipart/form-data`. */
+function parseForm(bytes: Uint8Array, type: string) {
+  const data = new runtime.FormData();
+  if (essence(type) === "application/x-www-form-urlencoded") {
+    for (const [key, value] of new runtime.URLSearchParams(decode(bytes))) {
+      data.append(key, value);
+    }
+    return data;
+  }
+  const boundary = multipartBoundary(type);
+  if (boundary === null) {
+    throw new TypeError("Unsupported form content type");
+  }
+  for (const entry of parseMultipart(bytes, boundary)) {
+    if (entry.filename !== undefined) {
+      data.append(
+        entry.name,
+        new runtime.File([entry.value], entry.filename, {
+          type: entry.contentType ?? "text/plain",
+        }),
+      );
+    } else {
+      data.append(entry.name, decode(entry.value));
+    }
+  }
+  return data;
+}
+
+exposeAttributes(BodyImpl.prototype, ["headers", "body", "bodyUsed"]);

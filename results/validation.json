@@ -85,9 +85,7 @@
       "backend": "quickjs",
       "browser": "157.0.8103.51",
       "intl": {
-        "locales": [
-          "en"
-        ],
+        "locales": ["en"],
         "timeZoneData": "utc"
       },
       "artifactBytes": 2138907

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-11-16T12:40:49.967Z",
+  "reviewedAt": "2026-11-16T13:19:23.119Z",
   "sources": {
     "wpt": {
       "repository": "web-platform-tests/wpt",
       "revision": "c43f14b481a9960c6bc553c68e2e489bf6f95ac9",
-      "selectedFiles": 80
+      "selectedFiles": 86
     },
     "test262": {
       "repository": "tc39/test262",
@@ -19,12 +19,6 @@
       "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure.",
       "category": "host-capability",
       "message": "MessageChannel is not defined"
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"FileAPI/blob/Blob-stream.any.js\",\"shell\",\"Reading Blob.stream() with BYOB reader\"]",
-      "reason": "Boa profile cannot transfer ArrayBuffers through the current structuredClone provider, so body and Blob streams are default streams. Ordinary reads pass; BYOB needs a transfer-capable provider.",
-      "category": "backend-capability",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"encoding/encodeInto.any.js\",\"shell\",\"Invalid encodeInto() destination: BigInt64Array, backed by: SharedArrayBuffer\"]",
@@ -355,12 +349,6 @@
       "reason": "This engine configuration does not expose SharedArrayBuffer; the ArrayBuffer variants of the same subtests pass.",
       "category": "backend-capability",
       "message": "not a constructor"
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"encoding/textdecoder-arguments.any.js\",\"shell\",\"TextDecoder decode() with array buffer detached during arg conversion\"]",
-      "reason": "The subtest detaches a buffer with ArrayBuffer.prototype.transfer, which this Boa version does not provide.",
-      "category": "backend-capability",
-      "message": "not a callable function"
     },
     {
       "key": "[\"wpt\",\"boa\",\"encoding/textdecoder-copy.any.js\",\"shell\",\"Modify buffer after passing it in (SharedArrayBuffer)\"]",
@@ -1353,42 +1341,6 @@
       "message": "Invalid scheme"
     },
     {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-consume-stream.any.js\",\"shell\",\"Read URLSearchParams response's body as readableStream with mode=byob\"]",
-      "reason": "Boa profile cannot transfer ArrayBuffers through the current structuredClone provider, so body and Blob streams are default streams. Ordinary reads pass; BYOB needs a transfer-capable provider.",
-      "category": "backend-capability",
-      "message": "Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source"
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-consume-stream.any.js\",\"shell\",\"Read array buffer response's body as readableStream with mode=byob\"]",
-      "reason": "Boa profile cannot transfer ArrayBuffers through the current structuredClone provider, so body and Blob streams are default streams. Ordinary reads pass; BYOB needs a transfer-capable provider.",
-      "category": "backend-capability",
-      "message": "Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source"
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-consume-stream.any.js\",\"shell\",\"Read blob response's body as readableStream with mode=byob\"]",
-      "reason": "Boa profile cannot transfer ArrayBuffers through the current structuredClone provider, so body and Blob streams are default streams. Ordinary reads pass; BYOB needs a transfer-capable provider.",
-      "category": "backend-capability",
-      "message": "Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source"
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-consume-stream.any.js\",\"shell\",\"Read form data response's body as readableStream with mode=byob\"]",
-      "reason": "Boa profile cannot transfer ArrayBuffers through the current structuredClone provider, so body and Blob streams are default streams. Ordinary reads pass; BYOB needs a transfer-capable provider.",
-      "category": "backend-capability",
-      "message": "Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source"
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-consume-stream.any.js\",\"shell\",\"Read text response's body as readableStream with mode=byob\"]",
-      "reason": "Boa profile cannot transfer ArrayBuffers through the current structuredClone provider, so body and Blob streams are default streams. Ordinary reads pass; BYOB needs a transfer-capable provider.",
-      "category": "backend-capability",
-      "message": "Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source"
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-consume-stream.any.js\",\"shell\",\"Reading with offset from Response stream\"]",
-      "reason": "Boa profile cannot transfer ArrayBuffers through the current structuredClone provider, so body and Blob streams are default streams. Ordinary reads pass; BYOB needs a transfer-capable provider.",
-      "category": "backend-capability",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source\""
-    },
-    {
       "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-stream-disturbed-1.any.js\",\"shell\",\"Getting arrayBuffer after getting the Response body - not disturbed, not locked (body source: fetch)\"]",
       "reason": "The subtest fetches a resource from the WPT HTTP server. The conformance runner has no WPT server; fetch is covered by the Rust host matrix.",
       "category": "host-capability",
@@ -1507,36 +1459,6 @@
       "reason": "The subtest fetches a resource from the WPT HTTP server. The conformance runner has no WPT server; fetch is covered by the Rust host matrix.",
       "category": "host-capability",
       "message": "promise_test: Unhandled rejection with value: object \"TypeError: Invalid scheme\""
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject 8.2 via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Expected byte chunk\""
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject undefined via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Cannot destructure 'undefined' value\""
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject value: undefined via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Expected byte chunk\""
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject {done: false, value: bye} via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "assert_equals: The value should be \"hello\". expected \"hello\" but got \"bye\""
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"intercepting arraybuffer to text conversion via Object.prototype.then should not be possible\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "assert_equals: The value should be \"hello\". expected \"hello\" but got \"bye\""
     },
     {
       "key": "[\"wpt\",\"node-reference\",\"encoding/textdecoder-eof.any.js\",\"shell\",\"TextDecoder end-of-queue handling using stream: true\"]",
@@ -2548,32 +2470,32 @@
     },
     {
       "key": "[\"wpt\",\"node-reference\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject 8.2 via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
+      "reason": "Node reference (undici) resolves internal body reads through ordinary promises, so a patched Object.prototype.then can observe them. The fetchlet profile reads bodies through pipeTo and passes.",
+      "category": "reference-difference",
       "message": "promise_test: Unhandled rejection with value: object \"TypeError: Received non-Uint8Array chunk\""
     },
     {
       "key": "[\"wpt\",\"node-reference\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject undefined via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
+      "reason": "Node reference (undici) resolves internal body reads through ordinary promises, so a patched Object.prototype.then can observe them. The fetchlet profile reads bodies through pipeTo and passes.",
+      "category": "reference-difference",
       "message": "promise_test: Unhandled rejection with value: object \"TypeError: Cannot destructure property 'done' of '(intermediate value)' as it is undefined.\""
     },
     {
       "key": "[\"wpt\",\"node-reference\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject value: undefined via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
+      "reason": "Node reference (undici) resolves internal body reads through ordinary promises, so a patched Object.prototype.then can observe them. The fetchlet profile reads bodies through pipeTo and passes.",
+      "category": "reference-difference",
       "message": "promise_test: Unhandled rejection with value: object \"TypeError: Received non-Uint8Array chunk\""
     },
     {
       "key": "[\"wpt\",\"node-reference\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject {done: false, value: bye} via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
+      "reason": "Node reference (undici) resolves internal body reads through ordinary promises, so a patched Object.prototype.then can observe them. The fetchlet profile reads bodies through pipeTo and passes.",
+      "category": "reference-difference",
       "message": "assert_equals: The value should be \"hello\". expected \"hello\" but got \"bye\""
     },
     {
       "key": "[\"wpt\",\"node-reference\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"intercepting arraybuffer to text conversion via Object.prototype.then should not be possible\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
+      "reason": "Node reference (undici) resolves internal body reads through ordinary promises, so a patched Object.prototype.then can observe them. The fetchlet profile reads bodies through pipeTo and passes.",
+      "category": "reference-difference",
       "message": "assert_equals: The value should be \"hello\". expected \"hello\" but got \"bye\""
     },
     {
@@ -4023,36 +3945,6 @@
       "message": "promise_test: Unhandled rejection with value: object \"TypeError: Invalid scheme\""
     },
     {
-      "key": "[\"wpt\",\"quickjs\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject 8.2 via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Expected byte chunk\""
-    },
-    {
-      "key": "[\"wpt\",\"quickjs\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject undefined via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Cannot convert undefined or null to object\""
-    },
-    {
-      "key": "[\"wpt\",\"quickjs\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject value: undefined via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Expected byte chunk\""
-    },
-    {
-      "key": "[\"wpt\",\"quickjs\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject {done: false, value: bye} via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "assert_equals: The value should be \"hello\". expected \"hello\" but got \"bye\""
-    },
-    {
-      "key": "[\"wpt\",\"quickjs\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"intercepting arraybuffer to text conversion via Object.prototype.then should not be possible\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "assert_equals: The value should be \"hello\". expected \"hello\" but got \"bye\""
-    },
-    {
       "key": "[\"wpt\",\"v8\",\"FileAPI/blob/Blob-constructor.any.js\",\"shell\",\"Passing a FrozenArray as the blobParts array should work (FrozenArray<MessagePort>).\"]",
       "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure.",
       "category": "host-capability",
@@ -5071,36 +4963,6 @@
       "reason": "The subtest fetches a resource from the WPT HTTP server. The conformance runner has no WPT server; fetch is covered by the Rust host matrix.",
       "category": "host-capability",
       "message": "promise_test: Unhandled rejection with value: object \"TypeError: Invalid scheme\""
-    },
-    {
-      "key": "[\"wpt\",\"v8\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject 8.2 via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Expected byte chunk\""
-    },
-    {
-      "key": "[\"wpt\",\"v8\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject undefined via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Cannot destructure property 'value' of '(intermediate value)' as it is undefined.\""
-    },
-    {
-      "key": "[\"wpt\",\"v8\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject value: undefined via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "promise_test: Unhandled rejection with value: object \"TypeError: Expected byte chunk\""
-    },
-    {
-      "key": "[\"wpt\",\"v8\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"Attempt to inject {done: false, value: bye} via Object.prototype.then.\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "assert_equals: The value should be \"hello\". expected \"hello\" but got \"bye\""
-    },
-    {
-      "key": "[\"wpt\",\"v8\",\"fetch/api/response/response-stream-with-broken-then.any.js\",\"shell\",\"intercepting arraybuffer to text conversion via Object.prototype.then should not be possible\"]",
-      "reason": "web-streams-polyfill 4.5.1 resolves read() results through ordinary promises, so a patched Object.prototype.then can observe them. Node reference fails the same subtests.",
-      "category": "provider-limitation",
-      "message": "assert_equals: The value should be \"hello\". expected \"hello\" but got \"bye\""
     }
   ]
 }
