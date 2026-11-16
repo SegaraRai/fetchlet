@@ -20,7 +20,13 @@ export interface WireResponse {
 interface ResponseBodyRegistry {
   streaming(): boolean;
   register(stream: ReadableStream<Uint8Array>): number;
-  pull(id: number, waitForData: boolean): Promise<{ chunk: number[]; done: boolean }>;
+  pull(
+    id: number,
+    waitForData: boolean,
+  ): Promise<{
+    chunk: number[];
+    done: boolean;
+  }>;
 }
 
 function responseBodyRegistry(): ResponseBodyRegistry | undefined {
@@ -35,6 +41,7 @@ export function wireRequest(input: WireRequest): Request {
     body: input.body === null || input.body === undefined ? undefined : new Uint8Array(input.body),
   });
 }
+
 export async function wireResponse(response: Response): Promise<WireResponse> {
   const headers: Array<[string, string]> = [];
   response.headers.forEach((value: string, key: string) => {
