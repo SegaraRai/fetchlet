@@ -1,6 +1,10 @@
 use anyhow::{Result, anyhow};
+use bytes::Bytes;
 use rquickjs::function::Func;
-use rquickjs::{Context, Error, Persistent, Promise, Runtime};
+use rquickjs::{
+    Context, Ctx, Error, Exception, IntoJs, Persistent, Promise, Runtime, TypedArray,
+    Value as JsValue,
+};
 use serde_json::Value;
 
 use super::QuickJsOptions;
@@ -42,6 +46,31 @@ impl QuickJs {
         let wake = host.wake_signal();
         let context = Context::full(&runtime)?;
         context.with(|context| -> Result<()> {
+            let take = host.clone();
+            context.globals().set(
+                "__fetchletTakeBytes",
+                Func::from(move |ctx: Ctx<'_>, handle: f64| {
+                    let bytes = take
+                        .take_guest_bytes(handle)
+                        .map_err(|error| Exception::throw_type(&ctx, error.guest_message()))?;
+                    Ok::<_, Error>(Uint8Bytes(bytes))
+                }),
+            )?;
+            let put = host.clone();
+            context.globals().set(
+                "__fetchletPutBytes",
+                Func::from(move |ctx: Ctx<'_>, view: TypedArray<'_, u8>| {
+                    let raw = view
+                        .as_raw()
+                        .ok_or_else(|| Exception::throw_type(&ctx, "detached byte array"))?;
+                    // SAFETY: the view is alive and no JavaScript runs while
+                    // its bytes are copied into the store.
+                    let bytes = unsafe { raw.as_ref() };
+                    put.put_guest_bytes(bytes)
+                        .map(|handle| handle as f64)
+                        .map_err(|error| Exception::throw_type(&ctx, error.guest_message()))
+                }),
+            )?;
             context.globals().set(
                 "__fetchletHost",
                 Func::from(move |operation: String, input: String| host.dispatch(operation, input)),
@@ -121,5 +150,14 @@ impl QuickJs {
                 }
             }
         }
+    }
+}
+
+/// Bytes returned to JavaScript as a new Uint8Array.
+struct Uint8Bytes(Bytes);
+
+impl<'js> IntoJs<'js> for Uint8Bytes {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<JsValue<'js>> {
+        TypedArray::<u8>::new_copy(ctx.clone(), &self.0).map(TypedArray::into_value)
     }
 }

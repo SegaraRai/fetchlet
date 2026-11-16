@@ -113,12 +113,15 @@ impl App {
             return Err(Error::InstanceUnavailable);
         }
         let deadline = deadline_after(self.limits.timeout);
-        let input = WireRequest::from_http(request, &self.limits).await?;
-        let mut arguments = vec![serde_json::to_value(input).map_err(invalid_request)?];
-        arguments.extend(context);
-        let expression = fetch_invocation(&self.handler, &arguments).map_err(invalid_request)?;
-
+        // The request body goes into this invocation's byte store.
         let scope = self.begin()?;
+        let expression = match self.fetch_expression(request, context, deadline).await {
+            Ok(expression) => expression,
+            Err(error) => {
+                self.close(scope);
+                return Err(error);
+            }
+        };
         let value = match self.evaluate(expression, deadline).await {
             Ok(value) => value,
             Err(error) => {
@@ -138,13 +141,12 @@ impl App {
             }
         };
         let stream = wire.stream;
-        let received = wire.body.len();
-        let response = match wire.into_http(&self.limits) {
+        let response = match wire.into_http(&self.limits, &mut self.host) {
             Ok(response) => response,
             Err(error) => {
                 match stream {
                     Some(id) => {
-                        let open = OpenResponseBody::new(id, scope, deadline, received);
+                        let open = OpenResponseBody::new(id, scope, deadline, 0);
                         self.cancel_response_body(open).await;
                     }
                     None => self.close(scope),
@@ -157,11 +159,28 @@ impl App {
                 self.close(scope);
                 Ok((response, None))
             }
-            Some(id) => Ok((
-                response,
-                Some(OpenResponseBody::new(id, scope, deadline, received)),
-            )),
+            Some(id) => {
+                let received = response.body().buffered()?.len();
+                let open = OpenResponseBody::new(id, scope, deadline, received);
+                Ok((response, Some(open)))
+            }
         }
+    }
+
+    async fn fetch_expression(
+        &mut self,
+        request: Request,
+        context: Option<Value>,
+        deadline: Option<Instant>,
+    ) -> Result<String> {
+        let input = with_deadline(
+            deadline,
+            WireRequest::from_http(request, &self.limits, &mut self.host),
+        )
+        .await??;
+        let mut arguments = vec![serde_json::to_value(input).map_err(invalid_request)?];
+        arguments.extend(context);
+        fetch_invocation(&self.handler, &arguments).map_err(invalid_request)
     }
 
     pub(super) fn begin(&mut self) -> Result<InvocationScope> {

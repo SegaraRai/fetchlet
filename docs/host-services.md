@@ -70,15 +70,15 @@ transportはRust側が信頼する実装を渡します。必要な契約は、s
 
 fetchletはtransportのFutureをInvocation内で直接pollします。Futureのwaker通知か、JSの次のtimer時刻でエンジンを起床させます。周期的なpoll待機時間は設けていません。
 
-現在のtransport境界はbuffered Responseです。fetchletの応答サイズ検査はbuffer受領時に実行するため、受信中のメモリ管理はtransport側で行います。
+transportはstreaming本文を返せます（`Body::from_http_body`）。guestのfetchでは本文をJSのReadableStreamとして需要駆動で読み、`response_body_bytes` を宣言長と読み取りの累積で検査します。JS側のcancel・abort、Invocationの終了で本文をdropし、transportへcancelを伝えます。Rustから直接使う `FetchService::fetch` は本文を予算内で回収して返します。
 
 ## 本文とライフサイクル
 
-公開型は `http::Request<Body>` / `http::Response<Body>`。`Body` は `http_body::Body` を実装し、現在はbufferを保持します。バイナリ本文と複数のSet-Cookieを維持します。JSとの転送はJSONとバイト配列です。
+公開型は `http::Request<Body>` / `http::Response<Body>`。`Body` は `http_body::Body` を実装し、buffer、workerからのstreaming、任意の `http_body::Body` を包んだstreaming（`Body::from_http_body`）を保持します。バイナリ本文と複数のSet-Cookieを維持します。JSとの転送はJSON messageと、Invocationのbyte storeを介したtyped arrayです。
 
 Invocation終了時には所有するtransport Futureを同期的にdropします。通常の完了や、処理の残っていないJS例外の後はInstanceを再利用できます。Rust Futureの中断、期限切れ、未完了のhost fetchを残したreturnの後はInstanceを退役させます。`App::is_reusable()` で状態を確認でき、退役後の呼び出しは `InstanceUnavailable` を返します。
 
-現profileでは呼び出し終了時に残ったtimerを破棄します。streamingではBodyがInvocationを保持するleaseを導入し、本文完了・cancelと実行環境の寿命を結び付ける計画です。background処理は明示的な登録と寿命管理を設計します。
+現profileでは呼び出し終了時に残ったtimerを破棄します。streaming本文はInvocationを保持するleaseで、本文完了・cancelまで実行環境を維持します。background処理は明示的な登録と寿命管理を設計します。
 
 ## 資源予算
 

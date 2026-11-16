@@ -128,6 +128,74 @@ async fn body_failures_are_classified_before_execution() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// A request body that arrives in separate chunks without a declared length.
+struct ChunkedBody(Vec<Bytes>);
+
+impl http_body::Body for ChunkedBody {
+    type Data = Bytes;
+    type Error = std::io::Error;
+
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        _context: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Bytes>, Self::Error>>> {
+        let next = (!self.0.is_empty()).then(|| Ok(Frame::data(self.0.remove(0))));
+        Poll::Ready(next)
+    }
+}
+
+async fn post(service: &FetchletService, body: Body) -> anyhow::Result<(StatusCode, Bytes)> {
+    let request = Request::builder().method("POST").uri("/count").body(body)?;
+    let response = service.clone().oneshot(request).await?;
+    Ok((response.status(), to_bytes(response.into_body(), 64).await?))
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn streamed_request_bodies_are_read_by_the_handler() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn(backend).await?;
+        let service =
+            FetchletService::new(handle.clone(), "https://public.test")?.stream_request_bodies();
+        let chunks = |sizes: &[usize]| {
+            Body::new(ChunkedBody(
+                sizes
+                    .iter()
+                    .map(|size| Bytes::from(vec![7; *size]))
+                    .collect(),
+            ))
+        };
+        // The handler sees the chunks as the body produced them.
+        assert_eq!(
+            post(&service, chunks(&[10, 12])).await?,
+            (StatusCode::OK, Bytes::from_static(b"2:22"))
+        );
+        // A declared length over the budget is rejected before execution.
+        assert_eq!(
+            post(&service, Body::from(vec![0; 33])).await?.0,
+            StatusCode::PAYLOAD_TOO_LARGE
+        );
+        // Undeclared excess and body failures reach the handler's stream.
+        assert_eq!(
+            post(&service, chunks(&[20, 20])).await?,
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Bytes::from_static(b"LIMIT_EXCEEDED")
+            )
+        );
+        assert_eq!(
+            post(&service, Body::new(BrokenBody)).await?,
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Bytes::from_static(b"TRANSPORT")
+            )
+        );
+        let valid = Request::builder().uri("/following").body(Body::empty())?;
+        assert_eq!(service.oneshot(valid).await?.status(), 201);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn error_details_stay_on_the_rust_side() -> anyhow::Result<()> {
     for backend in backends() {

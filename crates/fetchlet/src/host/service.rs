@@ -43,10 +43,22 @@ impl FetchService {
     }
 
     /// Execute a Rust request through the same checks used by guest fetch calls.
+    ///
+    /// The response body is collected within `response_body_bytes` and the
+    /// timeout, so the caller receives a complete, checked response.
     pub async fn fetch(&self, request: Request, limits: Limits) -> Result<Response> {
         limits.validate()?;
 
-        let execution = self.execute(request, Redirect::Follow, limits.clone());
+        let execution = async {
+            let response = self
+                .execute(request, Redirect::Follow, limits.clone())
+                .await?;
+            let (parts, body) = response.into_parts();
+            let body = body
+                .into_buffered(limits.response_body_bytes, "response body bytes")
+                .await?;
+            Ok(Response::from_parts(parts, body))
+        };
         with_timeout(limits.timeout, execution).await?
     }
 
@@ -71,6 +83,9 @@ impl FetchService {
         self
     }
 
+    /// Follow the request to its final response. A response body that the
+    /// transport streams stays a stream: the caller reads it within its own
+    /// `response_body_bytes` budget. Bodies of followed redirects are dropped.
     pub(crate) async fn execute(
         &self,
         request: Request,
@@ -87,11 +102,6 @@ impl FetchService {
         for redirects_followed in 0..=FETCH_REDIRECT_LIMIT {
             let prepared = self.prepare_request(request, &limits)?;
             let response = self.transport.send(prepared.outgoing).await?;
-            let (parts, body) = response.into_parts();
-            let body = body
-                .into_buffered(limits.response_body_bytes, "response body bytes")
-                .await?;
-            let response = Response::from_parts(parts, body);
             validate_response(&response, &limits)?;
 
             if !is_redirect(&response) {
@@ -171,9 +181,11 @@ fn validate_request_body(request: &Request, limits: &Limits) -> Result<()> {
 fn validate_response(response: &Response, limits: &Limits) -> Result<()> {
     validate_headers(response.headers(), limits.header_bytes)?;
 
+    // A streamed body is counted as it is read; its declared length is
+    // checked now.
     check_limit(
         limits.response_body_bytes,
-        response.body().buffered()?.len(),
+        response.body().declared_len(),
         "response body bytes",
     )?;
 

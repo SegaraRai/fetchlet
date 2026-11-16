@@ -2,15 +2,17 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::task::{Context, Poll};
 
+use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
+use super::body_source::{BodyRead, BodySources};
 use super::clock::Clock;
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
 use crate::host::{Redirect, TransportFuture};
-use crate::wire::{WireRequest, WireResponse};
-use crate::{Error, HostServices, Limits, Response, Result};
+use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
+use crate::{Body, Error, HostServices, Limits, Response, Result};
 
 #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
 use super::crypto;
@@ -25,6 +27,63 @@ struct InvocationState {
     started_fetches: usize,
     limits: Limits,
     pending_fetches: BTreeMap<String, PendingFetch>,
+    bytes: ByteStore,
+    /// Rust bodies that JavaScript reads on demand.
+    bodies: BodySources,
+    /// Outstanding `body.read` tickets and the body each one reads.
+    pending_reads: BTreeMap<String, u64>,
+}
+
+impl InvocationState {
+    fn next_ticket(&mut self) -> Result<String> {
+        self.next_ticket = self
+            .next_ticket
+            .checked_add(1)
+            .ok_or(Error::LimitExceeded("host operation tickets"))?;
+        Ok(format!("{}:{}", self.generation, self.next_ticket))
+    }
+
+    fn transport(&mut self) -> InvocationTransport<'_> {
+        InvocationTransport {
+            bytes: &mut self.bytes,
+            bodies: &mut self.bodies,
+        }
+    }
+}
+
+/// Byte transport within the locked state of an invocation.
+struct InvocationTransport<'a> {
+    bytes: &'a mut ByteStore,
+    bodies: &'a mut BodySources,
+}
+
+impl ByteTransport for InvocationTransport<'_> {
+    fn send(&mut self, bytes: Bytes) -> Result<WireBytes> {
+        self.bytes.put(bytes).map(WireBytes::Handle)
+    }
+
+    fn receive(&mut self, bytes: WireBytes) -> Result<Bytes> {
+        match bytes {
+            WireBytes::Handle(handle) => self.bytes.take(handle),
+            WireBytes::Inline(bytes) => Ok(bytes.into()),
+        }
+    }
+
+    fn stream(
+        &mut self,
+        body: Body,
+        limit: Option<usize>,
+        resource: &'static str,
+    ) -> Result<BodyTransfer> {
+        if body.is_buffered() {
+            return Ok(BodyTransfer::Collect(body));
+        }
+        // A declared length over the budget fails before JavaScript reads it.
+        check_limit(limit, body.declared_len(), resource)?;
+        self.bodies
+            .open(body, limit, resource)
+            .map(BodyTransfer::Stream)
+    }
 }
 
 #[derive(Default)]
@@ -110,6 +169,9 @@ impl HostBridge {
             started_fetches: 0,
             limits,
             pending_fetches: BTreeMap::new(),
+            bytes: ByteStore::default(),
+            bodies: BodySources::default(),
+            pending_reads: BTreeMap::new(),
         });
 
         Ok(InvocationScope {
@@ -120,6 +182,59 @@ impl HostBridge {
 
     pub fn dispatch(&self, operation: String, input: String) -> String {
         encode_reply(self.dispatch_operation(&operation, &input)).to_string()
+    }
+
+    /// Copy bytes from a JavaScript typed array into the current invocation.
+    ///
+    /// Each buffer is one bridge message from the guest, so
+    /// `bridge_message_bytes` applies to it, as to JSON messages.
+    pub fn put_guest_bytes(&self, bytes: &[u8]) -> Result<u64> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        check_limit(
+            invocation.limits.bridge_message_bytes,
+            bytes.len(),
+            "bridge message bytes",
+        )?;
+        invocation.bytes.put_guest(Bytes::copy_from_slice(bytes))
+    }
+
+    /// Take bytes by a handle that a JavaScript number carried.
+    pub fn take_guest_bytes(&self, handle: f64) -> Result<Bytes> {
+        // Handles are positive integers below 2^53, exact in a JS number.
+        if !((1.0..=9_007_199_254_740_991.0).contains(&handle) && handle.fract() == 0.0) {
+            return Err(Error::InvalidRequest("invalid byte handle".into()));
+        }
+        self.take_bytes(handle as u64)
+    }
+
+    /// Take bytes that the other side of the current invocation stored.
+    pub fn take_bytes(&self, handle: u64) -> Result<Bytes> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.bytes.take(handle)
+    }
+
+    /// Let JavaScript in the current invocation read `body` on demand.
+    #[cfg(test)]
+    pub fn open_body(
+        &self,
+        body: Body,
+        limit: Option<usize>,
+        resource: &'static str,
+    ) -> Result<u64> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.bodies.open(body, limit, resource)
+    }
+
+    fn with_transport<T>(
+        &self,
+        operation: impl FnOnce(&mut InvocationTransport<'_>) -> Result<T>,
+    ) -> Result<T> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        operation(&mut invocation.transport())
     }
 
     fn lock_state(&self) -> Result<MutexGuard<'_, BridgeState>> {
@@ -141,6 +256,8 @@ impl HostBridge {
             "fetch.start" => self.start_fetch(input),
             "fetch.poll" => self.poll_fetches(),
             "fetch.cancel" => self.cancel_fetch(input),
+            "body.read" => self.read_body(input),
+            "body.cancel" => self.cancel_body(input),
             #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8"))]
             "random" | "sha256" => crypto::dispatch(operation, input, &limits),
             _ => Err(Error::PermissionDenied),
@@ -185,17 +302,14 @@ impl HostBridge {
         .cloned()
         .ok_or(Error::PermissionDenied)?;
 
-        let request = start.request.into_http(&invocation.limits)?;
+        let request = start
+            .request
+            .into_http(&invocation.limits, &mut invocation.bytes)?;
         let limits = invocation.limits.clone();
         let future =
             Box::pin(async move { service.execute(request, start.redirect, limits).await });
 
-        invocation.next_ticket = invocation
-            .next_ticket
-            .checked_add(1)
-            .ok_or(Error::LimitExceeded("fetch tickets"))?;
-
-        let ticket = format!("{}:{}", invocation.generation, invocation.next_ticket);
+        let ticket = invocation.next_ticket()?;
         invocation
             .pending_fetches
             .insert(ticket.clone(), PendingFetch { future });
@@ -213,13 +327,23 @@ impl HostBridge {
         let mut context = Context::from_waker(&waker);
         let mut completed = Vec::new();
 
-        for (ticket, pending) in &mut invocation.pending_fetches {
+        let InvocationState {
+            pending_fetches,
+            limits,
+            bytes,
+            bodies,
+            pending_reads,
+            ..
+        } = invocation;
+        let mut transport = InvocationTransport { bytes, bodies };
+
+        for (ticket, pending) in pending_fetches.iter_mut() {
             let Poll::Ready(response) = pending.future.as_mut().poll(&mut context) else {
                 continue;
             };
 
             let result =
-                response.and_then(|response| encode_response(response, &invocation.limits));
+                response.and_then(|response| encode_response(response, limits, &mut transport));
 
             completed.push(FetchCompletion {
                 id: ticket.clone(),
@@ -228,8 +352,32 @@ impl HostBridge {
         }
 
         for completion in &completed {
-            invocation.pending_fetches.remove(&completion.id);
+            pending_fetches.remove(&completion.id);
         }
+
+        let InvocationTransport { bytes, bodies } = transport;
+        pending_reads.retain(|ticket, id| {
+            let result = match bodies.get_mut(*id) {
+                Some(source) => match source.poll_read(&mut context) {
+                    Poll::Pending => return true,
+                    Poll::Ready(Ok(BodyRead::Chunk(chunk))) => bytes
+                        .put(chunk)
+                        .map(|handle| json!({ "chunk": handle, "done": false })),
+                    Poll::Ready(Ok(BodyRead::Done)) => Ok(json!({ "chunk": null, "done": true })),
+                    Poll::Ready(Err(error)) => Err(error),
+                },
+                None => Err(Error::InvocationClosed),
+            };
+            // A finished or failed body releases its producer now.
+            if !matches!(result, Ok(ref value) if value["done"] == false) {
+                bodies.remove(*id);
+            }
+            completed.push(FetchCompletion {
+                id: ticket.clone(),
+                result: encode_reply(result),
+            });
+            false
+        });
 
         serde_json::to_value(completed)
             .map_err(|_| Error::Transport("invalid completion encoding".into()))
@@ -246,6 +394,38 @@ impl HostBridge {
             return Err(Error::InvocationClosed);
         }
 
+        Ok(Value::Null)
+    }
+
+    pub(super) fn read_body(&self, input: &str) -> Result<Value> {
+        let id: u64 = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid body id".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        if !invocation.bodies.contains(id) {
+            return Err(Error::InvalidRequest("unknown body".into()));
+        }
+        // One read at a time, as a ReadableStream pulls.
+        if invocation
+            .pending_reads
+            .values()
+            .any(|reading| *reading == id)
+        {
+            return Err(Error::InvalidRequest("body is already being read".into()));
+        }
+        let ticket = invocation.next_ticket()?;
+        invocation.pending_reads.insert(ticket.clone(), id);
+        Ok(Value::String(ticket))
+    }
+
+    pub(super) fn cancel_body(&self, input: &str) -> Result<Value> {
+        let id: u64 = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid body id".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        // Dropping the body cancels its producer. Cancelling twice is harmless.
+        invocation.bodies.remove(id);
+        invocation.pending_reads.retain(|_, reading| *reading != id);
         Ok(Value::Null)
     }
 }
@@ -287,8 +467,12 @@ impl Drop for InvocationScope {
     }
 }
 
-fn encode_response(response: Response, limits: &Limits) -> Result<Value> {
-    let response = WireResponse::from_http(response, limits)?;
+fn encode_response(
+    response: Response,
+    limits: &Limits,
+    bytes: &mut impl ByteTransport,
+) -> Result<Value> {
+    let response = WireResponse::from_http(response, limits, bytes)?;
     serde_json::to_value(response).map_err(|_| Error::Transport("invalid response encoding".into()))
 }
 
@@ -305,5 +489,25 @@ fn encode_reply(result: Result<Value>) -> Value {
                 "message": error.guest_message(),
             },
         }),
+    }
+}
+
+/// Byte transport through the current invocation of a bridge.
+impl ByteTransport for HostBridge {
+    fn send(&mut self, bytes: Bytes) -> Result<WireBytes> {
+        self.with_transport(|transport| transport.send(bytes))
+    }
+
+    fn receive(&mut self, bytes: WireBytes) -> Result<Bytes> {
+        self.with_transport(|transport| transport.receive(bytes))
+    }
+
+    fn stream(
+        &mut self,
+        body: Body,
+        limit: Option<usize>,
+        resource: &'static str,
+    ) -> Result<BodyTransfer> {
+        self.with_transport(|transport| transport.stream(body, limit, resource))
     }
 }

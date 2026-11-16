@@ -78,6 +78,23 @@ for (const backend of ["quickjs", "boa", "v8"]) {
       assert.equal(delayed[0].value.data.path, "/delayed");
     });
 
+    const streamed = runSession(backend, false, [
+      {
+        fetch: {
+          method: "POST",
+          url: "https://app.fetchlet.test/echo",
+          chunks: ['{"name":', '"こんにちは",', '"items":[1,2]}'],
+        },
+      },
+      command("add", 20, 22),
+    ]);
+    check(backend, "streamed-request-body-through-web-runtime", () => {
+      assert.equal(streamed[0].ok, true, streamed[0].error);
+      assert.equal(streamed[0].value.status, 201);
+      assert.deepEqual(JSON.parse(streamed[0].value.body), { name: "こんにちは", items: [1, 2] });
+      assert.deepEqual(streamed[1], { ok: true, value: 42 });
+    });
+
     const replies = runSession(backend, true, [
       command("hostEnvironment"),
       command("fetchThroughHost", "https://api.fetchlet.test/data", [0, 128, 255]),

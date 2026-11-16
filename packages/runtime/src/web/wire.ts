@@ -4,14 +4,18 @@ export interface WireRequest {
   url: string;
   method: string;
   headers: Array<[string, string]>;
-  body: number[] | null;
+  /**
+   * Bytes as a Uint8Array from the fetchlet App host, or a number array from
+   * `FetchApp`. The App host passes a body that is still arriving as a stream.
+   */
+  body: ReadableStream<Uint8Array> | Uint8Array | number[] | null;
 }
 
 export interface WireResponse {
   status: number;
   headers: Array<[string, string]>;
   /** The complete body, or the bytes already available when `stream` is set. */
-  body: number[];
+  body: Uint8Array | number[];
   /** A body left open for the Rust host to pull. */
   stream?: number;
 }
@@ -24,7 +28,7 @@ interface ResponseBodyRegistry {
     id: number,
     waitForData: boolean,
   ): Promise<{
-    chunk: number[];
+    chunk: Uint8Array;
     done: boolean;
   }>;
 }
@@ -35,10 +39,24 @@ function responseBodyRegistry(): ResponseBodyRegistry | undefined {
 }
 
 export function wireRequest(input: WireRequest): Request {
+  const body = input.body;
+  if (body instanceof runtime.ReadableStream) {
+    return new runtime.Request(input.url, {
+      method: input.method,
+      headers: input.headers,
+      body,
+      duplex: "half",
+    } as RequestInit);
+  }
   return new runtime.Request(input.url, {
     method: input.method,
     headers: input.headers,
-    body: input.body === null || input.body === undefined ? undefined : new Uint8Array(input.body),
+    body:
+      body === null || body === undefined
+        ? undefined
+        : body instanceof Uint8Array
+          ? body
+          : new Uint8Array(body as number[]),
   });
 }
 
@@ -72,6 +90,9 @@ export async function wireResponse(response: Response): Promise<WireResponse> {
   return {
     status: response.status,
     headers,
-    body: Array.from(new Uint8Array(await response.arrayBuffer())),
+    // The App host takes typed arrays through its byte store; other hosts take JSON arrays.
+    body: registry
+      ? new Uint8Array(await response.arrayBuffer())
+      : Array.from(new Uint8Array(await response.arrayBuffer())),
   };
 }

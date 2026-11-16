@@ -11,7 +11,7 @@ let rendering = FetchletService::new(app.clone(), "https://example.test")?
 let router = Router::new().fallback_service(rendering);
 ```
 
-公開originは設定から指定します。入力のpath / query / method / headersを保持し、本文はAppのrequest_body_bytes予算で読み取ります。binaryと複数のSet-Cookieを保持します。
+公開originは設定から指定します。入力のpath / query / method / headersを保持し、本文は既定でAppのrequest_body_bytes予算の範囲で回収してからhandlerへ渡します。`stream_request_bodies()` を指定すると本文をhandlerのReadableStreamとして渡し、handlerは受信完了を待たずに開始します。この場合も宣言されたContent-Lengthの超過は実行前に413とし、宣言のない超過と受信本文の失敗はhandlerの本文streamのエラー（`LIMIT_EXCEEDED` / `TRANSPORT`）となって、応答はhandlerが決めます。binaryと複数のSet-Cookieを保持します。
 
 default contextはConnectInfo<SocketAddr>から得たclientAddressです。axumのinto_make_service_with_connect_infoを使用すると接続情報が届きます。context callbackでHTTP request partsから任意のSerde対応値を作ることもできます。
 

@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::{Result, anyhow};
 use deno_core::{JsRuntime, OpState, RuntimeOptions, v8};
+use deno_error::JsErrorBox;
 use serde_json::Value;
 
 use crate::Instance;
@@ -22,7 +23,35 @@ fn op_fetchlet_host(state: &mut OpState, #[string] op: String, #[string] input: 
     state.borrow::<HostBridge>().dispatch(op, input)
 }
 
-deno_core::extension!(fetchlet_host, ops = [op_fetchlet_host]);
+/// A Uint8Array with bytes that Rust stored in the current invocation.
+#[deno_core::op2]
+#[buffer]
+fn op_fetchlet_take_bytes(state: &mut OpState, handle: f64) -> Result<Vec<u8>, JsErrorBox> {
+    state
+        .borrow::<HostBridge>()
+        .take_guest_bytes(handle)
+        .map(|bytes| bytes.to_vec())
+        .map_err(|error| JsErrorBox::type_error(error.guest_message()))
+}
+
+/// Copy a Uint8Array into the current invocation's store; returns its handle.
+#[deno_core::op2(fast)]
+fn op_fetchlet_put_bytes(state: &mut OpState, #[buffer] bytes: &[u8]) -> Result<f64, JsErrorBox> {
+    state
+        .borrow::<HostBridge>()
+        .put_guest_bytes(bytes)
+        .map(|handle| handle as f64)
+        .map_err(|error| JsErrorBox::type_error(error.guest_message()))
+}
+
+deno_core::extension!(
+    fetchlet_host,
+    ops = [
+        op_fetchlet_host,
+        op_fetchlet_take_bytes,
+        op_fetchlet_put_bytes
+    ]
+);
 
 impl V8Runtime {
     pub(super) fn isolate_handle(&mut self) -> v8::IsolateHandle {
@@ -43,7 +72,9 @@ impl V8Runtime {
         runtime
             .execute_script(
                 "fetchlet:host",
-                "globalThis.__fetchletHost=Deno.core.ops.op_fetchlet_host;",
+                "globalThis.__fetchletHost=Deno.core.ops.op_fetchlet_host;\
+                 globalThis.__fetchletTakeBytes=Deno.core.ops.op_fetchlet_take_bytes;\
+                 globalThis.__fetchletPutBytes=Deno.core.ops.op_fetchlet_put_bytes;",
             )
             .map_err(|error| anyhow!("{error}"))?;
         runtime

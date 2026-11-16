@@ -69,7 +69,21 @@ JS Response body → registry pull（需要駆動）→ bounded queue → Rust R
 - Rust Bodyをpullの間にdropするとJS streamを協調的にcancelし、Instanceを再利用します。pull実行中のdropは評価を放棄し、Instanceを退役させて次の呼び出しで再構築します。
 - `App::fetch` は同じ経路で本文を全量回収します。
 
-JS側は使用可能なchunkを64 KiBまでまとめて1回のbridge messageにします。これはbackpressureの粒度で、本文の予算は `response_body_bytes` が持ちます。chunkは現在JSON数値配列で転送します。Request本文はRust側で `request_body_bytes` の範囲で回収してからJSへ渡します。Request本文のJS ReadableStreamへのstreamingと、外向きhost I/Oへのcancel伝播は次の段階です。
+JS側は使用可能なchunkを64 KiBまでまとめて1回のbridge messageにします。これはbackpressureの粒度で、本文の予算は `response_body_bytes` が持ちます。
+
+本文のバイト列はInvocationごとのbyte storeを介してtyped arrayのまま受け渡し、JSON messageにはhandle番号だけを載せます。handleは一度だけ取り出せ、storeはInvocationとともに破棄されます。JSから渡すbufferは個々に `bridge_message_bytes` を適用し、未取得のものは常に1つまでです（次のbufferが前のものを破棄します）。Invocationを持たない `FetchApp` は数値配列で受け渡します。
+
+Rustの本文をJSへ渡す経路は次のとおりです。
+
+```text
+Rust Body（入力Request・上流Response）→ body source（Invocation所有）→ body.read（需要駆動）→ JS ReadableStream
+```
+
+- bufferedでない入力Request本文（`Body::from_http_body` で包んだ本文など）は、handlerの `request.body` にReadableStreamとして届き、読み取りに応じて1 chunkずつ取り出します。GET / HEADの本文は空であることを確かめるため回収します。
+- 宣言長（size hint、`Content-Length` 等）が `request_body_bytes` を超える本文は実行前に `LimitExceeded` とします。宣言のない超過は読み取りの累積で検出し、JS streamのエラー（code `LIMIT_EXCEEDED`）になります。本文自体の失敗はcode `TRANSPORT` で、詳細はRust側に留まります。
+- host fetchの上流Response本文も同じbody sourceとしてJSへ渡し、`response_body_bytes` を宣言長と累積で適用します。追ったredirectの本文は読まずに破棄します。Rustから直接使う `FetchService::fetch` は本文を予算内で回収して返します。
+- JS streamのcancel、fetchのsignalのabort、本文のエラーまたは完了、Invocationの終了でbody sourceをdropし、生産者（HTTP接続など）へcancelを伝えます。trailersは本文に含めません。
+- 外向きRequest本文はredirectで再送するため、JS内で全量を読み取ってから渡します。
 
 background処理はwaitUntil相当の明示的登録を検討します。呼び出しごとの期限と件数予算を設け、本文とbackgroundの両方が終了した時点でInstanceを再利用します。現profileのtimerは呼び出し終了時に回収します。
 
@@ -86,7 +100,7 @@ AOTはnative artifactのABI、compiler / runtime版、初期化・解放、値�
 ## 次の実装
 
 1. Request / Response、Blob / multipart等の適合性を既存実装の評価とWPT・回帰試験で整え、backend能力と構成要求の照合を広げる。
-2. Request本文のstreaming、外向きhost fetch本文のstreamingとcancel伝播、binary chunk転送へ広げる（Response本文のlease・backpressure・cancelは実装済み）。
+2. 外向きRequest本文のstreaming（redirectの再送条件を含む）と、明示的なbackground処理を設計する（Request / Response本文・上流本文のstreaming、binary転送、cancel伝播は実装済み）。
 3. backendごとの強制力とprocess境界を整備し、poolの再利用条件を検証する。
 4. framework adapterとRustの内部fetchを接続し、origin登録、信頼できるContext、任意のrouter統合と再入の契約を検証する。
 5. AOTのRustリンクとABIを継続検証し、利用できる能力からAppへ接続する。
@@ -99,4 +113,4 @@ AOTはnative artifactのABI、compiler / runtime版、初期化・解放、値�
 
 Rust本体は `crates/fetchlet/`、共通JS支援とframework adapterは `packages/`、実アプリとE2Eは `examples/` に置きます。最初のSvelteKit + axum例から、frameworkとRust HTTPサーバを独立して追加する構成を育てます。[追加方針](../examples/README.md)を参照してください。
 
-共有実行はAppHandle、axumのHTTP接続はfetchlet-axumへ実装しました。SvelteKitとAstroは@fetchlet/buildのartifact形式を共有し、同じRust integrationで動作します。Response本文はこの境界でstreamingします。次は追加のframeworkと能力を、この境界の上に拡張します。
+共有実行はAppHandle、axumのHTTP接続はfetchlet-axumへ実装しました。SvelteKitとAstroは@fetchlet/buildのartifact形式を共有し、同じRust integrationで動作します。Response本文はこの境界でstreamingし、`FetchletService::stream_request_bodies` でRequest本文もstreamingできます。次は追加のframeworkと能力を、この境界の上に拡張します。

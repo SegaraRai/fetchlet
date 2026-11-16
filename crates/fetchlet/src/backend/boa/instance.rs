@@ -1,6 +1,10 @@
 use anyhow::{Result, anyhow};
 use boa_engine::builtins::promise::PromiseState;
-use boa_engine::{Context, JsArgs, JsString, NativeFunction, Source, js_string};
+use boa_engine::object::builtins::{JsArrayBuffer, JsUint8Array};
+use boa_engine::{
+    Context, JsArgs, JsError, JsNativeError, JsResult, JsString, JsValue, NativeFunction, Source,
+    js_string,
+};
 use serde_json::Value;
 
 use super::array_buffer;
@@ -42,6 +46,20 @@ impl Boa {
                     let host = ctx.get_data::<BoaHost>().expect("host installed");
                     Ok(JsString::from(host.0.dispatch(operation, input)).into())
                 }),
+            )
+            .map_err(|error| anyhow!("{error}"))?;
+        context
+            .register_global_callable(
+                js_string!("__fetchletTakeBytes"),
+                1,
+                NativeFunction::from_fn_ptr(take_bytes),
+            )
+            .map_err(|error| anyhow!("{error}"))?;
+        context
+            .register_global_callable(
+                js_string!("__fetchletPutBytes"),
+                1,
+                NativeFunction::from_fn_ptr(put_bytes),
             )
             .map_err(|error| anyhow!("{error}"))?;
         context
@@ -128,4 +146,53 @@ impl Boa {
             }
         }
     }
+}
+
+fn host(context: &Context) -> HostBridge {
+    context
+        .get_data::<BoaHost>()
+        .expect("host installed")
+        .0
+        .clone()
+}
+
+fn type_error(message: &str) -> JsError {
+    JsNativeError::typ().with_message(message.to_owned()).into()
+}
+
+/// `__fetchletTakeBytes(handle)`: a Uint8Array with bytes Rust stored.
+fn take_bytes(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+    let handle = args.get_or_undefined(0).to_number(context)?;
+    let bytes = host(context)
+        .take_guest_bytes(handle)
+        .map_err(|error| type_error(error.guest_message()))?;
+    Ok(JsUint8Array::from_iter(bytes.iter().copied(), context)?.into())
+}
+
+/// `__fetchletPutBytes(view)`: copy a Uint8Array into the store; returns its handle.
+fn put_bytes(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+    let view = args
+        .get_or_undefined(0)
+        .as_object()
+        .and_then(|object| JsUint8Array::from_object(object.clone()).ok())
+        .ok_or_else(|| type_error("expected a Uint8Array"))?;
+    let offset = view.byte_offset(context)?;
+    let length = view.length(context)?;
+    let buffer = view
+        .buffer(context)?
+        .as_object()
+        .and_then(|object| JsArrayBuffer::from_object(object.clone()).ok())
+        .ok_or_else(|| type_error("expected an ArrayBuffer-backed Uint8Array"))?;
+    let host = host(context);
+    let data = buffer
+        .data()
+        .ok_or_else(|| type_error("detached byte array"))?;
+    let bytes = offset
+        .checked_add(length)
+        .and_then(|end| data.get(offset..end))
+        .ok_or_else(|| type_error("byte array is out of bounds"))?;
+    let handle = host
+        .put_guest_bytes(bytes)
+        .map_err(|error| type_error(error.guest_message()))?;
+    Ok(JsValue::from(handle as f64))
 }

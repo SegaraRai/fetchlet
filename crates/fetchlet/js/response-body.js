@@ -7,7 +7,11 @@ async function invokeResponseBody(operation, bodyId) {
     if (operation === "pull") {
       const result = await bodies.pull(bodyId, true);
       invocationEnds = result.done;
-      return JSON.stringify(result);
+      const chunk = globalThis.__fetchletPutBytes(result.chunk);
+      return JSON.stringify({
+        chunk,
+        done: result.done,
+      });
     }
     if (operation === "cancel") {
       await bodies.cancel(bodyId);

@@ -6,6 +6,7 @@ use serde::Deserialize;
 use super::App;
 use crate::bridge::InvocationScope;
 use crate::execution::{ResponseBodyOperation, response_body_operation};
+use crate::wire::{ByteTransport, WireBytes};
 use crate::{Error, Result};
 
 /// A JavaScript response body left open by a Fetch invocation.
@@ -49,7 +50,7 @@ pub(crate) struct PulledChunk {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct WirePull {
-    chunk: Vec<u8>,
+    chunk: WireBytes,
     done: bool,
 }
 
@@ -80,7 +81,15 @@ impl App {
                 )));
             }
         };
-        open.received = open.received.saturating_add(pulled.chunk.len());
+        let chunk = match self.host.receive(pulled.chunk) {
+            Ok(chunk) => chunk,
+            Err(error) => {
+                self.reusable = false;
+                self.close(open.scope);
+                return Err(error);
+            }
+        };
+        open.received = open.received.saturating_add(chunk.len());
         if let Err(error) = self.check_response_bytes(open.received) {
             if pulled.done {
                 self.close(open.scope);
@@ -89,7 +98,6 @@ impl App {
             }
             return Err(error);
         }
-        let chunk = Bytes::from(pulled.chunk);
         if pulled.done {
             self.close(open.scope);
             return Ok(PulledChunk { chunk, next: None });

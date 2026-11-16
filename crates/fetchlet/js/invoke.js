@@ -16,7 +16,32 @@ async function invokeExport(exportName, argumentsList, streamResponseBody) {
       throw new TypeError("Unknown function");
     }
 
-    const result = await exportedFunction(...argumentsList);
+    if (streamResponseBody === true) {
+      // A Fetch request body arrives as a byte-store handle, or as a Rust
+      // body source that the handler reads as a ReadableStream.
+      const request = argumentsList[0];
+      if (typeof request?.body === "number") {
+        request.body = globalThis.__fetchletTakeBytes(request.body);
+      } else if (typeof request?.stream === "number") {
+        request.body = globalThis.__fetchletHostBodies.stream(request.stream);
+        delete request.stream;
+      }
+    }
+
+    let result = await exportedFunction(...argumentsList);
+    if (streamResponseBody === true) {
+      // Hand a typed-array response body to Rust through the byte store.
+      const body = result?.body;
+      if (ArrayBuffer.isView(body) || body instanceof ArrayBuffer) {
+        const bytes = ArrayBuffer.isView(body)
+          ? new Uint8Array(body.buffer, body.byteOffset, body.byteLength)
+          : new Uint8Array(body);
+        result = {
+          ...result,
+          body: globalThis.__fetchletPutBytes(bytes),
+        };
+      }
+    }
     const serializedResult = JSON.stringify(result);
 
     if (serializedResult === undefined) {

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -22,9 +23,10 @@ pub(crate) type BodySender = mpsc::Sender<BodyChunk>;
 
 /// An HTTP body owned by fetchlet.
 ///
-/// A body is either buffered or streamed from the worker that owns the
-/// JavaScript invocation. Streaming bodies hold that invocation's lease until
-/// they finish or are dropped; dropping one cancels the JavaScript stream.
+/// A body is buffered, streamed from the worker that owns a JavaScript
+/// invocation, or streamed from another `http_body::Body`. Streaming bodies
+/// from a worker hold that invocation's lease until they finish or are
+/// dropped; dropping one cancels the JavaScript stream.
 #[derive(Debug, Default)]
 pub struct Body {
     inner: Inner,
@@ -42,6 +44,52 @@ enum Inner {
         receiver: mpsc::Receiver<BodyChunk>,
         finished: bool,
     },
+    External(ExternalBody),
+}
+
+/// A caller-supplied body, read on demand by the invocation that receives it.
+pub(crate) struct ExternalBody(Pin<Box<dyn http_body::Body<Data = Bytes, Error = Error> + Send>>);
+
+impl fmt::Debug for ExternalBody {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("ExternalBody")
+    }
+}
+
+/// Adapts the data and error types of a caller-supplied body.
+struct MapBody<B>(B);
+
+impl<B> http_body::Body for MapBody<B>
+where
+    B: http_body::Body + Unpin,
+    B::Data: Into<Bytes>,
+    B::Error: fmt::Display,
+{
+    type Data = Bytes;
+
+    type Error = Error;
+
+    fn poll_frame(
+        self: Pin<&mut Self>,
+        context: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Bytes>>>> {
+        let inner = Pin::new(&mut self.get_mut().0);
+        inner.poll_frame(context).map(|frame| {
+            frame.map(|frame| {
+                frame
+                    .map(|frame| frame.map_data(Into::into))
+                    .map_err(|error| Error::Transport(error.to_string()))
+            })
+        })
+    }
+
+    fn is_end_stream(&self) -> bool {
+        self.0.is_end_stream()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.0.size_hint()
+    }
 }
 
 impl Default for Inner {
@@ -70,6 +118,40 @@ impl Body {
             },
         };
         (sender, body)
+    }
+
+    /// Stream another HTTP body, such as an incoming server request body.
+    ///
+    /// The receiving invocation reads it on demand and applies its body budget
+    /// to the bytes it reads. Trailers are not forwarded. Errors from `body`
+    /// reach JavaScript as a general transport error; their detail stays in Rust.
+    pub fn from_http_body<B>(body: B) -> Self
+    where
+        B: http_body::Body + Send + 'static,
+        B::Data: Into<Bytes>,
+        B::Error: fmt::Display,
+    {
+        if body.is_end_stream() {
+            return Self::empty();
+        }
+        Self {
+            inner: Inner::External(ExternalBody(Box::pin(MapBody(Box::pin(body))))),
+        }
+    }
+
+    /// The length the body declares at least: exact when buffered, otherwise
+    /// its size hint, such as a `Content-Length`.
+    pub(crate) fn declared_len(&self) -> usize {
+        usize::try_from(http_body::Body::size_hint(self).lower()).unwrap_or(usize::MAX)
+    }
+
+    /// Whether every byte of the body is already in memory.
+    #[cfg_attr(
+        not(any(feature = "quickjs", feature = "boa", feature = "v8", test)),
+        allow(dead_code)
+    )]
+    pub(crate) fn is_buffered(&self) -> bool {
+        matches!(self.inner, Inner::Buffered(_))
     }
 
     /// Collect the body, rejecting a result larger than `limit` bytes.
@@ -114,6 +196,23 @@ impl Body {
                     }
                 }
             }
+            Inner::External(ExternalBody(mut body)) => {
+                let mut data = BytesMut::new();
+                while let Some(frame) =
+                    std::future::poll_fn(|context| body.as_mut().poll_frame(context)).await
+                {
+                    let Ok(chunk) = frame?.into_data() else {
+                        continue;
+                    };
+                    let size = data
+                        .len()
+                        .checked_add(chunk.len())
+                        .ok_or(Error::LimitExceeded(resource))?;
+                    check_limit(limit, size, resource)?;
+                    data.extend_from_slice(&chunk);
+                }
+                Ok(data.freeze())
+            }
         }
     }
 
@@ -128,7 +227,23 @@ impl Body {
                 check_limit(limit, self.buffered()?.len(), resource)?;
                 Ok(self)
             }
-            Inner::Streaming { .. } => Ok(self.collect_within(limit, resource).await?.into()),
+            Inner::Streaming { .. } | Inner::External(_) => {
+                Ok(self.collect_within(limit, resource).await?.into())
+            }
+        }
+    }
+
+    /// The bytes of a buffered body, without copying.
+    #[cfg_attr(
+        not(any(feature = "quickjs", feature = "boa", feature = "v8", test)),
+        allow(dead_code)
+    )]
+    pub(crate) fn into_bytes(self) -> Result<Bytes> {
+        match self.inner {
+            Inner::Buffered(data) => Ok(data.unwrap_or_default()),
+            Inner::Streaming { .. } | Inner::External(_) => Err(Error::InvalidRequest(
+                "a streaming body must be collected before this operation".into(),
+            )),
         }
     }
 
@@ -136,7 +251,7 @@ impl Body {
     pub(crate) fn buffered(&self) -> Result<&[u8]> {
         match &self.inner {
             Inner::Buffered(data) => Ok(data.as_deref().unwrap_or_default()),
-            Inner::Streaming { .. } => Err(Error::InvalidRequest(
+            Inner::Streaming { .. } | Inner::External(_) => Err(Error::InvalidRequest(
                 "a streaming body must be collected before this operation".into(),
             )),
         }
@@ -211,6 +326,13 @@ impl http_body::Body for Body {
                     }
                 }
             }
+            Inner::External(ExternalBody(body)) => loop {
+                // Trailers are not part of the Fetch body.
+                match body.as_mut().poll_frame(context) {
+                    Poll::Ready(Some(Ok(frame))) if !frame.is_data() => continue,
+                    other => return other,
+                }
+            },
         }
     }
 
@@ -220,6 +342,7 @@ impl http_body::Body for Body {
             Inner::Streaming {
                 prefix, finished, ..
             } => prefix.is_none() && *finished,
+            Inner::External(ExternalBody(body)) => body.is_end_stream(),
         }
     }
 
@@ -229,6 +352,7 @@ impl http_body::Body for Body {
                 SizeHint::with_exact(data.as_ref().map_or(0, |data| data.len() as u64))
             }
             Inner::Streaming { .. } => SizeHint::default(),
+            Inner::External(ExternalBody(body)) => body.size_hint(),
         }
     }
 }

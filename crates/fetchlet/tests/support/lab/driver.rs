@@ -1,17 +1,62 @@
 use std::io::{self, BufRead, Write};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 use anyhow::{Result, anyhow};
+use bytes::Bytes;
+use http_body::Frame;
 use serde_json::{Value, json};
 
-use fetchlet::{App, Backend, Module};
+use fetchlet::{App, Backend, Body, Module, http};
 
 #[path = "mock_transport.rs"]
 mod mock_transport;
+
+/// A request body delivered in the given chunks, without a declared length.
+struct Chunks(Vec<Bytes>);
+
+impl http_body::Body for Chunks {
+    type Data = Bytes;
+    type Error = std::convert::Infallible;
+
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        _context: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Bytes>, Self::Error>>> {
+        let next = (!self.0.is_empty()).then(|| Ok(Frame::data(self.0.remove(0))));
+        Poll::Ready(next)
+    }
+}
+
+/// `{"fetch": {"method", "url", "chunks": [text]}}`: run the Fetch handler with
+/// a streamed request body and return the status and body text.
+async fn fetch(app: &mut App, input: &Value) -> Result<Value> {
+    let chunks = input["chunks"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|chunk| Bytes::from(chunk.as_str().unwrap_or_default().to_owned()))
+        .collect();
+    let request = http::Request::builder()
+        .method(input["method"].as_str().unwrap_or("GET"))
+        .uri(input["url"].as_str().unwrap_or_default())
+        .body(Body::from_http_body(Chunks(chunks)))?;
+    let response = app.fetch(request).await?;
+    let status = response.status().as_u16();
+    let body = response.into_body().collect(1 << 20).await?;
+    Ok(json!({ "status": status, "body": String::from_utf8_lossy(&body) }))
+}
 
 async fn serve(mut app: App) -> Result<()> {
     for line in io::stdin().lock().lines() {
         let line = line?;
         let reply = match serde_json::from_str::<Value>(&line) {
+            Ok(input) if input.get("fetch").is_some() => {
+                match fetch(&mut app, &input["fetch"]).await {
+                    Ok(value) => json!({"ok": true, "value": value}),
+                    Err(error) => json!({"ok": false, "error": format!("{error:#}")}),
+                }
+            }
             Ok(input) => {
                 let export = input["export"].as_str().unwrap_or("");
                 let args = input["args"].as_array().cloned().unwrap_or_default();

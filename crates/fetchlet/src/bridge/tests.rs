@@ -196,10 +196,9 @@ fn completion_is_delivered_once_and_releases_the_scope() {
 
     assert_eq!(completions[0]["id"], ticket);
     assert_eq!(completions[0]["result"]["ok"], true);
-    assert_eq!(
-        completions[0]["result"]["value"]["body"],
-        json!([104, 101, 108, 108, 111])
-    );
+    // The body crosses as a byte-store handle, not a JSON array.
+    let handle = completions[0]["result"]["value"]["body"].as_f64().unwrap();
+    assert_eq!(&bridge.take_guest_bytes(handle).unwrap()[..], b"hello");
     assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
     assert!(!scope.has_pending());
 }
@@ -272,4 +271,160 @@ fn performance_clock_has_a_stable_origin_and_monotonic_elapsed_time() {
     assert!(initial.is_finite() && initial >= 0.0);
     assert!(following.is_finite() && following >= initial);
     assert_eq!(second["timeOrigin"], first["timeOrigin"]);
+}
+
+#[test]
+fn guest_byte_handles_are_scoped_to_their_invocation() {
+    let bridge = HostBridge::default();
+    let scope = bridge.begin(Limits::default()).unwrap();
+    let handle = bridge.put_guest_bytes(b"abc").unwrap();
+    assert_eq!(&bridge.take_guest_bytes(handle as f64).unwrap()[..], b"abc");
+    let stale = bridge.put_guest_bytes(b"left behind").unwrap();
+    // A handle is taken once.
+    assert!(matches!(
+        bridge.take_guest_bytes(handle as f64),
+        Err(Error::InvalidRequest(_))
+    ));
+    // Numbers that cannot be handles are rejected before lookup.
+    for invalid in [
+        0.0,
+        -1.0,
+        1.5,
+        f64::NAN,
+        f64::INFINITY,
+        9_007_199_254_740_992.0,
+    ] {
+        assert!(matches!(
+            bridge.take_guest_bytes(invalid),
+            Err(Error::InvalidRequest(_))
+        ));
+    }
+    drop(scope);
+
+    // Bytes left in an ended invocation are unreachable from the next one.
+    assert!(matches!(
+        bridge.take_guest_bytes(stale as f64),
+        Err(Error::InvocationClosed)
+    ));
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    assert!(matches!(
+        bridge.take_guest_bytes(stale as f64),
+        Err(Error::InvalidRequest(_))
+    ));
+}
+
+#[test]
+fn guest_byte_buffers_count_as_bridge_messages() {
+    let bridge = HostBridge::default();
+    let limits = Limits {
+        bridge_message_bytes: Some(4),
+        ..Limits::default()
+    };
+    let _scope = bridge.begin(limits).unwrap();
+
+    assert!(bridge.put_guest_bytes(b"four").is_ok());
+    assert!(matches!(
+        bridge.put_guest_bytes(b"five!"),
+        Err(Error::LimitExceeded(_))
+    ));
+}
+
+fn read_completion(bridge: &HostBridge, ticket: &Value) -> Option<Value> {
+    let completions = bridge.poll_fetches().unwrap();
+    let completion = completions.as_array().unwrap().first()?.clone();
+    assert_eq!(&completion["id"], ticket);
+    Some(completion["result"].clone())
+}
+
+#[test]
+fn body_sources_are_read_one_chunk_at_a_time_and_released() {
+    let bridge = HostBridge::default();
+    let scope = bridge.begin(Limits::default()).unwrap();
+    let (sender, body) = Body::channel(bytes::Bytes::new(), 1);
+    let id = bridge.open_body(body, None, "request body bytes").unwrap();
+
+    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    // A second read of the same body waits for the first.
+    assert!(matches!(
+        bridge.read_body(&id.to_string()),
+        Err(Error::InvalidRequest(_))
+    ));
+    assert_eq!(read_completion(&bridge, &ticket), None);
+
+    sender.try_send(Ok(("abc".into(), false))).unwrap();
+    let result = read_completion(&bridge, &ticket).unwrap();
+    assert_eq!(result["value"]["done"], false);
+    let handle = result["value"]["chunk"].as_f64().unwrap();
+    assert_eq!(&bridge.take_guest_bytes(handle).unwrap()[..], b"abc");
+
+    sender.try_send(Ok(("".into(), true))).unwrap();
+    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    let result = read_completion(&bridge, &ticket).unwrap();
+    assert_eq!(result["value"], json!({ "chunk": null, "done": true }));
+    // A finished body is gone.
+    assert!(matches!(
+        bridge.read_body(&id.to_string()),
+        Err(Error::InvalidRequest(_))
+    ));
+    drop(scope);
+
+    // Ids name bodies of the current invocation only.
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    assert!(matches!(
+        bridge.read_body(&id.to_string()),
+        Err(Error::InvalidRequest(_))
+    ));
+}
+
+#[test]
+fn cancelling_a_body_source_drops_its_producer() {
+    let bridge = HostBridge::default();
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    let (sender, body) = Body::channel(bytes::Bytes::new(), 1);
+    let id = bridge.open_body(body, None, "request body bytes").unwrap();
+    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    assert_eq!(read_completion(&bridge, &ticket), None);
+
+    bridge.cancel_body(&id.to_string()).unwrap();
+    assert!(sender.is_closed());
+    // The cancelled read never completes, and cancelling again is harmless.
+    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
+    bridge.cancel_body(&id.to_string()).unwrap();
+}
+
+#[test]
+fn body_sources_apply_their_budget_to_bytes_read() {
+    let bridge = HostBridge::default();
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    let (sender, body) = Body::channel(bytes::Bytes::new(), 2);
+    let id = bridge
+        .open_body(body, Some(4), "request body bytes")
+        .unwrap();
+    sender.try_send(Ok(("abc".into(), false))).unwrap();
+    sender.try_send(Ok(("de".into(), false))).unwrap();
+
+    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    assert_eq!(read_completion(&bridge, &ticket).unwrap()["ok"], true);
+    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    let result = read_completion(&bridge, &ticket).unwrap();
+    assert_eq!(result["error"]["code"], "LIMIT_EXCEEDED");
+    // The failed body released its producer.
+    assert!(sender.is_closed());
+}
+
+#[test]
+fn an_untaken_guest_buffer_is_dropped_by_the_next_one() {
+    let bridge = HostBridge::default();
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    let first = bridge.put_guest_bytes(b"first").unwrap();
+    let second = bridge.put_guest_bytes(b"second").unwrap();
+
+    assert!(matches!(
+        bridge.take_guest_bytes(first as f64),
+        Err(Error::InvalidRequest(_))
+    ));
+    assert_eq!(
+        &bridge.take_guest_bytes(second as f64).unwrap()[..],
+        b"second"
+    );
 }

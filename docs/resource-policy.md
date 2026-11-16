@@ -9,12 +9,12 @@
 | 項目                 | 単位・適用箇所                                                                                     |
 | -------------------- | -------------------------------------------------------------------------------------------------- |
 | timeout              | 一回のApp呼び出し（streaming本文の完了まで）、またはRustから直接使うFetchServiceの協調的な経過時間 |
-| request_body_bytes   | 個々の入力Request・外向きRequest本文のバイト数                                                     |
+| request_body_bytes   | 個々の入力Request・外向きRequest本文のバイト数。streaming本文は宣言長と読み取りの累積で検査        |
 | request_body_chunks  | JSから外向きRequest本文を読むときのchunk数。空chunkも数える                                        |
-| response_body_bytes  | 個々の出力Response・上流Response本文のバイト数。streaming本文は累積で検査                          |
+| response_body_bytes  | 個々の出力Response・上流Response本文のバイト数。streaming本文は宣言長と累積で検査                  |
 | header_bytes         | 個々のheader集合の名前・値の合計バイト数                                                           |
 | url_bytes            | 入力Requestおよび書き換え後の送信先URLのバイト数                                                   |
-| bridge_message_bytes | native callbackへ渡す個々のJSON入力messageのバイト数                                               |
+| bridge_message_bytes | native callbackへ渡す個々のJSON入力message、およびJSから渡す個々の本文bufferのバイト数             |
 | digest_bytes         | SHA-256へ渡す入力バイト数                                                                          |
 | subrequests          | 一回のInvocationで開始を試みるhost fetch数。失敗・中断でも消費を保持                               |
 | redirects            | 一回のfetchで追うredirect数。Fetchの仕様上限の範囲で適用                                           |
@@ -22,6 +22,8 @@
 `Some(0)` はゼロの予算です。timeoutでは呼び出し開始前の期限切れになります。Bodyの `collect(limit)` に渡す値も呼び出し側の予算です。
 
 `WorkerOptions::response_body_queue` はworkerがJSから先読みするstreaming本文のchunk数です。既定1で、consumerの読み取りに合わせて生成します。JS側で1回のpullにまとめるchunkの64 KiBはbackpressureの粒度で、本文の予算ではありません。
+
+本文のbyte storeとbody sourceはInvocationが所有し、終了時に解放します。body sourceはRustが入力Requestとhost fetchの応答に対して開くため、数はsubrequest等の予算に従います。JSから渡したbufferは未取得のものを常に1つまで保持し、guestがengine heapの外にメモリを溜められない構成です。Rustから渡したbufferは各本文の予算の範囲です。
 
 本文、headers、messageの検査は個々の境界に適用します。JSON変換・buffering前後のコピーやエンジン全体のheap使用量は別に管理します。yieldしないJSと初期化時の実行には、エンジンの割り込みや外部process管理による強制が必要です。
 

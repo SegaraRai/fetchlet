@@ -12,15 +12,15 @@ fn binary_response_and_repeated_cookies_survive_conversion() {
             ("set-cookie".into(), "first=1".into()),
             ("set-cookie".into(), "second=2".into()),
         ],
-        body: vec![0, 128, 255],
+        body: WireBytes::Inline(vec![0, 128, 255]),
         stream: None,
     };
 
     let limits = Limits::default();
-    let response = response.into_http(&limits).unwrap();
-    let round_trip = WireResponse::from_http(response, &limits).unwrap();
+    let response = response.into_http(&limits, &mut InlineBytes).unwrap();
+    let round_trip = WireResponse::from_http(response, &limits, &mut InlineBytes).unwrap();
 
-    assert_eq!(round_trip.body, vec![0, 128, 255]);
+    assert_eq!(round_trip.body, WireBytes::Inline(vec![0, 128, 255]));
     assert_eq!(round_trip.headers.len(), 2);
     assert_eq!(round_trip.headers[0].1, "first=1");
     assert_eq!(round_trip.headers[1].1, "second=2");
@@ -36,12 +36,12 @@ fn invalid_guest_headers_do_not_reach_http() {
         let response = WireResponse {
             status: 200,
             headers,
-            body: Vec::new(),
+            body: WireBytes::default(),
             stream: None,
         };
 
         assert!(matches!(
-            response.into_http(&Limits::default()),
+            response.into_http(&Limits::default(), &mut InlineBytes),
             Err(Error::InvalidRequest(_))
         ));
     }
@@ -53,11 +53,15 @@ fn invalid_status_and_null_body_combinations_are_rejected() {
         let response = WireResponse {
             status,
             headers: Vec::new(),
-            body,
+            body: WireBytes::Inline(body),
             stream: None,
         };
 
-        assert!(response.into_http(&Limits::default()).is_err());
+        assert!(
+            response
+                .into_http(&Limits::default(), &mut InlineBytes)
+                .is_err()
+        );
     }
 }
 
@@ -88,11 +92,15 @@ fn an_open_stream_on_a_null_body_status_is_rejected() {
     let response = WireResponse {
         status: 204,
         headers: Vec::new(),
-        body: Vec::new(),
+        body: WireBytes::default(),
         stream: Some(1),
     };
 
-    assert!(response.into_http(&Limits::default()).is_err());
+    assert!(
+        response
+            .into_http(&Limits::default(), &mut InlineBytes)
+            .is_err()
+    );
 }
 
 #[tokio::test]
@@ -117,7 +125,7 @@ async fn a_streaming_request_body_is_collected_within_the_request_budget() {
         .unwrap();
 
     assert!(matches!(
-        WireRequest::from_http(request, &limits).await,
+        WireRequest::from_http(request, &limits, &mut InlineBytes).await,
         Err(Error::LimitExceeded("request body bytes"))
     ));
 }
@@ -133,7 +141,7 @@ async fn request_url_budget_applies_in_both_directions() {
         .body(Body::empty())
         .unwrap();
     assert!(matches!(
-        WireRequest::from_http(request, &limits).await,
+        WireRequest::from_http(request, &limits, &mut InlineBytes).await,
         Err(Error::LimitExceeded("URL bytes"))
     ));
 
@@ -142,9 +150,35 @@ async fn request_url_budget_applies_in_both_directions() {
         method: "GET".into(),
         headers: Vec::new(),
         body: None,
+        stream: None,
     };
     assert!(matches!(
-        wire.into_http(&limits),
+        wire.into_http(&limits, &mut InlineBytes),
         Err(Error::LimitExceeded("URL bytes"))
     ));
+}
+
+#[test]
+fn byte_handles_are_taken_once_within_their_store() {
+    let mut store = ByteStore::default();
+    let handle = store.send(bytes::Bytes::from_static(b"abc")).unwrap();
+    assert_eq!(handle, WireBytes::Handle(1));
+    assert_eq!(store.receive(handle.clone()).unwrap().as_ref(), b"abc");
+    assert!(matches!(
+        store.receive(handle),
+        Err(Error::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        InlineBytes.receive(WireBytes::Handle(1)),
+        Err(Error::InvalidRequest(_))
+    ));
+}
+
+#[test]
+fn wire_bodies_accept_handles_and_inline_arrays() {
+    let handle: WireBytes = serde_json::from_str("7").unwrap();
+    let inline: WireBytes = serde_json::from_str("[1,2]").unwrap();
+    assert_eq!(handle, WireBytes::Handle(7));
+    assert_eq!(inline, WireBytes::Inline(vec![1, 2]));
+    assert!(serde_json::from_str::<WireBytes>("[256]").is_err());
 }

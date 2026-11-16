@@ -1,4 +1,4 @@
-use crate::wire::{WireRequest, WireResponse};
+use crate::wire::{InlineBytes, WireRequest, WireResponse};
 use crate::{Error, Instance, Limits, Request, Response, Result};
 
 /// Low-level Fetch adapter; prefer App for managed deadlines and host services.
@@ -9,7 +9,7 @@ pub struct FetchApp<I> {
 impl<I: Instance> FetchApp<I> {
     pub async fn handle(&mut self, request: Request) -> Result<Response> {
         let limits = Limits::default();
-        let wire = WireRequest::from_http(request, &limits).await?;
+        let wire = WireRequest::from_http(request, &limits, &mut InlineBytes).await?;
         let input =
             serde_json::to_value(wire).map_err(|error| Error::InvalidRequest(error.to_string()))?;
         let value = self
@@ -19,6 +19,6 @@ impl<I: Instance> FetchApp<I> {
             .map_err(|error| Error::JavaScript(error.to_string()))?;
         let response: WireResponse = serde_json::from_value(value)
             .map_err(|error| Error::InvalidRequest(error.to_string()))?;
-        response.into_http(&limits)
+        response.into_http(&limits, &mut InlineBytes)
     }
 }

@@ -3,12 +3,14 @@
 use std::num::NonZeroUsize;
 use std::time::Duration;
 
-use bytes::Bytes;
 use std::future::poll_fn;
 use std::pin::Pin;
+use std::task::{Context, Poll};
 
-use http_body::Body as _;
+use bytes::Bytes;
+use http_body::{Body as _, Frame, SizeHint};
 use serde_json::{Value, json};
+use tokio::sync::mpsc;
 
 use fetchlet::{
     App, AppHandle, Backend, Body, Error, Limits, Module, Response, WorkerOptions, http,
@@ -48,6 +50,48 @@ fn get(path: &str) -> fetchlet::Request {
         .uri(format!("https://stream.test{path}"))
         .body(Body::empty())
         .unwrap()
+}
+
+/// A request body that the test feeds chunk by chunk.
+struct ChannelBody {
+    receiver: mpsc::Receiver<Bytes>,
+    declared: Option<u64>,
+}
+
+impl http_body::Body for ChannelBody {
+    type Data = Bytes;
+
+    type Error = std::convert::Infallible;
+
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        context: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Bytes>, Self::Error>>> {
+        self.receiver
+            .poll_recv(context)
+            .map(|chunk| chunk.map(|chunk| Ok(Frame::data(chunk))))
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.declared.map(SizeHint::with_exact).unwrap_or_default()
+    }
+}
+
+fn post(path: &str, declared: Option<u64>) -> (mpsc::Sender<Bytes>, fetchlet::Request) {
+    let (sender, receiver) = mpsc::channel(1);
+    let body = Body::from_http_body(ChannelBody { receiver, declared });
+    let request = http::Request::builder()
+        .method("POST")
+        .uri(format!("https://stream.test{path}"))
+        .body(body)
+        .unwrap();
+    (sender, request)
+}
+
+async fn released(sender: &mpsc::Sender<Bytes>) -> bool {
+    tokio::time::timeout(Duration::from_secs(5), sender.closed())
+        .await
+        .is_ok()
 }
 
 async fn next_frame(body: &mut Body) -> Option<fetchlet::Result<Bytes>> {
@@ -234,6 +278,194 @@ async fn a_body_not_handed_to_the_host_ends_with_its_invocation() -> anyhow::Res
             handle.call_json("probe", &[json!(id + 1)]).await?,
             Value::Null
         );
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_request_body_streams_into_javascript_as_it_arrives() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn(backend, limits(Duration::from_secs(5), None)).await?;
+        let (sender, request) = post("/echo", None);
+        let response = handle.fetch(request).await?;
+        let mut body = response.into_body();
+        // Each chunk reaches the handler, and comes back, before the next exists.
+        for chunk in [&b"first;"[..], b"second;"] {
+            sender.send(Bytes::from_static(chunk)).await?;
+            assert_eq!(next_frame(&mut body).await.unwrap()?.as_ref(), chunk);
+        }
+        drop(sender);
+        assert!(next_frame(&mut body).await.is_none());
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn the_request_budget_covers_the_streamed_body() -> anyhow::Result<()> {
+    for backend in backends() {
+        let limits = Limits {
+            request_body_bytes: Some(4),
+            ..limits(Duration::from_secs(5), None)
+        };
+        let handle = spawn(backend, limits).await?;
+
+        // Chunks arrive as the producer sends them, within the budget.
+        let (sender, request) = post("/count", None);
+        let feed = async {
+            for chunk in [&b"ab"[..], b"cd"] {
+                sender.send(Bytes::from_static(chunk)).await.unwrap();
+            }
+            drop(sender);
+        };
+        let (response, ()) = tokio::join!(handle.fetch(request), feed);
+        assert_eq!(response?.into_body().collect(64).await?.as_ref(), b"2:4");
+
+        // The budget applies to the bytes read so far.
+        let (sender, request) = post("/count", None);
+        let feed = async {
+            for chunk in [&b"abc"[..], b"def"] {
+                if sender.send(Bytes::from_static(chunk)).await.is_err() {
+                    break;
+                }
+            }
+        };
+        let (response, ()) = tokio::join!(handle.fetch(request), feed);
+        let response = response?;
+        assert_eq!(response.status(), 500);
+        assert_eq!(
+            response.into_body().collect(64).await?.as_ref(),
+            b"LIMIT_EXCEEDED"
+        );
+
+        // A declared length over the budget fails before JavaScript runs.
+        let (_sender, request) = post("/count", Some(5));
+        assert!(matches!(
+            handle.fetch(request).await,
+            Err(Error::LimitExceeded("request body bytes"))
+        ));
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn an_unread_request_body_is_released_with_its_invocation() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn(backend, limits(Duration::from_secs(5), None)).await?;
+        let (sender, request) = post("/ignore", None);
+        let response = handle.fetch(request).await?;
+        assert!(response.into_body().collect(0).await?.is_empty());
+        assert!(released(&sender).await);
+
+        // Dropping a response that reads the request body releases it too.
+        let (sender, request) = post("/echo", None);
+        let mut body = handle.fetch(request).await?.into_body();
+        sender.send(Bytes::from_static(b"x")).await?;
+        assert_eq!(next_frame(&mut body).await.unwrap()?.as_ref(), b"x");
+        drop(body);
+        assert!(released(&sender).await);
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+/// An App whose outbound fetch answers with a body the test feeds.
+async fn spawn_with_upstream(
+    backend: Backend,
+    limits: Limits,
+) -> anyhow::Result<(AppHandle, mpsc::Sender<Bytes>)> {
+    let (sender, receiver) = mpsc::channel(1);
+    let receiver = std::sync::Arc::new(std::sync::Mutex::new(Some(receiver)));
+    let transport = fetchlet::transport_fn(move |_| {
+        let receiver = receiver.lock().unwrap().take();
+        async move {
+            let receiver = receiver.ok_or(Error::Transport("one upstream call".into()))?;
+            let body = ChannelBody {
+                receiver,
+                declared: None,
+            };
+            Ok(Response::new(Body::from_http_body(body)))
+        }
+    });
+    let policy = fetchlet::FetchPolicy::deny_all().allow_origin("https://upstream.test")?;
+    let services =
+        fetchlet::HostServices::new().outbound(fetchlet::FetchService::new(transport, policy));
+    let handle = App::builder(backend)
+        .module(Module::new(SOURCE))
+        .limits(limits)
+        .host_services(services)
+        .spawn(WorkerOptions::new(NonZeroUsize::new(4).unwrap()))
+        .await?;
+    Ok((handle, sender))
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn an_upstream_body_streams_through_the_handler() -> anyhow::Result<()> {
+    for backend in backends() {
+        let (handle, upstream) =
+            spawn_with_upstream(backend, limits(Duration::from_secs(5), None)).await?;
+        let response = handle.fetch(get("/proxy")).await?;
+        assert_eq!(response.status(), 200);
+        let mut body = response.into_body();
+        // Each upstream chunk reaches the client before the next exists.
+        for chunk in [&b"up-1;"[..], b"up-2;"] {
+            upstream.send(Bytes::from_static(chunk)).await?;
+            assert_eq!(next_frame(&mut body).await.unwrap()?.as_ref(), chunk);
+        }
+        drop(upstream);
+        assert!(next_frame(&mut body).await.is_none());
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn the_response_budget_covers_a_streamed_upstream_body() -> anyhow::Result<()> {
+    for backend in backends() {
+        let (handle, upstream) =
+            spawn_with_upstream(backend, limits(Duration::from_secs(5), Some(8))).await?;
+        let mut body = handle.fetch(get("/proxy")).await?.into_body();
+        upstream.send(Bytes::from_static(b"12345")).await?;
+        assert_eq!(next_frame(&mut body).await.unwrap()?.as_ref(), b"12345");
+        upstream.send(Bytes::from_static(b"67890")).await?;
+        // The upstream read fails, which errors the handler's body.
+        assert!(matches!(next_frame(&mut body).await, Some(Err(_))));
+        assert!(released(&upstream).await);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn cancelling_or_aborting_releases_the_upstream_body() -> anyhow::Result<()> {
+    for backend in backends() {
+        // The client drops the proxied body.
+        let (handle, upstream) =
+            spawn_with_upstream(backend, limits(Duration::from_secs(5), None)).await?;
+        let mut body = handle.fetch(get("/proxy")).await?.into_body();
+        upstream.send(Bytes::from_static(b"x")).await?;
+        assert_eq!(next_frame(&mut body).await.unwrap()?.as_ref(), b"x");
+        drop(body);
+        assert!(released(&upstream).await);
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        handle.shutdown().await?;
+
+        // The handler aborts the fetch after the first chunk.
+        let (handle, upstream) =
+            spawn_with_upstream(backend, limits(Duration::from_secs(5), None)).await?;
+        upstream.send(Bytes::from_static(b"first")).await?;
+        let response = handle.fetch(get("/abort-upstream")).await?;
+        assert_eq!(
+            response.into_body().collect(64).await?.as_ref(),
+            b"first|stopped"
+        );
+        assert!(released(&upstream).await);
         handle.shutdown().await?;
     }
     Ok(())

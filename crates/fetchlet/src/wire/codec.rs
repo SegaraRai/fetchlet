@@ -2,6 +2,7 @@ use http::Method;
 use http::{HeaderName, HeaderValue, StatusCode};
 use serde::{Deserialize, Serialize};
 
+use super::byte_store::{BodyTransfer, ByteTransport, WireBytes};
 use crate::config::check_limit;
 use crate::{Body, Error, Limits, Request, Response, Result};
 
@@ -12,7 +13,10 @@ pub(crate) struct WireRequest {
     pub url: String,
     pub method: String,
     pub headers: Vec<(String, String)>,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<WireBytes>,
+    /// A body source that JavaScript reads on demand, in place of `body`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stream: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,7 +24,7 @@ pub(crate) struct WireResponse {
     pub status: u16,
     pub headers: Vec<(String, String)>,
     /// The complete body, or the bytes already available when `stream` is set.
-    pub body: Vec<u8>,
+    pub body: WireBytes,
     /// A JavaScript response body that remains open in the current invocation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stream: Option<u64>,
@@ -87,9 +91,18 @@ pub(super) fn headers_from_wire(
 
 impl WireRequest {
     #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8", test))]
-    pub fn into_http(self, limits: &Limits) -> Result<Request> {
+    pub fn into_http(self, limits: &Limits, bytes: &mut impl ByteTransport) -> Result<Request> {
         check_limit(limits.url_bytes, self.url.len(), "URL bytes")?;
-        let body = self.body.unwrap_or_default();
+        if self.stream.is_some() {
+            // Guest outbound bodies are read to the end in JavaScript first.
+            return Err(Error::InvalidRequest(
+                "outbound request bodies are buffered".into(),
+            ));
+        }
+        let body = match self.body {
+            Some(body) => bytes.receive(body)?,
+            None => bytes::Bytes::new(),
+        };
         check_limit(limits.request_body_bytes, body.len(), "request body bytes")?;
         let method = Method::from_bytes(self.method.as_bytes())
             .map_err(|_| Error::InvalidRequest("invalid method".into()))?;
@@ -106,19 +119,17 @@ impl WireRequest {
         Ok(request)
     }
 
-    pub async fn from_http(request: Request, limits: &Limits) -> Result<Self> {
+    pub async fn from_http(
+        request: Request,
+        limits: &Limits,
+        bytes: &mut impl ByteTransport,
+    ) -> Result<Self> {
         validate_headers(request.headers(), limits.header_bytes)?;
         let (parts, body) = request.into_parts();
         let url = parts.uri.to_string();
         check_limit(limits.url_bytes, url.len(), "URL bytes")?;
         let method = normalize_fetch_method(&parts.method)?;
-        let data = body
-            .collect_within(limits.request_body_bytes, "request body bytes")
-            .await?;
-        if matches!(method, Method::GET | Method::HEAD) && !data.is_empty() {
-            return Err(Error::InvalidRequest("GET/HEAD request has a body".into()));
-        }
-        let headers = parts
+        let headers: Vec<(String, String)> = parts
             .headers
             .iter()
             .map(|(name, value)| {
@@ -130,30 +141,56 @@ impl WireRequest {
                     })
             })
             .collect::<Result<_>>()?;
+        let resource = "request body bytes";
+        // GET and HEAD bodies are collected so that a non-empty one is rejected.
+        let transfer = if matches!(method, Method::GET | Method::HEAD) {
+            BodyTransfer::Collect(body)
+        } else {
+            bytes.stream(body, limits.request_body_bytes, resource)?
+        };
+        let (body, stream) = match transfer {
+            BodyTransfer::Stream(id) => (None, Some(id)),
+            BodyTransfer::Collect(body) => {
+                let data = body
+                    .collect_within(limits.request_body_bytes, resource)
+                    .await?;
+                if matches!(method, Method::GET | Method::HEAD) && !data.is_empty() {
+                    return Err(Error::InvalidRequest("GET/HEAD request has a body".into()));
+                }
+                let body = if data.is_empty() {
+                    None
+                } else {
+                    Some(bytes.send(data)?)
+                };
+                (body, None)
+            }
+        };
         Ok(Self {
             url,
             method: method.to_string(),
             headers,
-            body: (!data.is_empty()).then(|| data.to_vec()),
+            body,
+            stream,
         })
     }
 }
 
 impl WireResponse {
-    pub fn into_http(self, limits: &Limits) -> Result<Response> {
+    pub fn into_http(self, limits: &Limits, bytes: &mut impl ByteTransport) -> Result<Response> {
+        let body = bytes.receive(self.body)?;
         check_limit(
             limits.response_body_bytes,
-            self.body.len(),
+            body.len(),
             "response body bytes",
         )?;
         if !(200..=599).contains(&self.status) {
             return Err(Error::InvalidRequest("invalid response status".into()));
         }
-        let has_body = !self.body.is_empty() || self.stream.is_some();
+        let has_body = !body.is_empty() || self.stream.is_some();
         if matches!(self.status, 204 | 205 | 304) && has_body {
             return Err(Error::InvalidRequest("body on a null-body response".into()));
         }
-        let mut response = Response::new(Body::from(self.body));
+        let mut response = Response::new(Body::from(body));
         *response.status_mut() = StatusCode::from_u16(self.status)
             .map_err(|_| Error::InvalidRequest("invalid response status".into()))?;
         *response.headers_mut() = headers_from_wire(self.headers, limits.header_bytes)?;
@@ -161,17 +198,36 @@ impl WireResponse {
     }
 
     #[cfg(any(feature = "quickjs", feature = "boa", feature = "v8", test))]
-    pub fn from_http(response: Response, limits: &Limits) -> Result<Self> {
+    pub fn from_http(
+        response: Response,
+        limits: &Limits,
+        bytes: &mut impl ByteTransport,
+    ) -> Result<Self> {
         validate_headers(response.headers(), limits.header_bytes)?;
         let (parts, body) = response.into_parts();
-        let data = body.buffered()?;
-        check_limit(
-            limits.response_body_bytes,
-            data.len(),
-            "response body bytes",
-        )?;
-        let wire = Self {
-            status: parts.status.as_u16(),
+        let status = parts.status.as_u16();
+        if !(200..=599).contains(&status) {
+            return Err(Error::InvalidRequest("invalid response status/body".into()));
+        }
+        let resource = "response body bytes";
+        let (body, stream) = if matches!(status, 204 | 205 | 304) {
+            // A null-body status has no body; a streamed one is dropped unread.
+            if !body.buffered().unwrap_or_default().is_empty() {
+                return Err(Error::InvalidRequest("invalid response status/body".into()));
+            }
+            (WireBytes::default(), None)
+        } else {
+            match bytes.stream(body, limits.response_body_bytes, resource)? {
+                BodyTransfer::Stream(id) => (WireBytes::default(), Some(id)),
+                BodyTransfer::Collect(body) => {
+                    let data = body.into_bytes()?;
+                    check_limit(limits.response_body_bytes, data.len(), resource)?;
+                    (bytes.send(data)?, None)
+                }
+            }
+        };
+        Ok(Self {
+            status,
             headers: parts
                 .headers
                 .iter()
@@ -186,14 +242,8 @@ impl WireResponse {
                         })
                 })
                 .collect::<Result<_>>()?,
-            body: data.to_vec(),
-            stream: None,
-        };
-        if !(200..=599).contains(&wire.status)
-            || matches!(wire.status, 204 | 205 | 304) && !wire.body.is_empty()
-        {
-            return Err(Error::InvalidRequest("invalid response status/body".into()));
-        }
-        Ok(wire)
+            body,
+            stream,
+        })
     }
 }

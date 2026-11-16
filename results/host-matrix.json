@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-16T13:20:05.021Z",
+  "checkedAt": "2026-11-16T14:02:13.645Z",
   "summary": {
-    "passed": 33,
+    "passed": 36,
     "failed": 0
   },
   "results": [
@@ -17,6 +17,11 @@
     },
     {
       "backend": "quickjs",
+      "name": "streamed-request-body-through-web-runtime",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
       "name": "explicit-frozen-bindings",
       "status": "pass"
     },
@@ -72,6 +77,11 @@
     },
     {
       "backend": "boa",
+      "name": "streamed-request-body-through-web-runtime",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
       "name": "explicit-frozen-bindings",
       "status": "pass"
     },
@@ -123,6 +133,11 @@
     {
       "backend": "v8",
       "name": "transport-completion-wakes-engine",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "streamed-request-body-through-web-runtime",
       "status": "pass"
     },
     {

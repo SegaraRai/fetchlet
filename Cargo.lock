@@ -878,6 +878,7 @@ dependencies = [
  "boa_engine",
  "bytes",
  "deno_core",
+ "deno_error",
  "getrandom",
  "http",
  "http-body",

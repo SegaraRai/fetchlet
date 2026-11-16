@@ -29,6 +29,94 @@ globalThis.__fetchletRunNextTimer = () => {
   return false;
 };
 
+// Just enough of a ReadableStream for host bodies: the bridge's underlying
+// source pulls one chunk per read.
+globalThis.ReadableStream = class {
+  #source;
+  #queue = [];
+  #closed = false;
+  #error = null;
+  #controller = {
+    enqueue: (chunk) => this.#queue.push(chunk),
+    close: () => {
+      this.#closed = true;
+    },
+    error: (error) => {
+      this.#error = { error };
+    },
+  };
+
+  constructor(source = {}) {
+    this.#source = source;
+    source.start?.(this.#controller);
+  }
+
+  getReader() {
+    return {
+      read: async () => {
+        while (this.#queue.length === 0 && !this.#closed) {
+          if (this.#error) throw this.#error.error;
+          await this.#source.pull(this.#controller);
+        }
+        if (this.#error) throw this.#error.error;
+        return this.#queue.length > 0
+          ? { done: false, value: this.#queue.shift() }
+          : { done: true, value: undefined };
+      },
+      cancel: async (reason) => {
+        this.#closed = true;
+        this.#queue.length = 0;
+        await this.#source.cancel?.(reason);
+      },
+      releaseLock() {},
+    };
+  }
+};
+
+// Just enough of Request, Response and AbortSignal for the host fetch binding.
+class Signal {
+  #listeners = new Set();
+  aborted = false;
+  reason = undefined;
+
+  throwIfAborted() {
+    if (this.aborted) throw this.reason;
+  }
+
+  addEventListener(_type, listener) {
+    this.#listeners.add(listener);
+  }
+
+  removeEventListener(_type, listener) {
+    this.#listeners.delete(listener);
+  }
+
+  abort(reason) {
+    if (this.aborted) return;
+    this.aborted = true;
+    this.reason = reason;
+    for (const listener of [...this.#listeners]) listener();
+  }
+}
+
+globalThis.Request = class {
+  constructor(url, init = {}) {
+    this.url = url;
+    this.method = init.method ?? "GET";
+    this.headers = [];
+    this.body = null;
+    this.redirect = "follow";
+    this.signal = init.signal ?? new Signal();
+  }
+};
+
+globalThis.Response = class {
+  constructor(body, init) {
+    this.body = body;
+    this.status = init.status;
+  }
+};
+
 let sequence = 0;
 let cancelled = 0;
 
@@ -131,6 +219,65 @@ globalThis.fetchletExports = {
         headers: [["x-body", String(id)]],
         body: [],
       };
+    }
+    if (request.url.endsWith("/echo")) {
+      // Forward request body chunks as the host delivers them.
+      const id = bodies.register(request.body);
+      const initial = await bodies.pull(id, false);
+      return {
+        status: 200,
+        headers: [],
+        body: initial.chunk,
+        ...(initial.done ? {} : { stream: id }),
+      };
+    }
+    if (request.url.endsWith("/count")) {
+      // Read the whole request body: "chunks:bytes", or the error code.
+      const reader = request.body.getReader();
+      let chunks = 0;
+      let length = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks += 1;
+          length += value.byteLength;
+        }
+      } catch (error) {
+        return { status: 500, headers: [], body: bytes(String(error.code)) };
+      }
+      return { status: 200, headers: [], body: bytes(chunks + ":" + length) };
+    }
+    if (request.url.endsWith("/proxy")) {
+      // Hand the upstream body to the host as this response's body.
+      const upstream = await fetch("https://upstream.test/body");
+      const id = bodies.register(upstream.body);
+      const initial = await bodies.pull(id, false);
+      return {
+        status: upstream.status,
+        headers: [],
+        body: initial.chunk,
+        ...(initial.done ? {} : { stream: id }),
+      };
+    }
+    if (request.url.endsWith("/abort-upstream")) {
+      // Abort the fetch after its first chunk: "<chunk>|<error message>".
+      const signal = new Signal();
+      const upstream = await fetch("https://upstream.test/body", { signal });
+      const reader = upstream.body.getReader();
+      const first = await reader.read();
+      signal.abort(new Error("stopped"));
+      let outcome;
+      try {
+        outcome = String((await reader.read()).done);
+      } catch (error) {
+        outcome = error.message;
+      }
+      const text = String.fromCharCode(...first.value) + "|" + outcome;
+      return { status: 200, headers: [], body: bytes(text) };
+    }
+    if (request.url.endsWith("/ignore")) {
+      return { status: 200, headers: [], body: [] };
     }
     const body = routes(request.url);
     if (body === null || !bodies.streaming()) {

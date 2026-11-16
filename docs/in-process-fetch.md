@@ -83,7 +83,7 @@ Request extensionsやtask-localだけに依存せず、JSとのwire変換、redi
 
 AbortSignal、Rust Futureのdrop、呼び出し期限を結び付け、内部handlerの処理もInvocationが回収できる形にします。現在のhost fetchはticketとInvocationの所有Futureでcancelを扱います。キャンセル契約は接続先のRust handlerにも適用します。
 
-現在の本文はbufferedです。streamingへ進める際は、JSとRustのBody間に読み取り需要に応じたbackpressureを設け、本文の完了・cancelまでInvocation / Instanceのleaseを維持します。本文の所有権、資源予算、切断時の回収は[streaming設計](design-proposal.md#streamingとbackground)と揃えます。
+本文はJSとRustのBody間を読み取り需要に応じてstreamingし、本文の完了・cancelまでInvocation / Instanceのleaseを維持します。内部serviceの本文も同じ所有権、資源予算、切断時の回収に従います（[streaming設計](design-proposal.md#streamingとbackground)）。
 
 HTTPエラーと実行エラーは、JSから見える結果を分けます。
 
