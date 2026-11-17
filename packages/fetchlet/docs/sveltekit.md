@@ -21,7 +21,7 @@ export default defineConfig({
 
 ## 静的アセットのアーカイブ
 
-`assets: true` は、client assetsを `build/assets.flpk` にまとめ、`fetchlet.json` に記録します。`_app/immutable/` 以下には1年の `Cache-Control: immutable` を付け、prerenderしたページはSvelteKitの既定 `trailingSlash: "never"` に合わせて `.html` と末尾の `/` なしで配信します。`assets: { respond, routes }` で応答とpathの規則を指定できます（`respond` はimmutableの設定の後に呼ばれます）。Rustでは `Artifact::open` または `include_artifact!` が読み込み、`artifact_router` が配信します。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`assets: true` は、client assetsを `build/assets.flpk` にまとめ、`fetchlet.json` に記録します。`_app/immutable/` 以下には1年の `Cache-Control: immutable` を付け、prerenderしたページはSvelteKitの既定 `trailingSlash: "never"` に合わせて `.html` と末尾の `/` なしで配信します。`assets` の設定で含めるファイル、キャッシュ、応答、pathの規則、追加のエントリを指定でき、関数ならエントリ列を自分で返せます（`respond` はimmutableの設定の後に呼ばれます）。Rustでは `Artifact::open` または `include_artifact!` が読み込み、`artifact_router` が配信します。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
 
 ## rendering profile
 

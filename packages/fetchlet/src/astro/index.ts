@@ -1,19 +1,20 @@
+import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { resolve, join } from "node:path";
 
 import type { AstroIntegration } from "astro";
 
+import { IMMUTABLE } from "../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
-import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 export interface FetchletAstroOptions {
   /**
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` uses Astro's: hashed files under `build.assets` are
-   * cached for a year, and pages follow `trailingSlash` and `build.format`; an object adds
-   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   * cached for a year, and pages follow `trailingSlash` and `build.format`;
+   * settings adjust those defaults and add entries, and a function returns every entry. See docs/asset-archive.md.
    */
-  assets?: boolean | AssetArchiveSettings;
+  assets?: AssetsOption;
   /** The artifact directory. Defaults to "build". */
   out?: string;
   /** The engine the artifact targets. */
@@ -31,7 +32,7 @@ export default function fetchletAdapter({
 }: FetchletAstroOptions = {}): AstroIntegration {
   let output: string;
   let serverEntry: string;
-  let archive: AssetArchiveSettings | undefined;
+  let archive: AssetsOption | undefined;
   return {
     name: "fetchlet/astro",
     hooks: {

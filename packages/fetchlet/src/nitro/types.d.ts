@@ -18,10 +18,10 @@ export interface FetchletNitroOptions {
   /**
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` caches each `publicAssets` directory for its
-   * `maxAge`; an object adds `respond`, which runs after that, and `routes`.
-   * See docs/asset-archive.md.
+   * `maxAge`; settings adjust that and add entries, and a function returns
+   * every entry. See docs/asset-archive.md.
    */
-  assets?: boolean | import("../build/asset-archive.ts").AssetArchiveSettings;
+  assets?: import("../build/asset-option.ts").AssetsOption;
 }
 
 declare module "nitropack/types" {

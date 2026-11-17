@@ -18,13 +18,14 @@ fonts, are stored as they are and answer single byte ranges.
   hosts (measured on Chromium 156); those clients take the decompressing path.
   Brotli's built-in dictionary compresses small HTML, CSS and JavaScript files
   better than zstd, and Safari does not accept zstd.
-- **Headers decided at build time.** The writer calls a function for every
-  file and stores the resulting status and headers. Identical header sets are
-  stored once. The server matches no patterns at request time.
+- **Responses decided at build time.** The archive is a list of entries, each
+  the status, headers and body for one URL path. Identical header sets and
+  bodies are stored once. The server matches no patterns at request time.
 - **Exact paths.** The archive holds one entry per served path, sorted by
   bytes, and the server finds a path by binary search. Directory indexes,
-  pages without `.html` and their redirects are explicit entries, chosen by
-  the writer's `routes` setting; aliases share the file's data.
+  pages without `.html` and their redirects are explicit entries, which
+  `directoryAssets` derives from its `routes` setting; aliases share the
+  file's data.
 
 ## Serving
 
@@ -53,27 +54,57 @@ decompressed copy are plain HTTP clients outside localhost.
 
 ## Writing
 
+`writeAssetArchive` writes a list of entries as given. An entry names one URL
+path and the response stored for it:
+
 ```ts
-import { writeAssetArchive } from "fetchlet/build";
+import { directoryAssets, IMMUTABLE, redirect, writeAssetArchive } from "fetchlet/build";
 
 await writeAssetArchive({
-  directory: "build/client",
   out: "build/assets.flpk",
-  respond({ path, headers }) {
-    if (path.startsWith("/_app/immutable/")) {
-      headers.set("cache-control", "public, max-age=31536000, immutable");
-    }
-    return headers;
-  },
+  entries: [
+    ...(await directoryAssets("build/client", {
+      cache: [{ prefix: "/_app/immutable/", cacheControl: IMMUTABLE }],
+    })),
+    { path: "/robots.txt", headers: { "content-type": "text/plain" }, body: "User-agent: *
+" },
+    redirect("/old", "/new"),
+  ],
 });
 ```
 
-`respond(info)` may return:
+| Field         | Meaning                                                                  |
+| ------------- | ------------------------------------------------------------------------ |
+| `path`        | the URL path, starting with `/`, matched exactly; each path appears once |
+| `status`      | defaults to 200                                                          |
+| `headers`     | stored as given; the writer adds no `Content-Type`                       |
+| `body`        | a string (UTF-8), bytes, or `{ file }`, read when the archive is written |
+| `appendQuery` | append the request's query to the stored `Location`                      |
 
-- `Headers` (or `undefined` to keep `info.headers`): the file is served with
-  status 200 and these headers. `info.headers` starts with `Content-Type`.
-- `Response`: its status, headers and body are stored in place of the file,
-  for redirects or generated content. A `null` body stores an empty body.
+`redirect(from, to, status = 308)` builds a redirect entry that keeps the
+query, and `contentType(path)` gives the `Content-Type` `directoryAssets` uses.
+
+### From a directory
+
+`directoryAssets(directory, options)` returns the entries for the files under
+a directory. Its options:
+
+- `include(entry, defaults)` decides whether a file or directory is read;
+  `entry` has its `path` from the directory and `directory`, and a directory
+  left out is not read. `defaults` is the default decision,
+  `defaultAssetInclude`: names that start with `.`, such as Vite's `.vite/`
+  manifests, are build metadata and left out, and `.well-known/` is read.
+  `(entry, defaults) => defaults || entry.path === "/.nojekyll"` adds one
+  file to it.
+- `routes` maps HTML files to URL paths, below.
+- `cache` sets `Cache-Control` for the paths under each prefix; the longest
+  prefix wins.
+- `respond(info)` runs for each file with its canonical `path`, `file`,
+  `size` and `headers`, which hold `Content-Type` from the extension and the
+  matching `Cache-Control`. It may return `Headers` (or `undefined` for
+  `info.headers`) to serve the file with status 200; a `Response`, whose
+  status, headers and body are stored in place of the file; or `null` to
+  leave the file out.
 
 ## Routes
 
@@ -96,9 +127,19 @@ SvelteKit's default `trailingSlash`.
 
 ## Framework adapters
 
-Every adapter in the `fetchlet` package takes `assets`. `true` archives the
-client directory with the framework's defaults below; an object adds
-`respond`, which runs after the defaults, and `routes`, which replace them.
+Every adapter in the `fetchlet` package takes `assets`, as do `buildArtifact`
+and `archiveArtifactAssets`:
+
+- `true` archives the client directory with `directoryAssets` and the
+  framework's defaults below.
+- Settings take the `directoryAssets` options and `entries`. `cache` adds to
+  the framework's rules and wins for the same prefix; `routes` replaces the
+  framework's; `include` receives the framework's decision as `defaults`;
+  `respond` runs after the framework's caching. `entries` follow the client
+  directory's.
+- A function receives `{ directory, defaults }` and returns every entry.
+  `defaults(options)` returns what `true` would archive, with `options` on
+  top of the framework's defaults, for a function that adjusts them.
 
 | Adapter                   | Cached for a year (`immutable`)                       | Routes                                                        |
 | ------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
@@ -113,9 +154,7 @@ client directory with the framework's defaults below; an object adds
 | `fetchlet/waku`           | `/assets/`                                            | default                                                       |
 | `fetchlet/hono/vite`      | none: a Hono app's public files may not be hashed     | default                                                       |
 
-Nitro takes the option as `nitro.fetchlet.assets`. Files and directories whose
-names start with `.`, such as Vite's `.vite/` manifests, are build metadata
-and are not archived; `.well-known/` is.
+Nitro takes the option as `nitro.fetchlet.assets`.
 
 ## Embedding
 

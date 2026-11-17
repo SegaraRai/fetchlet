@@ -3,8 +3,9 @@ import { join, parse, resolve } from "node:path";
 
 import type { Plugin } from "vite";
 
+import { IMMUTABLE } from "../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
-import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
@@ -12,10 +13,10 @@ export interface FetchletQwikCityOptions {
   /**
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` uses Qwik's: hashed files under `build/` and `assets/`
-   * are cached for a year; an object adds
-   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   * are cached for a year; settings adjust those defaults and add entries, and
+   * a function returns every entry. See docs/asset-archive.md.
    */
-  assets?: boolean | AssetArchiveSettings;
+  assets?: AssetsOption;
   /** The server entry that default-exports `createQwikCity(...)`. Defaults to "src/entry.fetchlet.tsx". */
   entry?: string;
   /** Where server.js and fetchlet.json are written, next to the client build in `client/`. Defaults to "build". */

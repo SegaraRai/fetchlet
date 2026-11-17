@@ -2,8 +2,9 @@ import { join } from "node:path";
 
 import type { Preset } from "@react-router/dev/config";
 
+import { IMMUTABLE } from "../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
-import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
@@ -11,10 +12,10 @@ export interface FetchletPresetOptions {
   /**
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` uses React Router's: hashed files under `assets/` are
-   * cached for a year; an object adds
-   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   * cached for a year; settings adjust those defaults and add entries, and
+   * a function returns every entry. See docs/asset-archive.md.
    */
-  assets?: boolean | AssetArchiveSettings;
+  assets?: AssetsOption;
   /** The engine the artifact targets. */
   backend?: BuildBackend;
   /** Intl data for engines without native Intl, as in fetchlet/build. */
@@ -28,7 +29,7 @@ interface ArtifactOptions {
   };
   backend: BuildBackend;
   intl: IntlOptions;
-  assets: boolean | AssetArchiveSettings;
+  assets: AssetsOption;
 }
 
 /**

@@ -1,5 +1,6 @@
 // writeAssetArchive's choices that the Rust tests do not see: what it refuses,
-// what it shares and how it merges Vary. docs/asset-archive.md has the format.
+// what it shares and how it merges Vary; and how directoryAssets and the
+// assets option build entries. docs/asset-archive.md has the format.
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -8,7 +9,15 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { brotliDecompressSync } from "node:zlib";
 
-import { archiveArtifactAssets, writeAssetArchive, type AssetResponder } from "fetchlet/build";
+import {
+  archiveArtifactAssets,
+  directoryAssets,
+  redirect,
+  writeAssetArchive,
+  type AssetEntry,
+  type AssetsOption,
+  type DirectoryAssetOptions,
+} from "fetchlet/build";
 
 interface Entry {
   path: string;
@@ -60,7 +69,7 @@ function readArchive(archive: Buffer): Entry[] {
 
 async function archiveOf(
   files: Record<string, string>,
-  respond?: AssetResponder,
+  respond?: DirectoryAssetOptions["respond"],
 ): Promise<{ entries: Entry[]; bytes: Buffer }> {
   const directory = mkdtempSync(join(tmpdir(), "fetchlet-asset-test-"));
   try {
@@ -70,9 +79,8 @@ async function archiveOf(
     }
     const out = join(directory, "assets.flpk");
     await writeAssetArchive({
-      directory: join(directory, "client"),
+      entries: await directoryAssets(join(directory, "client"), respond ? { respond } : {}),
       out,
-      ...(respond ? { respond } : {}),
     });
     const bytes = readFileSync(out);
     return { entries: readArchive(bytes), bytes };
@@ -164,7 +172,7 @@ test("archiveArtifactAssets writes assets.flpk and names it in fetchlet.json", a
 /** Each path an archive answers: the status, and the Location of a redirect. */
 async function routesOf(
   files: string[],
-  routes?: Parameters<typeof writeAssetArchive>[0]["routes"],
+  options: DirectoryAssetOptions = {},
 ): Promise<Record<string, string>> {
   const directory = mkdtempSync(join(tmpdir(), "fetchlet-asset-routes-"));
   try {
@@ -174,9 +182,8 @@ async function routesOf(
     }
     const out = join(directory, "assets.flpk");
     await writeAssetArchive({
-      directory: join(directory, "client"),
+      entries: await directoryAssets(join(directory, "client"), options),
       out,
-      ...(routes ? { routes } : {}),
     });
     const bytes = readFileSync(out);
     const entryOffset = Number(bytes.readBigUInt64LE(24));
@@ -208,28 +215,35 @@ test("the default routes serve what ServeDir serves", async () => {
 });
 
 test("trailingSlash never with stripped extensions follows SvelteKit", async () => {
-  assert.deepEqual(await routesOf(pages, { trailingSlash: "never", htmlExtension: "strip" }), {
-    "/": "index.html",
-    "/about": "about.html",
-    "/about.html": "308 /about",
-    "/about/": "308 /about",
-    "/app.js": "app.js",
-    "/docs": "docs/index.html",
-    "/docs/": "308 /docs",
-    "/docs/index.html": "308 /docs",
-    "/index.html": "308 /",
-  });
+  assert.deepEqual(
+    await routesOf(pages, { routes: { trailingSlash: "never", htmlExtension: "strip" } }),
+    {
+      "/": "index.html",
+      "/about": "about.html",
+      "/about.html": "308 /about",
+      "/about/": "308 /about",
+      "/app.js": "app.js",
+      "/docs": "docs/index.html",
+      "/docs/": "308 /docs",
+      "/docs/index.html": "308 /docs",
+      "/index.html": "308 /",
+    },
+  );
 });
 
 test("trailingSlash always with stripped extensions puts pages under a slash", async () => {
-  const routes = await routesOf(pages, { trailingSlash: "always", htmlExtension: "strip" });
+  const routes = await routesOf(pages, {
+    routes: { trailingSlash: "always", htmlExtension: "strip" },
+  });
   assert.equal(routes["/about/"], "about.html");
   assert.equal(routes["/about"], "308 /about/");
   assert.equal(routes["/about.html"], "308 /about/");
 });
 
 test("trailingSlash ignore serves both forms", async () => {
-  const routes = await routesOf(pages, { trailingSlash: "ignore", htmlExtension: "strip" });
+  const routes = await routesOf(pages, {
+    routes: { trailingSlash: "ignore", htmlExtension: "strip" },
+  });
   assert.equal(routes["/docs"], "docs/index.html");
   assert.equal(routes["/docs/"], "docs/index.html");
   assert.equal(routes["/about"], "about.html");
@@ -239,15 +253,13 @@ test("trailingSlash ignore serves both forms", async () => {
 test("two files at one path are refused, and a file wins over a redirect", async () => {
   await assert.rejects(
     routesOf(["about.html", "about/index.html"], {
-      trailingSlash: "never",
-      htmlExtension: "strip",
+      routes: { trailingSlash: "never", htmlExtension: "strip" },
     }),
     /\/about is served twice/,
   );
   // x.html redirects /x.html to /x, but x.html.html is served at /x.html.
   const routes = await routesOf(["x.html", "x.html.html"], {
-    trailingSlash: "never",
-    htmlExtension: "strip",
+    routes: { trailingSlash: "never", htmlExtension: "strip" },
   });
   assert.equal(routes["/x"], "x.html");
   assert.equal(routes["/x.html"], "x.html.html");
@@ -256,4 +268,108 @@ test("two files at one path are refused, and a file wins over a redirect", async
 test("dot-named build metadata is left out, .well-known is kept", async () => {
   const routes = await routesOf([".vite/manifest.json", ".well-known/security.txt", "app.js"]);
   assert.deepEqual(Object.keys(routes).sort(), ["/.well-known/security.txt", "/app.js"]);
+});
+
+test("include overrides the default with the default decision in hand", async () => {
+  const files = [".vite/manifest.json", ".nojekyll", "drafts/a.html", "app.js"];
+  const routes = await routesOf(files, {
+    include: ({ path }, defaults) => (defaults || path === "/.nojekyll") && path !== "/drafts",
+  });
+  assert.deepEqual(Object.keys(routes).sort(), ["/.nojekyll", "/app.js"]);
+});
+
+test("cache rules apply by the longest prefix, and respond can leave a file out", async () => {
+  const { entries } = await archiveOf(
+    { "assets/a.js": "a", "assets/fonts/b.woff2": "b", "legacy.js": "c" },
+    ({ path, headers }) => (path === "/legacy.js" ? null : headers),
+  );
+  assert.deepEqual(
+    entries.map((entry) => entry.path),
+    ["/assets/a.js", "/assets/fonts/b.woff2"],
+  );
+  const directory = mkdtempSync(join(tmpdir(), "fetchlet-asset-cache-"));
+  try {
+    mkdirSync(join(directory, "assets/fonts"), { recursive: true });
+    writeFileSync(join(directory, "assets/a.js"), "a");
+    writeFileSync(join(directory, "assets/fonts/b.woff2"), "b");
+    const cached = await directoryAssets(directory, {
+      cache: [
+        { prefix: "/assets/", cacheControl: "short" },
+        { prefix: "/assets/fonts/", cacheControl: "long" },
+      ],
+    });
+    const cacheControl = (path: string) =>
+      new Headers(cached.find((entry) => entry.path === path)!.headers).get("cache-control");
+    assert.equal(cacheControl("/assets/a.js"), "short");
+    assert.equal(cacheControl("/assets/fonts/b.woff2"), "long");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("entries are written as given, and a path is refused twice", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "fetchlet-asset-entries-"));
+  try {
+    const out = join(directory, "assets.flpk");
+    const entries: AssetEntry[] = [
+      { path: "/robots.txt", headers: { "content-type": "text/plain" }, body: "User-agent: *\n" },
+      { path: "/bytes", body: new Uint8Array([1, 2, 3]) },
+      redirect("/old", "/new"),
+    ];
+    await writeAssetArchive({ entries, out });
+    const written = readArchive(readFileSync(out));
+    assert.deepEqual(
+      written.map((entry) => [entry.path, entry.status]),
+      [
+        ["/bytes", 200],
+        ["/old", 308],
+        ["/robots.txt", 200],
+      ],
+    );
+    assert.deepEqual(written[0]!.headers, []);
+    assert.deepEqual([...written[0]!.body], [1, 2, 3]);
+    assert.deepEqual(written[1]!.headers, [["location", "/new"]]);
+    await assert.rejects(
+      writeAssetArchive({ entries: [...entries, { path: "/old" }], out }),
+      /\/old is served twice/,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+/** The paths archiveArtifactAssets writes for an artifact with one page. */
+async function artifactPaths(assets: AssetsOption & object): Promise<string[]> {
+  const directory = mkdtempSync(join(tmpdir(), "fetchlet-asset-option-"));
+  try {
+    mkdirSync(join(directory, "client"));
+    writeFileSync(join(directory, "client", "index.html"), "<p>home</p>");
+    writeFileSync(
+      join(directory, "fetchlet.json"),
+      JSON.stringify({ server: "server.js", client: "client" }),
+    );
+    await archiveArtifactAssets({ outDir: directory, assets });
+    return readArchive(readFileSync(join(directory, "assets.flpk"))).map((entry) => entry.path);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+test("settings add entries after the client directory's", async () => {
+  assert.deepEqual(await artifactPaths({ entries: [redirect("/home", "/")] }), [
+    "/",
+    "/home",
+    "/index.html",
+  ]);
+});
+
+test("a function returns every entry, with the defaults on request", async () => {
+  assert.deepEqual(await artifactPaths(() => [{ path: "/only" }]), ["/only"]);
+  assert.deepEqual(
+    await artifactPaths(async ({ defaults }) => [
+      ...(await defaults({ routes: { htmlExtension: "strip" } })),
+      { path: "/extra" },
+    ]),
+    ["/", "/extra", "/index.html"],
+  );
 });

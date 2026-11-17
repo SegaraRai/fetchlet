@@ -1,3 +1,4 @@
+import { IMMUTABLE } from "fetchlet/build";
 import fetchletBuild from "fetchlet/hono/vite";
 import honox from "honox/vite";
 import { defineConfig } from "vite-plus";
@@ -14,12 +15,7 @@ export default defineConfig({
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
       assets: {
         // HonoX names its client build output after its contents.
-        respond({ path, headers }) {
-          if (path.startsWith("/static/")) {
-            headers.set("cache-control", "public, max-age=31536000, immutable");
-          }
-          return headers;
-        },
+        cache: [{ prefix: "/static/", cacheControl: IMMUTABLE }],
       },
     }),
   ],

@@ -1,7 +1,8 @@
 import { existsSync, renameSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { archiveArtifactAssets, frameworkAssets, IMMUTABLE } from "../build/asset-archive.ts";
+import { IMMUTABLE } from "../build/asset-entries.ts";
+import { archiveArtifactAssets, frameworkAssets } from "../build/asset-option.ts";
 import { buildArtifact } from "../build/index.ts";
 import type { FetchletWakuOptions } from "./adapter.ts";
 
@@ -58,7 +59,7 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
     if (assets) {
       await archiveArtifactAssets({
         outDir: output,
-        ...frameworkAssets(assets, {
+        assets: frameworkAssets(assets, {
           cache: [{ prefix: "/assets/", cacheControl: IMMUTABLE }],
         }),
       });

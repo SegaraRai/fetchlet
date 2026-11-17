@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import buildPlugin from "@hono/vite-build";
 import type { Plugin } from "vite";
 
-import { frameworkAssets, type AssetArchiveSettings } from "../build/asset-archive.ts";
+import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
@@ -12,10 +12,10 @@ export interface FetchletBuildOptions {
   /**
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` uses no caching rules, since a Hono app's public files
-   * may not be hashed; an object adds
-   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   * may not be hashed;
+   * settings adjust those defaults and add entries, and a function returns every entry. See docs/asset-archive.md.
    */
-  assets?: boolean | AssetArchiveSettings;
+  assets?: AssetsOption;
   /** The app modules, as in @hono/vite-build. */
   entry?: string | string[];
   /** Where server.js and fetchlet.json are written. Defaults to "build". */

@@ -1,9 +1,8 @@
-// Writes an artifact's client assets as one archive that Rust serves directly.
+// Writes asset entries as one archive that Rust serves directly.
 // The format is described in docs/asset-archive.md.
 
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
 import { brotliCompressSync, constants } from "node:zlib";
 
 const MAGIC = "FLPK";
@@ -25,84 +24,28 @@ const RESERVED_HEADERS = new Set([
   "transfer-encoding",
 ]);
 
-/** Media types by extension, for the default `Content-Type`. */
-const CONTENT_TYPES: Record<string, string> = {
-  avif: "image/avif",
-  css: "text/css; charset=utf-8",
-  gif: "image/gif",
-  htm: "text/html; charset=utf-8",
-  html: "text/html; charset=utf-8",
-  ico: "image/x-icon",
-  jpeg: "image/jpeg",
-  jpg: "image/jpeg",
-  jxl: "image/jxl",
-  js: "text/javascript; charset=utf-8",
-  json: "application/json",
-  map: "application/json",
-  mjs: "text/javascript; charset=utf-8",
-  mp3: "audio/mpeg",
-  mp4: "video/mp4",
-  otf: "font/otf",
-  pdf: "application/pdf",
-  png: "image/png",
-  svg: "image/svg+xml",
-  ttf: "font/ttf",
-  txt: "text/plain; charset=utf-8",
-  wasm: "application/wasm",
-  webm: "video/webm",
-  webmanifest: "application/manifest+json",
-  webp: "image/webp",
-  woff: "font/woff",
-  woff2: "font/woff2",
-  xml: "application/xml",
-};
+/** A stored body: text as UTF-8, bytes, or a file read when the archive is written. */
+export type AssetBody = string | Uint8Array | { file: string };
 
-/** One served path, as the `respond` function sees it. */
-export interface AssetInfo {
-  /** The canonical URL path, starting with `/`, such as `/assets/app.js`. */
+/** One archive entry: the response stored for one URL path. */
+export interface AssetEntry {
+  /** The URL path, starting with `/`, matched exactly. */
   path: string;
-  /** The file on disk. */
-  file: string;
-  /** The file size in bytes. */
-  size: number;
-  /** The default headers: `Content-Type` from the extension. */
-  headers: Headers;
-}
-
-/**
- * Decide what a path serves. `Headers`, or `undefined` for `info.headers`,
- * serves the file with status 200; a `Response` is stored in place of the
- * file, with its status, headers and body.
- */
-export type AssetResponder = (
-  info: AssetInfo,
-) => Headers | Response | undefined | Promise<Headers | Response | undefined>;
-
-/**
- * How HTML files map to URL paths. Other files are served at their own path.
- *
- * - `trailingSlash` applies to `dir/index.html`, and with `htmlExtension:
- *   "strip"` to `page.html`: `"always"` serves `/dir/` and redirects `/dir`;
- *   `"never"` serves `/dir` and redirects `/dir/`; `"ignore"` serves both.
- *   Defaults to `"always"`, as tower-http's ServeDir.
- * - `htmlExtension`: `"keep"` also serves `/dir/index.html` and serves
- *   `page.html` at `/page.html`; `"strip"` serves `page.html` at `/page` and
- *   redirects the `.html` paths. Defaults to `"keep"`.
- *
- * `/index.html` always serves `/`. Redirects are 308 and keep the query.
- */
-export interface AssetRoutes {
-  trailingSlash?: "always" | "never" | "ignore";
-  htmlExtension?: "keep" | "strip";
+  /** Defaults to 200. */
+  status?: number;
+  /** Stored as given; the archive adds no `Content-Type`. */
+  headers?: HeadersInit;
+  /** Defaults to an empty body. */
+  body?: AssetBody;
+  /** Append the request's query to the stored `Location`, for redirects. */
+  appendQuery?: boolean;
 }
 
 export interface WriteAssetArchiveOptions {
-  /** The directory of client assets, such as `build/client`. */
-  directory: string;
+  /** The entries, in any order; each path appears once. */
+  entries: Iterable<AssetEntry>;
   /** The archive file to write. */
   out: string;
-  respond?: AssetResponder;
-  routes?: AssetRoutes;
 }
 
 export interface AssetArchiveSummary {
@@ -126,74 +69,32 @@ interface Stored {
   };
 }
 
-/** Write the files under `directory` as an asset archive at `out`. */
+/** Write `entries` as an asset archive at `out`. */
 export async function writeAssetArchive({
-  directory,
+  entries,
   out,
-  respond = (info) => info.headers,
-  routes = {},
 }: WriteAssetArchiveOptions): Promise<AssetArchiveSummary> {
-  const root = resolve(directory);
   const sets = new HeaderSets();
   const data = new DataSection();
-  const served = new Map<string, Stored>();
-  const redirects = new Map<string, Stored>();
-  const serve = (entry: Stored, file: string) => {
-    if (served.has(entry.path)) {
-      throw new Error(`asset archive: ${entry.path} is served twice, the second time by ${file}`);
+  const stored = new Map<string, Stored>();
+  for (const entry of entries) {
+    if (!entry.path.startsWith("/")) {
+      throw new Error(`asset archive: ${JSON.stringify(entry.path)} does not start with /`);
     }
-    served.set(entry.path, entry);
-  };
-
-  for (const file of listFiles(root)) {
-    const filePath = "/" + relative(root, file).split(sep).join("/");
-    const route = planRoute(filePath, routes);
-    const raw = readFileSync(file);
-    const defaults = new Headers({
-      "content-type": contentType(filePath),
+    if (stored.has(entry.path)) {
+      throw new Error(`asset archive: ${entry.path} is served twice`);
+    }
+    const body = data.add(readBody(entry.body));
+    stored.set(entry.path, {
+      path: entry.path,
+      status: entry.status ?? 200,
+      headerSet: sets.add(entry.path, new Headers(entry.headers), body.brotli),
+      keepQuery: entry.appendQuery ?? false,
+      data: body,
     });
-    const decision =
-      (await respond({
-        path: route.path,
-        file,
-        size: raw.length,
-        headers: defaults,
-      })) ?? defaults;
-    let status = 200;
-    let body: Buffer = raw;
-    let responseHeaders: Headers;
-    if (decision instanceof Response) {
-      status = decision.status;
-      responseHeaders = decision.headers;
-      body = Buffer.from(await decision.arrayBuffer());
-    } else {
-      responseHeaders = decision;
-    }
-    const stored = data.add(body);
-    const headerSet = sets.add(route.path, responseHeaders, stored.brotli);
-    for (const path of [route.path, ...route.aliases]) {
-      serve({ path, status, headerSet, data: stored, keepQuery: false }, file);
-    }
-    for (const path of route.redirects) {
-      redirects.set(path, {
-        path,
-        status: 308,
-        headerSet: sets.add(path, new Headers({ location: route.path }), false),
-        data: data.add(Buffer.alloc(0)),
-        keepQuery: true,
-      });
-    }
   }
-  // A file served at a path takes precedence over a redirect to another file.
-  for (const [path, redirect] of redirects) {
-    if (!served.has(path)) {
-      served.set(path, redirect);
-    }
-  }
-
-  const sorted = [...served.values()].sort((a, b) => Buffer.compare(utf8(a.path), utf8(b.path)));
-  const archive = encode(sorted, sets, data);
-  writeFileSync(out, archive);
+  const sorted = [...stored.values()].sort((a, b) => Buffer.compare(utf8(a.path), utf8(b.path)));
+  writeFileSync(out, encode(sorted, sets, data));
   return {
     entries: sorted.length,
     rawBytes: data.rawBytes,
@@ -201,70 +102,17 @@ export async function writeAssetArchive({
   };
 }
 
-/**
- * The URL paths a file answers: its canonical path, other paths that serve
- * it too, and paths that redirect to the canonical one.
- */
-function planRoute(
-  file: string,
-  { trailingSlash = "always", htmlExtension = "keep" }: AssetRoutes = {},
-): { path: string; aliases: string[]; redirects: string[] } {
-  const aliases: string[] = [];
-  const redirects: string[] = [];
-  const extension = (path: string) => (htmlExtension === "keep" ? aliases : redirects).push(path);
-  let base: string;
-  if (file === "/index.html") {
-    extension(file);
-    return { path: "/", aliases, redirects };
-  } else if (file.endsWith("/index.html")) {
-    base = file.slice(0, -"/index.html".length);
-    extension(file);
-  } else if (file.endsWith(".html") && htmlExtension === "strip") {
-    base = file.slice(0, -".html".length);
-    redirects.push(file);
-  } else {
-    return { path: file, aliases, redirects };
+function readBody(body: AssetBody | undefined): Buffer {
+  if (body === undefined) {
+    return Buffer.alloc(0);
   }
-  const slashed = base + "/";
-  switch (trailingSlash) {
-    case "always":
-      redirects.push(base);
-      return { path: slashed, aliases, redirects };
-    case "never":
-      redirects.push(slashed);
-      return { path: base, aliases, redirects };
-    case "ignore":
-      aliases.push(file.endsWith("/index.html") ? base : slashed);
-      return { path: file.endsWith("/index.html") ? slashed : base, aliases, redirects };
+  if (typeof body === "string") {
+    return utf8(body);
   }
-}
-
-/**
- * The files under `directory`, without dot-named files and directories such
- * as Vite's `.vite/` manifests, which are build metadata. `.well-known/` is
- * served.
- */
-function listFiles(directory: string): string[] {
-  const files: string[] = [];
-  for (const name of readdirSync(directory).sort()) {
-    if (name.startsWith(".") && name !== ".well-known") {
-      continue;
-    }
-    const path = join(directory, name);
-    if (statSync(path).isDirectory()) {
-      files.push(...listFiles(path));
-    } else {
-      files.push(path);
-    }
+  if (body instanceof Uint8Array) {
+    return Buffer.from(body.buffer, body.byteOffset, body.byteLength);
   }
-  return files;
-}
-
-function contentType(path: string): string {
-  const name = path.slice(path.lastIndexOf("/") + 1);
-  const dot = name.lastIndexOf(".");
-  const extension = dot < 0 ? "" : name.slice(dot + 1).toLowerCase();
-  return CONTENT_TYPES[extension] ?? "application/octet-stream";
+  return readFileSync(body.file);
 }
 
 const utf8 = (text: string): Buffer => Buffer.from(text, "utf8");
@@ -437,77 +285,4 @@ function encode(entries: Stored[], sets: HeaderSets, data: DataSection): Buffer 
   Buffer.concat(strings.chunks).copy(archive, stringOffset);
   Buffer.concat(data.chunks).copy(archive, dataOffset);
   return archive;
-}
-
-export interface ArchiveArtifactAssetsOptions {
-  /** The artifact directory that `buildArtifact` wrote. */
-  outDir: string;
-  respond?: AssetResponder;
-  routes?: AssetRoutes;
-}
-
-/**
- * Archive an artifact's client directory as `assets.flpk` and name it in
- * fetchlet.json, so `Artifact::asset_archive` in fetchlet-http finds it.
- */
-export async function archiveArtifactAssets({
-  outDir,
-  respond,
-  routes,
-}: ArchiveArtifactAssetsOptions): Promise<AssetArchiveSummary> {
-  const manifestPath = join(outDir, "fetchlet.json");
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
-    client?: string;
-    assets?: string;
-  };
-  if (!manifest.client) {
-    throw new Error(`asset archive: ${manifestPath} names no client directory`);
-  }
-  const summary = await writeAssetArchive({
-    directory: join(outDir, manifest.client),
-    out: join(outDir, "assets.flpk"),
-    ...(respond ? { respond } : {}),
-    ...(routes ? { routes } : {}),
-  });
-  manifest.assets = "assets.flpk";
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
-  return summary;
-}
-
-/** `Cache-Control` for files whose names change with their contents. */
-export const IMMUTABLE = "public, max-age=31536000, immutable";
-
-/** A `Cache-Control` value for the paths under `prefix`. */
-export interface CacheRule {
-  prefix: string;
-  cacheControl: string;
-}
-
-/** The settings adapters take as `assets`. */
-export interface AssetArchiveSettings {
-  respond?: AssetResponder;
-  routes?: AssetRoutes;
-}
-
-/**
- * An adapter's `assets` option with its framework's defaults: `cache` sets
- * `Cache-Control` by the longest matching prefix before the caller's
- * `respond` runs, and `routes` applies unless the caller sets its own.
- */
-export function frameworkAssets(
-  settings: true | AssetArchiveSettings,
-  defaults: { cache?: CacheRule[]; routes?: AssetRoutes },
-): AssetArchiveSettings {
-  const { respond, routes = defaults.routes } = settings === true ? {} : settings;
-  const cache = [...(defaults.cache ?? [])].sort((a, b) => b.prefix.length - a.prefix.length);
-  return {
-    ...(routes ? { routes } : {}),
-    respond(info) {
-      const rule = cache.find(({ prefix }) => info.path.startsWith(prefix));
-      if (rule) {
-        info.headers.set("cache-control", rule.cacheControl);
-      }
-      return respond ? respond(info) : info.headers;
-    },
-  };
 }

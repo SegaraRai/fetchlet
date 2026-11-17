@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 
 import { build, type Plugin } from "rolldown";
 
-import { archiveArtifactAssets, type AssetArchiveSettings } from "./asset-archive.ts";
+import { archiveArtifactAssets, type AssetsOption } from "./asset-option.ts";
 import { serializedAsyncContext } from "./async-context.ts";
 import { nativeCapabilityCheck } from "./polyfills/bootstrap.ts";
 import {
@@ -15,16 +15,34 @@ import {
 } from "./polyfills/plan.ts";
 
 export {
-  archiveArtifactAssets,
   writeAssetArchive,
-  type ArchiveArtifactAssetsOptions,
-  type AssetArchiveSettings,
   type AssetArchiveSummary,
-  type AssetInfo,
-  type AssetResponder,
-  type AssetRoutes,
+  type AssetBody,
+  type AssetEntry,
   type WriteAssetArchiveOptions,
 } from "./asset-archive.ts";
+export {
+  contentType,
+  defaultAssetInclude,
+  directoryAssets,
+  IMMUTABLE,
+  redirect,
+  type AssetInclude,
+  type AssetInfo,
+  type AssetPathInfo,
+  type AssetResponder,
+  type AssetRoutes,
+  type CacheRule,
+  type DirectoryAssetOptions,
+} from "./asset-entries.ts";
+export {
+  archiveArtifactAssets,
+  type ArchiveArtifactAssetsOptions,
+  type AssetContext,
+  type AssetEntriesFunction,
+  type AssetSettings,
+  type AssetsOption,
+} from "./asset-option.ts";
 export type { BuildBackend, IntlOptions } from "./polyfills/plan.ts";
 
 /** An entry module given as source instead of a file. */
@@ -66,7 +84,7 @@ export interface BuildArtifactOptions {
    * adapters that wrote it before calling `buildArtifact`. Others call
    * `archiveArtifactAssets` once the directory is complete.
    */
-  assets?: AssetArchiveSettings;
+  assets?: AssetsOption;
 }
 
 // The Web API profile, initialized before the framework modules. The package
@@ -231,9 +249,6 @@ export async function buildArtifact({
     ) + "\n",
   );
   if (assets) {
-    await archiveArtifactAssets({
-      outDir: output,
-      ...assets,
-    });
+    await archiveArtifactAssets({ outDir: output, assets });
   }
 }

@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 import { root } from "@fetchlet-internal/tools-workspace/paths";
-import { writeAssetArchive } from "fetchlet/build";
+import { directoryAssets, writeAssetArchive } from "fetchlet/build";
 
 const out = resolve(root, "crates/fetchlet-http/tests/fixtures/embedded/assets.flpk");
 const client = mkdtempSync(join(tmpdir(), "fetchlet-asset-archive-"));
@@ -38,9 +38,7 @@ try {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, contents);
   }
-  const summary = await writeAssetArchive({
-    directory: client,
-    out,
+  const entries = await directoryAssets(client, {
     respond({ path, headers }) {
       if (path.startsWith("/_app/immutable/")) {
         headers.set("cache-control", "public, max-age=31536000, immutable");
@@ -58,6 +56,7 @@ try {
       return headers;
     },
   });
+  const summary = await writeAssetArchive({ entries, out });
   console.log(`[asset-archive] ${out}: ${summary.entries} entries`);
 } finally {
   rmSync(client, { recursive: true, force: true });

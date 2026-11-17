@@ -3,8 +3,9 @@ import { join, resolve } from "node:path";
 
 import type { Plugin } from "vite";
 
+import { IMMUTABLE } from "../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
-import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 export type { FetchletBindings, FetchletRequestContext } from "./context.ts";
 
@@ -14,10 +15,10 @@ export interface FetchletSolidStartOptions {
   /**
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` uses SolidStart's: hashed files under `_build/assets/`
-   * are cached for a year; an object adds
-   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   * are cached for a year; settings adjust those defaults and add entries, and
+   * a function returns every entry. See docs/asset-archive.md.
    */
-  assets?: boolean | AssetArchiveSettings;
+  assets?: AssetsOption;
   /** Where server.js, fetchlet.json and client/ are written. Defaults to "build". */
   outDir?: string;
   /** The engine the artifact targets. */

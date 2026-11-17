@@ -51,7 +51,7 @@ localeとtimezone packはDateTimeFormat等のpolyfillを選んだ場合にbundle
 
 ## 静的アセットのアーカイブ
 
-`archiveArtifactAssets({ outDir, respond, routes })` は、artifactのclientディレクトリを `assets.flpk` にまとめ、`fetchlet.json` の `assets` に記録します。テキストはBrotli（品質11）で格納し、Rustの `AssetService` が `br` 対応クライアントへはそのまま、それ以外へは展開して返します。`respond(info)` は各パスの応答ヘッダーを `Headers` で返すか、`Response` で状態・ヘッダー・本文ごと置き換えます。各frameworkのadapterは `assets: true` で同じアーカイブを書き、ハッシュ付きのファイルにframeworkごとの `Cache-Control: immutable` を付けます。`.vite/` など `.` で始まるファイルとディレクトリは含めません。形式と応答の規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`archiveArtifactAssets({ outDir, assets })` は、artifactのアセットを `assets.flpk` にまとめ、`fetchlet.json` の `assets` に記録します。アーカイブはURLパスごとの応答のエントリ列で、`writeAssetArchive` がそのまま書きます。`directoryAssets` はclientディレクトリからエントリ列を作るヘルパーで、`include`（含めるファイル）、`routes`、`cache`、`respond` を受け取ります。`assets` は `true`、それらの設定に追加の `entries` を加えたもの、またはエントリ列を返す関数です。各frameworkのadapterも同じ `assets` を受け取り、frameworkの既定値（ハッシュ付きファイルの `Cache-Control: immutable` など）を下敷きにします。テキストはBrotli（品質11）で格納し、Rustの `AssetService` が `br` 対応クライアントへはそのまま、それ以外へは展開して返します。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
 
 ## artifactと検証
 

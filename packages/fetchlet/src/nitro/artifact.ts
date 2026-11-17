@@ -4,7 +4,8 @@ import { join } from "node:path";
 import type { Nitro } from "nitropack/types";
 import type { Plugin } from "rolldown";
 
-import { frameworkAssets, type CacheRule } from "../build/asset-archive.ts";
+import { type CacheRule } from "../build/asset-entries.ts";
+import { frameworkAssets } from "../build/asset-option.ts";
 import { buildArtifact } from "../build/index.ts";
 import type {} from "./types.d.ts";
 

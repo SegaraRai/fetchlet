@@ -1,16 +1,12 @@
 import { mkdirSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { join, resolve } from "node:path";
 
 import type { Adapter } from "@sveltejs/kit";
 import type { Plugin } from "rolldown";
 
-import {
-  buildArtifact,
-  type AssetArchiveSettings,
-  type BuildBackend,
-  type IntlOptions,
-} from "../build/index.ts";
-import { frameworkAssets, IMMUTABLE } from "../build/asset-archive.ts";
+import { IMMUTABLE } from "../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
+import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
 
 export interface FetchletSvelteKitOptions {
   /** The artifact directory. Defaults to "build". */
@@ -30,11 +26,11 @@ export interface FetchletSvelteKitOptions {
    * serve or embed. `true` uses SvelteKit's conventions: hashed files under
    * `_app/immutable/` are cached for a year, and prerendered pages are served
    * without `.html` and without a trailing slash, the default `trailingSlash:
-   * "never"`. An object sets `respond` and `routes` instead; its `respond`
-   * runs after the immutable caching is applied, and its `routes` replace
-   * SvelteKit's.
+   * "never"`. Settings adjust those defaults and add entries; their
+   * `routes` replace SvelteKit's. A function returns every entry. See
+   * docs/asset-archive.md.
    */
-  assets?: boolean | AssetArchiveSettings;
+  assets?: AssetsOption;
 }
 
 function synchronousRendering(): Plugin {
