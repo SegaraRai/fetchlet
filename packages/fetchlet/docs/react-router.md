@@ -1,6 +1,7 @@
 # fetchlet/react-router
 
-React Router（framework mode）のserver buildをfetchlet用IIFEへbundleするReact Router presetです。React Router 8.5.1 / React 19.3.1を検証しています。
+A React Router preset that bundles a framework-mode server build into a
+fetchlet artifact. Verified with React Router 8.5.1 and React 19.3.1.
 
 ```ts
 // react-router.config.ts
@@ -12,23 +13,33 @@ export default {
 } satisfies Config;
 ```
 
-`backend` / `intl` は[共通builder](build.md)の同名設定です。presetは `ssr: true` と1つのserver bundleを前提にし、`serverBundles` や `ssr: false` はbuild時にエラーにします。
+`backend` and `intl` are the [builder's](build.md) settings. The preset
+requires `ssr: true` and one server bundle; `serverBundles` or `ssr: false`
+fails the build.
 
-## 出力
+## Output
 
-React Routerの `buildEnd` で、`build/server/` のserver buildを `createRequestHandler` に接続し、`build/server.js` と `build/fetchlet.json` を書きます。`build/client/` はReact Routerのclient assetsです。`build/server/` は中間出力で、Rustサーバからは配信しません。アプリの設定で `buildEnd` を定義すると、presetのartifact生成を置き換えます。
+In React Router's `buildEnd`, the preset connects the server build in
+`build/server/` to `createRequestHandler` and writes `build/server.js` and
+`build/fetchlet.json`. `build/client/` holds React Router's client assets.
+`build/server/` is intermediate output that Rust does not serve. Defining
+`buildEnd` in the app's config replaces the preset's artifact step.
 
-`assets: true` はclient assetsを `assets.flpk` にまとめ、`assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`assets: true` packs the client assets into `assets.flpk` and caches
+`assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
 
-## load context
+## Load context
 
-loader / action / middlewareのcontextは `RouterContextProvider` です。fetchletの値は `FetchletLoadContext` で、`context.get(fetchletContext)`、またはbindingの型を指定する `getLoadContext<Bindings>(context)` で読みます。
+The `context` of loaders, actions and middleware is a
+`RouterContextProvider`. fetchlet's values are a `FetchletLoadContext`, read
+with `context.get(fetchletContext)` or, with the app's binding types,
+`getLoadContext<Bindings>(context)`.
 
-| 値              | 内容                                                       |
-| --------------- | ---------------------------------------------------------- |
-| `clientAddress` | Rustのrequest contextの接続元                              |
-| `env`           | Rustの固定binding                                          |
-| `waitUntil`     | 応答後の処理の登録。Rustのbackground予算の範囲で完了を待つ |
+| Value           | Content                                                            |
+| --------------- | ------------------------------------------------------------------ |
+| `clientAddress` | The client address of the request context                          |
+| `env`           | Rust's fixed bindings                                              |
+| `waitUntil`     | Registers work after the response, within Rust's background budget |
 
 ```ts
 import { getLoadContext } from "fetchlet/react-router/context";
@@ -39,16 +50,28 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 ```
 
-Viteがserver buildへこのmoduleを別にbundleしても、keyはglobalのsymbol registryで共有します。
+Vite may bundle this module into the server build separately from the
+entry; every copy shares one key through the global symbol registry.
 
-## 描画とQuickJSのstack
+## Rendering and the QuickJS stack
 
-`entry.server` で `react-dom/server.edge` の `renderToReadableStream` を使うと、Suspenseの遅延データを同じResponseでstreamingできます。応答本文はRustのHTTP応答へstreamのまま渡ります。
+With `renderToReadableStream` from `react-dom/server.edge` in
+`entry.server`, deferred data streams in the same response, and the body
+reaches Rust's HTTP response as a stream.
 
-ReactのFizzはstackのoverflowを捕捉して要素の描画をやり直します。やり直す前に書いた `<link` の断片がhead内に残り、HTTP 200のまま壊れたHTMLになります。QuickJSの既定のstack上限1 MiBでは、Rustのdebug buildで小さなページでも発生し、release buildでは発生しませんでした（examples/react-router-axumの `/about`、2 MiBで解消）。例は `QuickJsOptions::stack_limit_bytes` 4 MiBとworker threadのstack 8 MiBを設定し、E2Eで断片が無いことを確認しています。
+React's Fizz catches stack overflows and retries rendering the element. A
+`<link` fragment written before the retry stays in the head, producing
+broken HTML with status 200. With QuickJS's default 1 MiB stack limit this
+happens even for small pages in Rust debug builds, not in release builds
+(`/about` in examples/react-router-axum; 2 MiB is enough). The example sets
+`QuickJsOptions::stack_limit_bytes` to 4 MiB and the worker thread stack to
+8 MiB, and its end-to-end checks assert that no fragment remains.
 
-## 試験と次の対象
+## Tests and next work
 
-[examples/react-router-axum](../../examples/react-router-axum/README.md)が12項目を確認します。対象はSSR、assets、遅延データのstreaming、resource route、document / client action、Cookie、load context、streaming upload、`waitUntil`、hydration、client navigationです。
+[examples/react-router-axum](../../../examples/react-router-axum/README.md)
+checks SSR, assets, streaming of deferred data, resource routes, document
+and client actions, cookies, the load context, streaming uploads,
+`waitUntil`, hydration and client navigation.
 
-server bundleの分割、prerender、RSC modeは個別の試験を追加して対応範囲に加えます。
+Split server bundles, prerendering and RSC mode need their own tests.

@@ -1,6 +1,8 @@
 # fetchlet/solid-start
 
-SolidStart 2のserver environmentをfetchlet用IIFEへbundleするVite pluginです。@solidjs/start 2.2.3 / solid-js 1.9.19 / @solidjs/router 1.0.3を検証しています。
+A Vite plugin that bundles SolidStart 2's server environment into a
+fetchlet artifact. Verified with `@solidjs/start` 2.2.3, solid-js 1.9.19 and
+`@solidjs/router` 1.0.3.
 
 ```ts
 // vite.config.ts
@@ -12,28 +14,42 @@ export default defineConfig({
 });
 ```
 
-`backend` / `intl` は[共通builder](build.md)の同名設定です。Nitroは使いません。
+`backend` and `intl` are the [builder's](build.md) settings. Nitro is not
+used.
 
-## 出力
+## Output
 
-clientを `build/client/`、serverを `node_modules/.cache/fetchlet-solid-start/` へbuildし、`entry-server` のh3 appを接続した `build/server.js` と `build/fetchlet.json` を書きます。
+The client builds to `build/client/` and the server to
+`node_modules/.cache/fetchlet-solid-start/`; the plugin then writes
+`build/server.js`, connected to the h3 app of `entry-server`, and
+`build/fetchlet.json`.
 
-SSR environmentは依存をすべてbundleします。条件の `solid` はSolidのlibraryをSSR用にsourceからcompileし、`worker` はsolid-jsのserver buildを選びます。h3はruntime非依存のbuildのままです。
+The SSR environment bundles every dependency. The `solid` condition compiles
+Solid libraries from source for SSR, and `worker` selects solid-js's server
+build. h3 keeps its runtime-neutral build.
 
-`assets: true` はclient assetsを `assets.flpk` にまとめ、`_build/assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`assets: true` packs the client assets into `assets.flpk` and caches
+`_build/assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
 
-## request context
+## Request context
 
-entryはh3が読むRequestの `ip`、`waitUntil`、`runtime` を設定します。`getRequestEvent().clientAddress`、h3の `getRequestIP(event)`、`event.waitUntil` はそのまま使えます。bindingは `getRequestContext()` で読みます。
+The entry sets the `ip`, `waitUntil` and `runtime` that h3 reads from the
+request, so `getRequestEvent().clientAddress`, h3's `getRequestIP(event)`
+and `event.waitUntil` work as usual. Bindings come from
+`getRequestContext()`:
 
 ```ts
 import { getRequestContext } from "fetchlet/solid-start/context";
 
-const { clientAddress, env, waitUntil } = getRequestContext(); // API routeでは getRequestContext(event)
+const { clientAddress, env, waitUntil } = getRequestContext(); // getRequestContext(event) in API routes
 ```
 
-`FetchletBindings` をmodule augmentationで宣言すると `env` に型が付きます。SolidStartとsolid-jsは `node:async_hooks` を使うため、共通builderの `asyncContext: "serialized"` を有効にしています。
+Declaring `FetchletBindings` through module augmentation types `env`.
+SolidStart and solid-js use `node:async_hooks`, so the plugin enables the
+builder's `asyncContext: "serialized"`.
 
-## 注意
+SolidStart builds each method handler of an API route (GET, POST, …) as its
+own module; keep state shared between handlers in a separate module.
 
-SolidStartはAPI routeのGET / POSTなどをそれぞれ別のmoduleとしてbuildします。handler間で共有する状態は別moduleに置きます。
+Solid 2 support waits for a SolidStart release that accepts it
+([open work](../../../docs/TODO.md#solid-2)).

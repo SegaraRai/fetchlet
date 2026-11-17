@@ -1,6 +1,8 @@
 # fetchlet/tanstack-start
 
-TanStack Startのserver environmentをfetchlet用IIFEへbundleするVite pluginです。@tanstack/react-start 1.169.5 / @tanstack/react-router 1.170.46 / React 19.3.1を検証しています。
+A Vite plugin that bundles TanStack Start's server environment into a
+fetchlet artifact. Verified with `@tanstack/react-start` 1.169.5,
+`@tanstack/react-router` 1.170.46 and React 19.3.1.
 
 ```ts
 // vite.config.ts
@@ -12,25 +14,34 @@ export default defineConfig({
 });
 ```
 
-`backend` / `intl` は[共通builder](build.md)の同名設定です。
+`backend` and `intl` are the [builder's](build.md) settings.
 
-## 出力
+## Output
 
-clientを `build/client/`、serverを `node_modules/.cache/fetchlet-tanstack-start/` へbuildし、serverの `fetch` を接続した `build/server.js` と `build/fetchlet.json` を書きます。
+The client builds to `build/client/` and the server to
+`node_modules/.cache/fetchlet-tanstack-start/`; the plugin then writes
+`build/server.js`, connected to the server's `fetch`, and
+`build/fetchlet.json`.
 
-SSR environmentは `worker` / `edge-light` 条件で依存をすべてbundleします。router-coreはserver用のbuildになります。`react-dom/server` は `react-dom/server.edge` に解決します（worker用のbuildは `MessageChannel` を使います）。Startがmodule評価時に読む `process.env.TSS_PRERENDERING` と `TSS_SHELL` は `"false"` に置き換えます。
+The SSR environment bundles every dependency with the `worker` and
+`edge-light` conditions, so router-core uses its server build.
+`react-dom/server` resolves to `react-dom/server.edge` (the worker build
+uses `MessageChannel`). `process.env.TSS_PRERENDERING` and `TSS_SHELL`,
+which Start reads while evaluating modules, are replaced with `"false"`.
 
-`assets: true` はclient assetsを `assets.flpk` にまとめ、`assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`assets: true` packs the client assets into `assets.flpk` and caches
+`assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
 
-## request context
+## Request context
 
-server function、server route、middlewareの `context` は `FetchletRequestContext` です。
+The `context` of server functions, server routes and middleware is a
+`FetchletRequestContext`:
 
-| 値              | 内容                                                       |
-| --------------- | ---------------------------------------------------------- |
-| `clientAddress` | Rustのrequest contextの接続元                              |
-| `env`           | Rustの固定binding                                          |
-| `waitUntil`     | 応答後の処理の登録。Rustのbackground予算の範囲で完了を待つ |
+| Value           | Content                                                            |
+| --------------- | ------------------------------------------------------------------ |
+| `clientAddress` | The client address of the request context                          |
+| `env`           | Rust's fixed bindings                                              |
+| `waitUntil`     | Registers work after the response, within Rust's background budget |
 
 ```ts
 import type { FetchletRequestContext } from "fetchlet/tanstack-start";
@@ -42,6 +53,8 @@ declare module "@tanstack/react-start" {
 }
 ```
 
-## 試験と次の対象
+## Tests and next work
 
-[examples/tanstack-start-axum](../../examples/tanstack-start-axum/README.md)が共通の10項目を確認します。prerender、SPA mode、Solid版のTanStack Startは個別の試験を追加して対応範囲に加えます。
+[examples/tanstack-start-axum](../../../examples/tanstack-start-axum/README.md)
+runs the shared example checks. Prerendering, SPA mode and TanStack Start
+for Solid need their own tests.

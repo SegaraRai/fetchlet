@@ -1,6 +1,9 @@
-# example benchmark
+# Example benchmark
 
-10の例のaxumサーバで、framework × JavaScript backend × endpointごとのreq/sを測ります。frameworkを使わない `bare` と、fetchletを通さずNodeで動かす `node` を比較の基準にします。
+Measures requests per second on the axum servers of the ten framework
+examples, for each framework, JavaScript backend and endpoint. `bare`, a
+handler without a framework, and `node`, the same code on Node without
+fetchlet, are the baselines.
 
 ```bash
 vp run bench
@@ -10,57 +13,87 @@ vp run bench
 vp run bench -- --frameworks honox,waku --backends quickjs,v8 --endpoints ssr,context --duration-ms 5000
 ```
 
-| 引数                            | 既定                           | 内容                                                                   |
-| ------------------------------- | ------------------------------ | ---------------------------------------------------------------------- |
-| `--frameworks`                  | `bare` と10例                  | `sveltekit`、`honox` など例の名前から `-axum` を除いた名前と `bare`    |
-| `--backends`                    | `quickjs,boa,v8,node`          | artifactのbuildとRustのBackend。`node` は下の基準                      |
-| `--endpoints`                   | `ssr,context,echo,rust,static` | 下の表                                                                 |
-| `--connections`                 | 8                              | keep-aliveの同時接続数                                                 |
-| `--warmup-ms` / `--duration-ms` | 2000 / 10000                   | 集計しない時間 / 集計する時間（endpointごと）                          |
-| `--skip-build`                  |                                | 前回のrelease binaryと `.cache/bench` のartifactを使う                 |
-| `--merge`                       |                                | 測った組み合わせだけ既存の結果の行を置き換える（接続数と時間は同じ値） |
+| Argument                        | Default                        | Meaning                                                                                 |
+| ------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
+| `--frameworks`                  | `bare` and the ten examples    | Example names without `-axum`, such as `sveltekit` or `honox`, and `bare`               |
+| `--backends`                    | `quickjs,boa,v8,node`          | The artifact build and Rust `Backend`; `node` is the baseline below                     |
+| `--endpoints`                   | `ssr,context,echo,rust,static` | The table below                                                                         |
+| `--connections`                 | 8                              | Concurrent keep-alive connections                                                       |
+| `--warmup-ms` / `--duration-ms` | 2000 / 10000                   | Unmeasured and measured time per endpoint                                               |
+| `--skip-build`                  |                                | Reuse the previous release binaries and the artifacts in `.cache/bench`                 |
+| `--merge`                       |                                | Replace only the measured rows of the existing results (same connections and durations) |
 
-## 測るもの
+## Endpoints
 
-| endpoint  | request                                         | 経路                                        |
-| --------- | ----------------------------------------------- | ------------------------------------------- |
-| `ssr`     | `GET /?name=bench`（browserのUser-Agent）       | JSのSSR。RUST service bindingを1回呼ぶ      |
-| `context` | `GET /api/context`                              | JSのJSON endpoint。request contextとbinding |
-| `echo`    | `POST /api/echo`（JSON 35 bytes、`Origin`付き） | JSでrequest bodyを読んでJSONを返す          |
-| `rust`    | `GET /api/rust`                                 | axumのhandler。JSを通らない基準             |
-| `static`  | `GET /health.txt`                               | tower-httpのServeDir。JSを通らない基準      |
+| Endpoint  | Request                                          | Path                                                     |
+| --------- | ------------------------------------------------ | -------------------------------------------------------- |
+| `ssr`     | `GET /?name=bench` with a browser User-Agent     | JavaScript SSR that calls the RUST service binding once  |
+| `context` | `GET /api/context`                               | A JavaScript JSON endpoint: request context and bindings |
+| `echo`    | `POST /api/echo`, 35 bytes of JSON with `Origin` | Reads the request body in JavaScript and returns JSON    |
+| `rust`    | `GET /api/rust`                                  | An axum handler; a baseline without JavaScript           |
+| `static`  | `GET /health.txt`                                | tower-http's `ServeDir`; a baseline without JavaScript   |
 
-各組み合わせで次の手順を実行します。
+For each combination:
 
-1. `cargo build --release` で例のサーバを `boa` / `v8` featureつきでbuildします。
-2. `FETCHLET_BACKEND=<backend>` で例のfrontendをbuildし、`fetchlet.json` のbackendを確認して `.cache/bench/<framework>/<backend>/build` へ複製します。最後に例の `build/` を既定のbackendで作り直します。
-3. 例の `config.json` に `backend`、複製したbuild、`listen: 127.0.0.1:0` を設定してサーバを起動します。`queue_capacity` は接続数以上にします。
-4. endpointごとに1回requestして2xxを確認してから、`fetchlet-bench` で負荷をかけます。
+1. `cargo build --release` builds the example server with the `boa` and
+   `v8` features.
+2. The example frontend is built with `FETCHLET_BACKEND=<backend>`; the
+   backend in `fetchlet.json` is checked and the build is copied to
+   `.cache/bench/<framework>/<backend>/build`. Afterwards the example's
+   `build/` is rebuilt with the default backend.
+3. The server starts with the example's `config.json`, with `backend`, the
+   copied build and `listen: 127.0.0.1:0`. `queue_capacity` is at least the
+   number of connections.
+4. Each endpoint is requested once and must answer 2xx, then `fetchlet-bench`
+   applies load.
 
-サーバは例と同じ構成です。tokioの `current_thread` runtimeでaxumが動き、1つのAppが1つのworker threadでrequestを順に実行します。`fetchlet-bench` は各接続で応答本文を読み終えてから次のrequestを送るclosed loopで、clientは2 threadのtokio runtimeです。req/sは集計時間内に完了した2xxの数、遅延は送信から本文の終わりまでです。
+The server matches the examples: axum on tokio's `current_thread` runtime,
+with one App running requests in order on one worker thread.
+`fetchlet-bench` is a closed loop that reads each response body before
+sending the next request on that connection, with a two-thread tokio
+client. Requests per second count the 2xx responses completed in the
+measured time; latency runs from sending to the end of the body.
 
-結果は `results/bench.json`（全数値）と `results/bench.md`（表）に書き、サーバのstderrを `.cache/bench/<framework>/<backend>/server.log` に残します。
+Results go to `results/bench.json` (every number) and `results/bench.md`
+(tables); server stderr stays in `.cache/bench/<framework>/<backend>/server.log`.
 
-## 基準
+## Baselines
 
-`bare`（[bare/app.ts](bare/app.ts)）は例と同じ `/`、`/api/context`、`/api/echo` を標準のRequest / Responseだけで実装したhandlerです。fetchletでは[build-artifact.ts](build-artifact.ts)が共通builderでartifactにし、HonoX例のRustサーバ（同じhost service）で動かします。
+`bare` ([bare/app.ts](bare/app.ts)) implements the examples' `/`,
+`/api/context` and `/api/echo` with standard Request and Response only.
+[build-artifact.ts](build-artifact.ts) builds it with the builder, and it
+runs on the HonoX example's Rust server with the same host service.
 
-`node` は[node-server.ts](node-server.ts)がnode:httpで同じendpointを1 processで配信します。
+`node` serves the same endpoints from [node-server.ts](node-server.ts) with
+`node:http` in one process.
 
-- frameworkの行はv8向けartifactの `build/server.js` をNodeのmain contextで評価します。fetchlet/runtimeは既存のglobalを保持するため、frameworkはNode自身のRequest、Response、Streams、timersで動きます。各frameworkの公式Node adapterではありません。
-- `bare` の行はhandlerを直接importし、fetchletのbuildとruntimeを通しません。
-- RUST bindingはprocess内でJSONを返します。`/api/rust` と `/health.txt` はaxumの経路に合わせたNodeの実装です。
+- Framework rows evaluate the `v8` artifact's `build/server.js` in Node's
+  main context. `fetchlet/runtime` keeps existing globals, so the framework
+  runs on Node's own Request, Response, Streams and timers. These are not the
+  frameworks' official Node adapters.
+- The `bare` row imports the handler directly, without fetchlet's build or
+  runtime.
+- The RUST binding returns JSON in-process; `/api/rust` and `/health.txt`
+  are Node implementations matching the axum paths.
 
-## 読み方
+## Reading the numbers
 
-- 1つのworkerがJSを直列に実行するため、JS endpointのreq/sはほぼ1 requestの実行時間の逆数です。接続数を増やすと遅延が伸び、req/sはほとんど変わりません。
-- `rust` / `static` はaxumとclientの上限の目安で、JS endpointとの差がfetchletとframeworkの費用です。
-- `bare` とframeworkの差がframeworkの費用、`bare` の `node` と各backendの差がfetchletの呼び出しとengineの費用です。
-- client、サーバとOSが同じ機械を共有します。異なる機械の数値は比較しません。
+- One worker runs JavaScript serially, so the requests per second of a
+  JavaScript endpoint are roughly the inverse of one request's execution
+  time. More connections raise latency and barely change throughput.
+- `rust` and `static` approximate the limit of axum and the client; the
+  difference to a JavaScript endpoint is the cost of fetchlet and the
+  framework.
+- The difference between `bare` and a framework is the framework's cost;
+  between `bare` on `node` and on each backend, the cost of fetchlet's call
+  and the engine.
+- Client, server and OS share one machine. Do not compare numbers across
+  machines.
 
-## 呼び出しの内訳
+## Call breakdown
 
-`invoke` はHTTPを通さずにAppを直接呼び、1回のfetchを段階に分けて測ります。[probe/entry.ts](probe/entry.ts)をbackendごとにbuildしてから実行します。
+`invoke` calls the App directly, without HTTP, and times one fetch in
+stages. Build [probe/entry.ts](probe/entry.ts) per backend first.
 
 ```bash
 node tools/bench/build-artifact.ts probe .cache/bench/probe/quickjs/build quickjs
@@ -70,26 +103,31 @@ node tools/bench/build-artifact.ts probe .cache/bench/probe/quickjs/build quickj
 node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin invoke -- .cache/bench/probe --backends quickjs --iterations 3000
 ```
 
-| 値                                                   | 内容                                                               |
-| ---------------------------------------------------- | ------------------------------------------------------------------ |
-| `js_us`                                              | JS内のloopで測った1回の時間。`url`、`request`、`wireResponse` など |
-| `host_us.call_noop`                                  | 何もしないexportの汎用呼び出し                                     |
-| `host_us.fetch_raw`                                  | Web APIのobjectを作らずwire objectを返すFetch entry                |
-| `host_us.fetch_request_only` / `fetch_response_only` | Requestだけ / Responseだけを作るFetch entry                        |
-| `host_us.fetch_context` / `fetch_echo` / `fetch_ssr` | bareのhandler                                                      |
-| `host_us.worker_*`                                   | 同じ呼び出しをworker thread（HTTPサーバと同じ経路）で              |
+| Value                                                | Meaning                                                                             |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `js_us`                                              | Time per iteration of a loop inside JavaScript: `url`, `request`, `wireResponse`, … |
+| `host_us.call_noop`                                  | A function call to an export that does nothing                                      |
+| `host_us.fetch_raw`                                  | A Fetch entry that returns a wire object without Web API objects                    |
+| `host_us.fetch_request_only` / `fetch_response_only` | A Fetch entry that creates only a Request / only a Response                         |
+| `host_us.fetch_context` / `fetch_echo` / `fetch_ssr` | The bare handler                                                                    |
+| `host_us.worker_*`                                   | The same calls on a worker thread, the HTTP server's path                           |
 
-同じ機械でも1回の実行は外れ値を含むことがあるため、複数回実行して比べます。
+Single runs can include outliers even on one machine; compare several runs.
 
-## host URL parserの効果
+## Effect of the host URL parser
 
-URLをcore-jsからhostの `url` crateへ移した変更を、同じ機械で比べた値です。`invoke` は2000回を2回ずつ、HTTPは同じartifactを差し替えて旧・新を2巡交互に5秒ずつ測った平均です。
+Moving URL parsing from core-js to the host's `url` crate, measured on one
+machine: `invoke` averaged two runs of 2000 iterations; HTTP swapped the
+artifact and alternated old and new twice for five seconds each.
 
-| `invoke`（µs）          | QuickJS 旧 → 新   | V8 旧 → 新        |
+| `invoke` (µs)           | QuickJS old → new | V8 old → new      |
 | ----------------------- | ----------------- | ----------------- |
 | `js_us.url`             | 53–63 → 6–7       | 16–25 → 4.4–4.6   |
 | `js_us.request`         | 72–81 → 15        | 18–21 → 5.2       |
 | `host_us.fetch_context` | 296–370 → 131–142 | 122–149 → 55–59   |
 | `host_us.fetch_ssr`     | 507–646 → 266–272 | 243–246 → 124–129 |
 
-HTTPのreq/sはbare、HonoX、SvelteKit、React Routerのssr / context / echoで、QuickJSが+23〜+138%、V8が+20〜+50%でした。最も大きいのはURLを複数回作るReact Routerのcontext（QuickJS 618 → 1468 req/s）です。`results/bench.json` の全行列はこの変更の前の計測です。
+HTTP throughput for `ssr`, `context` and `echo` on bare, HonoX, SvelteKit and
+React Router rose 23–138% on QuickJS and 20–50% on V8. The largest gain was
+React Router's `context`, which builds several URLs (QuickJS 618 → 1468
+req/s). The full matrix in `results/bench.json` predates this change.

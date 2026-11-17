@@ -1,89 +1,125 @@
 # SvelteKit + axum
 
-SvelteKitでHTMLを生成し、axumがHTTPとJS / CSSを配信する例です。ブラウザでカウンターとフォームを操作し、別ページへのクライアント遷移を試せます。
+SvelteKit renders the HTML and axum serves HTTP, JavaScript and CSS. Try the
+counter and the form in a browser, and navigate between pages on the
+client.
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-sveltekit-axum#serve
 ```
 
-`http://127.0.0.1:3000` を開きます。taskはSvelteKitをbuildしてからRustサーバを起動します。終了はCtrl+Cです。
+Open `http://127.0.0.1:3000`. The task builds SvelteKit and starts the Rust
+server; stop it with Ctrl+C.
 
-## 構成
+## Layout
 
-| 場所           | 役割                                                                   |
-| -------------- | ---------------------------------------------------------------------- |
-| web/           | SvelteKitのページ、action、endpoint、公開ファイル                      |
-| vite.config.ts | SvelteKitとfetchlet adapterのbuild設定                                 |
-| src/           | axumのrouting、本文変換、公開handle / HTTP adapterの利用、Rust service |
-| config.json    | 待受、キュー、本文予算、期限、env                                      |
-| tests/e2e.ts   | 実HTTPと実ブラウザによる検証                                           |
-| build/         | server.js、client/、fetchlet.jsonの生成先                              |
+| Path             | Role                                                                |
+| ---------------- | ------------------------------------------------------------------- |
+| `web/`           | SvelteKit pages, actions, endpoints and public files                |
+| `vite.config.ts` | Build settings for SvelteKit and the fetchlet adapter               |
+| `src/`           | axum routing, the shared handle and HTTP integration, Rust services |
+| `config.json`    | Listen address, queue, body budgets, deadlines, env                 |
+| `tests/e2e.ts`   | Checks over real HTTP in a real browser                             |
+| `build/`         | Output: `server.js`, `client/`, `fetchlet.json`                     |
 
-Rustの `/api/rust` とSvelteKitのrouteを同じサーバで扱います。静的ファイルを先に配信し、動的なRequestをJSへ渡します。POST等もSvelteKitへ配送します。
+One server handles Rust's `/api/rust` and SvelteKit's routes. Static files
+are served first and dynamic requests go to JavaScript, including POST and
+other methods.
 
-## bindingとcontext
+## Bindings and context
 
-Rustが `MESSAGE` と `RUST` serviceを固定bindingとして渡します。adapterはSvelteKitの `platform.env` に接続し、文字列のbindingをserver初期化のenvへ渡します。ページのloadはRust serviceから挨拶を取得します。
+Rust passes `MESSAGE` and the `RUST` service as fixed bindings. The adapter
+connects them to SvelteKit's `platform.env` and passes string bindings to
+the server's initialization env. The page's load fetches a greeting from the
+Rust service.
 
-接続元IPは `App::fetch_with_context` の引数で渡し、adapterが `getClientAddress()` へ接続します。共有globalへのリクエスト情報の書き換えを伴わない方式です。
+The client IP travels in the context argument of `App::fetch_with_context`,
+which the adapter connects to `getClientAddress()`; no request data is
+written to shared globals.
 
-## プロセス内のRust API
+## In-process Rust API
 
-`src/services.rs` の `api_router` は、Rust APIを一つのaxum routerとして定義します。
+`api_router` in `src/services.rs` defines the Rust API as one axum router.
 
-- サーバは同じrouterを `/api/v1` へmountし、ブラウザーへ公開します。
-- `OriginRouter::internal("https://rust.fetchlet.test", router_transport(...))` で同じrouterをプロセス内に登録し、`RUST` bindingとglobal fetchの両方へ渡します。policyはこのoriginだけを許可します。
-- JSからの呼び出しはsocketを使わずにrouterへ届き、Rustのアプリ状態を共有します。
-- `FetchletService::trusted_context` が接続元IPから `Caller` を作り、`fetchlet::Context` としてSSRのInvocationへ渡します。`/caller` handlerはこのContextだけを使い、headersは参照しません。
+- The server mounts it at `/api/v1` for browsers.
+- `OriginRouter::internal("https://rust.fetchlet.test", router_transport(...))`
+  registers the same router in-process and passes it to both the `RUST`
+  binding and global `fetch`. The policy allows only that origin.
+- Calls from JavaScript reach the router without a socket and share the
+  Rust application's state.
+- `FetchletService::trusted_context` builds a `Caller` from the client IP
+  and passes it to the SSR invocation as a `fetchlet::Context`. The
+  `/caller` handler uses only that Context, never headers.
 
-| route                    | 内容                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| /projects                | loadが `event.fetch` で一覧を取得し、actionが `RUST.fetch` で追加する。空の名前は400 |
-| /api/projects/[id]       | Rust APIのResponseをそのまま返す。存在しないidは404                                  |
-| /api/in-process/failure  | Rust handlerの500がそのままResponseとして届く                                        |
-| /api/in-process/caller   | `x-forwarded-for` を付けても、Contextの接続元（127.0.0.1）が返る                     |
-| /api/in-process/denied   | 許可外originはbinding、global fetch、`event.fetch` のいずれも `PERMISSION_DENIED`    |
-| /api/in-process/abort    | 50 msでabortし、同じInvocation内の次の呼び出しでRust handlerのdropを確認する         |
-| /api/in-process/internal | 同一originの `event.fetch` はSvelteKitがJS内で処理し、Rust APIを呼ばない             |
-| /api/v1/*                | 同じrouterの公開HTTP。`/api/v1/caller` はContextがないため401                        |
-| /api/v1/stats            | Rust APIの呼び出し数とcancel数（プロセス内の `/stats` と同じ値）                     |
+| Route                      | Behavior                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| `/projects`                | load lists projects with `event.fetch`; the action adds one with `RUST.fetch`; an empty name is 400 |
+| `/api/projects/[id]`       | Returns the Rust API's response as it is; an unknown id is 404                                      |
+| `/api/in-process/failure`  | A 500 from the Rust handler arrives as a Response                                                   |
+| `/api/in-process/caller`   | Returns the Context's client address (127.0.0.1) even with `x-forwarded-for` set                    |
+| `/api/in-process/denied`   | An unregistered origin is `PERMISSION_DENIED` through the binding, global `fetch` and `event.fetch` |
+| `/api/in-process/abort`    | Aborts after 50 ms; the next call in the same invocation confirms the Rust handler was dropped      |
+| `/api/in-process/internal` | A same-origin `event.fetch` is handled by SvelteKit in JavaScript, without the Rust API             |
+| `/api/v1/*`                | The same router over public HTTP; `/api/v1/caller` has no Context and answers 401                   |
+| `/api/v1/stats`            | The Rust API's call and cancel counts, the same as in-process `/stats`                              |
 
-HTTPエラーはResponse、権限拒否・cancel・transportのエラーはrejectとしてJSへ届きます。
+HTTP errors arrive in JavaScript as responses; permission denials,
+cancellations and transport errors as rejections.
 
-## 応答後の処理
+## Work after the response
 
-`/api/background` は `platform.context.waitUntil` で応答後の処理を登録し、同じworkerは次のリクエストの前にその処理を完了します。予算はconfig.jsonのbackground_timeout_ms（5秒）とbackground_tasks（8件）です。
+`/api/background` registers work with `platform.context.waitUntil`; the
+worker finishes it before the next request. The budgets are
+`background_timeout_ms` (5 seconds) and `background_tasks` (8) in
+`config.json`.
 
-## 設定と実行管理
+## Configuration
 
-`config.json` はこのローカル例の運用設定です。queue_capacityは8、Request本文は1 MiB、協調的期限は10秒を選んでいます。小さなページとフォームを扱う例の設定として、用途に応じて変更できます。本文と期限はnullでホスト側の管理へ委ねられます。
+`config.json` holds this local example's operating choices: a queue of 8, a
+1 MiB request body and a 10-second cooperative deadline, sized for small
+pages and forms. Change them for other uses; `null` body and deadline values
+leave those budgets to the host.
 
-AppHandleが所有スレッド、キュー、キャンセルとInstance再生成を担当します。FetchletServiceがaxumのHTTP本文とcontextを接続します。例は公開APIを利用します。
+`AppHandle` owns the thread, queue, cancellation and instance rebuilding,
+and `FetchletService` connects axum's bodies and context. The example uses
+only public APIs.
 
-別の設定を使う場合は、build後にRustサーバへ設定ファイルを渡します。
+To use another configuration, pass its path to the server after building:
 
-```powershell
+```bash
 node tools/workspace/cargo.ts run --locked -p example-sveltekit-axum -- path/to/config.json
 ```
 
-build_directoryは設定ファイルからの相対パス、または絶対パスです。public_originを設定すると、proxyの外側の公開originをRequestに使います。既定は実際のlisten先です。
+`build_directory` is relative to the configuration file or absolute.
+`public_origin` sets the public origin outside a proxy for requests; it
+defaults to the actual listen address.
 
-cookieはローカルHTTP用です。HTTPSの構成ではactionのcookieをsecureに設定します。現在のprofileはSvelteの同期renderingとbuffered本文を使います。非同期actionは試験に含みます。streaming、server側asset read、強制的なCPU停止は共通基盤の拡張対象です。
+Cookies are set for local HTTP; set the action's cookie to `secure` behind
+HTTPS. This example uses Svelte's synchronous rendering; asynchronous
+actions are covered by the checks.
 
-## E2E試験
+## End-to-end checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- sveltekit-axum
 ```
 
-インストール済みChromeを使う場合は `FETCHLET_BROWSER_CHANNEL=chrome` を環境変数に設定します。
+Set `FETCHLET_BROWSER_CHANNEL=chrome` to use an installed Chrome.
 
-検査するのはSSRとescape、JS / CSS / 静的ファイル、JSON endpoint、form actionとSet-Cookie、client addressとenv、Rust route、本文予算、応答後の処理、プロセス内Rust API（公開HTTPとの共用、HTTPエラー、信頼できるContext、origin policy、cancel、`event.fetch` の分担）、並行Request、hydrationとフォーム送信、クライアント遷移です。結果は `results/example-sveltekit-axum.json` に保存します。
+The checks cover SSR and escaping, JavaScript, CSS and static files, JSON
+endpoints, form actions and `Set-Cookie`, the client address and env, the
+Rust route, body budgets, work after the response, the in-process Rust API
+(shared with public HTTP, HTTP errors, trusted Context, origin policy,
+cancellation, the `event.fetch` split), concurrent requests, hydration and
+form submission, and client navigation. Results go to
+`results/example-sveltekit-axum.json`.
 
-adapterの入口は[SvelteKit adapter API](https://svelte.dev/docs/kit/writing-adapters)、HTTPと静的配信は[axum](https://docs.rs/axum/0.8.9/axum/)と[ServeDir](https://docs.rs/tower-http/0.7.1/tower_http/services/struct.ServeDir.html)を使用しています。
+The adapter uses the [SvelteKit adapter API](https://svelte.dev/docs/kit/writing-adapters);
+HTTP and static serving use [axum](https://docs.rs/axum/0.8.9/axum/) and
+fetchlet-http's `artifact_router`.

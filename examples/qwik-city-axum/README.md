@@ -1,39 +1,50 @@
 # Qwik City + axum
 
-Qwik Cityのresumable SSR、`routeLoader$`、endpointをaxumから配信する例です。[fetchlet/qwik-city](../../packages/fetchlet/docs/qwik-city.md)でserverをartifactにします。
+Serves Qwik City's resumable SSR, `routeLoader$` and endpoints from axum.
+[fetchlet/qwik-city](../../packages/fetchlet/docs/qwik-city.md) builds the
+server into an artifact.
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-qwik-city-axum#serve
 ```
 
-http://127.0.0.1:3700 を開きます。taskはclient buildとSSR build（`vp build --ssr`）をしてからサーバ（QuickJS）を起動します。
+Open `http://127.0.0.1:3700`. The task runs the client build and the SSR
+build (`vp build --ssr`), then starts the server on QuickJS.
 
-## 構成
+## Layout
 
-| 場所                   | 役割                                                |
-| ---------------------- | --------------------------------------------------- |
-| src/routes/            | page、layout、endpoint（`onGet` / `onPost`）        |
-| src/entry.fetchlet.tsx | fetchletのserver entry                              |
-| vite.config.ts         | Qwik、Qwik City、fetchletのVite pluginとVite+のtask |
-| src/                   | axumの起動・binding・routing                        |
-| config.json            | 待受、キュー、本文予算、期限、background予算、stack |
-| tests/e2e.ts           | 実HTTPと実ブラウザによる検証                        |
-| build/                 | server.js、client/、fetchlet.json                   |
+| Path                     | Role                                                                      |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `src/routes/`            | Pages, layouts, endpoints (`onGet`, `onPost`)                             |
+| `src/entry.fetchlet.tsx` | fetchlet's server entry                                                   |
+| `vite.config.ts`         | Qwik, Qwik City and fetchlet Vite plugins, Vite+ tasks                    |
+| `src/`                   | Starting axum, bindings, routing                                          |
+| `config.json`            | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.ts`           | Checks over real HTTP in a real browser                                   |
+| `build/`                 | `server.js`, `client/`, `fetchlet.json`                                   |
 
-Qwikはhydrationせずにresumeします。counterの `data-hydrated` は `useVisibleTask$` が設定します。Qwikはcomponentのstyleをinline化し、chunkを `/build/` から読みます。
+Qwik resumes instead of hydrating; the counter's `data-hydrated` is set by
+`useVisibleTask$`. Qwik inlines component styles and loads chunks from
+`/build/`.
 
-config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB）は[React Router例](../react-router-axum/README.md#stack)と同じ値です。このframeworkで必要な最小値は測定していません。
+`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
+`config.json` match the [React Router example](../react-router-axum/README.md#stack);
+the minimum this framework needs has not been measured.
 
-## 検証
+## Checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- qwik-city-axum
 ```
 
-SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/examples/common-checks.ts）で確認します。結果はresults/example-qwik-city-axum.jsonです。
+The shared ten checks (`tools/examples/common-checks.ts`) cover SSR and
+escaping, the Rust service binding, assets, JSON endpoints, client address
+and bindings, the axum route, body budgets, streaming uploads, `waitUntil`,
+concurrent requests, hydration and navigation. Results go to
+`results/example-qwik-city-axum.json`.

@@ -1,6 +1,7 @@
 # fetchlet/waku
 
-Wakuのserver entry adapterです。WakuのRSC serverをfetchlet用IIFEへbundleします。waku 1.0.0-rc.5 / React 19.3.1を検証しています。
+A Waku server entry adapter that bundles Waku's RSC server into a fetchlet
+artifact. Verified with waku 1.0.0-rc.5 and React 19.3.1.
 
 ```tsx
 // src/waku.server.tsx
@@ -17,15 +18,21 @@ const modules = Object.fromEntries(
 export default adapter(fsRouter(modules), { backend: "quickjs" });
 ```
 
-`backend` / `intl` / `outDir` は[共通builder](build.md)と同じ設定です。`middlewareFns` / `middlewareModules` はWakuの他のadapterと同じです。buildは `waku build` です。
+`backend`, `intl` and `outDir` are the [builder's](build.md) settings;
+`middlewareFns` and `middlewareModules` work as in Waku's other adapters.
+Build with `waku build`.
 
-## 出力
+## Output
 
-Wakuのstatic generationの後に、`dist/server/index.js` を接続した `build/server.js` と `build/fetchlet.json` を書き、`dist/public` を `build/client` へ移動します。Wakuは `dist/public` の名前を固定しており、client buildと生成したページをそこへ書くためです。
+After Waku's static generation, the adapter writes `build/server.js`,
+connected to `dist/server/index.js`, and `build/fetchlet.json`, and moves
+`dist/public` to `build/client`. Waku fixes the name `dist/public` and
+writes the client build and generated pages there.
 
-`assets: true` はclient assetsを `assets.flpk` にまとめ、`assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`assets: true` packs the client assets into `assets.flpk` and caches
+`assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
 
-## request context
+## Request context
 
 ```ts
 import { getRequestContext } from "fetchlet/waku/context";
@@ -33,6 +40,13 @@ import { getRequestContext } from "fetchlet/waku/context";
 const { clientAddress, env, waitUntil } = getRequestContext();
 ```
 
-server component、server function、API routeで現在のrequestのcontextを返します。WakuはAPI handlerへRequestの複製を渡すため、引数なしで呼びます。Hono middlewareでは `c.env` がbinding、`c.executionCtx.waitUntil` が応答後の処理の登録です。文字列のbindingはWakuの `getEnv(name)` でも読めます。Wakuの `node:async_hooks` は共通builderの `asyncContext: "serialized"` で置き換えます。
+It returns the current request's context in server components, server
+functions and API routes. Waku passes API handlers a copy of the request, so
+call it without arguments. In Hono middleware, `c.env` holds the bindings
+and `c.executionCtx.waitUntil` registers work after the response. String
+bindings are also readable with Waku's `getEnv(name)`. Waku's
+`node:async_hooks` is replaced by the builder's
+`asyncContext: "serialized"`.
 
-本文の上限はAppのrequest予算が持ちます。adapterはHonoの `bodyLimit` を使いません。
+The app's request budget limits the body; the adapter does not use Hono's
+`bodyLimit`.

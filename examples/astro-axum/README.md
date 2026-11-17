@@ -1,37 +1,62 @@
 # Astro + axum
 
-Astroで動的なHTMLとendpointを作り、axumから配信する例です。Svelte islandをhydrationし、カウンター、フォーム、Astroのclient navigationを操作できます。
+Astro renders dynamic HTML and endpoints, served by axum. A Svelte island
+hydrates in the browser; try the counter, the form and Astro's client
+navigation.
 
-## 起動
+## Run
 
-リポジトリのルートから実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-astro-axum#serve
 ```
 
-http://127.0.0.1:3100 を開きます。Rust側はQuickJSを使用します。AstroのIntl.DateTimeFormat要求と依存APIは、adapterがFormatJSで補います。SvelteKit例のQuickJSと同じAppHandle / fetchlet-http APIを使います。
+Open `http://127.0.0.1:3100`. Rust runs QuickJS, and the adapter adds
+FormatJS for Astro's `Intl.DateTimeFormat` requirement and its dependencies.
+The host uses the same `AppHandle` and fetchlet-http APIs as the SvelteKit
+example.
 
-## 構成と設定
+## Layout and configuration
 
-web/がAstroのページ、endpoint、Svelte component、assetsです。astro.config.tsでbackendをquickjsへ合わせ、Intlのlocaleとタイムゾーンデータも構成できます。既定はenとUTCです。V8向けのbuildではbackend: "v8"を選ぶとFormatJSがbundleから外れ、Rust側もBackend::v8()とv8 featureへ揃えます。設定は[共通builder](../../packages/fetchlet/docs/build.md)を参照してください。
+`web/` holds Astro's pages, endpoints, Svelte components and assets.
+`astro.config.ts` sets the backend to `quickjs` and can configure Intl
+locales and time zone data (default: `en` and UTC). A `backend: "v8"` build
+leaves FormatJS out of the bundle; the Rust side then uses `Backend::v8()`
+and the `v8` feature ([builder](../../packages/fetchlet/docs/build.md)).
 
-astro.config.tsがframework設定、vite.config.tsがVite+ taskを持ちます。src/はRustの起動・binding・routingだけを担当します。
+`astro.config.ts` holds the framework configuration and `vite.config.ts`
+the Vite+ tasks. `src/` only starts Rust, sets bindings and routes.
 
-AppHandleが所有スレッド、キュー、キャンセルとInstance再生成を管理します。FetchletServiceがHTTP変換とclient addressを渡します。RustサービスとMESSAGEはAstro.locals.envから使います。
+`AppHandle` manages the thread, queue, cancellation and instance
+rebuilding, and `FetchletService` converts HTTP and passes the client
+address. Rust services and `MESSAGE` are read from `Astro.locals.env`.
 
-config.jsonで待受、キュー、本文予算、期限、出力先を設定します。このローカル例はキュー8件、Request本文1 MiB、協調的期限10秒を選んでいます。public_originはproxyの外側のorigin指定に使えます。詳細な設定方法はSvelteKit例と共通です。
+`config.json` sets the listen address, queue, body budgets, deadline and
+build directory. This local example uses a queue of 8, a 1 MiB request body
+and a 10-second cooperative deadline; `public_origin` sets the origin
+outside a proxy. Configuration works as in the SvelteKit example.
 
-AstroとSvelte 5の同期SSRを使い、本文はRustへbufferとして返します。Request本文は `stream_request_bodies()` でendpointへReadableStreamとして渡し、`/api/upload` が受信しながら数えます。Content-Lengthで予算超過を宣言した本文は実行前に413、宣言のない超過はendpointのstreamのエラーとして扱います。`/api/background` は `Astro.locals.waitUntil` で応答後の処理を登録し、同じworkerは次のリクエストの前にその処理を完了します（config.jsonのbackground_timeout_ms / background_tasksが予算）。Svelte islandはSSR後にブラウザでhydrationします。cookieはローカルHTTP用で、HTTPSではsecureを設定します。
+Rendering uses Astro with Svelte 5's synchronous SSR, and the body returns
+to Rust as a buffer. Request bodies reach endpoints as a `ReadableStream`
+through `stream_request_bodies()`; `/api/upload` counts bytes as they
+arrive. A body whose `Content-Length` declares more than the budget is
+refused with 413 before execution; undeclared excess errors the endpoint's
+stream. `/api/background` registers work with `Astro.locals.waitUntil`,
+which the worker finishes before the next request (`background_timeout_ms`
+and `background_tasks` in `config.json`). Cookies are set for local HTTP;
+set `secure` behind HTTPS.
 
-## 検証
+## Checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- astro-axum
 ```
 
-インストール済みChromeにはFETCHLET_BROWSER_CHANNEL=chromeを指定できます。SSR、escape、assets、JSON endpoint、フォーム、Cookie、context、Rust route、予算、並行Request、island hydrationとclient navigationを9項目で確認します。
-
-結果はresults/example-astro-axum.jsonです。画像変換やserver islands等の拡張は、対応範囲ごとの試験を追加して進めます。
+Set `FETCHLET_BROWSER_CHANNEL=chrome` to use an installed Chrome. The checks
+cover SSR, escaping, assets, JSON endpoints, forms, cookies, context, the
+Rust route, budgets, streaming uploads, concurrent requests, island
+hydration and client navigation. Results go to
+`results/example-astro-axum.json`.

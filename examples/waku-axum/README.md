@@ -1,39 +1,50 @@
 # Waku + axum
 
-WakuのReact Server Components、SSR、API routeをaxumから配信する例です。[fetchlet/waku](../../packages/fetchlet/docs/waku.md)でserverをartifactにします。
+Serves Waku's React Server Components, SSR and API routes from axum.
+[fetchlet/waku](../../packages/fetchlet/docs/waku.md) builds the server into
+an artifact.
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-waku-axum#serve
 ```
 
-http://127.0.0.1:3800 を開きます。taskは`waku build` してからサーバ（QuickJS）を起動します。
+Open `http://127.0.0.1:3800`. The task runs `waku build`, then starts the
+server on QuickJS.
 
-## 構成
+## Layout
 
-| 場所                | 役割                                                |
-| ------------------- | --------------------------------------------------- |
-| src/pages/          | page、layout、root、API route（`_api/`）            |
-| src/waku.server.tsx | fetchletのserver entry adapter                      |
-| vite.config.ts      | Vite+のtask（Wakuは `waku build` でbuildする）      |
-| src/                | axumの起動・binding・routing                        |
-| config.json         | 待受、キュー、本文予算、期限、background予算、stack |
-| tests/e2e.ts        | 実HTTPと実ブラウザによる検証                        |
-| build/              | server.js、client/、fetchlet.json                   |
+| Path                  | Role                                                                      |
+| --------------------- | ------------------------------------------------------------------------- |
+| `src/pages/`          | Pages, layouts, root, API routes (`_api/`)                                |
+| `src/waku.server.tsx` | fetchlet's server entry adapter                                           |
+| `vite.config.ts`      | Vite+ tasks (Waku builds with `waku build`)                               |
+| `src/`                | Starting axum, bindings, routing                                          |
+| `config.json`         | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.ts`        | Checks over real HTTP in a real browser                                   |
+| `build/`              | `server.js`, `client/`, `fetchlet.json`                                   |
 
-/ はrequestごとに描画するserver componentで、`getRequestContext()` からRustのbindingを呼びます。
+`/` is a server component rendered per request that calls the Rust binding
+through `getRequestContext()`.
 
-config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB）は[React Router例](../react-router-axum/README.md#stack)と同じ値です。ReactのFizzがstack overflowから描画をやり直す深さに合わせています。
+`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
+`config.json` match the [React Router example](../react-router-axum/README.md#stack),
+sized for the depth at which React's Fizz retries rendering after a stack
+overflow.
 
-## 検証
+## Checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- waku-axum
 ```
 
-SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/examples/common-checks.ts）で確認します。結果はresults/example-waku-axum.jsonです。
+The shared ten checks (`tools/examples/common-checks.ts`) cover SSR and
+escaping, the Rust service binding, assets, JSON endpoints, client address
+and bindings, the axum route, body budgets, streaming uploads, `waitUntil`,
+concurrent requests, hydration and navigation. Results go to
+`results/example-waku-axum.json`.

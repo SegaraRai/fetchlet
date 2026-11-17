@@ -1,6 +1,9 @@
 # fetchlet/vinext
 
-[vinext](https://github.com/cloudflare/vinext)（Vite上のNext.js API実装）のApp Router serverをfetchlet用IIFEへbundleするVite pluginです。vinext 1.4.6 / React 19.3.1を検証しています。
+A Vite plugin that bundles the App Router server of
+[vinext](https://github.com/cloudflare/vinext), an implementation of the
+Next.js API on Vite, into a fetchlet artifact. Verified with vinext 1.4.6
+and React 19.3.1.
 
 ```ts
 // vite.config.ts
@@ -12,30 +15,38 @@ export default defineConfig({
 });
 ```
 
-`backend` / `intl` / `outDir` は[共通builder](build.md)と同じ設定です。
+`backend`, `intl` and `outDir` are the [builder's](build.md) settings.
 
-## 出力
+## Output
 
-client environmentは `build/client` へ直接buildします。vinextが全environmentをbuildした後に、`dist/server/index.js` を接続した `build/server.js` と `build/fetchlet.json` を書きます。rsc / ssr environmentと再bundleは `workerd` / `edge-light` / `worker` 条件で依存を解決します（`react-dom/server.edge` など）。
+The client environment builds directly to `build/client`. After vinext
+builds every environment, the plugin writes `build/server.js`, connected to
+`dist/server/index.js`, and `build/fetchlet.json`. The rsc and ssr
+environments and the rebundle resolve dependencies with the `workerd`,
+`edge-light` and `worker` conditions (`react-dom/server.edge` and so on).
 
-`assets: true` はclient assetsを `assets.flpk` にまとめ、`_next/static/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`assets: true` packs the client assets into `assets.flpk` and caches
+`_next/static/` for a year ([asset archive](../../../docs/asset-archive.md)).
 
-## Node API
+## Node APIs
 
-vinextのserverはCloudflare Workersの `nodejs_compat` を前提にNode APIを使います。pluginはartifactのbundleで次のように置き換えます。
+vinext's server uses Node APIs on the assumption of Cloudflare Workers'
+`nodejs_compat`. The plugin replaces them in the artifact bundle:
 
-| module / 値   | 置き換え                                                           |
-| ------------- | ------------------------------------------------------------------ |
-| `node:path`   | pathe 2.0.3（posix / win32）                                       |
-| `node:fs`     | ファイルが存在しないfs。vinextはmemory上のcacheを使う              |
-| `node:buffer` | buffer 6.0.3と、厳密なTextDecoderによる `isUtf8`                   |
-| `node:crypto` | @noble/hashes 2.4.0によるSHA-256の `createHash`（cache keyに使用） |
-| `node:module` | vinextがSSR buildで外部に残すReactのentryを返す `createRequire`    |
-| `process.env` | 空のobject。`process.platform` は `"linux"`                        |
+| Module or value | Replacement                                                                         |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `node:path`     | pathe 2.0.3 (posix and win32)                                                       |
+| `node:fs`       | A file system with no files; vinext uses its in-memory cache                        |
+| `node:buffer`   | buffer 6.0.3, and `isUtf8` through a fatal `TextDecoder`                            |
+| `node:crypto`   | `createHash` for SHA-256 through @noble/hashes 2.4.0 (cache keys)                   |
+| `node:module`   | `createRequire` returning the React entries vinext leaves external in the SSR build |
+| `process.env`   | An empty object; `process.platform` is `"linux"`                                    |
 
-`globalThis.fetch` の置き換え（Next.jsのfetch cache）はfetchletのruntimeが許可しています。置き換えたfetchも最終的にhostのfetchを呼び、RustのFetchPolicyがすべての送信を認可します。
+fetchlet's runtime allows replacing `globalThis.fetch`, which Next.js's
+fetch cache does. The replacement still ends in the host fetch, and Rust's
+`FetchPolicy` authorizes every send.
 
-## request context
+## Request context
 
 ```ts
 import { getRequestContext } from "fetchlet/vinext/context";
@@ -43,12 +54,16 @@ import { getRequestContext } from "fetchlet/vinext/context";
 const { clientAddress, env, waitUntil } = getRequestContext();
 ```
 
-server component、route handler、server actionで使えます。`next/server` の `after()` は `waitUntil` に接続されます。
+It works in server components, route handlers and server actions.
+`after()` from `next/server` is connected to `waitUntil`.
 
-## 予算
+## Budgets
 
-vinextは最初のrequestでroute moduleのpreloadごとに `waitUntil` を登録します。[examples/vinext-axum](../../examples/vinext-axum/README.md)は `background_tasks` を64にしています（8では最初のページの描画が予算超過で失敗しました）。
+On the first request vinext registers a `waitUntil` for each route module
+preload. [examples/vinext-axum](../../../examples/vinext-axum/README.md) sets
+`background_tasks` to 64; with 8, rendering the first page exceeded the
+budget.
 
-## 制限
-
-Pages Router、ISRのファイル永続化、`next/image` の最適化、middlewareは未検証です。Next.js本体（`next build`）の出力は対象外です。
+The Pages Router, file persistence for ISR, `next/image` optimization and
+middleware are not verified. Output of Next.js itself (`next build`) is out
+of scope.

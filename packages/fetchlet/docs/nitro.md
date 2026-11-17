@@ -1,6 +1,8 @@
 # fetchlet/nitro
 
-Nitroのサーバをfetchlet用IIFEへbundleするNitro presetです。Nuxtのように内部でNitroを使うframeworkも、`nitro.preset` の指定で同じartifactを出力します。Nuxt 4.6.4 / nitropack 2.13.6 / h3 1.15.11を検証しています。
+A Nitro preset that bundles a Nitro server into a fetchlet artifact.
+Frameworks built on Nitro, such as Nuxt, produce the same artifact with
+`nitro.preset`. Verified with Nuxt 4.6.4, nitropack 2.13.6 and h3 1.15.11.
 
 ```ts
 /// <reference types="fetchlet/nitro/types" />
@@ -13,19 +15,32 @@ export default defineNuxtConfig({
 });
 ```
 
-Nitro単体では `nitro.config.ts` に同じ `preset` と `fetchlet` を書きます。`fetchlet.backend` / `fetchlet.intl` は[共通builder](build.md)の同名設定です。
+With Nitro alone, put the same `preset` and `fetchlet` in `nitro.config.ts`.
+`fetchlet.backend` and `fetchlet.intl` are the [builder's](build.md)
+settings.
 
-## 出力
+## Output
 
-出力先は `build/` です。`server.js`、`client/`（Nitroのpublic assets）、`fetchlet.json` を書き、Nitroの `nitro.json` はfetchlet.jsonに置き換えます。Rust側のFetch entryは `handle` です。Nitroのserver bundleは `.nuxt/fetchlet/server`（Nuxtの場合）に作り、fetchlet/buildがWeb API profileの後に評価するよう再bundleします。public assetsはRustサーバが配信するため、Nitroの `serveStatic` は無効です。
+The output directory is `build/`: `server.js`, `client/` (Nitro's public
+assets) and `fetchlet.json`, which replaces Nitro's `nitro.json`. The Rust
+Fetch entry is `handle`. Nitro's server bundle is built in
+`.nuxt/fetchlet/server` (for Nuxt) and rebundled by `fetchlet/build` so it
+evaluates after the Web API profile. Rust serves public assets, so Nitro's
+`serveStatic` is disabled.
 
-`nitro.fetchlet.assets: true` はpublic assetsを `assets.flpk` にまとめ、`maxAge` を持つ `publicAssets`（Nuxtの `/_nuxt/` など）をその期間キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`nitro.fetchlet.assets: true` packs the public assets into `assets.flpk`
+and caches each `publicAssets` entry that has a `maxAge` (Nuxt's `/_nuxt/`,
+for example) for that age ([asset archive](../../../docs/asset-archive.md)).
 
-## Requestとcontext
+## Requests and context
 
-- h3の `toWebHandler` でRequestをNitroへ渡します。Request本文は受信中のstreamのままで、`getRequestWebStream(event)` で読めます。`readBody` 等は本文を回収して使います。
-- contextのclientAddressは `event.context.clientAddress` になり、h3の `getRequestIP(event)` が返します。
-- Rustの固定bindingは `event.context.fetchlet.env` です。型はアプリが `FetchletBindings` を拡張して宣言します。
+- h3's `toWebHandler` passes the Request to Nitro. The request body stays a
+  stream as it arrives and can be read with `getRequestWebStream(event)`;
+  `readBody` and similar collect it.
+- The context's client address becomes `event.context.clientAddress`, which
+  h3's `getRequestIP(event)` returns.
+- Rust's fixed bindings are `event.context.fetchlet.env`. Applications
+  declare their types by extending `FetchletBindings`:
 
   ```ts
   import type { ServiceBinding } from "fetchlet/nitro/types";
@@ -38,12 +53,19 @@ Nitro単体では `nitro.config.ts` に同じ `preset` と `fetchlet` を書き�
   }
   ```
 
-- 文字列bindingはNitroの `process.env` から読めます。Nuxtのruntime configは `NUXT_` で始まるbindingで上書きできます。
-- `event.waitUntil(promise)` はfetchletの `waitUntil` へ登録します。Rustの `Limits::background_timeout` / `background_tasks` が予算です。
-- `useFetch` / `$fetch` によるNitro内部の呼び出しでも、`event.context.fetchlet` とclientAddressを引き継ぎます。
+- String bindings are readable from Nitro's `process.env`; bindings that
+  start with `NUXT_` override Nuxt's runtime config.
+- `event.waitUntil(promise)` registers with fetchlet's `waitUntil`, within
+  Rust's `Limits::background_timeout` and `background_tasks`.
+- Nitro-internal calls through `useFetch` and `$fetch` keep
+  `event.context.fetchlet` and the client address.
 
-## 試験と次の対象
+## Tests and next work
 
-[examples/nuxt-axum](../../examples/nuxt-axum/README.md)がQuickJSで、SSR、assets、server route、Cookie、runtime config、Rust service binding、streaming upload、`event.waitUntil`、hydration、client navigationを11項目で確認します。描画はVueの `renderToString` によるbuffered profileです。
+[examples/nuxt-axum](../../../examples/nuxt-axum/README.md) checks SSR,
+assets, server routes, cookies, runtime config, the Rust service binding,
+streaming uploads, `event.waitUntil`, hydration and client navigation on
+QuickJS. Rendering uses Vue's `renderToString`, so responses are buffered.
 
-Nitro 3（h3 2）系、応答本文のstreaming、WebSocket、scheduled taskは個別の試験を追加して対応範囲に加えます。
+Nitro 3 with h3 2, streaming response bodies, WebSockets and scheduled
+tasks are next ([open work](../../../docs/TODO.md#nitro-3-and-h3-2)).

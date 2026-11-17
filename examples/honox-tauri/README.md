@@ -1,72 +1,124 @@
 # HonoX + Tauri
 
-HonoXのSSR、islandのassets、API routeを、Tauri 2のwebviewへHTTPサーバなしで配信する例です。Rust側がfetchletの `AppHandle` を持ち、Tauriのカスタム URI scheme（`fetchlet`）が受けたwebviewのRequestをプロセス内でResponseにします。Tauri commandからはserver bundleのJS関数を汎用関数呼び出し（`AppHandle::call`）で呼びます。
+Serves HonoX SSR, island assets and API routes to a Tauri 2 webview without
+an HTTP server. Rust holds fetchlet's `AppHandle`, and Tauri's custom URI
+scheme (`fetchlet`) turns webview requests into responses in-process. Tauri
+commands call JavaScript functions of the server bundle with
+`AppHandle::call`.
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-honox-tauri#app
 ```
 
-taskはclient（`--mode client`）とserverの2回buildしてからTauriアプリ（QuickJS）を起動します。Tauri CLIは使わず、`cargo run` で起動します。
+The task builds twice, the client (`--mode client`) and the server, then
+starts the Tauri app on QuickJS with `cargo run` (the Tauri CLI is not
+used).
 
-## 構成
+## Layout
 
-| 場所                  | 役割                                                             |
-| --------------------- | ---------------------------------------------------------------- |
-| app/                  | route、island、renderer、API route                               |
-| app/functions.ts      | Rustから呼ぶJS関数（`greet`）                                    |
-| vite.config.ts        | HonoXとfetchletのVite pluginとVite+のtask                        |
-| src/protocol.rs       | URI scheme protocol。Rust route、client/のファイル、fetchletの順 |
-| src/commands.rs       | Tauri command `greet`                                            |
-| src/desktop.rs        | fetchletの起動、Tauriの組み立て、終了時のshutdown                |
-| config.json           | キュー、本文予算、応答予算、期限、background予算、stack、backend |
-| tauri.conf.json       | Tauriの設定。windowは `src/desktop.rs` が作る                    |
-| capabilities/, icons/ | Tauriのcapabilityとアイコン                                      |
-| tests/e2e.ts          | WebView2をDevTools protocolで操作する検証                        |
-| build/                | server.js、client/、fetchlet.json                                |
+| Path                      | Role                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `app/`                    | Routes, islands, renderer, API routes                                           |
+| `app/functions.ts`        | JavaScript functions Rust calls (`greet`)                                       |
+| `vite.config.ts`          | HonoX and fetchlet Vite plugins, Vite+ tasks                                    |
+| `src/protocol.rs`         | The URI scheme protocol: Rust routes, then `client/` files, then fetchlet       |
+| `src/commands.rs`         | The Tauri command `greet`                                                       |
+| `src/desktop.rs`          | Starts fetchlet, assembles Tauri, shuts down on exit                            |
+| `config.json`             | Queue, body and response budgets, deadline, background budgets, stacks, backend |
+| `tauri.conf.json`         | Tauri configuration; the window is created in `src/desktop.rs`                  |
+| `capabilities/`, `icons/` | Tauri capabilities and icons                                                    |
+| `tests/e2e.ts`            | Checks that drive WebView2 through the DevTools protocol                        |
+| `build/`                  | `server.js`, `client/`, `fetchlet.json`                                         |
 
-## 流れ
+## Flow
 
-1. `src/desktop.rs` が `build/server.js` を読み、`App::builder(...).spawn(...)` でfetchletのworkerを起動します。
-2. `register_asynchronous_uri_scheme_protocol("fetchlet", ...)` がwebviewのRequestを `Protocol::respond` へ渡します。
-3. `Protocol` は `/api/rust` をRustで答え、`build/client` のファイルをtower-httpの `ServeDir` で返し、それ以外を[fetchlet-http](../../crates/fetchlet-http)の `FetchletService` でHonoXへ渡します。axumには依存しません。
-4. island `greeter` は `@tauri-apps/api` の `invoke("greet")` を呼び、commandが `AppHandle::call("greet", ...)` で `app/functions.ts` の `greet` を実行します。
+1. `src/desktop.rs` opens the artifact in `build/` and starts fetchlet's
+   worker with `App::builder(...).spawn(...)`.
+2. `register_asynchronous_uri_scheme_protocol("fetchlet", ...)` passes
+   webview requests to `Protocol::respond`.
+3. `Protocol` answers `/api/rust` in Rust, serves `build/client` files with
+   tower-http's `ServeDir`, and passes everything else to HonoX through
+   [fetchlet-http](../../crates/fetchlet-http/README.md)'s `FetchletService`.
+   It does not depend on axum.
+4. The `greeter` island calls `invoke("greet")` from `@tauri-apps/api`, and
+   the command runs `greet` from `app/functions.ts` with
+   `AppHandle::call("greet", ...)`.
 
-`functions` は[fetchlet/hono](../../packages/fetchlet/docs/hono.md)の設定で、指定したmoduleのnamed exportをFetch handler `handle` と並べてserver.jsへ出力します。commandは呼ぶexport名を固定しているため、webviewから `handle` や他のexportは呼べません。
+`functions` is a setting of [fetchlet/hono](../../packages/fetchlet/docs/hono.md)
+that writes the named exports of the given modules into `server.js` next to
+the Fetch handler `handle`. The command names the export it calls, so the
+webview cannot call `handle` or other exports.
 
-## originとURL
+## Origin and URLs
 
-webviewのURLはWindows（WebView2）とAndroidで `http://fetchlet.localhost/`、それ以外で `fetchlet://localhost/` です。アプリにはどのplatformでも `http://fetchlet.localhost` + path + queryのURLが渡ります（`FetchletService` のpublic origin）。Tauriは登録済みURI schemeのページをlocalとして扱うため、このページからTauriのIPCを使えます。
+The webview loads `http://fetchlet.localhost/` on Windows (WebView2) and
+Android and `fetchlet://localhost/` elsewhere. The app receives
+`http://fetchlet.localhost` plus the path and query on every platform (the
+public origin of `FetchletService`). Tauri treats pages of registered URI
+schemes as local, so they can use Tauri IPC.
 
-## backendの切り替え
+## Switching backends
 
-```powershell
-$env:FETCHLET_BACKEND = 'v8'; vp run --filter @fetchlet-internal/example-honox-tauri build
+```bash
+FETCHLET_BACKEND=v8 vp run --filter @fetchlet-internal/example-honox-tauri build
+```
+
+```bash
 node tools/workspace/cargo.ts run -p example-honox-tauri --features v8
 ```
 
-`FETCHLET_BACKEND`（`quickjs` / `boa` / `v8`）がartifactのbackendを決め、`config.json` の `"backend"` がRust側のBackendを選びます。featureを付けずにbuildしたアプリはBoa / V8の設定を起動時にerrorにします。E2Eは `FETCHLET_BACKEND` を設定するとconfig.jsonのbackendも合わせます。QuickJS / Boa / V8の3つで同じE2Eが通ることを確認しています。
+`FETCHLET_BACKEND` (`quickjs`, `boa` or `v8`) decides the artifact's backend,
+and `"backend"` in `config.json` selects the Rust `Backend`. An app built
+without the feature refuses a Boa or V8 configuration at startup. The
+end-to-end checks set the configuration's backend to match
+`FETCHLET_BACKEND` and pass on QuickJS, Boa and V8.
 
-## 制約
+## Limitations
 
-- 応答はまとめて返します。Tauriの `UriSchemeResponder` は完成した本文を受け取るため、fetchletのstreaming応答は `response_body_bytes`（16 MiB）以内で集めてから返し、超えると502にします。この予算は呼び出し側の方針としてconfig.jsonに置いています。
-- 要求本文はwebviewが集めてから渡します。`FetchletService` は `request_body_bytes` 以内で受け、超えると413にします。axum例の到着順のstreaming uploadは扱いません。
-- 接続元はありません。`/api/context` の `clientAddress` は省かれます。
-- `tauri.conf.json` の `csp` はnullです。TauriのCSP注入は組み込みのasset protocolに対するもので、このschemeの応答には付きません。CSPが必要な場合はアプリの応答headerで指定します。
-- `build/` はconfig.jsonの場所から読みます。`tauri build` によるinstallerの作成と、resourceとしての同梱は次の対象です。
-- 自動検証はWindows（WebView2）で行っています。macOS（WKWebView）とLinux（WebKitGTK）はbuildと動作を確認していません。LinuxでのbuildにはWebKitGTKなどTauriの前提packageが必要です。
-- release buildはWindowsでconsoleを開かないため、標準出力の `FETCHLET_TAURI_READY` とerror出力は表示されません。
+- Responses are returned whole. Tauri's `UriSchemeResponder` takes a
+  complete body, so fetchlet's streamed response is collected within
+  `response_body_bytes` (16 MiB) and a larger one becomes 502. The budget is
+  a caller choice in `config.json`.
+- The webview collects request bodies before passing them on.
+  `FetchletService` accepts them within `request_body_bytes` and answers
+  413 above it. Arrival-order streaming uploads, as in the axum examples,
+  are not available.
+- There is no client address; `clientAddress` is absent from
+  `/api/context`.
+- `csp` in `tauri.conf.json` is null. Tauri injects CSP for its built-in
+  asset protocol, not for this scheme; set CSP in the application's
+  response headers when needed.
+- `build/` is read relative to `config.json`. Installers built with
+  `tauri build` and bundling the build as a resource are open work.
+- Automated checks run on Windows (WebView2). macOS (WKWebView) and Linux
+  (WebKitGTK) are not built or verified; Linux builds need WebKitGTK and
+  Tauri's other prerequisites.
+- Release builds on Windows open no console, so `FETCHLET_TAURI_READY` on
+  stdout and error output are not shown.
 
-## 検証
+## Checks
 
-```powershell
+```bash
 vp run test:examples -- honox-tauri
 ```
 
-frontendとアプリをbuildし、`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` でアプリを起動してPlaywrightの `connectOverCDP` で接続します。要求はすべてwebview内から出すため、URI scheme protocolを通ります。SSRとescape、Rust serviceのbinding、JS / CSS / 公開ファイルとclient/外の非公開、JSON endpoint、接続元なしのcontext、protocolのRust route、本文予算、`waitUntil`、並行Request、hydration、commandからのJS関数呼び出し、navigationを確認します。結果はresults/example-honox-tauri.jsonです。Windows以外ではskipします。
+The task builds the frontend and the app, starts the app with
+`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` and
+connects with Playwright's `connectOverCDP`. Every request comes from inside
+the webview, so it goes through the URI scheme protocol. The checks cover
+SSR and escaping, the Rust service binding, JavaScript, CSS and public files
+and the refusal of files outside `client/`, JSON endpoints, context without
+a client address, the protocol's Rust route, body budgets, `waitUntil`,
+concurrent requests, hydration, calling a JavaScript function from a
+command, and navigation. Results go to `results/example-honox-tauri.json`.
+The checks are skipped outside Windows.
 
-`cargo test -p example-honox-tauri` はwebviewなしで `Protocol` を検証します。client/のファイルとpublic originでの描画、`..` によるclient/外の読み出しの拒否、要求本文と応答本文の予算を確認します。`vp run test:rust` に含まれます。
+`cargo test -p example-honox-tauri` checks `Protocol` without a webview:
+`client/` files and rendering at the public origin, refusing `..` reads
+outside `client/`, and the request and response body budgets. It is part of
+`vp run test:rust`.

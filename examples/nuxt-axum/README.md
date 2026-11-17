@@ -1,46 +1,61 @@
 # Nuxt + axum
 
-NuxtでHTMLとserver routeを作り、axumから配信する例です。NuxtのNitroを[fetchlet/nitro](../../packages/fetchlet/docs/nitro.md)でbuildします。Vue componentのhydration、フォーム、client navigationを操作できます。
+Nuxt renders HTML and server routes, served by axum.
+[fetchlet/nitro](../../packages/fetchlet/docs/nitro.md) builds Nuxt's Nitro
+server. Try Vue component hydration, the form and client navigation.
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-nuxt-axum#serve
 ```
 
-http://127.0.0.1:3200 を開きます。taskはNuxtをbuildしてからRustサーバ（QuickJS）を起動します。
+Open `http://127.0.0.1:3200`. The task builds Nuxt and starts the Rust
+server on QuickJS.
 
-## 構成
+## Layout
 
-| 場所           | 役割                                                     |
-| -------------- | -------------------------------------------------------- |
-| web/           | Nuxtのページ、component、server route、public files      |
-| nuxt.config.ts | srcDir / serverDir、runtime config、Nitro preset         |
-| vite.config.ts | Vite+のtask                                              |
-| src/           | axumの起動・binding・routing                             |
-| config.json    | 待受、キュー、本文予算、期限、background予算、メッセージ |
-| tests/e2e.ts   | 実HTTPと実ブラウザによる検証                             |
-| build/         | server.js、client/、fetchlet.jsonの生成先                |
+| Path             | Role                                                                       |
+| ---------------- | -------------------------------------------------------------------------- |
+| `web/`           | Nuxt pages, components, server routes and public files                     |
+| `nuxt.config.ts` | `srcDir` and `serverDir`, runtime config, the Nitro preset                 |
+| `vite.config.ts` | Vite+ tasks                                                                |
+| `src/`           | Starting axum, bindings, routing                                           |
+| `config.json`    | Listen address, queue, body budgets, deadline, background budgets, message |
+| `tests/e2e.ts`   | Checks over real HTTP in a real browser                                    |
+| `build/`         | Output: `server.js`, `client/`, `fetchlet.json`                            |
 
-axumは `build/client` の静的ファイルと `/api/rust` を先に扱い、残りをFetchletServiceでNuxtへ渡します。
+axum handles the static files in `build/client` and `/api/rust` first, and
+passes the rest to Nuxt through `FetchletService`.
 
-## bindingとcontext
+## Bindings and context
 
-- Rustは `NUXT_MESSAGE` と `RUST` serviceを固定bindingとして渡します。`NUXT_MESSAGE` はNuxtのruntime config `message` を上書きします。
-- `/api/greeting` はruntime configと `event.context.fetchlet.env.RUST` を使います。ページは `useFetch` でこのrouteを呼び、Nitro内部の呼び出しでもbindingを引き継ぎます。
-- `/api/context` は `getRequestIP(event)` で接続元を返します。
-- `/greet` はフォームのPOSTでCookieを設定し、303でページへ戻します。
-- `/api/upload` は `getRequestWebStream(event)` で受信中の本文を数えます。Content-Lengthで予算超過を宣言した本文は実行前に413、宣言のない超過はstreamのエラー（`LIMIT_EXCEEDED`）です。
-- `/api/background` は `event.waitUntil` で応答後の処理を登録します。
+- Rust passes `NUXT_MESSAGE` and the `RUST` service as fixed bindings.
+  `NUXT_MESSAGE` overrides Nuxt's runtime config `message`.
+- `/api/greeting` uses the runtime config and
+  `event.context.fetchlet.env.RUST`. The page calls it with `useFetch`, and
+  the binding carries over into the Nitro-internal call.
+- `/api/context` returns the client address from `getRequestIP(event)`.
+- `/greet` sets a cookie from a form POST and redirects back with 303.
+- `/api/upload` counts the arriving body with `getRequestWebStream(event)`.
+  A body whose `Content-Length` declares more than the budget is refused
+  with 413 before execution; undeclared excess errors the stream
+  (`LIMIT_EXCEEDED`).
+- `/api/background` registers work after the response with
+  `event.waitUntil`.
 
-## 検証
+## Checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- nuxt-axum
 ```
 
-SSRとescape、runtime config、Rust service、assets、JSON route、フォームとCookie、接続元とbinding、axum route、本文予算、streaming upload、`event.waitUntil`、並行Request、hydrationとclient navigationを11項目で確認します。結果はresults/example-nuxt-axum.jsonです。
+The checks cover SSR and escaping, runtime config, the Rust service, assets,
+JSON routes, forms and cookies, client address and bindings, the axum route,
+body budgets, streaming uploads, `event.waitUntil`, concurrent requests,
+hydration and client navigation. Results go to
+`results/example-nuxt-axum.json`.

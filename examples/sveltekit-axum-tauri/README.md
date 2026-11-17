@@ -1,30 +1,39 @@
-# Markdown Workspace（SvelteKit + axum / Tauri）
+# Markdown Workspace (SvelteKit + axum / Tauri)
 
-フォルダー内のMarkdownノートを閲覧・検索・編集するアプリ `mdw` です。1つのRustバイナリが、ブラウザー向けのローカルWebサーバ（`mdw serve`）とTauriのデスクトップウィンドウ（`mdw desktop`）の両方になります。画面はSvelteKitで作り、SvelteKitのサーバー側はfetchletがRustプロセス内のQuickJSで実行します。
+`mdw` browses, searches and edits the Markdown notes in a folder. One Rust
+binary is both a local web server for browsers (`mdw serve`) and a Tauri
+desktop window (`mdw desktop`). The UI is SvelteKit, and fetchlet runs
+SvelteKit's server side on QuickJS inside the Rust process.
 
 ```text
-ブラウザー ──HTTP──┐
-                     ├─ axum Router ─┬─ /api/v1/*  Rust API（utoipa、OpenAPI）
-Tauri webview ─URI scheme─┘          ├─ /files/*   ワークスペースのファイル
-                                     ├─ client/    JS / CSS
-                                     └─ その他     SvelteKit（fetchlet / QuickJS）
-                                                     └─ fetch("https://rust.fetchlet.test/…")
-                                                          → 同じRust APIへプロセス内で到達
+browser ──HTTP────────┐
+                      ├─ axum Router ─┬─ /api/v1/*  Rust API (utoipa, OpenAPI)
+Tauri webview ─URI scheme─┘           ├─ /files/*   workspace files
+                                      ├─ assets     embedded asset archive
+                                      └─ the rest   SvelteKit (fetchlet / QuickJS)
+                                                      └─ fetch("https://rust.fetchlet.test/…")
+                                                           → the same Rust API, in-process
 ```
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
-vp run @fetchlet-internal/example-sveltekit-axum-tauri#serve          # ブラウザーで開く（mdw serve --open）
-vp run @fetchlet-internal/example-sveltekit-axum-tauri#desktop  # デスクトップウィンドウで開く
+vp run @fetchlet-internal/example-sveltekit-axum-tauri#serve
 ```
 
-taskは `sample/` を `.cache/sveltekit-axum-tauri/notes` へ一度だけ複製し、そのフォルダーを開きます。編集してもリポジトリのファイルは変わりません。複製を消すと最初の状態に戻ります。
+```bash
+vp run @fetchlet-internal/example-sveltekit-axum-tauri#desktop
+```
 
-buildした `mdw` は次のように使います。
+`serve` opens a browser (`mdw serve --open`) and `desktop` opens a window.
+The tasks copy `sample/` to `.cache/sveltekit-axum-tauri/notes` once and open
+that folder, so edits do not change the repository; delete the copy to start
+over.
+
+A built `mdw` is used as follows:
 
 ```text
 mdw serve [DIR] [--listen 127.0.0.1:4000] [--open]
@@ -33,122 +42,196 @@ mdw openapi [--output openapi.json]
 mdw --config path/to/config.json …
 ```
 
-`--config` を省くと実行ファイルの隣の `config.json`、なければこのディレクトリの `config.json` を使います。SvelteKitのbuild（server.jsとBrotliで圧縮したassets.flpk）は `build.rs` が `include_artifact!` で `mdw` に埋め込むので、実行時に `build/` は要りません。`vp run build` の前にbuildした `mdw` は埋め込みを持たず、設定の `build_directory` に指定したbuildを配信します。設定に `build_directory` を書くと、埋め込みの代わりにそのディレクトリを読みます。
+Without `--config`, `mdw` reads `config.json` next to the executable, or
+else this directory's `config.json`. `build.rs` embeds the SvelteKit build
+(`server.js` and the Brotli `assets.flpk`) with `include_artifact!`, so
+`build/` is not needed at run time. An `mdw` built before `vp run build`
+has no embedded copy and serves the build named by `build_directory` in
+the configuration; setting `build_directory` always replaces the embedded
+copy.
 
-## 機能
+## Features
 
-| 機能                   | 実装                                                                                                     |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| ノートのツリーと閲覧   | Rustの索引から一覧を返し、SvelteKitがunified / remark / rehypeでHTMLへ描画                               |
-| コードのハイライト     | 描画中のJSが、ノート内の全コードブロックを1回のプロセス内fetchでRustのsyntectへ渡す                      |
-| 全文検索               | Rustの大文字小文字を区別しない部分一致検索。日本語も対象。結果の抜粋は一致箇所を構造化データで返す       |
-| 編集とプレビュー       | remote `command` が入力中の本文をサーバー側で描画。保存はremote `form`（Ctrl+Sでも保存）                 |
-| 競合の検出             | 内容のSHA-256をversionとし、読み込み時のversionと異なる保存を409で拒否。エディターで上書きか破棄を選べる |
-| 外部での変更の反映     | `notify` の監視で索引を更新し、ブラウザーへはServer-Sent Events、ウィンドウへはTauri eventで通知         |
-| 新規作成と削除         | remote `form` とvalibotの検証。既存の名前は入力欄のエラーとして返す                                      |
-| JavaScriptなしでの利用 | 閲覧、検索（GETフォーム）、新規作成はSSRとフォーム送信で動く                                             |
-| 画像などのファイル     | `/files/<path>` で配信。ノートの相対リンクと画像を、ノートのページと `/files` へ書き換える               |
+| Feature                | Implementation                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Note tree and viewing  | Rust's index returns the list; SvelteKit renders HTML with unified, remark and rehype                                                      |
+| Code highlighting      | During rendering, JavaScript sends every code block of a note to Rust's syntect in one in-process fetch                                    |
+| Full-text search       | Rust's case-insensitive substring search, including Japanese; excerpts return matches as structured data                                   |
+| Editing and preview    | A remote `command` renders the draft on the server; saving is a remote `form` (Ctrl+S also saves)                                          |
+| Conflict detection     | The SHA-256 of the content is the version; a save from an outdated version is refused with 409, and the editor offers overwrite or discard |
+| External changes       | `notify` updates the index; browsers learn about changes through Server-Sent Events, windows through a Tauri event                         |
+| Creating and deleting  | Remote `form`s validated with valibot; an existing name is returned as a field error                                                       |
+| Without JavaScript     | Viewing, search (a GET form) and creating notes work through SSR and form submissions                                                      |
+| Images and other files | Served from `/files/<path>`; relative links and images in notes are rewritten to note pages and `/files`                                   |
 
-## 型の共有
+## Shared types
 
-Rust APIの型はRustのhandlerが正本です。utoipaがhandlerとSerde型からOpenAPIを生成し、[@hey-api/openapi-ts](https://heyapi.dev/) がTypeScriptの型とfetch SDKにします。
+The Rust handlers are the source of truth for the API types. utoipa
+generates OpenAPI from the handlers and Serde types, and
+[@hey-api/openapi-ts](https://heyapi.dev/) turns it into TypeScript types and
+a fetch SDK.
 
 ```text
-src/api/routes.rs ── mdw openapi ──▶ openapi.json ── openapi-ts ──▶ web/lib/api/（types.gen.ts、sdk.gen.ts、client）
+src/api/routes.rs ── mdw openapi ──▶ openapi.json ── openapi-ts ──▶ web/lib/api/ (types.gen.ts, sdk.gen.ts, client)
                                                                         │
-web/lib/server/rust.ts（SDKの再export） ◀──────────────────────────────┘
-web/lib/notes.remote.ts（remote functions） ─▶ コンポーネント
+web/lib/server/rust.ts (re-exports the SDK) ◀──────────────────────────┘
+web/lib/notes.remote.ts (remote functions) ─▶ components
 ```
 
-- サーバー側JSは `rust.getNote({ query: { path } })` のように、utoipaのoperation IDから生成した関数を型付きで呼びます。引数の名前や型、応答の形の違いは `svelte-check` が型エラーにします。
-- 生成したclientは `https://rust.fetchlet.test` を基準URLに持ち、実行時の依存packageはありません。設定は `openapi-ts.config.ts` です。
-- remote functionsが、同じ型をブラウザー側のコンポーネントまで届けます。
-- APIを変えたら `vp run --filter @fetchlet-internal/example-sveltekit-axum-tauri generate:api` で両方を再生成します。`cargo test` は、checked-inの `openapi.json` が現在のhandlerと一致することを確認します。
+- Server-side JavaScript calls typed functions generated from utoipa's
+  operation IDs, such as `rust.getNote({ query: { path } })`. `svelte-check`
+  reports mismatched argument names, types or response shapes.
+- The generated client uses `https://rust.fetchlet.test` as its base URL and
+  has no runtime dependencies; see `openapi-ts.config.ts`.
+- Remote functions carry the same types to browser components.
+- After changing the API, regenerate both with
+  `vp run --filter @fetchlet-internal/example-sveltekit-axum-tauri generate:api`.
+  `cargo test` checks that the committed `openapi.json` matches the handlers.
 
-プロセス内のAPIと、`mdw serve` が `/api/v1` で公開するAPIは同じaxum Routerです。プロセス内のRequestはsocketを使わず、`fetchlet_http::router_transport` からRouterへ届きます。fetch policyは `https://rust.fetchlet.test` だけを許可します。
+The in-process API and the API `mdw serve` publishes at `/api/v1` are the
+same axum router. In-process requests reach it through
+`fetchlet_http::router_transport` without a socket. The fetch policy allows
+only `https://rust.fetchlet.test`.
 
-## 構成
+## Layout
 
-| 場所                    | 役割                                                                              |
-| ----------------------- | --------------------------------------------------------------------------------- |
-| src/cli.rs              | サブコマンド（serve / desktop / openapi）と設定ファイルの選択                     |
-| src/host.rs             | ワークスペース、監視、Rust API、fetchletの起動。両方のshellが使うRouterの組み立て |
-| src/serve.rs            | `mdw serve`。axumでHTTPを待ち受け、Hostヘッダーを検査                             |
-| src/desktop/            | `mdw desktop`。URI scheme protocolとウィンドウ、変更のTauri event                 |
-| src/api/                | utoipaで記述したhandler、OpenAPI、syntect、ファイル配信、Server-Sent Events       |
-| src/workspace/          | パスの検証、索引、検索、楽観的並行制御つきの保存、ファイル監視                    |
-| web/lib/notes.remote.ts | remote functions（query / command / form）                                        |
-| web/lib/server/         | Markdownの描画、Rust APIの型付きclient                                            |
-| web/lib/api/            | OpenAPIから生成した型とSDK（`openapi-ts.config.ts`）                              |
-| openapi.json            | Rust APIのOpenAPI文書（生成物、checked-in）                                       |
-| config.json             | 待受、キュー、本文、ノート、ファイル、索引の予算と監視の待ち時間                  |
-| sample/                 | デモ用のノート                                                                    |
-| tests/e2e.ts            | `mdw serve` を実HTTPとChromiumで検証                                              |
-| tests/desktop.ts        | `mdw desktop` をWebView2のDevTools protocolで検証                                 |
+| Path                      | Role                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `src/cli.rs`              | Subcommands (serve, desktop, openapi) and choosing the configuration file    |
+| `src/host.rs`             | Workspace, watching, Rust API, starting fetchlet; the router both shells use |
+| `src/serve.rs`            | `mdw serve`: listens with axum and checks the Host header                    |
+| `src/desktop/`            | `mdw desktop`: URI scheme protocol, window, Tauri change events              |
+| `src/api/`                | utoipa handlers, OpenAPI, syntect, file serving, Server-Sent Events          |
+| `src/workspace/`          | Path validation, index, search, saving with optimistic concurrency, watching |
+| `web/lib/notes.remote.ts` | Remote functions (query, command, form)                                      |
+| `web/lib/server/`         | Markdown rendering and the typed Rust API client                             |
+| `web/lib/api/`            | Types and SDK generated from OpenAPI (`openapi-ts.config.ts`)                |
+| `openapi.json`            | The Rust API's OpenAPI document (generated, committed)                       |
+| `config.json`             | Listen address, queue, body, note, file and index budgets, watch delay       |
+| `sample/`                 | Demo notes                                                                   |
+| `tests/e2e.ts`            | Checks `mdw serve` over real HTTP with Chromium                              |
+| `tests/desktop.ts`        | Checks `mdw desktop` through WebView2's DevTools protocol                    |
 
-## SvelteKitの設定
+## SvelteKit configuration
 
-`compilerOptions.experimental.async` でコンポーネント内の `await` を、`experimental.remoteFunctions` でremote functionsを使います。adapterは `rendering: "async"` で、`node:async_hooks` の代わりにinvocation単位の `AsyncLocalStorage` を組み込みます（[SvelteKit adapter](../../packages/fetchlet/docs/sveltekit.md)）。どちらもSvelteKit 3.2.0 / Svelte 5.57.3でexperimentalの機能です。
+`compilerOptions.experimental.async` enables `await` in components and
+`experimental.remoteFunctions` enables remote functions. The adapter uses
+`rendering: "async"`, which replaces `node:async_hooks` with a
+per-invocation `AsyncLocalStorage` ([SvelteKit
+adapter](../../packages/fetchlet/docs/sveltekit.md)). Both features are
+experimental in SvelteKit 3.2.0 and Svelte 5.57.3.
 
-## ハイライトをRustで行う理由
+## Why Rust highlights code
 
-ShikiのJavaScript正規表現エンジンをQuickJSで試したところ、grammarの正規表現が変換後にQuickJSのキャプチャ数上限（255）を超え、`too many captures` で失敗しました。V8では同じbundleが動き、初回264 ms、以降3〜8 msでした（開発機の計測、2026-11-17）。この例はQuickJSを既定とし、ハイライトをRustのsyntect（batのgrammarを含むtwo-face）に任せます。描画中のJSから型付きのプロセス内fetchで呼ぶため、JSのMarkdown処理系とRustのネイティブ処理を1回の描画で組み合わせる例にもなっています。remarkによる描画はQuickJSで1ノート数ms です。
+Running Shiki's JavaScript regex engine on QuickJS failed with
+`too many captures`: after conversion, its grammars' regular expressions
+exceed QuickJS's limit of 255 captures. The same bundle runs on V8 (264 ms
+for the first note, then 3–8 ms, measured on a development machine on
+2026-11-17). This example defaults to QuickJS and leaves highlighting to
+Rust's syntect (two-face, with bat's grammars), called from rendering
+JavaScript through a typed in-process fetch. It also shows JavaScript
+Markdown processing and native Rust processing combined in one render.
+Rendering a note with remark takes a few milliseconds on QuickJS.
 
-## 権限と安全性
+## Authority and safety
 
-- APIが受け取るpathは、`/` 区切りの通常のセグメントだけです。`..`、絶対パス、ドライブ名、隠しファイル、Windowsで別名になる末尾のドットや空白、デバイス名を拒否します（`src/workspace/path.rs`）。
-- 読み書きの前にcanonicalなパスがワークスペース内にあることを確かめ、外を指すシンボリックリンクを辿りません。索引もリンクを辿りません。保存は同じディレクトリの一時ファイルからのrenameで行います。
-- ノート内の生のHTMLは描画時に取り除きます。`/files` の応答には `Content-Security-Policy: sandbox` と `X-Content-Type-Options: nosniff` を付け、SVGなどからscriptを実行させません。
-- `mdw serve` は待ち受けたアドレスと一致するHostヘッダーだけに応答します（それ以外は421）。DNS rebindingで別のサイトが127.0.0.1を指しても、ノートを読めません。公開APIは `application/json` の本文、PUT、DELETEを使い、CORSヘッダーを返さないため、別のoriginのページからは送れません。SvelteKitのフォームはSvelteKitのorigin検査を受けます。
-- `mdw serve` はローカルの単一ユーザー向けです。認証を持たないため、`--listen` で外部に公開しないでください。
-- 以上の境界は `cargo test -p example-sveltekit-axum-tauri`（パス、リンク、予算、競合）とE2E（API、`/files`、Hostヘッダー、生のHTML）で検証しています。シンボリックリンクの試験は、Windowsでは開発者モードか管理者権限がないとskipします。
+- Paths the API accepts are plain `/`-separated segments. `..`, absolute
+  paths, drive names, hidden files, trailing dots and spaces that alias on
+  Windows, and device names are refused (`src/workspace/path.rs`).
+- Before reading or writing, the canonical path must lie inside the
+  workspace; symbolic links pointing outside are not followed, nor does the
+  index follow links. Saves write a temporary file in the same directory and
+  rename it.
+- Raw HTML in notes is removed when rendering. `/files` responses carry
+  `Content-Security-Policy: sandbox` and `X-Content-Type-Options: nosniff`,
+  so SVG and similar files cannot run scripts.
+- `mdw serve` answers only requests whose Host header matches the listen
+  address (others get 421), so a site that points DNS at 127.0.0.1 cannot
+  read notes. The public API uses `application/json` bodies, PUT and DELETE
+  and returns no CORS headers, so pages of other origins cannot send to it.
+  SvelteKit forms go through SvelteKit's origin check.
+- `mdw serve` is for a single local user and has no authentication; do not
+  expose it with `--listen`.
+- `cargo test -p example-sveltekit-axum-tauri` (paths, links, budgets,
+  conflicts) and the end-to-end checks (API, `/files`, Host header, raw
+  HTML) verify these boundaries. The symbolic link tests are skipped on
+  Windows without developer mode or administrator rights.
 
-## 予算
+## Budgets
 
-`config.json` の値は、ローカルの単一ユーザー向けノートアプリとしてこの例が選んだものです。
+The `config.json` values are this example's choices for a single-user local
+note app.
 
-| 項目                  | 既定値 | 内容                                                                     |
-| --------------------- | ------ | ------------------------------------------------------------------------ |
-| note_bytes            | 1 MiB  | 読み書きと索引の対象にするノートの最大サイズ。超えるノートは索引から除外 |
-| workspace_notes       | 10,000 | 索引するノートの最大数。超えると起動時にエラー                           |
-| file_bytes            | 16 MiB | `/files` で配信する1ファイルの最大サイズ                                 |
-| request_body_bytes    | 2 MiB  | SvelteKitが受けるRequest本文（保存するノートを含む）                     |
-| response_body_bytes   | 32 MiB | デスクトップのprotocolがwebviewへ返す応答の最大サイズ                    |
-| invocation_timeout_ms | 10秒   | 1 RequestのJS実行の協調的な期限                                          |
-| watch_debounce_ms     | 150 ms | ファイル変更をまとめて1回の再走査にする待ち時間                          |
+| Field                   | Default | Meaning                                                                       |
+| ----------------------- | ------- | ----------------------------------------------------------------------------- |
+| `note_bytes`            | 1 MiB   | Largest note read, written or indexed; larger notes are left out of the index |
+| `workspace_notes`       | 10,000  | Most notes indexed; more fails at startup                                     |
+| `file_bytes`            | 16 MiB  | Largest file served from `/files`                                             |
+| `request_body_bytes`    | 2 MiB   | Request bodies SvelteKit receives, including saved notes                      |
+| `response_body_bytes`   | 32 MiB  | Largest response the desktop protocol returns to the webview                  |
+| `invocation_timeout_ms` | 10 s    | Cooperative deadline of one request's JavaScript                              |
+| `watch_debounce_ms`     | 150 ms  | Delay that merges file changes into one rescan                                |
 
-Rust APIのRequest本文はnote_bytesの2倍までです（JSONのescapeを含むノート本文）。検索結果は1回50件まで（既定20件）で、検索画面と候補表示に必要な量です。
+Rust API request bodies may be up to twice `note_bytes` (a note body with
+JSON escaping). Search returns at most 50 results per call (20 by default),
+enough for the search page and suggestions.
 
-## デスクトップ版
+## Desktop
 
-`mdw desktop` はHTTPサーバを立てません。Tauriのカスタム URI scheme `mdw` が受けたwebviewのRequestを、`mdw serve` と同じaxum Routerへプロセス内で渡します。ページのURLはWindows（WebView2）とAndroidで `http://mdw.localhost/`、それ以外で `mdw://localhost/` で、アプリにはどのplatformでも `http://mdw.localhost` のURLが渡ります。
+`mdw desktop` starts no HTTP server. Tauri's custom URI scheme `mdw` passes
+webview requests to the same axum router as `mdw serve`, in-process. Pages
+load from `http://mdw.localhost/` on Windows (WebView2) and Android and
+`mdw://localhost/` elsewhere; the app receives `http://mdw.localhost` URLs on
+every platform.
 
-- Tauriの `UriSchemeResponder` は完成した本文を受け取るため、応答を `response_body_bytes` 以内で集めてから返します。Server-Sent Eventsの代わりに、変更はTauri event `workspace-changed` で届きます。
-- `cargo build --no-default-features` で `desktop` featureを外すと、webviewのライブラリを必要としないCLIだけの `mdw` になります。
-- 1つのバイナリがconsoleアプリなので、Windowsでエクスプローラーから起動するとconsoleも開きます。
-- 自動検証はWindows（WebView2）で行っています。macOS（WKWebView）とLinux（WebKitGTK）はbuildと動作を確認していません。
+- Tauri's `UriSchemeResponder` takes a complete body, so responses are
+  collected within `response_body_bytes` first. Instead of Server-Sent
+  Events, changes arrive as the Tauri event `workspace-changed`.
+- `cargo build --no-default-features` leaves out the `desktop` feature and
+  builds a CLI-only `mdw` that needs no webview library.
+- The binary is a console application, so starting it from Explorer on
+  Windows also opens a console.
+- Automated checks run on Windows (WebView2). macOS (WKWebView) and Linux
+  (WebKitGTK) are not built or verified.
 
-## サーバー側のログ
+## Server logs
 
-`HostServices::console` で、SvelteKitの `console.error` などを `[js Error] …` の形で標準エラー出力へ流します（[Host services](../../docs/host-services.md)）。
+`HostServices::console` forwards SvelteKit's `console.error` and other
+console output to stderr as `[js Error] …` ([host
+services](../../docs/host-services.md#console)).
 
-## 検証
+## Checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- sveltekit-axum-tauri
 ```
 
-frontendとRustをbuildし、`tests/e2e.ts` と `tests/desktop.ts` を実行します。
+The task builds the frontend and Rust, then runs `tests/e2e.ts` and
+`tests/desktop.ts`.
 
-- e2e.ts（15項目）：埋め込んだassetsのBrotli配信とETag、SSR、Rustでのハイライト、生のHTMLの除去、公開API、競合の409、ワークスペース外のpathの拒否、`/files` のsandbox、Hostヘッダー、hydrationと検索候補とクライアント遷移、エディターのプレビューとCtrl+Sでの保存、外部での変更の反映、エディターでの競合と上書き、remote formでの新規作成と検証、JavaScriptなしの検索と閲覧。結果は `results/example-sveltekit-axum-tauri.json` です。
-- desktop.ts（5項目、Windowsのみ）：URI schemeでの描画、プロセス内のハイライト、ワークスペースの境界、Tauri eventでの変更通知、protocol経由の保存。結果は `results/example-sveltekit-axum-tauri-desktop.json` です。
+- `e2e.ts`: Brotli serving and ETags of the embedded assets, SSR,
+  highlighting in Rust, raw HTML removal, the public API, 409 on conflicts,
+  refusing paths outside the workspace, the `/files` sandbox, the Host
+  header, hydration with search suggestions and client navigation, editor
+  preview and saving with Ctrl+S, external changes, editor conflicts and
+  overwriting, creating notes with a remote form and its validation, and
+  search and viewing without JavaScript. Results go to
+  `results/example-sveltekit-axum-tauri.json`.
+- `desktop.ts` (Windows only): rendering over the URI scheme, in-process
+  highlighting, the workspace boundary, change notification through a Tauri
+  event, and saving through the protocol. Results go to
+  `results/example-sveltekit-axum-tauri-desktop.json`.
 
-`cargo test -p example-sveltekit-axum-tauri` はpathの検証、検索と抜粋、索引、保存の並行制御、予算、シンボリックリンク、syntect、OpenAPI文書の一致を確認します。
+`cargo test -p example-sveltekit-axum-tauri` checks path validation, search
+and excerpts, the index, concurrency control on save, budgets, symbolic
+links, syntect and that the OpenAPI document matches.
 
-## 次の作業
+## Next work
 
-- 設定ファイルの既定値も実行ファイルへ持たせ、`mdw` 単体で配布できるようにする。
-- Tauriのinstaller（`tauri build`）とフォルダー選択ダイアログ。
-- 大きなワークスペース向けの永続的な検索index。
-- fetchletのstreaming応答に合わせて、remote functionsの `query.live` で変更通知を受ける。
+- Compile configuration defaults into the executable so `mdw` can ship
+  alone.
+- A Tauri installer (`tauri build`) and a folder picker.
+- A persistent search index for large workspaces.
+- Change notification through remote functions' `query.live`, once fetchlet
+  streams those responses.

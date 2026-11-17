@@ -1,6 +1,8 @@
 # fetchlet/hono
 
-Hono / HonoXのアプリをfetchlet用IIFEへbundleするVite pluginです。`@hono/vite-build` 1.11.1でアプリをbuildしてから、[共通builder](build.md)でartifactにします。hono 4.13.19 / honox 0.1.62を検証しています。
+A Vite plugin that bundles a Hono or HonoX app into a fetchlet artifact. It
+builds the app with `@hono/vite-build` and then runs [`fetchlet/build`](build.md).
+Verified with hono 4.13.19, honox 0.1.62 and `@hono/vite-build` 1.11.1.
 
 ```ts
 // vite.config.ts
@@ -11,25 +13,37 @@ export default defineConfig(({ mode }) => ({
 }));
 ```
 
-`entry` は `export default app` するmoduleです。`backend` / `intl` は共通builderの同名設定、`external` は `@hono/vite-build` に渡します。`functions` に指定したmoduleのnamed exportは、Fetch handlerと並んでRustの `App::call` / `AppHandle::call` から呼べる関数になります（`handle` は予約名）。[HonoX + Tauri](../../examples/honox-tauri/README.md)が使います。
+`entry` is a module that does `export default app`. `backend` and `intl`
+are the builder's settings, and `external` is passed to `@hono/vite-build`.
+The named exports of the modules listed in `functions` become functions that
+Rust calls with `App::call` or `AppHandle::call`, next to the Fetch handler
+(`handle` is reserved). [HonoX + Tauri](../../../examples/honox-tauri/README.md)
+uses them.
 
-## 出力
+## Output
 
-`build/server.js` と `build/fetchlet.json` を書きます。公開ファイルはRustサーバが配信するため、`staticPaths` は空にしています。HonoXではclient buildを `build/client` へ出力します。
+The plugin writes `build/server.js` and `build/fetchlet.json`. Rust serves
+public files, so `staticPaths` is empty. With HonoX, the client build goes
+to `build/client`.
 
-`assets` を指定するとclient assetsを `assets.flpk` にまとめます。Honoのpublicファイルはハッシュ付きとは限らないので既定のキャッシュ規則はありません。`assets: { cache }` で指定します（examples/honox-axumは `/static/` を1年キャッシュします）。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`assets` packs the client assets into `assets.flpk`. Hono's public files are
+not necessarily hashed, so there is no default caching rule; set it with
+`assets: { cache }` (examples/honox-axum caches `/static/` for a year). See
+[asset archive](../../../docs/asset-archive.md).
 
-## Rustからの値
+## Values from Rust
 
-| 値                         | 内容                                                          |
-| -------------------------- | ------------------------------------------------------------- |
-| `c.env`                    | Rustの固定binding                                             |
-| `c.executionCtx.waitUntil` | 応答後の処理の登録。Rustのbackground予算の範囲で完了を待つ    |
-| `getConnInfo(c)`           | `fetchlet/hono/conninfo`。Rustのrequest contextの接続元を返す |
-| `getRequestContext(c)`     | `fetchlet/hono/conninfo`。Rustのrequest context               |
+| Value                      | Content                                                                  |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `c.env`                    | Rust's fixed bindings                                                    |
+| `c.executionCtx.waitUntil` | Registers work after the response, within Rust's background budget       |
+| `getConnInfo(c)`           | From `fetchlet/hono/conninfo`: the client address of the request context |
+| `getRequestContext(c)`     | From `fetchlet/hono/conninfo`: the request context                       |
 
-HonoXは `node:async_hooks` の `AsyncLocalStorage` でcontextを保持します。共通builderの `asyncContext: "serialized"` で、1つのinvocationの間だけstoreを保持する実装に置き換えます。
+HonoX keeps its context in `AsyncLocalStorage` from `node:async_hooks`. The
+builder's `asyncContext: "serialized"` replaces it with an implementation
+that keeps the store for one invocation.
 
-## 制限
-
-HonoXのclient manifestは `build/client/.vite/manifest.json` に置かれ、Rustの静的配信から取得できます。manifestはassetのファイル名とmoduleの対応だけを含みます。
+HonoX's client manifest is written to `build/client/.vite/manifest.json`
+and can be fetched through Rust's static serving; it maps asset file names
+to modules and contains nothing else.

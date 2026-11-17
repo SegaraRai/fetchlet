@@ -1,10 +1,21 @@
 # fetchlet
 
-RustからJavaScriptの関数とFetchハンドラを呼び出します。Request / Responseと任意関数は同じ実行基盤で扱います。
+Calls JavaScript functions and Fetch handlers from Rust. Requests,
+responses and named functions share one runtime on QuickJS, Boa or V8.
 
-## 共有handle
+| Feature             | Adds                                                     |
+| ------------------- | -------------------------------------------------------- |
+| `quickjs` (default) | `Backend::quickjs()`, `Backend::QuickJs(QuickJsOptions)` |
+| `boa`               | `Backend::Boa`                                           |
+| `v8`                | `Backend::v8()`, `Backend::V8(V8Options)`                |
 
-AppBuilder::spawn(WorkerOptions)は所有スレッドでAppを初期化し、複製可能なSend + SyncのAppHandleを返します。
+Several engine features can be enabled together. Without any, the host API
+(`HostServices`, `FetchService`, `Body`, `Limits`) remains available.
+
+## Shared handle
+
+`AppBuilder::spawn(WorkerOptions)` initializes the app on its own thread and
+returns an `AppHandle`, which is `Clone + Send + Sync`.
 
 ```rust,ignore
 use std::num::NonZeroUsize;
@@ -21,18 +32,39 @@ let response = app.fetch(request).await?;
 app.shutdown().await?;
 ```
 
-queue_capacityは待機中のコマンド数です。満杯の間は呼び出し側が非同期に待機します。実行は一つのApp内で直列です。native stackはWorkerOptionsで指定でき、既定はplatform設定です。
+`queue_capacity` is the number of waiting commands; while the queue is full,
+callers wait asynchronously. Calls run serially within one app. The worker's
+native stack size is set in `WorkerOptions` and defaults to the platform's.
 
-呼び出しFutureのdropで、その呼び出しをキャンセルします。中断・期限切れ・未完了処理で退役したInstanceは、次の呼び出し前に同じmodule / binding / 設定から再生成します。通常のJS例外の後は状態を再利用します。
+Dropping a call's future cancels that call. An instance retired by
+cancellation, an expired deadline or unfinished work is rebuilt from the
+same module, bindings and settings before the next call. After an ordinary
+JavaScript exception the state is reused.
 
-shutdownは全cloneで新規受付を終了し、受付済み処理と資源回収の完了を待ちます。キュー容量待ちの呼び出しにはWorkerClosedを返します。最後のhandleをdropした場合も、所有スレッドは終了へ進みます。
+`shutdown` stops accepting calls on every clone and waits for accepted calls
+and their resources. Calls waiting for queue capacity receive
+`WorkerClosed`. Dropping the last handle also ends the thread.
 
-Limitsの期限は実行開始からの協調的な期限です。待機を含む期限は、Rust側で呼び出しFuture全体へ適用できます。yieldしないJSと初期化時の強制停止はbackendごとの拡張対象です。
+The `Limits::timeout` deadline is cooperative and counts from the start of
+execution. A deadline that includes queueing can be applied in Rust to the
+whole call future. Forcibly stopping JavaScript that never yields, or
+initialization, is per-engine work ([open work](../../docs/TODO.md)).
 
-callはSerdeの単一引数、call_jsonはJSONの複数引数を扱います。fetch_with_contextはentryの第二引数へリクエスト固有情報を渡します。
+`call` takes one Serde argument and `call_json` several JSON arguments.
+`fetch_with_context` passes a per-request Serde value as the entry's second
+argument.
 
-## 所有スレッドで直接使う
+## Owned app
 
-AppBuilder::build()は呼び出し側が所有するAppを返します。&mut selfで直列呼び出しし、スレッド配置や寿命を自分で管理する用途に使います。
+`AppBuilder::build()` returns an `App` owned by the caller. Calls take
+`&mut self` and run serially; use it to manage the thread and lifetime
+yourself.
 
-backendはquickjs、boa、v8から選択できます。Web APIと実行制御の範囲はrootのdocs、起動できるアプリはexamplesを参照してください。
+## Documentation
+
+- [Domain model](../../docs/domain-model.md) and [data
+  flow](../../docs/data-flow.md)
+- [Host services](../../docs/host-services.md) and [resource
+  policy](../../docs/resource-policy.md)
+- [fetchlet-http](../fetchlet-http/README.md) for HTTP servers
+- [Examples](../../examples/README.md)

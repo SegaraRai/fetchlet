@@ -1,38 +1,52 @@
 # vinext + axum
 
-vinext（Vite上のNext.js API実装）のApp Router、React Server Components、route handlerをaxumから配信する例です。[fetchlet/vinext](../../packages/fetchlet/docs/vinext.md)でserverをartifactにします。
+Serves the App Router, React Server Components and route handlers of vinext,
+an implementation of the Next.js API on Vite, from axum.
+[fetchlet/vinext](../../packages/fetchlet/docs/vinext.md) builds the server
+into an artifact.
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-vinext-axum#serve
 ```
 
-http://127.0.0.1:3900 を開きます。taskはbuildしてからサーバ（QuickJS）を起動します。
+Open `http://127.0.0.1:3900`. The task builds, then starts the server on
+QuickJS.
 
-## 構成
+## Layout
 
-| 場所           | 役割                                                |
-| -------------- | --------------------------------------------------- |
-| app/           | layout、page、route handler                         |
-| vite.config.ts | vinextとfetchletのVite pluginとVite+のtask          |
-| src/           | axumの起動・binding・routing                        |
-| config.json    | 待受、キュー、本文予算、期限、background予算、stack |
-| tests/e2e.ts   | 実HTTPと実ブラウザによる検証                        |
-| build/         | server.js、client/、fetchlet.json                   |
+| Path             | Role                                                                      |
+| ---------------- | ------------------------------------------------------------------------- |
+| `app/`           | Layouts, pages, route handlers                                            |
+| `vite.config.ts` | vinext and fetchlet Vite plugins, Vite+ tasks                             |
+| `src/`           | Starting axum, bindings, routing                                          |
+| `config.json`    | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.ts`   | Checks over real HTTP in a real browser                                   |
+| `build/`         | `server.js`, `client/`, `fetchlet.json`                                   |
 
-`/api/background` は `next/server` の `after()` で応答後の処理を登録します。config.jsonの `background_tasks` は64です。vinextは最初のrequestでroute moduleのpreloadごとに `waitUntil` を登録し、8では最初のページの描画が予算超過で失敗しました。
+`/api/background` registers work after the response with `after()` from
+`next/server`. `background_tasks` in `config.json` is 64: on the first
+request vinext registers a `waitUntil` for each route module preload, and
+with 8 the first page failed to render over budget.
 
-config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB）は[React Router例](../react-router-axum/README.md#stack)と同じ値です。ReactのFizzがstack overflowから描画をやり直す深さに合わせています。
+`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
+`config.json` match the [React Router example](../react-router-axum/README.md#stack),
+sized for the depth at which React's Fizz retries rendering after a stack
+overflow.
 
-## 検証
+## Checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- vinext-axum
 ```
 
-SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/examples/common-checks.ts）で確認します。結果はresults/example-vinext-axum.jsonです。
+The shared ten checks (`tools/examples/common-checks.ts`) cover SSR and
+escaping, the Rust service binding, assets, JSON endpoints, client address
+and bindings, the axum route, body budgets, streaming uploads, `waitUntil`,
+concurrent requests, hydration and navigation. Results go to
+`results/example-vinext-axum.json`.

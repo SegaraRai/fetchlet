@@ -1,6 +1,9 @@
 # fetchlet/sveltekit
 
-SvelteKitのserverをfetchlet用IIFEへbundleし、client assetsと形式情報を出力します。SvelteKit 3.2.0 / Svelte 5.57.3で、同期rendering profile（既定）と非同期rendering profileを検証しています。
+A SvelteKit adapter. It bundles the SvelteKit server into a fetchlet
+artifact and writes the client assets and manifest. Verified with SvelteKit
+3.2.0 and Svelte 5.57.3 in both the synchronous (default) and asynchronous
+rendering profiles.
 
 ```ts
 import { defineConfig } from "vite";
@@ -17,20 +20,42 @@ export default defineConfig({
 });
 ```
 
-出力は `server.js`、`client/`、`fetchlet.json`。Rust側のFetch entryは `handle` です。contextにclientAddressを渡すとSvelteKitのgetClientAddressへ接続します。固定bindingはplatform.envへ、応答後の処理を登録する `waitUntil` はplatform.context.waitUntilへ、文字列bindingはserver.initのenvへ渡します。
+The output is `server.js`, `client/` and `fetchlet.json`; the Rust Fetch
+entry is `handle`.
 
-## 静的アセットのアーカイブ
+| From Rust               | In SvelteKit                 |
+| ----------------------- | ---------------------------- |
+| Context `clientAddress` | `getClientAddress()`         |
+| Fixed bindings          | `platform.env`               |
+| `waitUntil`             | `platform.context.waitUntil` |
+| String bindings         | `env` of `server.init`       |
 
-`assets: true` は、client assetsを `build/assets.flpk` にまとめ、`fetchlet.json` に記録します。`_app/immutable/` 以下には1年の `Cache-Control: immutable` を付け、prerenderしたページはSvelteKitの既定 `trailingSlash: "never"` に合わせて `.html` と末尾の `/` なしで配信します。`assets` の設定で含めるファイル、キャッシュ、応答、pathの規則、追加のエントリを指定でき、関数ならエントリ列を自分で返せます（`respond` はimmutableの設定の後に呼ばれます）。Rustでは `Artifact::open` または `include_artifact!` が読み込み、`artifact_router` が配信します。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+## Assets
 
-## rendering profile
+`assets: true` packs the client assets into `build/assets.flpk` and records
+it in `fetchlet.json`. Files under `_app/immutable/` get a year of
+`Cache-Control: immutable`, and prerendered pages are served without `.html`
+or a trailing slash, matching SvelteKit's default `trailingSlash: "never"`.
+`assets` settings choose the included files, caching, responses, path rules
+and extra entries; a function returns the entries itself (`respond` runs
+after the immutable rule). Rust reads the archive with `Artifact::open` or
+`include_artifact!` and serves it with `artifact_router`
+([asset archive](../../../docs/asset-archive.md)).
 
-| `rendering`             | 用途                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `"synchronous"`（既定） | Svelteの同期rendering。`node:async_hooks` を使わない                                                                |
-| `"async"`               | Svelteの非同期rendering（`compilerOptions.experimental.async`）とremote functions（`experimental.remoteFunctions`） |
+## Rendering profiles
 
-`"async"` は共通builderの `asyncContext: "serialized"` を使い、`getRequestEvent()` と描画中のremote form / queryが `await` をまたいで現在のRequestを参照できるようにします。Appはinvocationを直列に実行するため、storeはそのRequestのものです。1つのRequestの描画中に並行するremote functionの間は、最後に開始した呼び出しのstoreが見えます。remote functionの本体では、`getRequestEvent()` を最初の `await` より前で呼びます。
+| `rendering`               | Use                                                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `"synchronous"` (default) | Svelte's synchronous rendering; no `node:async_hooks`                                                                 |
+| `"async"`                 | Svelte's async rendering (`compilerOptions.experimental.async`) and remote functions (`experimental.remoteFunctions`) |
+
+`"async"` uses the builder's `asyncContext: "serialized"`, so
+`getRequestEvent()` and remote forms and queries during rendering see the
+current request across `await`. The app runs invocations serially, so the
+store belongs to that request. Between remote functions running
+concurrently while one request renders, the store of the last started call
+is visible. In a remote function's body, call `getRequestEvent()` before the
+first `await`.
 
 ```ts
 sveltekit({
@@ -40,4 +65,7 @@ sveltekit({
 });
 ```
 
-Rustサーバとの接続例とE2Eは、同期profileが `examples/sveltekit-axum`、非同期profileが `examples/sveltekit-axum-tauri` です。次の拡張対象はserver側asset readとstreamingです。remote functionの `query.live` はstreaming応答を使うため、streamingに合わせて対応します。
+`examples/sveltekit-axum` uses the synchronous profile and
+`examples/sveltekit-axum-tauri` the asynchronous one. Server-side asset reads
+and streaming are next; remote functions' `query.live` needs streaming
+responses and follows them.

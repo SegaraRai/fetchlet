@@ -1,6 +1,8 @@
 # fetchlet/qwik-city
 
-Qwik City 1のSSR buildをfetchlet用IIFEへbundleするVite pluginとmiddlewareです。@builder.io/qwik / @builder.io/qwik-city 1.20.4を検証しています。
+A Vite plugin and middleware that bundle a Qwik City 1 SSR build into a
+fetchlet artifact. Verified with `@builder.io/qwik` and
+`@builder.io/qwik-city` 1.20.4.
 
 ```ts
 // vite.config.ts
@@ -28,25 +30,31 @@ import render from "./entry.ssr";
 export default createQwikCity({ render, qwikCityPlan, manifest });
 ```
 
-buildは `vp build && vp build --ssr` の2段です。`entry`（既定は `src/entry.fetchlet.tsx`）、`outDir`、`backend`、`intl` を設定できます。
+The build has two steps: `vp build && vp build --ssr`. The plugin takes
+`entry` (default `src/entry.fetchlet.tsx`), `outDir`, `backend` and `intl`.
 
-## 出力
+## Output
 
-SSR buildで `entry` と `@qwik-city-plan` をbundleし、`build/server.js` と `build/fetchlet.json` を書きます。client buildでは、Qwikがmodule pathから付けるchunk名をRolldownが受け付ける名前に変えます（ファイル名はhashのみ）。
+The SSR build bundles `entry` and `@qwik-city-plan` and writes
+`build/server.js` and `build/fetchlet.json`. In the client build, the chunk
+names Qwik derives from module paths are renamed to names Rolldown accepts
+(file names are hashes only).
 
-`assets: true` はclient assetsを `assets.flpk` にまとめ、`build/` と `assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`assets: true` packs the client assets into `assets.flpk` and caches
+`build/` and `assets/` for a year
+([asset archive](../../../docs/asset-archive.md)).
 
-## request event
+## Request event
 
-| 値                   | 内容                                                       |
-| -------------------- | ---------------------------------------------------------- |
-| `platform.env`       | Rustの固定binding                                          |
-| `platform.waitUntil` | 応答後の処理の登録。Rustのbackground予算の範囲で完了を待つ |
-| `clientConn.ip`      | Rustのrequest contextの接続元                              |
-| `env.get(name)`      | 文字列のbinding                                            |
+| Value                | Content                                                            |
+| -------------------- | ------------------------------------------------------------------ |
+| `platform.env`       | Rust's fixed bindings                                              |
+| `platform.waitUntil` | Registers work after the response, within Rust's background budget |
+| `clientConn.ip`      | The client address of the request context                          |
+| `env.get(name)`      | A string binding                                                   |
 
-本文の上限はAppのrequest予算が持ちます。静的ファイルはRustサーバが配信し、Qwik Cityに届いて一致しないpathは404です。Qwik CityのCSRF検査はPOSTなどに `Origin` を要求します。
+The app's request budget limits the body. Rust serves static files, and a
+path that reaches Qwik City without matching a route is a 404. Qwik City's
+CSRF check requires `Origin` on POST and similar requests.
 
-## 制限
-
-Qwik 2（@qwik.dev/router）は次の対象です。
+Qwik 2 (`@qwik.dev/router`) is not supported yet.

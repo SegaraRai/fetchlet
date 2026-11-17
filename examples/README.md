@@ -1,33 +1,47 @@
-# 実行できるアプリの例
+# Examples
 
-各例はfrontend build、Rustのhost、設定、起動手順とE2Eを持ちます。axumの例は実HTTPとbrowser、Tauriの例はwebviewで検証します。
+Each example has its own frontend build, Rust host, configuration, run
+instructions and end-to-end checks. The axum examples are checked over real
+HTTP in a browser; the Tauri examples in the webview.
 
-| 組み合わせ                                                 | backend           | 確認範囲                                                                                                                                                         |
-| ---------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [SvelteKit + axum](sveltekit-axum/README.md)               | QuickJS           | SSR、assets、hydration、action、endpoint、Rust service、client navigation                                                                                        |
-| [Astro + axum](astro-axum/README.md)                       | QuickJS＋FormatJS | SSR、assets、Svelte island、フォーム、endpoint、Rust service、client navigation                                                                                  |
-| [Nuxt + axum](nuxt-axum/README.md)                         | QuickJS           | SSR、assets、hydration、server route、runtime config、Rust service、navigation                                                                                   |
-| [React Router + axum](react-router-axum/README.md)         | QuickJS           | streaming SSR、assets、hydration、action、resource route、Rust service、navigation                                                                               |
-| [HonoX + axum](honox-axum/README.md)                       | QuickJS           | SSR、assets、island、API route、Rust service、navigation                                                                                                         |
-| [TanStack Start + axum](tanstack-start-axum/README.md)     | QuickJS           | streaming SSR、assets、hydration、server function、server route、Rust service、client navigation                                                                 |
-| [SolidStart + axum](solidstart-axum/README.md)             | QuickJS           | streaming SSR、assets、hydration、server function、API route、Rust service、client navigation                                                                    |
-| [Qwik City + axum](qwik-city-axum/README.md)               | QuickJS           | SSR、assets、resumability、routeLoader$、endpoint、Rust service、client navigation                                                                               |
-| [Waku + axum](waku-axum/README.md)                         | QuickJS           | RSC、SSR、assets、hydration、API route、Rust service、client navigation                                                                                          |
-| [vinext + axum](vinext-axum/README.md)                     | QuickJS           | App Router、RSC、SSR、assets、hydration、route handler、Rust service、client navigation                                                                          |
-| [HonoX + Tauri](honox-tauri/README.md)                     | QuickJS           | HTTPサーバなしのURI scheme配信、SSR、assets、island、API route、Tauri commandからのJS関数呼び出し                                                                |
-| [SvelteKit + axum / Tauri](sveltekit-axum-tauri/README.md) | QuickJS           | Markdownワークスペース。CLIのHTTPとTauriのURI schemeで同じRouterを配信、utoipaのOpenAPIから型共有、remote functions、async SSR、Rustでのハイライト、ファイル監視 |
+| Example                                                    | Backend           | Checks                                                                                                                                                   |
+| ---------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SvelteKit + axum](sveltekit-axum/README.md)               | QuickJS           | SSR, assets, hydration, actions, endpoints, in-process Rust API, client navigation                                                                       |
+| [Astro + axum](astro-axum/README.md)                       | QuickJS, FormatJS | SSR, assets, a Svelte island, forms, endpoints, Rust service, streaming uploads, client navigation                                                       |
+| [Nuxt + axum](nuxt-axum/README.md)                         | QuickJS           | SSR, assets, hydration, server routes, runtime config, Rust service, navigation                                                                          |
+| [React Router + axum](react-router-axum/README.md)         | QuickJS           | Streaming SSR, assets, hydration, actions, resource routes, Rust service, navigation                                                                     |
+| [HonoX + axum](honox-axum/README.md)                       | QuickJS           | SSR, assets, islands, API routes, Rust service, navigation                                                                                               |
+| [TanStack Start + axum](tanstack-start-axum/README.md)     | QuickJS           | Streaming SSR, assets, hydration, server functions, server routes, Rust service, client navigation                                                       |
+| [SolidStart + axum](solidstart-axum/README.md)             | QuickJS           | Streaming SSR, assets, hydration, server functions, API routes, Rust service, client navigation                                                          |
+| [Qwik City + axum](qwik-city-axum/README.md)               | QuickJS           | SSR, assets, resumability, `routeLoader$`, endpoints, Rust service, client navigation                                                                    |
+| [Waku + axum](waku-axum/README.md)                         | QuickJS           | RSC, SSR, assets, hydration, API routes, Rust service, client navigation                                                                                 |
+| [vinext + axum](vinext-axum/README.md)                     | QuickJS           | App Router, RSC, SSR, assets, hydration, route handlers, Rust service, client navigation                                                                 |
+| [HonoX + Tauri](honox-tauri/README.md)                     | QuickJS           | Serving over a URI scheme without an HTTP server, SSR, assets, islands, API routes, bundle functions from Tauri commands                                 |
+| [SvelteKit + axum / Tauri](sveltekit-axum-tauri/README.md) | QuickJS           | A Markdown workspace: one router over CLI HTTP and a Tauri URI scheme, types from OpenAPI, remote functions, async SSR, Rust highlighting, file watching |
 
-後半の6例は共通の10項目（tools/examples/common-checks.ts）で同じアプリの形を確認します。Next.js本体（`next build` の出力）、Qwik 2、SolidStartのNitro経由のbuildは次の対象です。
+The framework examples share ten checks in `tools/examples/common-checks.ts`
+for the same application shape. Next.js itself (`next build` output), Qwik 2
+and SolidStart builds through Nitro are not covered.
 
-## 共通にする境界
+## Shared boundaries
 
-framework adapterはserver bundleとclient assetsを作ります。fetchlet/buildがWeb APIの初期化順序とartifact形式を揃えます。Rust側はAppHandleで実行を管理し、axumの例はfetchlet-httpの `Artifact` と `artifact_router` でartifactを読み、client assetsとアプリを配信します。Tauriの例はfetchlet-httpの `FetchletService` をURI scheme protocolから呼び、HTTPサーバを立てずにwebviewへ配信します。fetchlet-tower、fetchlet-hyper（hyper 1）、fetchlet-actix（actix-web）も同じ契約で検証済みです。
+Framework adapters produce the server bundle and client assets, and
+`fetchlet/build` fixes the Web API initialization order and the artifact
+format. On the Rust side, `AppHandle` runs the app. The axum examples read
+the artifact with fetchlet-http's `Artifact` and serve client assets and the
+app with `artifact_router`. The Tauri examples call fetchlet-http's
+`FetchletService` from a URI scheme protocol and serve the webview without
+an HTTP server. The same request handling contract is verified on the
+Tower, hyper and actix-web layers.
 
-artifactはserver.js、client/、fetchlet.jsonです。manifestは形式版、entry、profile、frameworkと要求する能力を記録します。backendは要求に合わせてアプリ側で選択します。
+An artifact is `server.js`, `client/` or `assets.flpk`, and `fetchlet.json`,
+which records the format version, entry, profile, framework and required
+capabilities. The application chooses the backend to match.
 
-## backendの切り替え
+## Switching backends
 
-各例の既定はQuickJSです。Boa / V8で動かすときは、artifactとサーバを同じbackendに揃えます。
+Every example defaults to QuickJS. To run on Boa or V8, build the artifact
+and the server for the same backend:
 
 ```bash
 FETCHLET_BACKEND=v8 vp run --filter @fetchlet-internal/example-honox-axum build
@@ -37,17 +51,26 @@ FETCHLET_BACKEND=v8 vp run --filter @fetchlet-internal/example-honox-axum build
 node tools/workspace/cargo.ts run --release -p example-honox-axum --features v8
 ```
 
-`FETCHLET_BACKEND`（`quickjs` / `boa` / `v8`）はframework設定のbackendをbuild時に上書きし、`config.json` の `"backend": "v8"` がRust側のBackendを選びます。featureを付けずにbuildしたサーバはBoa / V8の設定を起動時にerrorにします。V8の `worker_stack_bytes` はV8のworker threadにも使います。
+`FETCHLET_BACKEND` (`quickjs`, `boa` or `v8`) overrides the backend in the
+framework configuration at build time, and `"backend": "v8"` in
+`config.json` selects the Rust `Backend`. A server built without the feature
+refuses a Boa or V8 configuration at startup. `worker_stack_bytes` also
+applies to V8's worker thread.
 
-[tools/bench](../tools/bench/README.md)は10例 × 3 backend × endpointのreq/sを測ります。
+[tools/bench](../tools/bench/README.md) measures requests per second for
+each example, backend and endpoint.
 
-## 追加するとき
+## Adding an example
 
-- 名前を<framework>-<rust-host>（axum、tauriなど）とし、起動できるアプリを置く。
-- RustとJSのpackageをそれぞれworkspaceへ登録する。
-- framework固有の接続はpackages/のadapter / preset、HTTP統合はcrates/へ置く。
-- 別のRustサーバでも同じframeworkのartifactを再利用する。
-- E2EでHTML、公開assets、hydration、navigationと、その例が使うhost機能を確認する。
-- framework / backend版とprofileを記録する。
+- Name it `<framework>-<rust-host>` (axum, tauri, …) and make it runnable.
+- Register its Rust and JavaScript packages in the workspaces.
+- Put framework-specific integration in an adapter of `packages/fetchlet`
+  and HTTP integration in `crates/`.
+- Reuse the framework's artifact with other Rust servers.
+- Check HTML, public assets, hydration, navigation and the host features the
+  example uses end to end.
+- Record the framework and backend versions and the profile.
 
-共通のテスト用サーバ起動と結果保存はtools/examples/suite.tsを使います。vp run test:examplesで全例を検証できます。Tauriの例は独自のE2E（WebView2のDevTools protocol）を使います。
+`tools/examples/suite.ts` starts test servers and records results;
+`vp run test:examples` checks every example. The Tauri examples drive
+WebView2 through the DevTools protocol.

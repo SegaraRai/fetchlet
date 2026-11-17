@@ -1,6 +1,8 @@
 # fetchlet/astro
 
-Astroの公式server entrypoint APIでRequest / Responseを接続し、fetchlet/buildで共通artifactを作ります。Astro 7.4.12のserver outputを検証しています。
+An Astro adapter. It connects Request and Response through Astro's official
+server entrypoint API and builds the artifact with
+[`fetchlet/build`](build.md). Verified with Astro 7.4.12 server output.
 
 ```js
 import { defineConfig } from "astro/config";
@@ -15,16 +17,33 @@ export default defineConfig({
 });
 ```
 
-Rustの固定bindingはAstro.locals.env、応答後の処理を登録する `waitUntil` はAstro.locals.waitUntilへ渡します。clientAddressは呼び出し固有のcontext、getSecretは固定した文字列bindingへ接続します。本文はbuffered profileです。
+| Value                    | Content                                                            |
+| ------------------------ | ------------------------------------------------------------------ |
+| `Astro.locals.env`       | Rust's fixed bindings                                              |
+| `Astro.locals.waitUntil` | Registers work after the response, within Rust's background budget |
+| `Astro.clientAddress`    | The client address from the per-request context                    |
+| `getSecret(name)`        | A fixed string binding                                             |
 
-AstroのIntl.DateTimeFormat要求を共通builderへ渡します。backendがquickjs / boaならFormatJSと依存API、選択したlocale・タイムゾーンデータを追加します。v8ならnative Intlを使います。backendの既定値portableは、いずれのVMでも補えるbundleを作ります。Rust側のbackendとbuild設定を合わせると、native APIを活かしてbundleを小さくできます。
+Astro's `Intl.DateTimeFormat` requirement is passed to the builder. For
+`quickjs` and `boa` it adds FormatJS with its dependencies and the selected
+locale and time zone data; for `v8` it uses native Intl. The default
+`portable` builds a bundle that works on any engine. Matching the build
+backend to the Rust backend keeps native APIs and shrinks the bundle.
 
-examples/astro-axumはQuickJS＋FormatJSで、SSR、Svelte island、フォーム、Cookie、endpoint、client navigationを試験します。
+## Assets
 
-画像変換、server islands、session、static output等は個別の能力と試験を追加する対象です。現在の実測範囲は例の9項目です。
+`assets: true` packs the client assets into `assets.flpk`, caches
+`build.assets` (`_astro` by default) for a year, and maps page paths
+according to `trailingSlash` and `build.format`
+([asset archive](../../../docs/asset-archive.md)).
 
-[Astro adapter API](https://docs.astro.build/en/reference/adapter-reference/)と[server entrypoint API](https://docs.astro.build/en/reference/modules/astro-app/)を使っています。
+## Tests
 
-## 静的アセットのアーカイブ
+examples/astro-axum runs on QuickJS with FormatJS and checks SSR, a Svelte
+island, forms, cookies, endpoints, streaming uploads and client navigation.
 
-`assets: true` はclient assetsを `assets.flpk` にまとめ、`build.assets`（既定 `_astro`）を1年キャッシュし、ページのpathを `trailingSlash` と `build.format` に合わせます。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+Image transformation, server islands, sessions and static output need their
+own capabilities and tests.
+
+The adapter uses the [adapter API](https://docs.astro.build/en/reference/adapter-reference/)
+and the [server entrypoint API](https://docs.astro.build/en/reference/modules/astro-app/).

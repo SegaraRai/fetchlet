@@ -1,39 +1,50 @@
 # SolidStart + axum
 
-SolidStart 2のstreaming SSR、`query` のserver function、API routeをaxumから配信する例です。[fetchlet/solid-start](../../packages/fetchlet/docs/solid-start.md)でserverをartifactにします。
+Serves SolidStart 2's streaming SSR, `query` server functions and API routes
+from axum. [fetchlet/solid-start](../../packages/fetchlet/docs/solid-start.md)
+builds the server into an artifact.
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-solidstart-axum#serve
 ```
 
-http://127.0.0.1:3600 を開きます。taskはbuildしてからサーバ（QuickJS）を起動します。
+Open `http://127.0.0.1:3600`. The task builds, then starts the server on
+QuickJS.
 
-## 構成
+## Layout
 
-| 場所                 | 役割                                                |
-| -------------------- | --------------------------------------------------- |
-| src/routes/          | page、API route、404 route                          |
-| src/lib/completed.ts | API routeのhandler間で共有する状態                  |
-| vite.config.ts       | SolidStartとfetchletのVite pluginとVite+のtask      |
-| src/                 | axumの起動・binding・routing                        |
-| config.json          | 待受、キュー、本文予算、期限、background予算、stack |
-| tests/e2e.ts         | 実HTTPと実ブラウザによる検証                        |
-| build/               | server.js、client/、fetchlet.json                   |
+| Path                   | Role                                                                      |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `src/routes/`          | Pages, API routes, the 404 route                                          |
+| `src/lib/completed.ts` | State shared between API route handlers                                   |
+| `vite.config.ts`       | SolidStart and fetchlet Vite plugins, Vite+ tasks                         |
+| `src/`                 | Starting axum, bindings, routing                                          |
+| `config.json`          | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.ts`         | Checks over real HTTP in a real browser                                   |
+| `build/`               | `server.js`, `client/`, `fetchlet.json`                                   |
 
-SolidStartはAPI routeのhandlerを別moduleにbuildするため、`/api/background` の状態は `src/lib/` に置いています。一致しないpathは `[...404].tsx` が404を返します。
+SolidStart builds each API route handler as its own module, so the state of
+`/api/background` lives in `src/lib/`. `[...404].tsx` answers unmatched paths
+with 404.
 
-config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB）は[React Router例](../react-router-axum/README.md#stack)と同じ値です。このframeworkで必要な最小値は測定していません。
+`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
+`config.json` match the [React Router example](../react-router-axum/README.md#stack);
+the minimum this framework needs has not been measured.
 
-## 検証
+## Checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- solidstart-axum
 ```
 
-SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/examples/common-checks.ts）で確認します。結果はresults/example-solidstart-axum.jsonです。
+The shared ten checks (`tools/examples/common-checks.ts`) cover SSR and
+escaping, the Rust service binding, assets, JSON endpoints, client address
+and bindings, the axum route, body budgets, streaming uploads, `waitUntil`,
+concurrent requests, hydration and navigation. Results go to
+`results/example-solidstart-axum.json`.

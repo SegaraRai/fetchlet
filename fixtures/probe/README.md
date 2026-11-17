@@ -1,28 +1,37 @@
-# Web APIの共通プローブ
+# Web API probes
 
-`web-api.js` は23項目のローカルな動作を確認します。バイナリ本文、Bodyの消費、Cookieの多値、FormData、Streams、cancel、Encoding、Abort、microtask / timer、clone、Crypto、synthetic handlerを検査します。
+`web-api.js` checks 23 local behaviors: binary bodies, Body consumption,
+repeated cookies, FormData, Streams, cancellation, Encoding, Abort,
+microtasks and timers, clone, Crypto and a synthetic handler.
 
-## 参照実行
+## Reference runs
 
-依存追加の作業を伴わず、プロジェクトルートから実行できます。
+These run from the repository root without installing anything:
 
-```powershell
+```bash
 deno run --no-config --no-lock fixtures/probe/run.ts
 node fixtures/probe/run.ts
 ```
 
-Deno CLIとNodeはプローブの参照環境です。組み込みbackendの結果は、各エンジンとWeb API profileを初期化した実行で記録します。
+The Deno CLI and Node are the reference environments. Embedded results come
+from runs that initialize each engine with the Web API profile.
 
-## 組み込み実行
+## Embedded runs
 
-```powershell
+```bash
 vp run build:fixtures
-vp run test:rust
 vp run test:matrix
 ```
 
-QuickJS / Boa / V8とfetchlet共通profileの結果を `results/web-api-{backend}.json` に保存します。構成と依存版は[実装・検証状況](../docs/implementation-status.md)を参照してください。
+Results for QuickJS, Boa and V8 with fetchlet's profile go to
+`results/web-api-{backend}.json` and are rendered in
+[reference](../../docs/reference/README.md#web-api-probes).
 
-別のprofileを評価するときは、Web APIとhost機能を初期化し、スクリプトを評価して `globalThis.fetchletProbe({ runtimeLabel })` のPromiseをホスト側で駆動します。
+To evaluate another profile, initialize its Web APIs and host features,
+evaluate the script, and drive the promise of
+`globalThis.fetchletProbe({ runtimeLabel })` from the host.
 
-各checkは可能な環境で2秒のテスト用timeoutを使います。実行基盤全体の停止はホスト側のdeadlineで監視します。このプローブの評価範囲は23の動作です。実HTTP通信、Rust Bodyのbackpressure、API全体の仕様適合は、それぞれ専用の試験へ広げます。
+Each check uses a two-second test timeout where the environment allows; the
+host's deadline guards the whole run. The probes cover these 23 behaviors
+only. Real HTTP, Rust body backpressure and full specification conformance
+have their own tests.

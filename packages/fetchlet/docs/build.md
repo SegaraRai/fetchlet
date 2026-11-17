@@ -1,8 +1,10 @@
 # fetchlet/build
 
-frameworkのentryをfetchletの共通artifactへまとめます。Web API profile、選択したpolyfill、native能力の検査、frameworkの順に初期化します。
+Bundles a framework entry into a fetchlet artifact. The bundle initializes,
+in order, the Web API profile, the selected polyfills, the native capability
+checks and the framework.
 
-## backendに応じたpolyfill
+## Polyfills per backend
 
 ```js
 await buildArtifact({
@@ -18,53 +20,115 @@ await buildArtifact({
 });
 ```
 
-backendはquickjs / boa / v8 / portableです。Rustのbackendと合わせて選びます。既定のportableはnative Intlを前提にせず、不足時に補える実装を含めます。SvelteKitとAstroのadapterにもbackend / intlを同じ形で渡せます。
+`backend` is `quickjs`, `boa`, `v8` or `portable`; choose it to match the
+Rust backend. The default, `portable`, assumes no native Intl and includes
+implementations that install only where an API is missing. The framework
+adapters accept `backend` and `intl` in the same form.
 
-現在のIntl選択対象はgetCanonicalLocales、Locale、PluralRules、NumberFormat、DateTimeFormatです。アプリ固有の追加要求はrequirementsまたはintl.apisに、Intl.NumberFormatのような名前で指定します。frameworkの静的解析からAPI使用を推定する代わりに、adapterとアプリが要求を明示します。
+The Intl APIs selected today are `getCanonicalLocales`, `Locale`,
+`PluralRules`, `NumberFormat` and `DateTimeFormat`. Applications add
+requirements with `requirements` or `intl.apis`, by name, such as
+`Intl.NumberFormat`. Adapters and applications state requirements
+explicitly instead of the builder inferring them from framework code.
 
-| build backend | Intlの提供                            |
-| ------------- | ------------------------------------- |
-| quickjs / boa | 要求APIと依存APIのFormatJS polyfill   |
-| v8            | native Intl。FormatJSをbundleから除外 |
-| portable      | 要求APIの条件付きpolyfill             |
+| Build backend    | Intl                                                            |
+| ---------------- | --------------------------------------------------------------- |
+| `quickjs`, `boa` | FormatJS polyfills for the required APIs and their dependencies |
+| `v8`             | Native Intl; FormatJS is left out of the bundle                 |
+| `portable`       | Conditional polyfills for the required APIs                     |
 
-能力表はfetchletの既定engine構成を実測して固定し、3VMの回帰テストで照合します。将来のengine featureで能力が変わる際は、この表と同じ試験を更新します。v8向けartifactはアプリの評価前に要求するnative APIとlocaleを確認し、構成が合わない場合に再buildを案内します。ここでのAPI能力は上記の基礎機能で、ECMA-402の全提案や全optionの同一性は別途検証します。
+The capability table is fixed from measurements of fetchlet's default engine
+configurations and checked by regression tests on all three engines; a
+future engine feature that changes capabilities updates the table and those
+tests together. A `v8` artifact checks the required native APIs and locales
+before evaluating the application and asks for a rebuild when the
+configuration does not match. These capabilities are the APIs above;
+identical behavior across every ECMA-402 proposal and option is a separate
+question.
 
-## localeとタイムゾーン
+## Locales and time zones
 
-intl.localesの既定値は["en"]です。選んだlocaleのデータだけをimportし、FormatJSが冗長な地域ファイルを省く場合は親localeのデータへ解決します。利用できる親データも無いlocaleはbuild時にエラーを返します。Intl.Locale等の共通メタデータと、formatterの選択localeデータはそれぞれの依存に従って入ります。
+`intl.locales` defaults to `["en"]`. Only the selected locales' data is
+imported; when FormatJS omits a redundant regional file, the parent locale's
+data is used. A locale with no usable parent data fails the build. Shared
+metadata such as `Intl.Locale`'s, and each formatter's locale data, follow
+their dependencies.
 
-intl.timeZoneDataはutc（既定）/ golden / allです。utcはUTC用の基本実装、goldenはFormatJSの代表的なIANA timezone pack、allは全packを使います。polyfill側の既定timezoneはUTCです。golden / allでも、アプリからtimeZoneを明示すると実行ホストの既定値に依存せず表示できます。カレンダーは固定したFormatJS配布の基本範囲（Gregorian / ISO 8601）から扱います。追加カレンダーは別の選択・検証対象です。
+`intl.timeZoneData` is `utc` (default), `golden` or `all`: a basic UTC
+implementation, FormatJS's representative IANA time zone pack, or every
+pack. The polyfill's default time zone is UTC; with `golden` or `all`, set
+`timeZone` explicitly to display times independently of the host's default.
+Calendars are the pinned FormatJS distribution's basic set (Gregorian and
+ISO 8601).
 
-localeとtimezone packはDateTimeFormat等のpolyfillを選んだ場合にbundleされます。v8ではnative ICUのデータを使います。CLDR / timezone更新により表示や過去・将来の時差が変わるため、依存更新時に実行結果を再確認します。
+Locale and time zone data is bundled only with polyfills such as
+DateTimeFormat; `v8` uses native ICU data. CLDR and time zone updates change
+output and past or future offsets, so recheck results when updating
+dependencies.
 
-## framework向けの設定
+## Framework settings
 
-| 設定                         | 内容                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `asyncContext: "serialized"` | `node:async_hooks` を、1つのinvocationの間だけstoreを保持する `AsyncLocalStorage` に置き換える。`run` はcallbackのPromiseが決着するまでstoreを保ち、`snapshot` / `bind` は全storageの値を捕捉する。各storageは決着していない `run` を開始順に持ち、最後に開始したものの値を返す。決着した `run` は順序に関係なく取り除かれるため、重なった `run` が開始と異なる順で決着しても、決着済みのstoreは残らない。Appはinvocationを直列に実行するため、invocation単位のcontextは正しく引き継がれる。1つのinvocation内で並行する `run` の間は、最後に開始した `run` のstoreが見える（分離はしない）。実装は `src/build/async-hooks.js`、試験は `vp run test:build` |
-| `conditions`                 | 再bundleで追加するpackage解決の条件。frameworkが外部に残した依存を、`workerd` などの条件でWeb標準の入口へ解決する                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `plugins`                    | 再bundleに加えるRolldown plugin。vinextのNode APIの置き換えに使う                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `define`                     | `process.env.NODE_ENV` に加えて置き換えるglobal式                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Setting                      | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asyncContext: "serialized"` | Replaces `node:async_hooks` with an `AsyncLocalStorage` that keeps its store for one invocation. `run` keeps the store until the callback's promise settles; `snapshot` and `bind` capture every storage's value. Each storage keeps its unsettled `run`s in start order and returns the value of the last started one; settled `run`s are removed regardless of order, so overlapping `run`s that settle out of order leave no settled store behind. The app runs invocations serially, so per-invocation context is correct. Within one invocation, concurrent `run`s see the store of the last started `run` (they are not isolated). Implemented in `src/build/async-hooks.ts`, tested by `vp run test:build` |
+| `conditions`                 | Extra package resolution conditions for the rebundle, which resolve dependencies the framework left external to Web-standard entries such as `workerd`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `plugins`                    | Extra Rolldown plugins for the rebundle; vinext uses them to replace Node APIs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `define`                     | Global expressions to replace, in addition to `process.env.NODE_ENV`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-再bundleはRolldownで、依存をすべて含むIIFEのserver.jsを1つ出力します。entryは仮想moduleとして組み立て、ソースの隣に一時ファイルを作りません。`entry` にはmoduleのパスのほか、`{ source, resolveDir }` でソースを渡せます。importは `resolveDir` から解決します。各adapterはframeworkのserver buildへ接続するentryをこの方法で渡し、ディスクに書きません。adapterのshimも同名のnpm packageも提供しないNodeの組み込みmoduleは、Viteのbrowser buildと同じく空のmoduleになり、呼び出した箇所で失敗します。公開ファイルは各adapterがclient/へ置き、server.jsの隣には複製しません。HonoX、TanStack Start、SolidStart、Waku、vinextのadapterと、SvelteKit adapterの `rendering: "async"` が `asyncContext: "serialized"` を使います。
+The rebundle uses Rolldown and writes one IIFE, `server.js`, with every
+dependency included. The entry is a virtual module, so no temporary file is
+written next to the sources. `entry` takes a module path or
+`{ source, resolveDir }`, whose imports resolve from `resolveDir`; every
+adapter passes the entry that connects its framework's server build this
+way. Node built-in modules that no adapter shims and no npm package of the
+same name provides become empty modules, as in Vite's browser build, and
+fail where they are called. Adapters put public files in `client/`; they are
+not copied next to `server.js`. The HonoX, TanStack Start, SolidStart, Waku
+and vinext adapters, and the SvelteKit adapter with `rendering: "async"`, use
+`asyncContext: "serialized"`.
 
-## 静的アセットのアーカイブ
+## Asset archives
 
-`archiveArtifactAssets({ outDir, assets })` は、artifactのアセットを `assets.flpk` にまとめ、`fetchlet.json` の `assets` に記録します。アーカイブはURLパスごとの応答のエントリ列で、`writeAssetArchive` がそのまま書きます。`directoryAssets` はclientディレクトリからエントリ列を作るヘルパーで、`include`（含めるファイル）、`routes`、`cache`、`respond` を受け取ります。`assets` は `true`、それらの設定に追加の `entries` を加えたもの、またはエントリ列を返す関数です。各frameworkのadapterも同じ `assets` を受け取り、frameworkの既定値（ハッシュ付きファイルの `Cache-Control: immutable` など）を下敷きにします。テキストはBrotli（品質11）で格納し、Rustの `AssetService` が `br` 対応クライアントへはそのまま、それ以外へは展開して返します。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+`archiveArtifactAssets({ outDir, assets })` packs the artifact's assets into
+`assets.flpk` and records it under `assets` in `fetchlet.json`. An archive
+is a list of entries, one response per URL path, which `writeAssetArchive`
+writes as given. `directoryAssets` builds entries from the client directory
+and takes `include`, `routes`, `cache` and `respond`. `assets` is `true`,
+those settings plus extra `entries`, or a function that returns the
+entries. Each framework adapter takes the same `assets` on top of the
+framework's defaults, such as `Cache-Control: immutable` for hashed files.
+Text is stored with Brotli at quality 11; Rust's `AssetService` sends it as
+it is to clients that accept `br` and decompressed to others. [Asset
+archive](../../../docs/asset-archive.md) describes the format and rules.
 
-## artifactと検証
+## Artifact
 
-出力はserver.js、client/への参照、fetchlet.jsonです。client assetsの生成は各framework adapterが担当します。manifestにはbackend、要求API、native前提、実際に選んだpolyfill / moduleとlocale・timezoneの設定を保存します。RustのModuleは現在ソースを受け取るため、これらのmetadataを用いるRust側の自動選択は次の統合対象です。
+The output is `server.js`, a reference to `client/` and `fetchlet.json`.
+Each framework adapter produces the client assets. The manifest records the
+backend, required APIs, native assumptions, the polyfills and modules
+actually selected, and the locale and time zone settings. Rust's `Module`
+takes source only, so selecting by this metadata on the Rust side is open
+work ([capability negotiation](../../../docs/TODO.md#capability-negotiation)).
 
-共通Web API層は引き続き全backendで共有します。Intlから始めた選択方式を、その能力表と適合試験を整えながら他のpolyfillにも広げます。native APIの有無による選択と、I/Oの権限・資源所有権は別の責務として保ちます。
+The Web API layer stays shared by every backend. Selection by native
+capability, started with Intl, extends to other polyfills as their
+capability tables and conformance tests are in place. Selecting by native
+API presence stays separate from I/O authority and resource ownership.
 
-```powershell
+```bash
 vp run test:polyfills
 ```
 
-API依存、locale選択、日本語・Tokyoの表示、native constructorの保持、V8向けのFormatJS module除外、能力不一致を確認します。実測のmoduleとbundle bytesは[polyfill-matrix.json](../../results/polyfill-matrix.json)に保存します。
+The tests cover API dependencies, locale selection, Japanese and Tokyo
+output, keeping native constructors, leaving FormatJS out of `v8` builds and
+capability mismatches. Module lists and bundle sizes are in
+[reference](../../../docs/reference/README.md#polyfills).
 
-依存とデータの読み込み順はFormatJSの[NumberFormat](https://formatjs.github.io/docs/polyfills/intl-numberformat/)と[DateTimeFormat](https://formatjs.github.io/docs/polyfills/intl-datetimeformat/)の要件を参照しています。
+The loading order of dependencies and data follows FormatJS's requirements
+for [NumberFormat](https://formatjs.github.io/docs/polyfills/intl-numberformat/)
+and [DateTimeFormat](https://formatjs.github.io/docs/polyfills/intl-datetimeformat/).
 
-embedded向けのpackage解決はmodule / production条件とmodule / main入口を使います。ブラウザーのnative APIを前提とする入口とNode専用入口を選ばず、組み込みengineで使えるJS実装へ解決するための設定です。
+Package resolution for embedded builds uses the `module` and `production`
+conditions and the `module` and `main` entries, so it picks JavaScript
+implementations that run on embedded engines instead of entries that assume
+browser native APIs or Node.

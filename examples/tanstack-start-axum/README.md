@@ -1,39 +1,51 @@
 # TanStack Start + axum
 
-TanStack Start（React）のstreaming SSR、server function、server routeをaxumから配信する例です。[fetchlet/tanstack-start](../../packages/fetchlet/docs/tanstack-start.md)でserverをartifactにします。
+Serves TanStack Start (React) streaming SSR, server functions and server
+routes from axum.
+[fetchlet/tanstack-start](../../packages/fetchlet/docs/tanstack-start.md)
+builds the server into an artifact.
 
-## 起動
+## Run
 
-リポジトリのルートで実行します。
+From the repository root:
 
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-tanstack-start-axum#serve
 ```
 
-http://127.0.0.1:3500 を開きます。taskはbuildしてからサーバ（QuickJS）を起動します。
+Open `http://127.0.0.1:3500`. The task builds, then starts the server on
+QuickJS.
 
-## 構成
+## Layout
 
-| 場所           | 役割                                                      |
-| -------------- | --------------------------------------------------------- |
-| src/routes/    | route、server route（`server.handlers`）                  |
-| src/context.ts | request contextの型登録                                   |
-| vite.config.ts | TanStack Start、React、fetchletのVite pluginとVite+のtask |
-| src/           | axumの起動・binding・routing                              |
-| config.json    | 待受、キュー、本文予算、期限、background予算、stack       |
-| tests/e2e.ts   | 実HTTPと実ブラウザによる検証                              |
-| build/         | server.js、client/、fetchlet.json                         |
+| Path             | Role                                                                      |
+| ---------------- | ------------------------------------------------------------------------- |
+| `src/routes/`    | Routes and server routes (`server.handlers`)                              |
+| `src/context.ts` | Registers the request context type                                        |
+| `vite.config.ts` | TanStack Start, React and fetchlet Vite plugins, Vite+ tasks              |
+| `src/`           | Starting axum, bindings, routing                                          |
+| `config.json`    | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.ts`   | Checks over real HTTP in a real browser                                   |
+| `build/`         | `server.js`, `client/`, `fetchlet.json`                                   |
 
-/ のloaderはserver functionで `context.env.RUST` を呼びます。client navigationでもserver functionがRustのbindingを使います。
+The loader of `/` calls `context.env.RUST` in a server function, so client
+navigation also reaches the Rust binding through the server function.
 
-config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB）は[React Router例](../react-router-axum/README.md#stack)と同じ値です。ReactのFizzがstack overflowから描画をやり直す深さに合わせています。
+`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
+`config.json` match the [React Router example](../react-router-axum/README.md#stack),
+sized for the depth at which React's Fizz retries rendering after a stack
+overflow.
 
-## 検証
+## Checks
 
-```powershell
-vp run browser:install
+```bash
+vp run setup:browser
 vp run test:examples -- tanstack-start-axum
 ```
 
-SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/examples/common-checks.ts）で確認します。結果はresults/example-tanstack-start-axum.jsonです。
+The shared ten checks (`tools/examples/common-checks.ts`) cover SSR and
+escaping, the Rust service binding, assets, JSON endpoints, client address
+and bindings, the axum route, body budgets, streaming uploads, `waitUntil`,
+concurrent requests, hydration and navigation. Results go to
+`results/example-tanstack-start-axum.json`.
