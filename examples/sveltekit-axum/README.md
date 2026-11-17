@@ -21,7 +21,7 @@ vp run @fetchlet-internal/example-sveltekit-axum#serve
 | vite.config.ts | SvelteKitとfetchlet adapterのbuild設定                                 |
 | src/           | axumのrouting、本文変換、公開handle / HTTP adapterの利用、Rust service |
 | config.json    | 待受、キュー、本文予算、期限、env                                      |
-| tests/e2e.mjs  | 実HTTPと実ブラウザによる検証                                           |
+| tests/e2e.js   | 実HTTPと実ブラウザによる検証                                           |
 | build/         | server.js、client/、fetchlet.jsonの生成先                              |
 
 Rustの `/api/rust` とSvelteKitのrouteを同じサーバで扱います。静的ファイルを先に配信し、動的なRequestをJSへ渡します。POST等もSvelteKitへ配送します。

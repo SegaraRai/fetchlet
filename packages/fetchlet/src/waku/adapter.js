@@ -1,7 +1,7 @@
 import { Hono } from "hono/tiny";
 import { unstable_createServerEntryAdapter as createServerEntryAdapter } from "waku/adapter-builders";
 import { unstable_honoMiddleware as honoMiddleware } from "waku/internals";
-import { contextKey } from "./symbol.mjs";
+import { contextKey } from "./symbol.js";
 
 const { rscMiddleware, middlewareRunner } = honoMiddleware;
 

@@ -5,7 +5,7 @@ import {
   mergeHeadersCookies,
   requestHandler,
 } from "@builder.io/qwik-city/middleware/request-handler";
-import { getBindings, waitUntil } from "../runtime/adapter.ts";
+import { getBindings, waitUntil } from "fetchlet/runtime/adapter";
 
 const qwikSerializer = { _deserializeData, _serializeData, _verifySerializable };
 

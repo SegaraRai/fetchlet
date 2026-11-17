@@ -31,6 +31,8 @@ jobs:
       - run: vp run test:tools
       - run: vp run test:conformance
       - run: vp run test:polyfills
+      - run: vp run test:build
+      - run: vp run test:package
       - run: vp run test:matrix
       - run: vp run test:host
       - run: vp run setup:browser

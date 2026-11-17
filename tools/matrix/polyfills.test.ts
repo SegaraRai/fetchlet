@@ -11,7 +11,7 @@ import { buildArtifact, type BuildArtifactOptions } from "fetchlet/build";
 import {
   planPolyfills,
   type PlanOptions,
-} from "../../packages/fetchlet/src/build/polyfills/plan.mjs";
+} from "../../packages/fetchlet/src/build/polyfills/plan.js";
 import { backends, runLab, type Backend, type Reply } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { describe, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
@@ -25,7 +25,7 @@ interface Artifact {
 }
 
 const output = resolve(root, ".cache/polyfills");
-const entry = resolve(root, "fixtures/intl.mjs");
+const entry = resolve(root, "fixtures/intl.js");
 const artifacts = new Map<string, Artifact>();
 const results: { name: string; status: "pass" | "fail"; error?: string }[] = [];
 const nativeCapabilities: Record<string, Record<string, boolean>> = {};

@@ -1,5 +1,5 @@
 import { getRequest } from "waku/router/server";
-import { contextKey } from "./symbol.mjs";
+import { contextKey } from "./symbol.js";
 
 /**
  * The fetchlet request context of the current request. Waku passes API

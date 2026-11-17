@@ -39,7 +39,12 @@ export default defineConfig({
         command: "node --test tools/conformance/runner.test.ts",
         cache: false,
       },
-      "test:build": { command: "node --test packages/fetchlet/tests/*/*.test.mjs", cache: false },
+      "test:build": { command: "node --test packages/fetchlet/tests/*/*.test.js", cache: false },
+      "test:package": {
+        command: "node tools/package/test.ts",
+        dependsOn: ["fetchlet#build", "build:lab"],
+        cache: false,
+      },
       "test:matrix": {
         command: "node tools/matrix/runtime.ts",
         dependsOn: ["build:lab", "build:fixtures"],
@@ -73,6 +78,8 @@ export default defineConfig({
           "test:tools",
           "test:conformance",
           "test:polyfills",
+          "test:build",
+          "test:package",
           "test:matrix",
           "test:host",
           "test:examples",

@@ -2,8 +2,8 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const shim = (name) => fileURLToPath(new URL("./node/" + name + ".mjs", import.meta.url));
-// Bare "buffer" stays the npm package that node/buffer.mjs builds on.
+const shim = (name) => fileURLToPath(new URL("./node/" + name + ".js", import.meta.url));
+// Bare "buffer" stays the npm package that node/buffer.js builds on.
 const shims = {
   "node:fs": shim("fs"),
   fs: shim("fs"),

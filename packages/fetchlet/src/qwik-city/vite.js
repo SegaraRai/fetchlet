@@ -1,6 +1,6 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join, parse, resolve } from "node:path";
-import { buildArtifact } from "../build/index.mjs";
+import { buildArtifact } from "../build/index.js";
 
 const modulePath = (file) => file.replaceAll("\\", "/");
 

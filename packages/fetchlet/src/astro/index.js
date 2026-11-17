@@ -1,6 +1,6 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve, join } from "node:path";
-import { buildArtifact } from "../build/index.mjs";
+import { buildArtifact } from "../build/index.js";
 
 /** @returns {import("astro").AstroIntegration} */
 export default function fetchletAdapter({ out = "build", backend = "portable", intl = {} } = {}) {

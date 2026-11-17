@@ -44,7 +44,7 @@ export default defineConfig({
         cache: false,
       },
       "prepare:demo": {
-        command: `node scripts/prepare-demo.mjs sample ${demo}`,
+        command: `node scripts/prepare-demo.js sample ${demo}`,
         cache: false,
       },
       serve: {

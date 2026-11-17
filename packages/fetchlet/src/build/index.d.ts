@@ -1,6 +1,6 @@
 import type { Plugin } from "vite-plus";
 
-import type { BuildBackend, IntlOptions } from "./polyfills/plan.mjs";
+import type { BuildBackend, IntlOptions } from "./polyfills/plan.js";
 
 export type { BuildBackend, IntlOptions };
 

@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { buildArtifact } from "../build/index.mjs";
+import { buildArtifact } from "../build/index.js";
 
 function synchronousRendering() {
   const virtualId = "\0fetchlet:async-hooks";

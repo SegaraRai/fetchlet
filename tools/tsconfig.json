@@ -19,5 +19,5 @@
   "include": ["**/*.ts", "../fixtures/probe/run.ts"],
   // Guest entries bundled with fetchlet/runtime are checked with the runtime's
   // own configuration in the root tsconfig.json.
-  "exclude": ["bench/bare/entry.ts", "bench/probe/**"]
+  "exclude": ["bench/bare/entry.ts", "bench/probe/**", "package/consumer/**"]
 }

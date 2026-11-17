@@ -1,0 +1,4 @@
+# Its own workspace root, so the repository's workspace does not adopt it.
+allowBuilds:
+  core-js-pure: true
+  esbuild: false

@@ -1,15 +1,17 @@
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from "node:fs";
 import { dirname, resolve, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 import { build } from "vite-plus";
 
-import { planPolyfills } from "./polyfills/plan.mjs";
-import { nativeCapabilityCheck } from "./polyfills/bootstrap.mjs";
-import { serializedAsyncContext } from "./async-context.mjs";
+import { planPolyfills } from "./polyfills/plan.js";
+import { nativeCapabilityCheck } from "./polyfills/bootstrap.js";
+import { serializedAsyncContext } from "./async-context.js";
 
-/** The Web API profile, initialized before the framework modules. */
-const runtimeEntry = fileURLToPath(new URL("../runtime/index.ts", import.meta.url));
+// The Web API profile, initialized before the framework modules. The package
+// resolves itself: the source in the workspace, the compiled module when published.
+// createRequire works in Vite's module runner, which lacks import.meta.resolve.
+const runtimeEntry = createRequire(import.meta.url).resolve("fetchlet/runtime");
 
 const modulePath = (file) => file.replaceAll("\\", "/");
 

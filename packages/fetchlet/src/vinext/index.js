@@ -1,11 +1,11 @@
 import { cpSync, existsSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildArtifact } from "../build/index.mjs";
-import { vinextNodeCompat } from "./node-compat.mjs";
+import { buildArtifact } from "../build/index.js";
+import { vinextNodeCompat } from "./node-compat.js";
 
 const modulePath = (file) => file.replaceAll("\\", "/");
-const contextModule = modulePath(fileURLToPath(new URL("./context.mjs", import.meta.url)));
+const contextModule = modulePath(fileURLToPath(new URL("./context.js", import.meta.url)));
 
 // Web-standard builds, such as react-dom/server.edge, bundled with the server.
 const serverConditions = ["workerd", "edge-light", "worker"];

@@ -31,3 +31,7 @@ export default defineConfig({
 ```
 
 Every adapter calls `fetchlet/build`, which initializes `fetchlet/runtime` and the polyfills the target engine needs before the framework's modules, and writes the artifact. The guides are being translated to English.
+
+## Development
+
+The workspace uses the sources in `src/` directly. `vp run fetchlet#build` compiles the TypeScript entries into `dist/` next to the JavaScript modules, and the published manifest (`publishConfig.exports`) points at `dist/`. `vp run test:package` packs the package, installs the tarball in a separate project, type-checks its declarations, and builds and runs an artifact on QuickJS.

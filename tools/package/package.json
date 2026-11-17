@@ -1,0 +1,11 @@
+{
+  "name": "@fetchlet-internal/tools-package",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Checks the packed fetchlet npm package from a separate project",
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@types/node": "^26.6.6"
+  }
+}

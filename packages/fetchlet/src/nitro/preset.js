@@ -2,12 +2,12 @@
 
 import { fileURLToPath } from "node:url";
 import { defineNitroPreset } from "nitropack/kit";
-import { writeArtifact } from "./artifact.mjs";
+import { writeArtifact } from "./artifact.js";
 
 export default defineNitroPreset(
   {
     extends: "base-worker",
-    entry: fileURLToPath(new URL("./runtime/nitro.mjs", import.meta.url)),
+    entry: fileURLToPath(new URL("./runtime/nitro.js", import.meta.url)),
     // The Rust server serves public assets; Nitro answers everything else.
     serveStatic: false,
     minify: false,

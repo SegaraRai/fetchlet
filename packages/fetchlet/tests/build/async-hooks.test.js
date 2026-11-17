@@ -1,7 +1,7 @@
 // The serialized AsyncLocalStorage that artifacts use in place of node:async_hooks.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { AsyncLocalStorage } from "../../src/build/async-hooks.mjs";
+import { AsyncLocalStorage } from "../../src/build/async-hooks.js";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 

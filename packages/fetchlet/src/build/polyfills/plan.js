@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 
-import { backendCapabilities, intlPolyfills } from "./catalog.mjs";
+import { backendCapabilities, intlPolyfills } from "./catalog.js";
 
 const require = createRequire(import.meta.url);
 

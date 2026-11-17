@@ -26,7 +26,7 @@ taskはclient（`--mode client`）とserverの2回buildしてからTauriアプ�
 | config.json           | キュー、本文予算、応答予算、期限、background予算、stack、backend |
 | tauri.conf.json       | Tauriの設定。windowは `src/desktop.rs` が作る                    |
 | capabilities/, icons/ | Tauriのcapabilityとアイコン                                      |
-| tests/e2e.mjs         | WebView2をDevTools protocolで操作する検証                        |
+| tests/e2e.js          | WebView2をDevTools protocolで操作する検証                        |
 | build/                | server.js、client/、fetchlet.json                                |
 
 ## 流れ
