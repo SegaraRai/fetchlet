@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { after, before, test } from "node:test";
 
+import type { Feature } from "@fetchlet-internal/tools-examples/features";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
@@ -22,7 +23,8 @@ const notes = resolve(output, "notes");
 const origin = "http://mdw.localhost";
 // WebView2 exposes the DevTools protocol; WebKitGTK and WKWebView do not.
 const supported = process.platform === "win32";
-const results: { name: string; status: "pass" | "fail"; error?: string }[] = [];
+const results: { name: string; features: Feature[]; status: "pass" | "fail"; error?: string }[] =
+  [];
 let child: ChildProcess | undefined;
 let browser: Browser | undefined;
 let page: Page;
@@ -128,14 +130,15 @@ after(async () => {
   });
 });
 
-function check(label: string, operation: () => Promise<void>): void {
+function check(label: string, features: Feature[], operation: () => Promise<void>): void {
   test(label, { timeout: 30000, skip: !supported && "needs WebView2 (Windows)" }, async () => {
     try {
       await operation();
-      results.push({ name: label, status: "pass" });
+      results.push({ name: label, features, status: "pass" });
     } catch (error) {
       results.push({
         name: label,
+        features,
         status: "fail",
         error: String((error as { stack?: string } | undefined)?.stack ?? error),
       });
@@ -144,7 +147,7 @@ function check(label: string, operation: () => Promise<void>): void {
   });
 }
 
-check("the window renders the workspace through the URI scheme protocol", async () => {
+check("the window renders the workspace through the URI scheme protocol", ["ssr"], async () => {
   await page.goto(origin + "/");
   await page.locator(".brand", { hasText: "notes" }).waitFor();
   assert.match((await page.locator("main").textContent()) ?? "", /4 notes/);
@@ -152,17 +155,21 @@ check("the window renders the workspace through the URI scheme protocol", async 
   assert.equal(await page.evaluate(() => "__TAURI_INTERNALS__" in window), true);
 });
 
-check("notes render with code highlighted by Rust, all in-process", async () => {
-  await page.goto(origin + "/notes/guide/architecture.md");
-  await page.locator("code.language-rust.highlighted .hl-source").first().waitFor();
-  const css = await page.evaluate(async () => {
-    const response = await fetch("/api/v1/highlight.css");
-    return [response.status, response.headers.get("content-type")];
-  });
-  assert.deepEqual(css, [200, "text/css; charset=utf-8"]);
-});
+check(
+  "notes render with code highlighted by Rust, all in-process",
+  ["ssr", "internal-fetch"],
+  async () => {
+    await page.goto(origin + "/notes/guide/architecture.md");
+    await page.locator("code.language-rust.highlighted .hl-source").first().waitFor();
+    const css = await page.evaluate(async () => {
+      const response = await fetch("/api/v1/highlight.css");
+      return [response.status, response.headers.get("content-type")];
+    });
+    assert.deepEqual(css, [200, "text/css; charset=utf-8"]);
+  },
+);
 
-check("the protocol keeps the workspace boundary", async () => {
+check("the protocol keeps the workspace boundary", [], async () => {
   const statuses = await page.evaluate(async () => {
     const results: [number, boolean][] = [];
     for (const path of [
@@ -181,7 +188,7 @@ check("the protocol keeps the workspace boundary", async () => {
   }
 });
 
-check("workspace changes arrive as Tauri events", async () => {
+check("workspace changes arrive as Tauri events", [], async () => {
   await page.goto(origin + "/notes/index.md");
   await page.locator("h1", { hasText: "Welcome" }).waitFor();
   await writeFile(resolve(notes, "index.md"), "# Updated on the desktop\n");
@@ -193,7 +200,7 @@ check("workspace changes arrive as Tauri events", async () => {
   assert.deepEqual(streams, []);
 });
 
-check("the editor saves through the protocol", async () => {
+check("the editor saves through the protocol", ["server-functions"], async () => {
   await page.goto(origin + "/notes/guide/getting-started.md/edit");
   const editor = page.getByRole("textbox", { name: "Markdown" });
   await editor.click();

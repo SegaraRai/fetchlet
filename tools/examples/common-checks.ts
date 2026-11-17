@@ -46,20 +46,25 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
   const { check } = suite;
   const { framework } = options;
 
-  check(`${framework} SSR, escaping and the Rust service binding`, async () => {
-    const response = await fetch(suite.base + "/?name=" + encodeURIComponent("<Rust & JS>"), {
-      headers: browserHeaders,
-    });
-    assert.equal(response.status, 200);
-    const html = await response.text();
-    // HTML text needs `<` and `&` escaped; Solid leaves `>` as it is.
-    assert.match(html, new RegExp("Hello, " + rendered("&lt;Rust &amp; JS(?:&gt;|>)")));
-    assert.ok(html.includes(options.message), "MESSAGE binding");
-    assert.match(html, /Greetings from the Rust service/);
-  });
+  check(
+    `${framework} SSR, escaping and the Rust service binding`,
+    ["ssr", "bindings"],
+    async () => {
+      const response = await fetch(suite.base + "/?name=" + encodeURIComponent("<Rust & JS>"), {
+        headers: browserHeaders,
+      });
+      assert.equal(response.status, 200);
+      const html = await response.text();
+      // HTML text needs `<` and `&` escaped; Solid leaves `>` as it is.
+      assert.match(html, new RegExp("Hello, " + rendered("&lt;Rust &amp; JS(?:&gt;|>)")));
+      assert.ok(html.includes(options.message), "MESSAGE binding");
+      assert.match(html, /Greetings from the Rust service/);
+    },
+  );
 
   check(
     `${framework} JavaScript${options.requireCss === false ? "" : ", CSS"} and public files`,
+    ["assets"],
     async () => {
       const html = await (await fetch(suite.base, { headers: browserHeaders })).text();
       const assets = [...html.matchAll(/["']([^"'<>\s]+\.(?:js|mjs|css))["']/g)]
@@ -97,7 +102,7 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     },
   );
 
-  check(`${framework} JSON endpoint`, async () => {
+  check(`${framework} JSON endpoint`, ["json"], async () => {
     const value = { message: "日本語😀", values: [0, 128, 255] };
     const response = await fetch(suite.base + "/api/echo", {
       method: "POST",
@@ -108,21 +113,25 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     assert.deepEqual(await response.json(), value);
   });
 
-  check(`${framework} client address and host bindings`, async () => {
-    const response = await fetch(suite.base + "/api/context");
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      clientAddress: "127.0.0.1",
-      message: options.message,
-    });
-  });
+  check(
+    `${framework} client address and host bindings`,
+    ["client-address", "bindings"],
+    async () => {
+      const response = await fetch(suite.base + "/api/context");
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
+        clientAddress: "127.0.0.1",
+        message: options.message,
+      });
+    },
+  );
 
-  check(`native axum route coexists with ${framework}`, async () => {
+  check(`native axum route coexists with ${framework}`, ["rust-routes"], async () => {
     const response = await fetch(suite.base + "/api/rust");
     assert.deepEqual(await response.json(), { message: "served by axum" });
   });
 
-  check(`input budget and the following ${framework} request`, async () => {
+  check(`input budget and the following ${framework} request`, ["body-budget"], async () => {
     const response = await fetch(suite.base + "/api/echo", {
       method: "POST",
       headers: { "content-type": "application/json", origin: suite.base },
@@ -152,22 +161,27 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     } as RequestInit);
   }
 
-  check(`streamed uploads reach ${framework} in chunks within the budget`, async () => {
-    const response = await upload(3, 1000);
-    assert.equal(response.status, 200);
-    const result = await response.json();
-    assert.equal(result.bytes, 3000);
-    assert.ok(result.chunks >= 2, `chunks: ${result.chunks}`);
+  check(
+    `streamed uploads reach ${framework} in chunks within the budget`,
+    ["streaming-upload", "body-budget"],
+    async () => {
+      const response = await upload(3, 1000);
+      assert.equal(response.status, 200);
+      const result = await response.json();
+      assert.equal(result.bytes, 3000);
+      assert.ok(result.chunks >= 2, `chunks: ${result.chunks}`);
 
-    // Undeclared excess errors the handler's body stream.
-    const oversized = await upload(5, 1000);
-    assert.equal(oversized.status, 413);
-    assert.deepEqual(await oversized.json(), { error: "LIMIT_EXCEEDED" });
-    assert.equal((await fetch(suite.base, { headers: browserHeaders })).status, 200);
-  });
+      // Undeclared excess errors the handler's body stream.
+      const oversized = await upload(5, 1000);
+      assert.equal(oversized.status, 413);
+      assert.deepEqual(await oversized.json(), { error: "LIMIT_EXCEEDED" });
+      assert.equal((await fetch(suite.base, { headers: browserHeaders })).status, 200);
+    },
+  );
 
   check(
     `${framework} background work runs after the response and before the next request`,
+    ["wait-until"],
     async () => {
       const label = "job-" + Date.now();
       const response = await fetch(suite.base + "/api/background", {
@@ -184,7 +198,7 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     },
   );
 
-  check(`concurrent ${framework} requests keep their own values`, async () => {
+  check(`concurrent ${framework} requests keep their own values`, ["concurrency"], async () => {
     await Promise.all(
       ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
         const html = await (
@@ -196,7 +210,7 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
   });
 
   const navigation = options.clientNavigation === false ? "navigation" : "client navigation";
-  check(`${framework} hydration and ${navigation}`, async () => {
+  check(`${framework} hydration and ${navigation}`, ["hydration", "navigation"], async () => {
     const page = await suite.page();
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(String(error)));

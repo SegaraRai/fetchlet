@@ -26,42 +26,52 @@
   "results": [
     {
       "name": "Qwik City SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
       "status": "pass"
     },
     {
       "name": "Qwik City JavaScript and public files",
+      "features": ["assets"],
       "status": "pass"
     },
     {
       "name": "Qwik City JSON endpoint",
+      "features": ["json"],
       "status": "pass"
     },
     {
       "name": "Qwik City client address and host bindings",
+      "features": ["client-address", "bindings"],
       "status": "pass"
     },
     {
       "name": "native axum route coexists with Qwik City",
+      "features": ["rust-routes"],
       "status": "pass"
     },
     {
       "name": "input budget and the following Qwik City request",
+      "features": ["body-budget"],
       "status": "pass"
     },
     {
       "name": "streamed uploads reach Qwik City in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
       "status": "pass"
     },
     {
       "name": "Qwik City background work runs after the response and before the next request",
+      "features": ["wait-until"],
       "status": "pass"
     },
     {
       "name": "concurrent Qwik City requests keep their own values",
+      "features": ["concurrency"],
       "status": "pass"
     },
     {
       "name": "Qwik City hydration and client navigation",
+      "features": ["hydration", "navigation"],
       "status": "pass"
     }
   ]

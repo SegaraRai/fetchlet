@@ -17,11 +17,13 @@ import {
 } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
 
+import type { Feature } from "./features.ts";
+
 export interface ExampleSuite {
   /** The server origin, available once the suite's `before` hook ran. */
   readonly base: string;
   /** Registers a check that records its outcome in the result file. */
-  check(name: string, operation: () => Promise<void>): void;
+  check(name: string, features: Feature[], operation: () => Promise<void>): void;
   /** Opens a Chromium page; the suite closes the browser at the end. */
   page(): Promise<Page>;
 }
@@ -29,7 +31,8 @@ export interface ExampleSuite {
 export function exampleSuite(name: string): ExampleSuite {
   const example = resolve(root, "examples", name);
   const output = resolve(root, ".cache", name);
-  const results: { name: string; status: "pass" | "fail"; error?: string }[] = [];
+  const results: { name: string; features: Feature[]; status: "pass" | "fail"; error?: string }[] =
+    [];
   let child: ChildProcess | undefined;
   let browser: Browser | undefined;
   let base: string | undefined;
@@ -95,13 +98,13 @@ export function exampleSuite(name: string): ExampleSuite {
       if (base === undefined) throw new Error("The example server has not started");
       return base;
     },
-    check(checkName, operation) {
+    check(checkName, features, operation) {
       test(checkName, { timeout: 30_000 }, async () => {
         try {
           await operation();
-          results.push({ name: checkName, status: "pass" });
+          results.push({ name: checkName, features, status: "pass" });
         } catch (error) {
-          results.push({ name: checkName, status: "fail", error: describe(error) });
+          results.push({ name: checkName, features, status: "fail", error: describe(error) });
           throw error;
         }
       });

@@ -28,46 +28,57 @@
   "results": [
     {
       "name": "Astro SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
       "status": "pass"
     },
     {
       "name": "Astro JavaScript, CSS and static files",
+      "features": ["assets"],
       "status": "pass"
     },
     {
       "name": "Astro JSON endpoint",
+      "features": ["json"],
       "status": "pass"
     },
     {
       "name": "Astro form and Set-Cookie",
+      "features": ["form", "cookies"],
       "status": "pass"
     },
     {
       "name": "Astro client address and environment",
+      "features": ["client-address", "bindings"],
       "status": "pass"
     },
     {
       "name": "native axum route coexists with Astro",
+      "features": ["rust-routes"],
       "status": "pass"
     },
     {
       "name": "input budget and the following Astro request",
+      "features": ["body-budget"],
       "status": "pass"
     },
     {
       "name": "streamed uploads reach the endpoint in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
       "status": "pass"
     },
     {
       "name": "background work runs after the response and before the next request",
+      "features": ["wait-until"],
       "status": "pass"
     },
     {
       "name": "concurrent Astro requests keep their own values",
+      "features": ["concurrency"],
       "status": "pass"
     },
     {
       "name": "island hydration, form submission and Astro navigation",
+      "features": ["form", "hydration", "navigation"],
       "status": "pass"
     }
   ]

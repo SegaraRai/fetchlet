@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     "./common-checks": "./common-checks.ts",
+    "./features": "./features.ts",
     "./suite": "./suite.ts"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { root } from "@fetchlet-internal/tools-workspace/paths";
+import { features, unsupported, type Feature } from "@fetchlet-internal/tools-examples/features";
 import type { Environment } from "@fetchlet-internal/tools-workspace/results";
 
 const output = resolve(root, "docs/reference/README.md");
@@ -28,6 +29,7 @@ const sections = [
   url(),
   polyfills(),
   examples(),
+  frameworkFeatures(),
   fuzzing(),
 ];
 
@@ -179,8 +181,9 @@ function polyfills(): string[] {
   ];
 }
 
-function examples(): string[] {
-  const names = [
+/** Example result names, in the order of the reference tables. */
+function exampleNames(): string[] {
+  return [
     "sveltekit-axum",
     "sveltekit-axum-tauri",
     "sveltekit-axum-tauri-desktop",
@@ -195,6 +198,47 @@ function examples(): string[] {
     "waku-axum",
     "vinext-axum",
   ];
+}
+
+/**
+ * Features per example: covered by a passing check, failing, unsupported by
+ * design (declared in tools/examples/features.ts with a reason) or untested.
+ */
+function frameworkFeatures(): string[] {
+  const names = exampleNames();
+  const notes: string[] = [];
+  const results = names.map(
+    (name) => read(`example-${name}.json`).results as { features?: Feature[]; status: string }[],
+  );
+  const rows = (Object.keys(features) as Feature[]).map((feature) => [
+    features[feature],
+    ...names.map((name, index) => {
+      const covering = (results[index] ?? []).filter((row) => row.features?.includes(feature));
+      const reason = unsupported[name]?.[feature];
+      if (reason) {
+        if (covering.length)
+          throw new Error(`${name} declares ${feature} unsupported but checks it`);
+        if (!notes.includes(reason)) notes.push(reason);
+        return `n/a (${notes.indexOf(reason) + 1})`;
+      }
+      if (!covering.length) return "—";
+      return covering.every((row) => row.status === "pass") ? "✓" : "✗";
+    }),
+  ]);
+  const short = (name: string) => name.replace(/-axum/, "").replace("-tauri-desktop", " desktop");
+  return [
+    "## Framework features",
+    "",
+    "Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n/a unsupported by design. The checks name their features; [features.ts](../../tools/examples/features.ts) declares what cannot apply.",
+    "",
+    ...table(["Feature", ...names.map(short)], rows),
+    "",
+    ...notes.map((reason, index) => `${index + 1}. ${reason}.`),
+  ];
+}
+
+function examples(): string[] {
+  const names = exampleNames();
   const rows = names.map((name) => {
     const result = read(`example-${name}.json`);
     return [

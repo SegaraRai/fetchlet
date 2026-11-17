@@ -19,6 +19,7 @@
     "yaml": "catalog:"
   },
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet-internal/tools-workspace": "workspace:*",
     "@hey-api/openapi-ts": "catalog:",
     "@sveltejs/kit": "catalog:",

@@ -28,66 +28,82 @@
   "results": [
     {
       "name": "SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
       "status": "pass"
     },
     {
       "name": "client JavaScript, CSS and static files",
+      "features": ["assets"],
       "status": "pass"
     },
     {
       "name": "SvelteKit JSON endpoint",
+      "features": ["json"],
       "status": "pass"
     },
     {
       "name": "form action and Set-Cookie",
+      "features": ["form", "cookies"],
       "status": "pass"
     },
     {
       "name": "request context and environment",
+      "features": ["client-address", "bindings"],
       "status": "pass"
     },
     {
       "name": "native axum route coexists with SvelteKit",
+      "features": ["rust-routes"],
       "status": "pass"
     },
     {
       "name": "input budget and the following request",
+      "features": ["body-budget"],
       "status": "pass"
     },
     {
       "name": "in-process Rust API through event.fetch and the service binding",
+      "features": ["internal-fetch"],
       "status": "pass"
     },
     {
       "name": "a Rust 500 reaches JavaScript as a Response",
+      "features": ["internal-fetch"],
       "status": "pass"
     },
     {
       "name": "the trusted caller comes from Rust, not from headers",
+      "features": ["internal-fetch"],
       "status": "pass"
     },
     {
       "name": "the fetch policy denies other origins on every path",
+      "features": ["internal-fetch"],
       "status": "pass"
     },
     {
       "name": "aborting an in-process fetch drops the Rust handler before the invocation ends",
+      "features": ["internal-fetch"],
       "status": "pass"
     },
     {
       "name": "same-origin event.fetch stays inside SvelteKit",
+      "features": ["internal-fetch"],
       "status": "pass"
     },
     {
       "name": "background work runs after the response and before the next request",
+      "features": ["wait-until"],
       "status": "pass"
     },
     {
       "name": "concurrent requests keep their own values",
+      "features": ["concurrency"],
       "status": "pass"
     },
     {
       "name": "browser hydration, form submission and client navigation",
+      "features": ["form", "hydration", "navigation"],
       "status": "pass"
     }
   ]

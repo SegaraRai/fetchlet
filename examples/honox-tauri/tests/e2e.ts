@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { after, before, test } from "node:test";
 
+import type { Feature } from "@fetchlet-internal/tools-examples/features";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
@@ -22,7 +23,8 @@ const origin = "http://fetchlet.localhost";
 const message = "Welcome to HonoX and Tauri.";
 // WebView2 exposes the DevTools protocol; WebKitGTK and WKWebView do not.
 const supported = process.platform === "win32";
-const results: { name: string; status: "pass" | "fail"; error?: string }[] = [];
+const results: { name: string; features: Feature[]; status: "pass" | "fail"; error?: string }[] =
+  [];
 let child: ChildProcess | undefined;
 let browser: Browser | undefined;
 let page: Page;
@@ -128,14 +130,15 @@ after(async () => {
   });
 });
 
-function check(label: string, operation: () => Promise<void>): void {
+function check(label: string, features: Feature[], operation: () => Promise<void>): void {
   test(label, { timeout: 30000, skip: !supported && "needs WebView2 (Windows)" }, async () => {
     try {
       await operation();
-      results.push({ name: label, status: "pass" });
+      results.push({ name: label, features, status: "pass" });
     } catch (error) {
       results.push({
         name: label,
+        features,
         status: "fail",
         error: String((error as { stack?: string } | undefined)?.stack ?? error),
       });
@@ -174,11 +177,11 @@ function post(path: string, value: unknown) {
   });
 }
 
-check("the main window opens on the fetchlet scheme", async () => {
+check("the main window opens on the fetchlet scheme", [], async () => {
   assert.equal(new URL(page.url()).origin, origin);
 });
 
-check("HonoX SSR, escaping and the Rust service binding", async () => {
+check("HonoX SSR, escaping and the Rust service binding", ["ssr", "bindings"], async () => {
   const response = await request("/?name=" + encodeURIComponent("<Rust & JS>"));
   assert.equal(response.status, 200);
   assert.match(response.text, /Hello, &lt;Rust &amp; JS&gt;/);
@@ -186,7 +189,7 @@ check("HonoX SSR, escaping and the Rust service binding", async () => {
   assert.match(response.text, /Greetings from the Rust service/);
 });
 
-check("JavaScript, CSS and public files from the client build", async () => {
+check("JavaScript, CSS and public files from the client build", ["assets"], async () => {
   const { text } = await request("/");
   const assets = [...text.matchAll(/["'](\/static\/[^"'<>\s]+\.(?:js|css))["']/g)].map(
     (match) => match[1]!,
@@ -211,42 +214,46 @@ check("JavaScript, CSS and public files from the client build", async () => {
   assert.equal((await request("/static/..%2f..%2fserver.js")).status, 404);
 });
 
-check("JSON endpoint", async () => {
+check("JSON endpoint", ["json"], async () => {
   const value = { message: "日本語😀", values: [0, 128, 255] };
   const response = await post("/api/echo", value);
   assert.equal(response.status, 201);
   assert.deepEqual(JSON.parse(response.text), value);
 });
 
-check("in-process requests carry no client address", async () => {
+check("in-process requests carry no client address", ["bindings"], async () => {
   const response = await request("/api/context");
   assert.equal(response.status, 200);
   assert.deepEqual(JSON.parse(response.text), { message });
 });
 
-check("a Rust route of the protocol coexists with HonoX", async () => {
+check("a Rust route of the protocol coexists with HonoX", ["rust-routes"], async () => {
   const response = await request("/api/rust");
   assert.deepEqual(JSON.parse(response.text), { message: "served by the Tauri protocol" });
 });
 
-check("request body budget and the following request", async () => {
+check("request body budget and the following request", ["body-budget"], async () => {
   const response = await post("/api/echo", "x".repeat(4097));
   assert.equal(response.status, 413);
   assert.equal((await request("/")).status, 200);
 });
 
-check("background work runs after the response and before the next request", async () => {
-  const label = "job-" + Date.now();
-  const response = await post("/api/background", { label });
-  assert.equal(response.status, 202);
-  const accepted = JSON.parse(response.text);
-  assert.equal(accepted.accepted, label);
-  assert.ok(!accepted.completed.includes(label), "sent before the work finished");
-  const { completed } = JSON.parse((await request("/api/background")).text);
-  assert.ok(completed.includes(label));
-});
+check(
+  "background work runs after the response and before the next request",
+  ["wait-until"],
+  async () => {
+    const label = "job-" + Date.now();
+    const response = await post("/api/background", { label });
+    assert.equal(response.status, 202);
+    const accepted = JSON.parse(response.text);
+    assert.equal(accepted.accepted, label);
+    assert.ok(!accepted.completed.includes(label), "sent before the work finished");
+    const { completed } = JSON.parse((await request("/api/background")).text);
+    assert.ok(completed.includes(label));
+  },
+);
 
-check("concurrent requests keep their own values", async () => {
+check("concurrent requests keep their own values", ["concurrency"], async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
       assert.match((await request("/?name=" + name)).text, new RegExp("Hello, " + name));
@@ -254,30 +261,34 @@ check("concurrent requests keep their own values", async () => {
   );
 });
 
-check("hydration, a Tauri command calling a JavaScript export, and navigation", async () => {
-  const errors: string[] = [];
-  const record = (error: Error) => errors.push(String(error));
-  page.on("pageerror", record);
-  try {
-    await page.goto(origin + "/");
-    await page.waitForFunction(
-      () => document.querySelector("[data-counter]")?.getAttribute("data-hydrated") === "true",
-    );
-    await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
-    await page.getByRole("button", { name: "Clicks 1", exact: true }).waitFor();
+check(
+  "hydration, a Tauri command calling a JavaScript export, and navigation",
+  ["hydration", "navigation"],
+  async () => {
+    const errors: string[] = [];
+    const record = (error: Error) => errors.push(String(error));
+    page.on("pageerror", record);
+    try {
+      await page.goto(origin + "/");
+      await page.waitForFunction(
+        () => document.querySelector("[data-counter]")?.getAttribute("data-hydrated") === "true",
+      );
+      await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
+      await page.getByRole("button", { name: "Clicks 1", exact: true }).waitFor();
 
-    await page.locator("[data-greeter] input").fill("Zoë😀");
-    await page.getByRole("button", { name: "Greet with a command" }).click();
-    await page
-      .locator("[data-greeting]")
-      .filter({ hasText: "Hello from a JavaScript function, Zoë😀. (4 characters)" })
-      .waitFor();
+      await page.locator("[data-greeter] input").fill("Zoë😀");
+      await page.getByRole("button", { name: "Greet with a command" }).click();
+      await page
+        .locator("[data-greeting]")
+        .filter({ hasText: "Hello from a JavaScript function, Zoë😀. (4 characters)" })
+        .waitFor();
 
-    await page.getByRole("link", { name: "About" }).click();
-    await page.waitForURL(/\/about\/?$/);
-    await page.getByRole("heading", { name: "About" }).waitFor();
-    assert.deepEqual(errors, []);
-  } finally {
-    page.off("pageerror", record);
-  }
-});
+      await page.getByRole("link", { name: "About" }).click();
+      await page.waitForURL(/\/about\/?$/);
+      await page.getByRole("heading", { name: "About" }).waitFor();
+      assert.deepEqual(errors, []);
+    } finally {
+      page.off("pageerror", record);
+    }
+  },
+);

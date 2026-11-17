@@ -27,42 +27,52 @@
   "results": [
     {
       "name": "HonoX SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
       "status": "pass"
     },
     {
       "name": "HonoX JavaScript, CSS and public files",
+      "features": ["assets"],
       "status": "pass"
     },
     {
       "name": "HonoX JSON endpoint",
+      "features": ["json"],
       "status": "pass"
     },
     {
       "name": "HonoX client address and host bindings",
+      "features": ["client-address", "bindings"],
       "status": "pass"
     },
     {
       "name": "native axum route coexists with HonoX",
+      "features": ["rust-routes"],
       "status": "pass"
     },
     {
       "name": "input budget and the following HonoX request",
+      "features": ["body-budget"],
       "status": "pass"
     },
     {
       "name": "streamed uploads reach HonoX in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
       "status": "pass"
     },
     {
       "name": "HonoX background work runs after the response and before the next request",
+      "features": ["wait-until"],
       "status": "pass"
     },
     {
       "name": "concurrent HonoX requests keep their own values",
+      "features": ["concurrency"],
       "status": "pass"
     },
     {
       "name": "HonoX hydration and navigation",
+      "features": ["hydration", "navigation"],
       "status": "pass"
     }
   ]

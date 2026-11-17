@@ -30,42 +30,52 @@
   "results": [
     {
       "name": "Waku SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
       "status": "pass"
     },
     {
       "name": "Waku JavaScript, CSS and public files",
+      "features": ["assets"],
       "status": "pass"
     },
     {
       "name": "Waku JSON endpoint",
+      "features": ["json"],
       "status": "pass"
     },
     {
       "name": "Waku client address and host bindings",
+      "features": ["client-address", "bindings"],
       "status": "pass"
     },
     {
       "name": "native axum route coexists with Waku",
+      "features": ["rust-routes"],
       "status": "pass"
     },
     {
       "name": "input budget and the following Waku request",
+      "features": ["body-budget"],
       "status": "pass"
     },
     {
       "name": "streamed uploads reach Waku in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
       "status": "pass"
     },
     {
       "name": "Waku background work runs after the response and before the next request",
+      "features": ["wait-until"],
       "status": "pass"
     },
     {
       "name": "concurrent Waku requests keep their own values",
+      "features": ["concurrency"],
       "status": "pass"
     },
     {
       "name": "Waku hydration and client navigation",
+      "features": ["hydration", "navigation"],
       "status": "pass"
     }
   ]

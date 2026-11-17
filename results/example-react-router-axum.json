@@ -31,50 +31,62 @@
   "results": [
     {
       "name": "React Router SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
       "status": "pass"
     },
     {
       "name": "React Router JavaScript, CSS and public files",
+      "features": ["assets"],
       "status": "pass"
     },
     {
       "name": "deferred loader data streams after the shell",
+      "features": ["streaming-ssr"],
       "status": "pass"
     },
     {
       "name": "resource route JSON action",
+      "features": ["json"],
       "status": "pass"
     },
     {
       "name": "document form action and Set-Cookie",
+      "features": ["form", "cookies"],
       "status": "pass"
     },
     {
       "name": "client address and host bindings in the load context",
+      "features": ["client-address", "bindings"],
       "status": "pass"
     },
     {
       "name": "native axum route coexists with React Router",
+      "features": ["rust-routes"],
       "status": "pass"
     },
     {
       "name": "input budget and the following React Router request",
+      "features": ["body-budget"],
       "status": "pass"
     },
     {
       "name": "streamed uploads reach the resource route in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
       "status": "pass"
     },
     {
       "name": "context.waitUntil work runs after the response and before the next request",
+      "features": ["wait-until"],
       "status": "pass"
     },
     {
       "name": "concurrent React Router requests keep their own values",
+      "features": ["concurrency"],
       "status": "pass"
     },
     {
       "name": "hydration, client actions and React Router navigation",
+      "features": ["server-functions", "hydration", "navigation"],
       "status": "pass"
     }
   ]

@@ -9,6 +9,7 @@
       "v8": "v8 150.4.0"
     },
     "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
       "@fetchlet-internal/tools-workspace": "0.0.0",
       "@hono/vite-build": "1.11.1",
       "@tauri-apps/api": "2.12.5",
@@ -29,42 +30,52 @@
   "results": [
     {
       "name": "the main window opens on the fetchlet scheme",
+      "features": [],
       "status": "pass"
     },
     {
       "name": "HonoX SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
       "status": "pass"
     },
     {
       "name": "JavaScript, CSS and public files from the client build",
+      "features": ["assets"],
       "status": "pass"
     },
     {
       "name": "JSON endpoint",
+      "features": ["json"],
       "status": "pass"
     },
     {
       "name": "in-process requests carry no client address",
+      "features": ["bindings"],
       "status": "pass"
     },
     {
       "name": "a Rust route of the protocol coexists with HonoX",
+      "features": ["rust-routes"],
       "status": "pass"
     },
     {
       "name": "request body budget and the following request",
+      "features": ["body-budget"],
       "status": "pass"
     },
     {
       "name": "background work runs after the response and before the next request",
+      "features": ["wait-until"],
       "status": "pass"
     },
     {
       "name": "concurrent requests keep their own values",
+      "features": ["concurrency"],
       "status": "pass"
     },
     {
       "name": "hydration, a Tauri command calling a JavaScript export, and navigation",
+      "features": ["hydration", "navigation"],
       "status": "pass"
     }
   ]

@@ -93,6 +93,35 @@ Unexpected results: 0.
 | waku-axum                    | 10 / 10 | waku 1.0.0-rc.5               | 159.0.8154.6  |
 | vinext-axum                  | 10 / 10 | vinext 1.4.6                  | 159.0.8154.6  |
 
+## Framework features
+
+Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n/a unsupported by design. The checks name their features; [features.ts](../../tools/examples/features.ts) declares what cannot apply.
+
+| Feature             | sveltekit | sveltekit-tauri | sveltekit desktop | astro | nuxt    | react-router | honox | honox-tauri | tanstack-start | solidstart | qwik-city | waku | vinext |
+| ------------------- | --------- | --------------- | ----------------- | ----- | ------- | ------------ | ----- | ----------- | -------------- | ---------- | --------- | ---- | ------ |
+| SSR                 | ✓         | ✓               | ✓                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| Streaming SSR       | —         | —               | n/a (1)           | —     | n/a (2) | ✓            | —     | n/a (1)     | —              | —          | —         | —    | —      |
+| Hydration           | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| Client navigation   | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| Assets              | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| JSON endpoints      | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| Form posts          | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | —     | —           | —              | —          | —         | —    | —      |
+| Cookies             | ✓         | —               | —                 | ✓     | ✓       | ✓            | —     | —           | —              | —          | —         | —    | —      |
+| Server functions    | —         | ✓               | ✓                 | —     | —       | ✓            | —     | —           | —              | —          | —         | —    | —      |
+| Bindings            | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| Client address      | ✓         | —               | n/a (3)           | ✓     | ✓       | ✓            | ✓     | n/a (3)     | ✓              | ✓          | ✓         | ✓    | ✓      |
+| In-process Rust API | ✓         | ✓               | ✓                 | —     | —       | —            | —     | —           | —              | —          | —         | —    | —      |
+| Rust routes         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| Body budget         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| Streaming uploads   | —         | —               | n/a (4)           | ✓     | ✓       | ✓            | ✓     | n/a (4)     | ✓              | ✓          | ✓         | ✓    | ✓      |
+| waitUntil           | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+| Concurrency         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
+
+1. Tauri's UriSchemeResponder takes a complete body.
+2. Nuxt renders with Vue's renderToString and buffers the response.
+3. Requests come from the webview through the URI scheme, without a peer.
+4. Tauri's URI scheme handler receives the whole request body.
+
 ## Fuzzing
 
 `vp run test:fuzz`. The run predates version recording. AddressSanitizer, up to 1,000,000 runs or 30 s per target, rustc 1.102.0-nightly (8eb778d04 2026-11-12).

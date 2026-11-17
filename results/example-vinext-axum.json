@@ -32,42 +32,52 @@
   "results": [
     {
       "name": "vinext SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
       "status": "pass"
     },
     {
       "name": "vinext JavaScript, CSS and public files",
+      "features": ["assets"],
       "status": "pass"
     },
     {
       "name": "vinext JSON endpoint",
+      "features": ["json"],
       "status": "pass"
     },
     {
       "name": "vinext client address and host bindings",
+      "features": ["client-address", "bindings"],
       "status": "pass"
     },
     {
       "name": "native axum route coexists with vinext",
+      "features": ["rust-routes"],
       "status": "pass"
     },
     {
       "name": "input budget and the following vinext request",
+      "features": ["body-budget"],
       "status": "pass"
     },
     {
       "name": "streamed uploads reach vinext in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
       "status": "pass"
     },
     {
       "name": "vinext background work runs after the response and before the next request",
+      "features": ["wait-until"],
       "status": "pass"
     },
     {
       "name": "concurrent vinext requests keep their own values",
+      "features": ["concurrency"],
       "status": "pass"
     },
     {
       "name": "vinext hydration and client navigation",
+      "features": ["hydration", "navigation"],
       "status": "pass"
     }
   ]

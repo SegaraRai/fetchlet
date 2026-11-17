@@ -5,6 +5,7 @@
   "description": "Renders the recorded results into docs/reference",
   "type": "module",
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet-internal/tools-workspace": "workspace:*",
     "@types/node": "catalog:"
   }
