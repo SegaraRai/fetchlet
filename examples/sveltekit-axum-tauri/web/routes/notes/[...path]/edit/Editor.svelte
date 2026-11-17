@@ -41,7 +41,12 @@
   );
 
   beforeNavigate((navigation) => {
-    if (dirty && !leaving && !confirm("Discard unsaved changes?")) navigation.cancel();
+    // A saved note redirects to its page. That navigation can start after
+    // submit() has resolved, so it is recognized by where it goes.
+    const saved =
+      navigation.type === "goto" &&
+      navigation.to?.url.pathname === new URL(noteHref(path), location.href).pathname;
+    if (dirty && !leaving && !saved && !confirm("Discard unsaved changes?")) navigation.cancel();
   });
 
   function onkeydown(event: KeyboardEvent) {
