@@ -97,7 +97,7 @@ catalog:
   "@hono/vite-build": 1.11.1
   "@noble/hashes": 2.4.0
   "@react-router/dev": 8.5.1
-  "@solidjs/meta": 0.29.4
+  "@solidjs/meta": 0.29.8
   "@solidjs/router": 1.0.3
   "@solidjs/start": 2.2.3
   "@sveltejs/kit": ^3.2.0
@@ -134,7 +134,8 @@ catalog:
   remark-parse: 11.0.0
   remark-rehype: 11.1.2
   rolldown: 1.2.19
-  # @solidjs/start 2 requires solid-js 1 and @solidjs/router below 2.
+  # @solidjs/start 2.2.3 requires solid-js 1 and @solidjs/router below 2, so the
+  # Solid packages follow their v1-latest tags until SolidStart supports Solid 2.
   solid-js: 1.9.19
   svelte: ^5.57.3
   svelte-check: 4.7.8
