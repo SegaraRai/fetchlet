@@ -1,0 +1,66 @@
+{
+  "checkedAt": "2026-11-17T05:56:30.056Z",
+  "summary": {
+    "passed": 14,
+    "failed": 0
+  },
+  "browser": "159.0.8154.6",
+  "results": [
+    {
+      "name": "SSR renders the workspace, the note tree and Markdown through the JavaScript renderer",
+      "status": "pass"
+    },
+    {
+      "name": "code blocks are highlighted by syntect in Rust during SSR",
+      "status": "pass"
+    },
+    {
+      "name": "raw HTML in a note is dropped from the rendered page",
+      "status": "pass"
+    },
+    {
+      "name": "the public API serves the same typed handlers as the in-process API",
+      "status": "pass"
+    },
+    {
+      "name": "a save based on a stale version is a conflict that names the current version",
+      "status": "pass"
+    },
+    {
+      "name": "paths outside the workspace are refused by the API and the file route",
+      "status": "pass"
+    },
+    {
+      "name": "workspace files are served sandboxed",
+      "status": "pass"
+    },
+    {
+      "name": "requests for another host name are refused",
+      "status": "pass"
+    },
+    {
+      "name": "the page hydrates, searches with remote functions and navigates on the client",
+      "status": "pass"
+    },
+    {
+      "name": "the editor previews through the Rust process and saves with Ctrl+S",
+      "status": "pass"
+    },
+    {
+      "name": "a change saved outside the browser reaches the open page",
+      "status": "pass"
+    },
+    {
+      "name": "the editor reports a conflict and can overwrite the version on disk",
+      "status": "pass"
+    },
+    {
+      "name": "new notes are created through a validated remote form",
+      "status": "pass"
+    },
+    {
+      "name": "search and notes work without JavaScript",
+      "status": "pass"
+    }
+  ]
+}

@@ -1,0 +1,503 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "mdw",
+    "description": "The Markdown workspace API. The SvelteKit server calls it in-process; `mdw serve` also publishes it under /api/v1.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/highlight": {
+      "post": {
+        "tags": ["rendering"],
+        "summary": "Highlights the code blocks of one note in a single call.",
+        "operationId": "highlight",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HighlightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HighlightResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/highlight.css": {
+      "get": {
+        "tags": ["rendering"],
+        "summary": "Colors for highlighted code, light and dark.",
+        "operationId": "highlight_stylesheet",
+        "responses": {
+          "200": {
+            "content": {
+              "text/css": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/note": {
+      "get": {
+        "tags": ["notes"],
+        "summary": "One note with its content and version.",
+        "operationId": "get_note",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "description": "Workspace path of the note, such as `guide/start.md`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Note"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["notes"],
+        "summary": "Creates or updates a note. A stale `base_version` is a conflict.",
+        "operationId": "save_note",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveNote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Note"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["notes"],
+        "summary": "Deletes a note if it still has the given version.",
+        "operationId": "delete_note",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "The version the caller last saw.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes": {
+      "get": {
+        "tags": ["notes"],
+        "summary": "Every note of the workspace, ordered by path.",
+        "operationId": "list_notes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NoteSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "tags": ["notes"],
+        "summary": "Case-insensitive full-text search over titles and bodies.",
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Terms separated by spaces; every term must match.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "At most 50; 20 by default.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchHit"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspace": {
+      "get": {
+        "tags": ["workspace"],
+        "summary": "The workspace's name, revision and note count.",
+        "operationId": "workspace_info",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "conflict": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Conflict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Change": {
+        "type": "object",
+        "required": ["revision", "paths"],
+        "properties": {
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Notes that were added, changed or removed."
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "CodeBlock": {
+        "type": "object",
+        "required": ["code", "language"],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string",
+            "description": "The fence's info string, such as `rust` or `ts`."
+          }
+        }
+      },
+      "Conflict": {
+        "type": "object",
+        "properties": {
+          "current_version": {
+            "type": ["string", "null"],
+            "description": "The version the note has now; null when it no longer exists."
+          }
+        }
+      },
+      "HighlightRequest": {
+        "type": "object",
+        "required": ["blocks"],
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodeBlock"
+            }
+          }
+        }
+      },
+      "HighlightResponse": {
+        "type": "object",
+        "required": ["blocks"],
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": ["string", "null"]
+            },
+            "description": "HTML for each block in order, or null when the language is unknown."
+          }
+        }
+      },
+      "Note": {
+        "type": "object",
+        "required": ["path", "title", "content", "version", "modified"],
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "modified": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "path": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string",
+            "description": "SHA-256 of the content. Saving requires the version it was based on."
+          }
+        }
+      },
+      "NoteSummary": {
+        "type": "object",
+        "required": ["path", "title", "modified", "size"],
+        "properties": {
+          "modified": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Last modification, in milliseconds since the Unix epoch.",
+            "minimum": 0
+          },
+          "path": {
+            "type": "string",
+            "description": "Workspace path with `/` separators."
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "SaveNote": {
+        "type": "object",
+        "required": ["path", "content"],
+        "properties": {
+          "base_version": {
+            "type": ["string", "null"],
+            "description": "The version the edit started from; null creates a note that must not exist."
+          },
+          "content": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "SearchHit": {
+        "type": "object",
+        "required": ["path", "title", "score", "snippet"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "snippet": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnippetPart"
+            },
+            "description": "Excerpt around the first match, split into plain and matched parts so\nthe page can mark matches without handling HTML."
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "SnippetPart": {
+        "type": "object",
+        "required": ["text", "matched"],
+        "properties": {
+          "matched": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "WorkspaceInfo": {
+        "type": "object",
+        "required": ["name", "revision", "notes", "skipped"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The workspace directory's name."
+          },
+          "notes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Increases whenever the set of notes or a note's content changes.",
+            "minimum": 0
+          },
+          "skipped": {
+            "type": "integer",
+            "description": "Notes left out for exceeding the size budget or not being UTF-8.",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

@@ -22,6 +22,7 @@ export default defineConfig({
         command: "pwsh -NoProfile -File tools/test-conformance.ps1",
         cache: false,
       },
+      "test:build": { command: "node --test packages/build/tests/*.test.mjs", cache: false },
       "test:polyfills": { command: "pwsh -NoProfile -File tools/test-polyfills.ps1", cache: false },
       "test:matrix": { command: "pwsh -NoProfile -File tools/test-matrix.ps1", cache: false },
       "test:host": { command: "pwsh -NoProfile -File tools/test-js.ps1 -Suite Host", cache: false },
@@ -131,6 +132,18 @@ export default defineConfig({
       },
       "test:example:honox-tauri": {
         command: "pwsh -NoProfile -File tools/test-example.ps1 -Name honox-tauri",
+        cache: false,
+      },
+      "example:sveltekit-axum-tauri": {
+        command: "vp run --filter @fetchlet/example-sveltekit-axum-tauri serve",
+        cache: false,
+      },
+      "example:sveltekit-axum-tauri:desktop": {
+        command: "vp run --filter @fetchlet/example-sveltekit-axum-tauri desktop",
+        cache: false,
+      },
+      "test:example:sveltekit-axum-tauri": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name sveltekit-axum-tauri",
         cache: false,
       },
       "test:examples": {

@@ -2,19 +2,20 @@
 
 各例はfrontend build、Rustのhost、設定、起動手順とE2Eを持ちます。axumの例は実HTTPとbrowser、Tauriの例はwebviewで検証します。
 
-| 組み合わせ                                             | backend           | 確認範囲                                                                                          |
-| ------------------------------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------- |
-| [SvelteKit + axum](sveltekit-axum/README.md)           | QuickJS           | SSR、assets、hydration、action、endpoint、Rust service、client navigation                         |
-| [Astro + axum](astro-axum/README.md)                   | QuickJS＋FormatJS | SSR、assets、Svelte island、フォーム、endpoint、Rust service、client navigation                   |
-| [Nuxt + axum](nuxt-axum/README.md)                     | QuickJS           | SSR、assets、hydration、server route、runtime config、Rust service、navigation                    |
-| [React Router + axum](react-router-axum/README.md)     | QuickJS           | streaming SSR、assets、hydration、action、resource route、Rust service、navigation                |
-| [HonoX + axum](honox-axum/README.md)                   | QuickJS           | SSR、assets、island、API route、Rust service、navigation                                          |
-| [TanStack Start + axum](tanstack-start-axum/README.md) | QuickJS           | streaming SSR、assets、hydration、server function、server route、Rust service、client navigation  |
-| [SolidStart + axum](solidstart-axum/README.md)         | QuickJS           | streaming SSR、assets、hydration、server function、API route、Rust service、client navigation     |
-| [Qwik City + axum](qwik-city-axum/README.md)           | QuickJS           | SSR、assets、resumability、routeLoader$、endpoint、Rust service、client navigation                |
-| [Waku + axum](waku-axum/README.md)                     | QuickJS           | RSC、SSR、assets、hydration、API route、Rust service、client navigation                           |
-| [vinext + axum](vinext-axum/README.md)                 | QuickJS           | App Router、RSC、SSR、assets、hydration、route handler、Rust service、client navigation           |
-| [HonoX + Tauri](honox-tauri/README.md)                 | QuickJS           | HTTPサーバなしのURI scheme配信、SSR、assets、island、API route、Tauri commandからのJS関数呼び出し |
+| 組み合わせ                                                 | backend           | 確認範囲                                                                                                                                                         |
+| ---------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SvelteKit + axum](sveltekit-axum/README.md)               | QuickJS           | SSR、assets、hydration、action、endpoint、Rust service、client navigation                                                                                        |
+| [Astro + axum](astro-axum/README.md)                       | QuickJS＋FormatJS | SSR、assets、Svelte island、フォーム、endpoint、Rust service、client navigation                                                                                  |
+| [Nuxt + axum](nuxt-axum/README.md)                         | QuickJS           | SSR、assets、hydration、server route、runtime config、Rust service、navigation                                                                                   |
+| [React Router + axum](react-router-axum/README.md)         | QuickJS           | streaming SSR、assets、hydration、action、resource route、Rust service、navigation                                                                               |
+| [HonoX + axum](honox-axum/README.md)                       | QuickJS           | SSR、assets、island、API route、Rust service、navigation                                                                                                         |
+| [TanStack Start + axum](tanstack-start-axum/README.md)     | QuickJS           | streaming SSR、assets、hydration、server function、server route、Rust service、client navigation                                                                 |
+| [SolidStart + axum](solidstart-axum/README.md)             | QuickJS           | streaming SSR、assets、hydration、server function、API route、Rust service、client navigation                                                                    |
+| [Qwik City + axum](qwik-city-axum/README.md)               | QuickJS           | SSR、assets、resumability、routeLoader$、endpoint、Rust service、client navigation                                                                               |
+| [Waku + axum](waku-axum/README.md)                         | QuickJS           | RSC、SSR、assets、hydration、API route、Rust service、client navigation                                                                                          |
+| [vinext + axum](vinext-axum/README.md)                     | QuickJS           | App Router、RSC、SSR、assets、hydration、route handler、Rust service、client navigation                                                                          |
+| [HonoX + Tauri](honox-tauri/README.md)                     | QuickJS           | HTTPサーバなしのURI scheme配信、SSR、assets、island、API route、Tauri commandからのJS関数呼び出し                                                                |
+| [SvelteKit + axum / Tauri](sveltekit-axum-tauri/README.md) | QuickJS           | Markdownワークスペース。CLIのHTTPとTauriのURI schemeで同じRouterを配信、utoipaのOpenAPIから型共有、remote functions、async SSR、Rustでのハイライト、ファイル監視 |
 
 後半の6例は共通の10項目（tools/testing/common-checks.mjs）で同じアプリの形を確認します。Next.js本体（`next build` の出力）、Qwik 2、SolidStartのNitro経由のbuildは次の対象です。
 

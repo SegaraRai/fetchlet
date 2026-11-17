@@ -1,0 +1,14 @@
+{
+  "listen": "127.0.0.1:4000",
+  "queue_capacity": 16,
+  "request_body_bytes": 2097152,
+  "response_body_bytes": 33554432,
+  "invocation_timeout_ms": 10000,
+  "note_bytes": 1048576,
+  "file_bytes": 16777216,
+  "workspace_notes": 10000,
+  "watch_debounce_ms": 150,
+  "build_directory": "build",
+  "quickjs_stack_bytes": 4194304,
+  "worker_stack_bytes": 8388608
+}

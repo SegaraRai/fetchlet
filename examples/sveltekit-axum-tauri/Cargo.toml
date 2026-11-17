@@ -1,0 +1,43 @@
+[package]
+name = "example-sveltekit-axum-tauri"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "A Markdown workspace: SvelteKit rendered by fetchlet, served by a CLI web server or a Tauri window"
+
+[[bin]]
+name = "mdw"
+path = "src/main.rs"
+
+[features]
+default = ["desktop"]
+# The Tauri window. Without it, `mdw` is a CLI web server that needs no webview libraries.
+desktop = ["dep:tauri", "dep:tauri-build"]
+boa = ["fetchlet/boa", "fetchlet-axum/boa"]
+v8 = ["fetchlet/v8", "fetchlet-axum/v8"]
+
+[dependencies]
+fetchlet = { workspace = true, features = ["quickjs"] }
+fetchlet-axum = { workspace = true, features = ["quickjs"] }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["net", "signal", "rt-multi-thread", "fs"] }
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+http-body-util = "0.1"
+clap = { version = "4.6", features = ["derive", "env"] }
+notify = "8.2"
+open = "5.4"
+sha2 = "0.11"
+syntect = { version = "5.3", default-features = false, features = ["default-fancy"] }
+two-face = { version = "0.5", default-features = false, features = ["syntect-default-fancy"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+utoipa = "6"
+utoipa-axum = "0.3"
+tauri = { version = "=2.12.5", optional = true }
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", features = [], optional = true }
+

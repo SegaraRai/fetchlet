@@ -27,7 +27,7 @@ pub use error::{Error, Result};
 pub use execution::Instance;
 pub use fetch::{Body, FetchApp, Request, Response};
 pub use host::{
-    Context, FetchPolicy, FetchService, FetchTransport, HostServices, OriginRouter,
+    ConsoleLevel, Context, FetchPolicy, FetchService, FetchTransport, HostServices, OriginRouter,
     TransportFuture, transport_fn,
 };
 pub use http;

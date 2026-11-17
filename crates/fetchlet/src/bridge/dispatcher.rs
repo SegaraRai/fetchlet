@@ -13,7 +13,7 @@ use crate::config::check_limit;
 use crate::execution::WakeSignal;
 use crate::host::{Redirect, TransportFuture};
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
-use crate::{Body, Context, Error, HostServices, Limits, Response, Result};
+use crate::{Body, ConsoleLevel, Context, Error, HostServices, Limits, Response, Result};
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 use super::crypto;
@@ -302,6 +302,7 @@ impl HostBridge {
             "body.cancel" => self.cancel_body(input),
             "background.register" => self.register_background(),
             "background.settle" => self.settle_background(),
+            "console.write" => self.write_console(input),
             #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
             "random" | "sha256" => crypto::dispatch(operation, input, &limits),
             #[cfg(any(
@@ -321,7 +322,28 @@ impl HostBridge {
         json!({
             "env": self.services.env,
             "services": service_names,
+            "console": self.services.console.is_some(),
         })
+    }
+
+    fn write_console(&self, input: &str) -> Result<Value> {
+        #[derive(Deserialize)]
+        struct Message<'a> {
+            level: &'a str,
+            #[serde(borrow)]
+            message: std::borrow::Cow<'a, str>,
+        }
+        let sink = self
+            .services
+            .console
+            .as_ref()
+            .ok_or(Error::PermissionDenied)?;
+        let message: Message<'_> = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid console message".into()))?;
+        let level = ConsoleLevel::parse(message.level)
+            .ok_or_else(|| Error::InvalidRequest("unknown console level".into()))?;
+        sink.write(level, &message.message);
+        Ok(Value::Null)
     }
 
     fn invocation_limits(&self) -> Result<Value> {

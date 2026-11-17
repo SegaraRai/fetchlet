@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 120" font-family="sans-serif" font-size="15">
+  <rect x="10" y="30" width="150" height="60" rx="8" fill="#e3f1ec" stroke="#2f6f5e"/>
+  <text x="85" y="65" text-anchor="middle">Browser / Tauri</text>
+  <rect x="245" y="30" width="150" height="60" rx="8" fill="#e3f1ec" stroke="#2f6f5e"/>
+  <text x="320" y="58" text-anchor="middle">SvelteKit</text>
+  <text x="320" y="78" text-anchor="middle" font-size="12">QuickJS (fetchlet)</text>
+  <rect x="480" y="30" width="150" height="60" rx="8" fill="#e3f1ec" stroke="#2f6f5e"/>
+  <text x="555" y="58" text-anchor="middle">Rust API</text>
+  <text x="555" y="78" text-anchor="middle" font-size="12">axum + utoipa</text>
+  <path d="M160 60h85M395 60h85" stroke="#2f6f5e" stroke-width="2" marker-end="url(#a)"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2f6f5e"/></marker></defs>
+</svg>

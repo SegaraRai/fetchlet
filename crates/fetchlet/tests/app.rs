@@ -98,3 +98,69 @@ async fn managed_app_contracts() -> anyhow::Result<()> {
     contracts(Backend::v8()).await?;
     Ok(())
 }
+
+async fn console_output(backend: Backend) -> anyhow::Result<()> {
+    use std::sync::{Arc, Mutex};
+
+    use fetchlet::ConsoleLevel;
+
+    const LOGGING: &str = r#"
+        console.info("loaded");
+        globalThis.fetchletExports = {
+          log() {
+            console.log("text", 1, { a: [true, null] });
+            console.warn("careful");
+            console.error(new TypeError("broken"));
+            console.debug("x".repeat(4096));
+            return "done";
+          },
+        };
+    "#;
+    let messages = Arc::new(Mutex::new(Vec::new()));
+    let sink = messages.clone();
+    let mut app = App::builder(backend)
+        .module(Module::new(LOGGING))
+        .host_services(HostServices::new().console(move |level, message| {
+            sink.lock().unwrap().push((level, message.to_owned()));
+        }))
+        .limits(Limits {
+            bridge_message_bytes: Some(1024),
+            ..Limits::default()
+        })
+        .build()?;
+    assert_eq!(app.call_json("log", &[]).await?, json!("done"));
+    let messages = messages.lock().unwrap().clone();
+    assert_eq!(messages[0], (ConsoleLevel::Info, "loaded".to_owned()));
+    assert_eq!(
+        messages[1],
+        (ConsoleLevel::Log, r#"text 1 {"a":[true,null]}"#.to_owned())
+    );
+    assert_eq!(messages[2], (ConsoleLevel::Warn, "careful".to_owned()));
+    assert_eq!(messages[3].0, ConsoleLevel::Error);
+    assert!(messages[3].1.contains("broken"), "{}", messages[3].1);
+    // A message over the bridge message budget arrives as a notice.
+    assert_eq!(
+        messages[4],
+        (
+            ConsoleLevel::Debug,
+            "[fetchlet: console message dropped]".to_owned()
+        )
+    );
+    assert_eq!(messages.len(), 5);
+
+    // Without a sink, console calls stay harmless no-ops.
+    let mut silent = App::builder(backend).module(Module::new(LOGGING)).build()?;
+    assert_eq!(silent.call_json("log", &[]).await?, json!("done"));
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn console_reaches_the_host_sink() -> anyhow::Result<()> {
+    #[cfg(feature = "quickjs")]
+    console_output(Backend::quickjs()).await?;
+    #[cfg(feature = "boa")]
+    console_output(Backend::Boa).await?;
+    #[cfg(feature = "v8")]
+    console_output(Backend::v8()).await?;
+    Ok(())
+}

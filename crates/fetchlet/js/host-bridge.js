@@ -27,6 +27,57 @@
 
   const bindings = dispatch("bindings", null);
 
+  function formatConsoleValue(value) {
+    if (typeof value === "string") {
+      return value;
+    }
+    if (value instanceof Error) {
+      const stack = typeof value.stack === "string" ? value.stack : "";
+      const head = value.name + ": " + value.message;
+      return stack.includes(value.message) ? stack : head + (stack ? "\n" + stack : "");
+    }
+    if (typeof value === "object" && value !== null) {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return Object.prototype.toString.call(value);
+      }
+    }
+    return String(value);
+  }
+
+  // The host's console sink receives one formatted message per call. Logging
+  // never throws into the application: a message the bridge refuses, such as
+  // one over the message budget, is replaced by a notice.
+  function installConsole() {
+    const write =
+      (level) =>
+      (...values) => {
+        try {
+          dispatch("console.write", {
+            level,
+            message: values.map(formatConsoleValue).join(" "),
+          });
+        } catch {
+          try {
+            dispatch("console.write", {
+              level,
+              message: "[fetchlet: console message dropped]",
+            });
+          } catch {
+            // The sink is unavailable; output is discarded as without a sink.
+          }
+        }
+      };
+    globalThis.console = Object.assign(globalThis.console ?? {}, {
+      debug: write("debug"),
+      log: write("log"),
+      info: write("info"),
+      warn: write("warn"),
+      error: write("error"),
+    });
+  }
+
   function exceedsBudget(observed, budget) {
     return budget !== null && BigInt(observed) > BigInt(budget);
   }
@@ -500,6 +551,10 @@
     writable: false,
     configurable: false,
   });
+
+  if (bindings.console) {
+    installConsole();
+  }
 
   const env = Object.assign(Object.create(null), bindings.env);
   for (const serviceName of bindings.services) {

@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-11-17T05:56:27.123Z",
+  "summary": {
+    "passed": 5,
+    "failed": 0
+  },
+  "browser": "157.0.4341.46",
+  "results": [
+    {
+      "name": "the window renders the workspace through the URI scheme protocol",
+      "status": "pass"
+    },
+    {
+      "name": "notes render with code highlighted by Rust, all in-process",
+      "status": "pass"
+    },
+    {
+      "name": "the protocol keeps the workspace boundary",
+      "status": "pass"
+    },
+    {
+      "name": "workspace changes arrive as Tauri events",
+      "status": "pass"
+    },
+    {
+      "name": "the editor saves through the protocol",
+      "status": "pass"
+    }
+  ]
+}

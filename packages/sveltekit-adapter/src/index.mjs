@@ -24,8 +24,25 @@ function synchronousRendering() {
   };
 }
 
-/** @returns {import("@sveltejs/kit").Adapter} */
-export default function fetchletAdapter({ out = "build", backend = "portable", intl = {} } = {}) {
+/**
+ * @param {object} [options]
+ * @param {string} [options.out]
+ * @param {"portable" | "quickjs" | "boa" | "v8"} [options.backend]
+ * @param {object} [options.intl]
+ * @param {"synchronous" | "async"} [options.rendering] "async" supports Svelte's
+ *   asynchronous server rendering and remote functions: `getRequestEvent()`
+ *   keeps the current request across awaits within one invocation.
+ * @returns {import("@sveltejs/kit").Adapter}
+ */
+export default function fetchletAdapter({
+  out = "build",
+  backend = "portable",
+  intl = {},
+  rendering = "synchronous",
+} = {}) {
+  if (rendering !== "synchronous" && rendering !== "async") {
+    throw new Error(`Unknown rendering profile ${JSON.stringify(rendering)}`);
+  }
   return {
     name: "@fetchlet/sveltekit-adapter",
     async adapt(builder) {
@@ -74,9 +91,13 @@ export default function fetchletAdapter({ out = "build", backend = "portable", i
       await buildArtifact({
         entry,
         outDir: output,
-        plugins: [synchronousRendering()],
+        // An App runs one invocation at a time, so a store that lasts until
+        // the request's promise settles is the request's own.
+        ...(rendering === "async"
+          ? { asyncContext: "serialized" }
+          : { plugins: [synchronousRendering()] }),
         framework: "sveltekit",
-        rendering: "synchronous",
+        rendering,
         backend,
         intl,
       });
