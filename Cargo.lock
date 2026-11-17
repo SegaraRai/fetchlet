@@ -1766,11 +1766,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1780,11 +1779,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1794,7 +1792,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "fetchlet",
- "fetchlet-tower",
+ "fetchlet-http",
  "http-body-util",
  "serde",
  "serde_json",
@@ -1812,11 +1810,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1826,11 +1823,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1840,11 +1836,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1854,11 +1849,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1868,11 +1862,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1883,7 +1876,7 @@ dependencies = [
  "axum",
  "clap",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "http-body-util",
  "notify",
  "open",
@@ -1896,7 +1889,6 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tower",
- "tower-http 0.7.1",
  "two-face",
  "utoipa",
  "utoipa-axum",
@@ -1909,11 +1901,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1923,11 +1914,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1937,11 +1927,10 @@ dependencies = [
  "anyhow",
  "axum",
  "fetchlet",
- "fetchlet-axum",
+ "fetchlet-http",
  "serde",
  "serde_json",
  "tokio",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -1998,43 +1987,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fetchlet-actix"
-version = "0.0.0"
-dependencies = [
- "actix-http",
- "actix-web",
- "bytes",
- "fetchlet",
- "fetchlet-tower",
- "futures-core",
- "http 1.5.0",
- "http-body",
- "http-body-util",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "fetchlet-axum"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "axum",
- "bytes",
- "fetchlet",
- "fetchlet-tower",
- "http 1.5.0",
- "http-body",
- "http-body-util",
- "serde",
- "serde_json",
- "tokio",
- "tower",
- "tower-service",
-]
-
-[[package]]
 name = "fetchlet-bench"
 version = "0.0.0"
 dependencies = [
@@ -2061,12 +2013,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "fetchlet-hyper"
+name = "fetchlet-http"
 version = "0.0.0"
 dependencies = [
+ "actix-http",
+ "actix-web",
+ "anyhow",
+ "axum",
  "bytes",
  "fetchlet",
- "fetchlet-tower",
+ "futures-core",
  "http 1.5.0",
  "http-body",
  "http-body-util",
@@ -2074,24 +2030,23 @@ dependencies = [
  "hyper-util",
  "serde",
  "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "fetchlet-tower"
-version = "0.0.0"
-dependencies = [
- "bytes",
- "fetchlet",
- "http 1.5.0",
- "http-body",
- "http-body-util",
- "serde",
- "serde_json",
  "thiserror 2.0.21",
  "tokio",
  "tower",
+ "tower-http 0.7.1",
  "tower-service",
+]
+
+[[package]]
+name = "fetchlet-lab"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "fetchlet",
+ "http-body",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

@@ -9,7 +9,7 @@ use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
 use fetchlet::AppHandle;
-use fetchlet_tower::FetchletService;
+use fetchlet_http::FetchletService;
 
 /// The URI scheme the webview loads pages from.
 pub(crate) const SCHEME: &str = "fetchlet";

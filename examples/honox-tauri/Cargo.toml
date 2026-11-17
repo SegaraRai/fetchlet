@@ -6,12 +6,12 @@ publish.workspace = true
 description = "HonoX SSR and browser assets served in-process to a Tauri webview through fetchlet"
 
 [features]
-boa = ["fetchlet/boa", "fetchlet-tower/boa"]
-v8 = ["fetchlet/v8", "fetchlet-tower/v8"]
+boa = ["fetchlet/boa"]
+v8 = ["fetchlet/v8"]
 
 [dependencies]
 fetchlet = { workspace = true, features = ["quickjs"] }
-fetchlet-tower = { workspace = true, features = ["quickjs"] }
+fetchlet-http.workspace = true
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

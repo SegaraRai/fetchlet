@@ -1,0 +1,62 @@
+[package]
+name = "fetchlet-http"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "Serve fetchlet applications through Tower, hyper, axum and actix-web"
+
+# The JavaScript engine is selected on the fetchlet crate. These features only
+# add server integrations over the always-available Tower service.
+[features]
+default = []
+hyper = ["dep:hyper"]
+axum = ["dep:axum", "dep:tower-http"]
+actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
+
+[dependencies]
+fetchlet.workspace = true
+bytes = "1"
+http = "1"
+http-body = "1"
+http-body-util = "0.1"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tower-service = "0.3"
+hyper = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
+actix-web = { workspace = true, optional = true }
+futures-core = { version = "0.3", optional = true }
+tokio = { workspace = true, optional = true }
+
+[dev-dependencies]
+# The integration contract runs on every engine.
+fetchlet = { workspace = true, features = ["quickjs", "boa", "v8"] }
+actix-http = "3"
+actix-web = { workspace = true, features = ["macros"] }
+anyhow.workspace = true
+hyper = { workspace = true, features = ["client"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+tokio = { workspace = true, features = ["net"] }
+tower.workspace = true
+
+[[test]]
+name = "hyper"
+required-features = ["hyper"]
+
+[[test]]
+name = "axum"
+required-features = ["axum"]
+
+[[test]]
+name = "axum_router"
+required-features = ["axum"]
+
+[[test]]
+name = "actix"
+required-features = ["actix"]
+
+[[test]]
+name = "artifact"
+required-features = ["axum"]

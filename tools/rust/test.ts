@@ -1,7 +1,7 @@
 // Formats, lints and tests the Rust workspace: `vp run test:rust`.
 import { cargoAll } from "@fetchlet-internal/tools-workspace/cargo";
 
-const integrations = ["fetchlet-tower", "fetchlet-hyper", "fetchlet-axum", "fetchlet-actix"];
+const httpFeatures = ["hyper", "axum", "actix"];
 const axumExamples = [
   "sveltekit-axum",
   "astro-axum",
@@ -46,12 +46,32 @@ cargoAll([
     "-D",
     "warnings",
   ],
-  // The HTTP integrations share tests/http-integrations/contract.rs.
-  ...integrations.flatMap((crate) => [
-    ["test", "--locked", "-p", crate, "--all-features"],
-    ["clippy", "--locked", "-p", crate, "--all-targets", "--all-features", "--", "-D", "warnings"],
-    ["check", "--locked", "-p", crate, "--no-default-features"],
+  // fetchlet-http's integrations share tests/contract/ and run it on every
+  // engine. Each server feature also builds on its own.
+  ["test", "--locked", "-p", "fetchlet-http", "--all-features"],
+  [
+    "clippy",
+    "--locked",
+    "-p",
+    "fetchlet-http",
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings",
+  ],
+  ...["", ...httpFeatures].map((feature) => [
+    "clippy",
+    "--locked",
+    "-p",
+    "fetchlet-http",
+    "--no-default-features",
+    ...(feature ? ["--features", feature] : []),
+    "--",
+    "-D",
+    "warnings",
   ]),
+  ["clippy", "--locked", "-p", "fetchlet-lab", "--", "-D", "warnings"],
   // The Tauri example's URI scheme protocol has its own regression tests.
   ["test", "--locked", "-p", "example-honox-tauri"],
   [

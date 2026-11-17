@@ -33,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
 
 この例のbundleは `vp run build:fixtures` で生成します。本文回収の1 MiBとキュー8件は、この例の呼び出し側が選ぶ予算です。`app.call("transform", &input)` でSerde対応の関数を、`app.call_json("add", &[...])` で複数引数の関数を呼び出せます。
 
-複製できるAppHandleは、AppBuilder::spawn(WorkerOptions)で作れます。所有スレッド、待機キュー、中断後のInstance再生成と終了待ちを扱います。HTTPサーバへは、Towerと `http` 1系のサーバにfetchlet-tower、hyper 1にfetchlet-hyper、axumにfetchlet-axum、actix-webにfetchlet-actixで接続します。四つは同じ契約試験で検証しています。
+複製できるAppHandleは、AppBuilder::spawn(WorkerOptions)で作れます。所有スレッド、待機キュー、中断後のInstance再生成と終了待ちを扱います。HTTPサーバへはfetchlet-httpで接続します。Towerと `http` 1系のserviceは常に使え、`hyper`、`axum`、`actix` featureで各サーバ向けの層を加えます。すべての層を同じ契約試験で検証しています。
 
 Cargo featureで `quickjs`（既定）、`boa`、`v8` を選択できます。複数の同時有効化にも対応します。AOTはexperimentalな比較・リンク検証として維持しています。
 
@@ -72,11 +72,8 @@ Astro＋axumの例も `vp run @fetchlet-internal/example-astro-axum#serve` で�
 
 ```text
 crates/fetchlet/              関数・Fetch実行、共有handle、host services
-crates/fetchlet-tower/        Tower / http 1系のHTTP統合とプロセス内transport
-crates/fetchlet-hyper/        fetchlet-tower上のhyper 1向けの層
-crates/fetchlet-axum/         fetchlet-tower上のaxum向けの層
-crates/fetchlet-actix/        actix-web 4のHTTP統合
-tests/http-integrations/     Rust HTTP統合の共通契約試験
+crates/fetchlet-http/         Tower / hyper / axum / actix-webのHTTP統合、artifact配信
+tools/lab/                    toolsが使う行プロトコルのhost（fetchlet-lab）
 packages/runtime/            共通Web APIとFetch entryの接続
 packages/build/              共通artifact builder
 packages/sveltekit-adapter/   SvelteKit adapter

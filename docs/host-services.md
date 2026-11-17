@@ -101,7 +101,7 @@ Invocation終了時には所有するtransport Futureを同期的にdropしま�
 
 `vp run test:host` は3エンジンで本物のJS fetchとmock transportを往復させます。通信権限、binary POST、Cookie、認証付与、redirect、rewrite、env、名前付きservice、abort、Instance退役を検査します。
 
-結果は [host-matrix.json](../results/host-matrix.json)。実装は `crates/fetchlet/src/host/`、`crates/fetchlet/src/bridge/`、`crates/fetchlet/js/host-bridge.js`、runnerは `crates/fetchlet/tests/support/lab/` にあります。
+結果は [host-matrix.json](../results/host-matrix.json)。実装は `crates/fetchlet/src/host/`、`crates/fetchlet/src/bridge/`、`crates/fetchlet/js/host-bridge.js`、runnerは `tools/lab/` にあります。
 
 `App::fetch_with_context(request, &context)` はentryの第二引数へSerde対応の呼び出し固有情報を渡します。SvelteKit adapterではclient addressに利用します。
 
@@ -109,11 +109,11 @@ Invocation終了時には所有するtransport Futureを同期的にdropしま�
 
 AppBuilder::spawnはSend + SyncのAppHandleを返します。関数、Fetch、context付きFetchをclone間で共有でき、キュー容量を明示設定します。Futureのdropをキャンセルへ伝え、退役したInstanceは次の呼び出し前に再生成します。shutdownは新規受付を終了し、受付済み処理と資源回収を待ちます。詳細は[共有handle](../crates/fetchlet/README.md)を参照してください。
 
-HTTPサーバとの接続は次のcrateが担います。受信の変換、公開origin、本文予算、context、エラー応答の振る舞いは共通で、[共通契約](../tests/http-integrations/contract.rs)を各crateで実行して確認します。
+HTTPサーバとの接続は[fetchlet-http](../crates/fetchlet-http/README.md)が担います。受信の変換、公開origin、本文予算、context、エラー応答の振る舞いは共通で、[共通契約](../crates/fetchlet-http/tests/contract/mod.rs)を各層で実行して確認します。
 
-| crate                                                | 対象                                                             |
-| ---------------------------------------------------- | ---------------------------------------------------------------- |
-| [fetchlet-tower](../crates/fetchlet-tower/README.md) | Towerと `http` 1系のサーバ（hyper、axum等）。プロセス内transport |
-| [fetchlet-hyper](../crates/fetchlet-hyper/README.md) | fetchlet-tower上の層。hyper 1のservice traitと接続のpeer address |
-| [fetchlet-axum](../crates/fetchlet-axum/README.md)   | fetchlet-tower上の層。axumの型とConnectInfo                      |
-| [fetchlet-actix](../crates/fetchlet-actix/README.md) | actix-web 4（`http` 0.2系、非Sendのhandler）                     |
+| feature  | 対象                                                                     |
+| -------- | ------------------------------------------------------------------------ |
+| （なし） | `FetchletService`（Towerと `http` 1系）、プロセス内transport、`Artifact` |
+| `hyper`  | `HyperService`。hyper 1のservice traitと接続のpeer address               |
+| `axum`   | `AxumService`。axumの型とConnectInfo、`artifact_router`                  |
+| `actix`  | `ActixService`。actix-web 4（`http` 0.2系、非Sendのhandler）             |

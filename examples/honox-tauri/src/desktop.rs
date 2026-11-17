@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use tauri::{RunEvent, WebviewUrl, WebviewWindowBuilder};
 
 use fetchlet::{App, Module};
+use fetchlet_http::Artifact;
 
 use crate::commands::{self, Functions};
 use crate::config::Config;
@@ -11,18 +12,22 @@ use crate::protocol::{Protocol, SCHEME, start_url};
 use crate::services::host_services;
 
 pub(crate) fn run(config: Config) -> Result<()> {
-    let source = std::fs::read_to_string(config.build_directory.join("server.js"))
+    let artifact = Artifact::open(&config.build_directory)
         .context("build the HonoX frontend before starting the app")?;
+    let client_directory = artifact
+        .client_directory()
+        .context("the HonoX artifact has no client directory")?;
     let app = tauri::async_runtime::block_on(
         App::builder(config.backend()?)
-            .module(Module::new(source))
+            .module(Module::new(artifact.server_source()?))
+            .fetch_handler(artifact.handler())
             .host_services(host_services(&config.message)?)
             .limits(config.limits())
             .spawn(config.worker_options()),
     )?;
     let protocol = Arc::new(Protocol::new(
         app.clone(),
-        &config.build_directory.join("client"),
+        &client_directory,
         config.response_body_bytes.get(),
     )?);
     let url = start_url().parse()?;

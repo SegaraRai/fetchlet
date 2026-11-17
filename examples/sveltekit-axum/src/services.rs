@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use fetchlet::{Context, HostServices, OriginRouter, Result};
-use fetchlet_axum::router_transport;
+use fetchlet_http::router_transport;
 
 /// The origin that names the in-process Rust API for server-side JavaScript.
 pub(crate) const RUST_ORIGIN: &str = "https://rust.fetchlet.test";

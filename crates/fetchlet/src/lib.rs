@@ -5,7 +5,9 @@ mod error;
 mod execution;
 mod fetch;
 mod host;
+mod reentry;
 mod wire;
+mod worker;
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 mod app;
@@ -19,8 +21,6 @@ mod backend;
     test
 ))]
 mod bridge;
-#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-mod worker;
 
 pub use config::Limits;
 pub use error::{Error, Result};
@@ -31,6 +31,7 @@ pub use host::{
     TransportFuture, transport_fn,
 };
 pub use http;
+pub use worker::{AppHandle, WorkerOptions};
 
 #[cfg(feature = "fuzzing")]
 #[doc(hidden)]
@@ -46,5 +47,3 @@ pub use backend::Boa;
 pub use backend::{QuickJs, QuickJsOptions};
 #[cfg(feature = "v8")]
 pub use backend::{V8, V8Options};
-#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-pub use worker::{AppHandle, WorkerOptions};

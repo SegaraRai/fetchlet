@@ -21,7 +21,7 @@
 
 ## 共通にする境界
 
-framework adapterはserver bundleとclient assetsを作ります。@fetchlet/buildがWeb APIの初期化順序とartifact形式を揃えます。Rust側はAppHandleで実行を管理し、axumの例はfetchlet-axumでHTTPを接続します。Tauriの例はfetchlet-towerの `FetchletService` をURI scheme protocolから呼び、HTTPサーバを立てずにwebviewへ配信します。fetchlet-tower、fetchlet-hyper（hyper 1）、fetchlet-actix（actix-web）も同じ契約で検証済みです。
+framework adapterはserver bundleとclient assetsを作ります。@fetchlet/buildがWeb APIの初期化順序とartifact形式を揃えます。Rust側はAppHandleで実行を管理し、axumの例はfetchlet-httpの `Artifact` と `artifact_router` でartifactを読み、client assetsとアプリを配信します。Tauriの例はfetchlet-httpの `FetchletService` をURI scheme protocolから呼び、HTTPサーバを立てずにwebviewへ配信します。fetchlet-tower、fetchlet-hyper（hyper 1）、fetchlet-actix（actix-web）も同じ契約で検証済みです。
 
 artifactはserver.js、client/、fetchlet.jsonです。manifestは形式版、entry、profile、frameworkと要求する能力を記録します。backendは要求に合わせてアプリ側で選択します。
 

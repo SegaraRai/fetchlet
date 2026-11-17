@@ -6,15 +6,14 @@ publish.workspace = true
 description = "React Router SSR and browser assets served by axum through fetchlet"
 
 [features]
-boa = ["fetchlet/boa", "fetchlet-axum/boa"]
-v8 = ["fetchlet/v8", "fetchlet-axum/v8"]
+boa = ["fetchlet/boa"]
+v8 = ["fetchlet/v8"]
 
 [dependencies]
 fetchlet = { workspace = true, features = ["quickjs"] }
-fetchlet-axum = { workspace = true, features = ["quickjs"] }
+fetchlet-http = { workspace = true, features = ["axum"] }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["net", "signal"] }
 axum.workspace = true
-tower-http.workspace = true

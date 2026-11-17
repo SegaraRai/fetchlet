@@ -29,9 +29,9 @@ JSはFetchのRequest / ResponseでRust APIを使います。内部宛先はプ�
 | `OriginRouter::into_service()`      | 登録したoriginだけを許可するFetchServiceを作る                                   |
 | `Context`                           | Rustが作る型付きの値の集合。`App::fetch` へ渡すRequestのextensionsに入れる       |
 | `FetchService::forward_context()`   | 単一transportのserviceでContextを渡す。指定しないserviceはContextを取り除く      |
-| `fetchlet_tower::service_transport` | 任意のTower serviceをtransportにする                                             |
-| `fetchlet_axum::router_transport`   | axumの `Router` をtransportにする                                                |
-| `FetchletService::trusted_context`  | 受信requestからContextを作る（fetchlet-tower / axum / actix）                    |
+| `fetchlet_http::service_transport`  | 任意のTower serviceをtransportにする                                             |
+| `fetchlet_http::router_transport`   | axumの `Router` をtransportにする（`axum` feature）                              |
+| `trusted_context`                   | 受信requestからContextを作る（fetchlet-httpの各service）                         |
 
 ```rust,ignore
 let service = OriginRouter::new()
@@ -62,7 +62,7 @@ let services = HostServices::new()
 - `App::fetch` / `AppHandle::fetch` に渡すRequestのextensionsに `Context` を入れると、そのInvocationが保持します。JSへ渡すwire requestには含まれません。
 - そのInvocationのhost fetchは、Contextのcloneをrequest extensionsに載せます。internal routeと `forward_context()` を指定したserviceだけが受け取ります。
 - JSはContextを読めず、作れず、置き換えられません。request headersからContextが作られることもありません。
-- fetchlet-tower / fetchlet-hyper / fetchlet-axum / fetchlet-actixでは `FetchletService::trusted_context` でConnectInfoや認証middlewareの結果からContextを作り、axum handlerは `Option<Extension<fetchlet::Context>>` で読みます。
+- fetchlet-httpの各service（`FetchletService` / `HyperService` / `AxumService` / `ActixService`）では `trusted_context` でConnectInfoや認証middlewareの結果からContextを作り、axum handlerは `Option<Extension<fetchlet::Context>>` で読みます。
 - 各hopのRequestはextensionsを引き継ぐため、internal route間のredirectでもContextが届きます。
 
 `App::fetch_with_context` のSerde値はJS entryの第二引数で、Contextとは別の、JSに見せるための値です。
@@ -109,7 +109,7 @@ SvelteKitの `event.fetch` で次の分担を確認しています。
 | ------------------------------------------ | ----------------------------------------------------------------------------------- |
 | Contextの付与・除去、originの完全一致      | `crates/fetchlet/src/host/tests.rs`                                                 |
 | 3エンジンでのContext、redirect、拒否、再入 | `crates/fetchlet/tests/in_process.rs`                                               |
-| axum routerの共用、`trusted_context`       | `crates/fetchlet-axum/tests/router.rs`、各HTTP統合の`tests/contract.rs`             |
+| axum routerの共用、`trusted_context`       | `crates/fetchlet-http/tests/axum_router.rs`、`crates/fetchlet-http/tests/contract/` |
 | SvelteKitでのE2E                           | [sveltekit-axum](../examples/sveltekit-axum/README.md#プロセス内のrust-api)の16項目 |
 
 例のE2Eは、同じrouterの公開HTTPとプロセス内fetch、400 / 404 / 500のResponse、Contextによる呼び出し元、許可外originの拒否、abortによるhandlerのdrop、`event.fetch` の分担を確認します。

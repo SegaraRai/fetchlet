@@ -65,7 +65,7 @@ web/lib/notes.remote.ts（remote functions） ─▶ コンポーネント
 - remote functionsが、同じ型をブラウザー側のコンポーネントまで届けます。
 - APIを変えたら `vp run --filter @fetchlet-internal/example-sveltekit-axum-tauri generate:api` で両方を再生成します。`cargo test` は、checked-inの `openapi.json` が現在のhandlerと一致することを確認します。
 
-プロセス内のAPIと、`mdw serve` が `/api/v1` で公開するAPIは同じaxum Routerです。プロセス内のRequestはsocketを使わず、`fetchlet_axum::router_transport` からRouterへ届きます。fetch policyは `https://rust.fetchlet.test` だけを許可します。
+プロセス内のAPIと、`mdw serve` が `/api/v1` で公開するAPIは同じaxum Routerです。プロセス内のRequestはsocketを使わず、`fetchlet_http::router_transport` からRouterへ届きます。fetch policyは `https://rust.fetchlet.test` だけを許可します。
 
 ## 構成
 

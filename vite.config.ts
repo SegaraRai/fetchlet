@@ -4,8 +4,7 @@ import { defineConfig } from "vite-plus";
 // records results/, `check:*` verifies static consistency, `fetch:*` restores
 // pinned external inputs, `refresh:*` updates them, and `setup:*` installs
 // optional toolchains. `check` and `verify` aggregate the regular gates.
-const lab =
-  "node tools/workspace/cargo.ts build --locked -p fetchlet --bin fetchlet-lab --all-features";
+const lab = "node tools/workspace/cargo.ts build --locked -p fetchlet-lab";
 
 export default defineConfig({
   fmt: {
@@ -29,7 +28,7 @@ export default defineConfig({
       },
       "check:format": {
         command:
-          "vp fmt crates/fetchlet/js crates/fetchlet/tests/fixtures crates/fetchlet-axum/tests/fixtures packages examples fixtures tools tests/conformance/regressions vite.config.ts tsconfig.json package.json --check",
+          "vp fmt crates/fetchlet/js crates/fetchlet/tests/fixtures crates/fetchlet-http/tests/fixtures crates/fetchlet-http/tests/contract packages examples fixtures tools tests/conformance/regressions vite.config.ts tsconfig.json package.json --check",
         cache: false,
       },
       check: { command: "", dependsOn: ["check:types", "check:format"] },

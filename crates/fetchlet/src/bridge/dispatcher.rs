@@ -8,10 +8,10 @@ use serde_json::{Value, json};
 
 use super::body_source::{BodyRead, BodySources};
 use super::clock::Clock;
-use super::reentry;
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
 use crate::host::{Redirect, TransportFuture};
+use crate::reentry;
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
 use crate::{Body, ConsoleLevel, Context, Error, HostServices, Limits, Response, Result};
 

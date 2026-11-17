@@ -11,7 +11,7 @@ vp install --frozen-lockfile
 vp run @fetchlet-internal/example-astro-axum#serve
 ```
 
-http://127.0.0.1:3100 を開きます。Rust側はQuickJSを使用します。AstroのIntl.DateTimeFormat要求と依存APIは、adapterがFormatJSで補います。SvelteKit例のQuickJSと同じAppHandle / fetchlet-axum APIを使います。
+http://127.0.0.1:3100 を開きます。Rust側はQuickJSを使用します。AstroのIntl.DateTimeFormat要求と依存APIは、adapterがFormatJSで補います。SvelteKit例のQuickJSと同じAppHandle / fetchlet-http APIを使います。
 
 ## 構成と設定
 

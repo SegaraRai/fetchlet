@@ -5,10 +5,9 @@ use anyhow::{Context, Result};
 use axum::Router;
 use axum::routing::get;
 use notify::RecommendedWatcher;
-use tower_http::services::ServeDir;
 
 use fetchlet::{App, AppHandle, HostServices, Module, OriginRouter};
-use fetchlet_axum::{FetchletService, router_transport};
+use fetchlet_http::{Artifact, AxumService, artifact_router, router_transport};
 
 use crate::api::{ApiState, FileState, Highlighter, api_router, public_api_router, workspace_file};
 use crate::config::Config;
@@ -43,19 +42,14 @@ pub(crate) struct Host {
     pub state: ApiState,
     note_bytes: usize,
     file_bytes: usize,
-    client_directory: std::path::PathBuf,
+    artifact: Artifact,
     _watcher: RecommendedWatcher,
 }
 
 impl Host {
     pub async fn start(config: &Config, workspace_directory: &Path, shell: Shell) -> Result<Self> {
-        let source = std::fs::read_to_string(config.build_directory.join("server.js"))
-            .with_context(|| {
-                format!(
-                    "read {}; build the SvelteKit frontend first",
-                    config.build_directory.join("server.js").display()
-                )
-            })?;
+        let artifact = Artifact::open(&config.build_directory)
+            .context("build the SvelteKit frontend first")?;
         let workspace = Arc::new(Workspace::open(
             workspace_directory,
             config.workspace_limits(),
@@ -85,7 +79,8 @@ impl Host {
             .console(|level, message| eprintln!("[js {level:?}] {message}"))
             .env("MDW_SHELL", shell.as_str())?;
         let app = App::builder(config.backend()?)
-            .module(Module::new(source))
+            .module(Module::new(artifact.server_source()?))
+            .fetch_handler(artifact.handler())
             .host_services(hosts)
             .limits(config.limits())
             .spawn(config.worker_options())
@@ -95,7 +90,7 @@ impl Host {
             state,
             note_bytes,
             file_bytes: config.file_bytes.get(),
-            client_directory: config.build_directory.join("client"),
+            artifact,
             _watcher: watcher,
         })
     }
@@ -104,11 +99,8 @@ impl Host {
     /// the client build, and the SvelteKit pages for everything else. The CLI
     /// serves it over HTTP and the desktop window through a URI scheme.
     pub fn router(&self, public_origin: &str) -> Result<Router> {
-        let pages = FetchletService::new(self.app.clone(), public_origin)?
+        let pages = AxumService::new(self.app.clone(), public_origin)?
             .on_error(|error| eprintln!("request failed: {error:#}"));
-        let assets = ServeDir::new(&self.client_directory)
-            .call_fallback_on_method_not_allowed(true)
-            .fallback(pages);
         let files = Router::new()
             .route("/{*path}", get(workspace_file))
             .with_state(FileState {
@@ -121,7 +113,7 @@ impl Host {
                 public_api_router(self.state.clone(), self.note_bytes),
             )
             .nest("/files", files)
-            .fallback_service(assets))
+            .merge(artifact_router(&self.artifact, pages)))
     }
 
     pub async fn shutdown(self) -> Result<()> {

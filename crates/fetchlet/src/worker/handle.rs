@@ -6,9 +6,15 @@ use tokio::sync::{mpsc, oneshot, watch};
 
 use super::lifecycle::{WorkerStatus, wait_for_shutdown};
 use super::protocol::Command;
-use super::{WorkerOptions, runtime};
-use crate::bridge::{is_polling, new_key};
-use crate::{AppBuilder, Error, Limits, Request, Response, Result};
+use crate::reentry::is_polling;
+use crate::{Error, Limits, Request, Response, Result};
+
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+use {
+    super::{WorkerOptions, runtime},
+    crate::AppBuilder,
+    crate::reentry::new_key,
+};
 
 struct Shared {
     sender: mpsc::Sender<Command>,
@@ -30,6 +36,7 @@ pub struct AppHandle {
 }
 
 impl AppHandle {
+    #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
     pub(crate) async fn spawn(
         builder: AppBuilder,
         options: WorkerOptions,
