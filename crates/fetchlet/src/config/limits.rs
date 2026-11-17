@@ -24,6 +24,11 @@ pub struct Limits {
     pub bridge_message_bytes: Option<usize>,
     /// Input bytes for one host SHA-256 operation.
     pub digest_bytes: Option<usize>,
+    /// `CompressionStream` and `DecompressionStream` instances open at once
+    /// in one invocation.
+    pub compression_streams: Option<usize>,
+    /// Output bytes of each `DecompressionStream`.
+    pub decompressed_bytes: Option<usize>,
     /// Host fetch starts attempted during one invocation, including failed starts.
     pub subrequests: Option<usize>,
     /// Redirects followed per fetch, within the Fetch specification's limit.

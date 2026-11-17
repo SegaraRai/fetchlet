@@ -3,6 +3,8 @@ mod clock;
 mod dispatcher;
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+mod compression;
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 mod crypto;
 #[cfg(feature = "fuzzing")]
 mod harness;
@@ -14,6 +16,8 @@ mod harness;
     test
 ))]
 mod url_api;
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+mod url_pattern;
 
 pub(crate) use dispatcher::HostBridge;
 

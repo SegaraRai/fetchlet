@@ -7,9 +7,24 @@ description = "Rust-hosted JavaScript functions and Fetch handlers with explicit
 
 [features]
 default = ["quickjs"]
-quickjs = ["dep:rquickjs", "dep:getrandom", "dep:sha2"]
-boa = ["dep:boa_engine", "dep:getrandom", "dep:sha2"]
-v8 = ["dep:deno_core", "dep:deno_error", "dep:getrandom", "dep:sha2"]
+quickjs = [
+  "dep:rquickjs",
+  "dep:getrandom",
+  "dep:sha2",
+  "dep:flate2",
+  "dep:brotli",
+  "dep:urlpattern",
+]
+boa = ["dep:boa_engine", "dep:getrandom", "dep:sha2", "dep:flate2", "dep:brotli", "dep:urlpattern"]
+v8 = [
+  "dep:deno_core",
+  "dep:deno_error",
+  "dep:getrandom",
+  "dep:sha2",
+  "dep:flate2",
+  "dep:brotli",
+  "dep:urlpattern",
+]
 # Exposes a hidden harness over the private host bridge for cargo-fuzz targets.
 fuzzing = []
 
@@ -20,6 +35,9 @@ serde_json.workspace = true
 tokio.workspace = true
 getrandom = { version = "0.4", optional = true }
 sha2 = { version = "0.11", optional = true }
+flate2 = { version = "1", optional = true }
+brotli = { version = "9", optional = true }
+urlpattern = { version = "0.6", optional = true }
 bytes = "1"
 http = "1"
 http-body = "1"
