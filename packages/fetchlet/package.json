@@ -12,146 +12,52 @@
     "./runtime": "./src/runtime/index.ts",
     "./runtime/adapter": "./src/runtime/adapter.ts",
     "./runtime/handler": "./src/runtime/handler.ts",
-    "./build": {
-      "types": "./src/build/index.d.ts",
-      "default": "./src/build/index.js"
-    },
+    "./build": "./src/build/index.js",
     "./astro": "./src/astro/index.js",
     "./astro/server": "./src/astro/server.ts",
-    "./hono/vite": {
-      "types": "./src/hono/vite.d.ts",
-      "default": "./src/hono/vite.js"
-    },
+    "./hono/vite": "./src/hono/vite.js",
     "./hono/conninfo": "./src/hono/conninfo.ts",
     "./nitro": "./src/nitro/preset.js",
-    "./nitro/types": {
-      "types": "./src/nitro/types.d.ts"
-    },
-    "./qwik-city/middleware": {
-      "types": "./src/qwik-city/middleware.d.ts",
-      "default": "./src/qwik-city/middleware.js"
-    },
-    "./qwik-city/vite": {
-      "types": "./src/qwik-city/vite.d.ts",
-      "default": "./src/qwik-city/vite.js"
-    },
-    "./react-router": {
-      "types": "./src/react-router/index.d.ts",
-      "default": "./src/react-router/index.js"
-    },
+    "./nitro/types": "./src/nitro/types.d.ts",
+    "./qwik-city/middleware": "./src/qwik-city/middleware.js",
+    "./qwik-city/vite": "./src/qwik-city/vite.js",
+    "./react-router": "./src/react-router/index.js",
     "./react-router/context": "./src/react-router/context.ts",
-    "./solid-start": {
-      "types": "./src/solid-start/index.d.ts",
-      "default": "./src/solid-start/index.js"
-    },
-    "./solid-start/context": {
-      "types": "./src/solid-start/context.d.ts",
-      "default": "./src/solid-start/context.js"
-    },
+    "./solid-start": "./src/solid-start/index.js",
+    "./solid-start/context": "./src/solid-start/context.js",
     "./sveltekit": "./src/sveltekit/index.js",
-    "./tanstack-start": {
-      "types": "./src/tanstack-start/index.d.ts",
-      "default": "./src/tanstack-start/index.js"
-    },
-    "./vinext": {
-      "types": "./src/vinext/index.d.ts",
-      "default": "./src/vinext/index.js"
-    },
-    "./vinext/context": {
-      "types": "./src/vinext/context.d.ts",
-      "default": "./src/vinext/context.js"
-    },
-    "./waku": {
-      "types": "./src/waku/adapter.d.ts",
-      "default": "./src/waku/adapter.js"
-    },
+    "./tanstack-start": "./src/tanstack-start/index.js",
+    "./vinext": "./src/vinext/index.js",
+    "./vinext/context": "./src/vinext/context.js",
+    "./waku": "./src/waku/adapter.js",
     "./waku/build-enhancer": "./src/waku/build-enhancer.js",
-    "./waku/context": {
-      "types": "./src/waku/context.d.ts",
-      "default": "./src/waku/context.js"
-    }
+    "./waku/context": "./src/waku/context.js"
   },
   "publishConfig": {
     "exports": {
-      "./runtime": {
-        "types": "./dist/runtime/index.d.ts",
-        "default": "./dist/runtime/index.js"
-      },
-      "./runtime/adapter": {
-        "types": "./dist/runtime/adapter.d.ts",
-        "default": "./dist/runtime/adapter.js"
-      },
-      "./runtime/handler": {
-        "types": "./dist/runtime/handler.d.ts",
-        "default": "./dist/runtime/handler.js"
-      },
-      "./build": {
-        "types": "./dist/build/index.d.ts",
-        "default": "./dist/build/index.js"
-      },
+      "./runtime": "./dist/runtime/index.js",
+      "./runtime/adapter": "./dist/runtime/adapter.js",
+      "./runtime/handler": "./dist/runtime/handler.js",
+      "./build": "./dist/build/index.js",
       "./astro": "./dist/astro/index.js",
-      "./astro/server": {
-        "types": "./dist/astro/server.d.ts",
-        "default": "./dist/astro/server.js"
-      },
-      "./hono/vite": {
-        "types": "./dist/hono/vite.d.ts",
-        "default": "./dist/hono/vite.js"
-      },
-      "./hono/conninfo": {
-        "types": "./dist/hono/conninfo.d.ts",
-        "default": "./dist/hono/conninfo.js"
-      },
+      "./astro/server": "./dist/astro/server.js",
+      "./hono/vite": "./dist/hono/vite.js",
+      "./hono/conninfo": "./dist/hono/conninfo.js",
       "./nitro": "./dist/nitro/preset.js",
-      "./nitro/types": {
-        "types": "./dist/nitro/types.d.ts"
-      },
-      "./qwik-city/middleware": {
-        "types": "./dist/qwik-city/middleware.d.ts",
-        "default": "./dist/qwik-city/middleware.js"
-      },
-      "./qwik-city/vite": {
-        "types": "./dist/qwik-city/vite.d.ts",
-        "default": "./dist/qwik-city/vite.js"
-      },
-      "./react-router": {
-        "types": "./dist/react-router/index.d.ts",
-        "default": "./dist/react-router/index.js"
-      },
-      "./react-router/context": {
-        "types": "./dist/react-router/context.d.ts",
-        "default": "./dist/react-router/context.js"
-      },
-      "./solid-start": {
-        "types": "./dist/solid-start/index.d.ts",
-        "default": "./dist/solid-start/index.js"
-      },
-      "./solid-start/context": {
-        "types": "./dist/solid-start/context.d.ts",
-        "default": "./dist/solid-start/context.js"
-      },
+      "./nitro/types": "./dist/nitro/types.d.ts",
+      "./qwik-city/middleware": "./dist/qwik-city/middleware.js",
+      "./qwik-city/vite": "./dist/qwik-city/vite.js",
+      "./react-router": "./dist/react-router/index.js",
+      "./react-router/context": "./dist/react-router/context.js",
+      "./solid-start": "./dist/solid-start/index.js",
+      "./solid-start/context": "./dist/solid-start/context.js",
       "./sveltekit": "./dist/sveltekit/index.js",
-      "./tanstack-start": {
-        "types": "./dist/tanstack-start/index.d.ts",
-        "default": "./dist/tanstack-start/index.js"
-      },
-      "./vinext": {
-        "types": "./dist/vinext/index.d.ts",
-        "default": "./dist/vinext/index.js"
-      },
-      "./vinext/context": {
-        "types": "./dist/vinext/context.d.ts",
-        "default": "./dist/vinext/context.js"
-      },
-      "./waku": {
-        "types": "./dist/waku/adapter.d.ts",
-        "default": "./dist/waku/adapter.js"
-      },
+      "./tanstack-start": "./dist/tanstack-start/index.js",
+      "./vinext": "./dist/vinext/index.js",
+      "./vinext/context": "./dist/vinext/context.js",
+      "./waku": "./dist/waku/adapter.js",
       "./waku/build-enhancer": "./dist/waku/build-enhancer.js",
-      "./waku/context": {
-        "types": "./dist/waku/context.d.ts",
-        "default": "./dist/waku/context.js"
-      }
+      "./waku/context": "./dist/waku/context.js"
     }
   },
   "dependencies": {
@@ -182,6 +88,7 @@
     "react-router": "7.18.5",
     "svelte": "^5.57.3",
     "typescript": "~6.0.3",
+    "vite": "^8.3.8",
     "vite-plus": "^1.6.0"
   },
   "peerDependencies": {
@@ -197,7 +104,7 @@
     "nitropack": "^2.13.6",
     "react-router": "^7.18.5",
     "vinext": "^1.4.6",
-    "vite-plus": "^1.6.0",
+    "vite": "^8.0.0",
     "waku": "1.0.0-rc.5"
   },
   "peerDependenciesMeta": {

@@ -21,12 +21,18 @@ Install it as a development dependency next to your framework. Each framework ha
 
 ```ts
 // vite.config.ts
-import { defineConfig } from "vite-plus";
+import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import fetchletAdapter from "fetchlet/sveltekit";
 
 export default defineConfig({
-  plugins: [sveltekit({ adapter: fetchletAdapter({ out: "build" }) })],
+  plugins: [
+    sveltekit({
+      adapter: fetchletAdapter({
+        out: "build",
+      }),
+    }),
+  ],
 });
 ```
 

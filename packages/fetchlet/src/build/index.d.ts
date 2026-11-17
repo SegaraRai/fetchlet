@@ -1,4 +1,4 @@
-import type { Plugin } from "vite-plus";
+import type { Plugin } from "vite";
 
 import type { BuildBackend, IntlOptions } from "./polyfills/plan.js";
 

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync, unlinkSync, rmdirSyn
 import { dirname, resolve, join } from "node:path";
 import { createRequire } from "node:module";
 
-import { build } from "vite-plus";
+import { build } from "vite";
 
 import { planPolyfills } from "./polyfills/plan.js";
 import { nativeCapabilityCheck } from "./polyfills/bootstrap.js";

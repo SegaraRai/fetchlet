@@ -17,9 +17,10 @@ const workDirectory = resolve(toolCache, "package");
 const consumer = resolve(workDirectory, "consumer");
 const tarball = resolve(workDirectory, `fetchlet-${manifest.version}.tgz`);
 const workspaceManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
-const vitePlus = JSON.parse(
-  readFileSync(resolve(root, "node_modules/vite-plus/package.json"), "utf8"),
-).version;
+// The Vite build the workspace resolves, installed under the name users depend on.
+const viteCore = JSON.parse(
+  readFileSync(resolve(root, "packages/fetchlet/node_modules/vite/package.json"), "utf8"),
+);
 
 rmSync(workDirectory, { recursive: true, force: true });
 mkdirSync(consumer, { recursive: true });
@@ -30,7 +31,7 @@ step(
 assert.ok(existsSync(tarball), `vp pm pack wrote ${tarball}`);
 
 // The consumer's sources, plus a manifest naming this tarball and the same
-// vite-plus as the workspace.
+// Vite as the workspace.
 cpSync(resolve(import.meta.dirname, "consumer"), consumer, { recursive: true });
 writeFileSync(
   resolve(consumer, "package.json"),
@@ -39,7 +40,10 @@ writeFileSync(
       name: "fetchlet-package-consumer",
       private: true,
       type: "module",
-      dependencies: { fetchlet: `file:../${basename(tarball)}`, "vite-plus": vitePlus },
+      dependencies: {
+        fetchlet: `file:../${basename(tarball)}`,
+        vite: `npm:${viteCore.name}@${viteCore.version}`,
+      },
       devDependencies: { typescript: "~6.0.3" },
       packageManager: workspaceManifest.packageManager,
     },

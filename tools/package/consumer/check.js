@@ -1,6 +1,6 @@
 // Runs inside the consumer project against the installed tarball.
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,16 +11,34 @@ const manifest = JSON.parse(readFileSync("./node_modules/fetchlet/package.json",
 // The published manifest names compiled files and no workspace protocol.
 assert.equal(JSON.stringify(manifest).includes("workspace:"), false);
 for (const [subpath, target] of Object.entries(manifest.exports)) {
-  for (const file of typeof target === "string" ? [target] : Object.values(target)) {
-    assert.match(file, /^\.\/dist\/.+\.(?:d\.ts|js)$/, subpath);
-    assert.ok(existsSync(join("node_modules/fetchlet", file)), `${subpath}: ${file}`);
+  // TypeScript finds each module's declarations beside it, so plain paths suffice.
+  assert.equal(typeof target, "string", subpath);
+  assert.match(target, /^\.\/dist\/.+\.(?:d\.ts|js)$/, subpath);
+  assert.ok(existsSync(join("node_modules/fetchlet", target)), `${subpath}: ${target}`);
+  if (target.endsWith(".js")) {
+    assert.ok(existsSync(join("node_modules/fetchlet", target.replace(/\.js$/, ".d.ts"))), subpath);
   }
-  // Type-only subpaths, such as fetchlet/nitro/types, have no module to load.
-  if (typeof target === "string" || "default" in target) {
-    const resolved = fileURLToPath(import.meta.resolve("fetchlet" + subpath.slice(1)));
-    assert.ok(existsSync(resolved), `${subpath} resolves to ${resolved}`);
+  const resolved = fileURLToPath(import.meta.resolve("fetchlet" + subpath.slice(1)));
+  assert.ok(existsSync(resolved), `${subpath} resolves to ${resolved}`);
+}
+
+// Published code depends on vite, never on the vite-plus toolchain.
+for (const file of readdirSync("node_modules/fetchlet/dist", {
+  recursive: true,
+})) {
+  const path = join("node_modules/fetchlet/dist", String(file));
+  if (statSync(path).isFile()) {
+    assert.equal(readFileSync(path, "utf8").includes("vite-plus"), false, path);
   }
 }
+assert.equal(
+  "vite-plus" in
+    {
+      ...manifest.dependencies,
+      ...manifest.peerDependencies,
+    },
+  false,
+);
 
 await buildArtifact({
   entry: "./entry.js",

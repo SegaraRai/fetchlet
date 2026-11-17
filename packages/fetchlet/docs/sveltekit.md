@@ -3,7 +3,7 @@
 SvelteKitのserverをfetchlet用IIFEへbundleし、client assetsと形式情報を出力します。SvelteKit 3.2.0 / Svelte 5.57.3で、同期rendering profile（既定）と非同期rendering profileを検証しています。
 
 ```ts
-import { defineConfig } from "vite-plus";
+import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import fetchletAdapter from "fetchlet/sveltekit";
 
