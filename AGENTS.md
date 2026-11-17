@@ -35,7 +35,7 @@ Describe the supported behavior, configuration and next work affirmatively. Stat
 - Write documentation, comments, user-facing strings and sample content in English. Non-ASCII text belongs only in tests and fixtures that exercise Unicode handling.
 - Keep `docs/README.md` as the index. Track next work in `docs/TODO.md`, and put investigations under `docs/research/`.
 - `docs/reference/` is generated from `results/` by `vp run build:reference`; `check:generated` fails when it is stale. Do not edit it by hand.
-- Results record what they were produced with (`environment()` in `tools/workspace/results.ts`: toolchain, engine and package versions), never when. A rerun with the same versions and outcomes leaves the files unchanged.
+- Results record what they were produced with (`environment()` in `tools/workspace/results.ts`: toolchain, engine and package versions), never when, and nothing else that varies between identical runs, such as durations or iteration counts. A rerun with the same versions and outcomes leaves the files unchanged. Measurements such as benchmarks go to the untracked `.cache/`.
 
 ## Workspace layout
 

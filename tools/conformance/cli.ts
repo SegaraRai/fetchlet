@@ -131,7 +131,6 @@ async function worker(): Promise<void> {
       });
       continue;
     }
-    const started = performance.now();
     const execution = await runProcess(task.backend, task.bundle!, timeoutMs, task.suite);
     if (execution.status !== "complete") {
       results.push({
@@ -173,7 +172,6 @@ async function worker(): Promise<void> {
                 ? "timeout"
                 : "harness-error",
         message: test.message,
-        fileDurationMs: performance.now() - started,
       });
   }
 }

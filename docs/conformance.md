@@ -50,12 +50,11 @@ on the engine and fetchlet's base host environment.
 Results go to [conformance.json](../results/conformance.json): source
 commits, the toolchain and engine versions, the profile hash, test names, actual
 status, diagnostics and whether each matches its expectation.
-`fileDurationMs` is the time for the whole file.
 
 After the binary is built, runs can be narrowed or made strict:
 
 ```bash
-node tools/conformance/cli.ts --suite wpt --backend quickjs --filter Blob --output results/conformance-blob.json
+node tools/conformance/cli.ts --suite wpt --backend quickjs --filter Blob --output .cache/conformance-blob.json
 node tools/conformance/cli.ts --suite test262 --backend quickjs,boa,v8 --output results/conformance-test262.json
 node tools/conformance/cli.ts --strict --output results/conformance-strict.json
 ```

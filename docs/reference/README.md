@@ -126,7 +126,7 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 
 `vp run test:fuzz`. The run predates version recording. AddressSanitizer, up to 1,000,000 runs or 30 s per target, rustc 1.102.0-nightly (8eb778d04 2026-11-12).
 
-| Target        | Status | Runs    |
-| ------------- | ------ | ------- |
-| fetch_service | pass   | 213,347 |
-| bridge_bodies | pass   | 42,097  |
+| Target        | Status |
+| ------------- | ------ |
+| fetch_service | pass   |
+| bridge_bodies | pass   |

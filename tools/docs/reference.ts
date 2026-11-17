@@ -268,15 +268,16 @@ function examples(): string[] {
 
 function fuzzing(): string[] {
   const result = read("fuzz-smoke.json");
-  const rows = (result.targets as { target: string; status: string; completedRuns: number }[]).map(
-    (target) => [target.target, target.status, target.completedRuns.toLocaleString("en-US")],
-  );
+  const rows = (result.targets as { target: string; status: string }[]).map((target) => [
+    target.target,
+    target.status,
+  ]);
   return [
     "## Fuzzing",
     "",
     `\`vp run test:fuzz\`. ${recorded(result)} AddressSanitizer, up to ${result.requestedRuns.toLocaleString("en-US")} runs or ${result.timeBudgetSeconds} s per target, ${result.compiler}.`,
     "",
-    ...table(["Target", "Status", "Runs"], rows),
+    ...table(["Target", "Status"], rows),
   ];
 }
 

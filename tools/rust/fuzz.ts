@@ -48,8 +48,9 @@ const results = targets.map((target) => {
   console.log(output.trimEnd().split(/\r?\n/).slice(-8).join("\n"));
   return {
     target,
+    // The run count depends on the machine and the time budget, so it stays
+    // in the log above rather than in the result.
     status: code === 0 && completed ? "pass" : "fail",
-    completedRuns: completed ? Number(completed[1]) : 0,
   };
 });
 

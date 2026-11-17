@@ -18,7 +18,6 @@ interface Row {
   suite: string;
   id: string;
   status: "pass" | "fail";
-  durationMs: number;
   details?: unknown;
   error?: string;
 }
@@ -50,7 +49,6 @@ async function check(
   id: string,
   operation: () => Promise<unknown>,
 ): Promise<void> {
-  const started = performance.now();
   try {
     const details = await operation();
     results.push({
@@ -58,7 +56,6 @@ async function check(
       suite,
       id,
       status: "pass",
-      durationMs: performance.now() - started,
       ...(details === undefined ? {} : { details }),
     });
   } catch (error) {
@@ -67,7 +64,6 @@ async function check(
       suite,
       id,
       status: "fail",
-      durationMs: performance.now() - started,
       error: describe(error),
     });
   }

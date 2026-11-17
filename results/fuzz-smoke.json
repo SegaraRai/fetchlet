@@ -7,13 +7,11 @@
   "targets": [
     {
       "target": "fetch_service",
-      "status": "pass",
-      "completedRuns": 213347
+      "status": "pass"
     },
     {
       "target": "bridge_bodies",
-      "status": "pass",
-      "completedRuns": 42097
+      "status": "pass"
     }
   ]
 }
