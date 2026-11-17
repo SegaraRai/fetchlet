@@ -1,4 +1,4 @@
-import { cpSync, existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, renameSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { archiveArtifactAssets, frameworkAssets, IMMUTABLE } from "../build/asset-archive.ts";
@@ -9,7 +9,7 @@ const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
 /**
  * Runs Waku's static generation, then builds the RSC server into a fetchlet
- * artifact and copies the public files to `client/` beside it. Waku loads it
+ * artifact and moves the public files to `client/` beside it. Waku loads it
  * by name from `buildEnhancers`; apps do not call it.
  */
 export default async function buildEnhancer<Build extends (...args: never[]) => Promise<void>>(
@@ -27,10 +27,7 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
     if (!existsSync(serverModule)) {
       throw new Error("fetchlet/waku found no server build at " + serverModule);
     }
-    const entry = resolve(root, distDir, "server", "fetchlet.mjs");
-    writeFileSync(
-      entry,
-      `
+    const entrySource = `
       import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
       import { INTERNAL_runFetch } from ${JSON.stringify(modulePath(serverModule))};
 
@@ -39,11 +36,13 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
       export const handle = createFetchHandler((request, context = {}) =>
         INTERNAL_runFetch(env, request, { clientAddress: context.clientAddress, env, waitUntil }),
       );
-      `,
-    );
+      `;
     const output = resolve(root, outDir);
     await buildArtifact({
-      entry,
+      entry: {
+        source: entrySource,
+        resolveDir: resolve(root, distDir, "server"),
+      },
       outDir: output,
       framework: "waku",
       rendering: "streaming",
@@ -53,7 +52,9 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
     });
     const client = join(output, "client");
     rmSync(client, { recursive: true, force: true });
-    cpSync(resolve(root, distDir, "public"), client, { recursive: true });
+    // Waku writes the client build and generated pages to distDir/public, a
+    // name it fixes, and needs nothing there after the build: move it.
+    renameSync(resolve(root, distDir, "public"), client);
     if (assets) {
       await archiveArtifactAssets({
         outDir: output,

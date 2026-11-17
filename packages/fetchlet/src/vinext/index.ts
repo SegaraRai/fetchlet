@@ -1,4 +1,4 @@
-import { cpSync, existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import type { Plugin } from "vite";
@@ -36,9 +36,9 @@ export interface FetchletVinextOptions {
 const serverConditions = ["workerd", "edge-light", "worker"];
 
 /**
- * A Vite plugin for the vinext App Router. After vinext has built every
- * environment, it builds the RSC server into a fetchlet artifact and copies
- * the client build to `client/` beside it.
+ * A Vite plugin for the vinext App Router. The client build goes to the
+ * artifact's `client/` directory, and after vinext has built every
+ * environment, the RSC server becomes the artifact's server.js.
  */
 export default function fetchletVinext({
   outDir = "build",
@@ -51,6 +51,14 @@ export default function fetchletVinext({
     name: "fetchlet/vinext",
     apply: "build",
     configEnvironment(name) {
+      // The client build is the artifact's client/ directory.
+      if (name === "client") {
+        return {
+          build: {
+            outDir: join(outDir, "client"),
+          },
+        };
+      }
       if (name === "rsc" || name === "ssr") {
         return {
           resolve: {
@@ -67,15 +75,11 @@ export default function fetchletVinext({
       order: "post",
       async handler(builder) {
         const serverDirectory = resolve(root, builder.environments.rsc.config.build.outDir);
-        const clientDirectory = resolve(root, builder.environments.client.config.build.outDir);
         const serverModule = join(serverDirectory, "index.js");
         if (!existsSync(serverModule)) {
           throw new Error("fetchlet/vinext found no App Router server build at " + serverModule);
         }
-        const entry = join(serverDirectory, "fetchlet.mjs");
-        writeFileSync(
-          entry,
-          `
+        const entrySource = `
           import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
           import { runWithRequestContext } from "fetchlet/vinext/context";
           import handler from ${JSON.stringify(modulePath(serverModule))};
@@ -88,11 +92,13 @@ export default function fetchletVinext({
               handler(request, { waitUntil, passThroughOnException() {} }),
             );
           });
-          `,
-        );
+          `;
         const output = resolve(root, outDir);
         await buildArtifact({
-          entry,
+          entry: {
+            source: entrySource,
+            resolveDir: serverDirectory,
+          },
           outDir: output,
           framework: "vinext",
           rendering: "streaming",
@@ -104,9 +110,6 @@ export default function fetchletVinext({
           backend,
           intl,
         });
-        const client = join(output, "client");
-        rmSync(client, { recursive: true, force: true });
-        cpSync(clientDirectory, client, { recursive: true });
         if (assets) {
           await archiveArtifactAssets({
             outDir: output,

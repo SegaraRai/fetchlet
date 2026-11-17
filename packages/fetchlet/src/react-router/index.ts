@@ -1,4 +1,3 @@
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Preset } from "@react-router/dev/config";
@@ -73,10 +72,7 @@ async function writeArtifact({
 }: ArtifactOptions): Promise<void> {
   const { buildDirectory, serverBuildFile } = reactRouterConfig;
   const serverDirectory = join(buildDirectory, "server");
-  const entry = join(serverDirectory, "fetchlet.mjs");
-  writeFileSync(
-    entry,
-    `
+  const entrySource = `
     import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
     import { createRequestHandler, RouterContextProvider } from "react-router";
     import { fetchletContext } from "fetchlet/react-router/context";
@@ -94,10 +90,12 @@ async function writeArtifact({
       });
       return handler(request, provider);
     });
-    `,
-  );
+    `;
   await buildArtifact({
-    entry,
+    entry: {
+      source: entrySource,
+      resolveDir: serverDirectory,
+    },
     outDir: buildDirectory,
     framework: "react-router",
     rendering: "streaming",

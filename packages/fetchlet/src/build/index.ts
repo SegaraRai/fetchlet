@@ -15,15 +15,34 @@ import {
 } from "./polyfills/plan.ts";
 
 export {
-  archiveArtifactAssets, writeAssetArchive,
-  type ArchiveArtifactAssetsOptions, type AssetArchiveSettings, type AssetArchiveSummary, type AssetInfo, type AssetResponder, type AssetRoutes,
-  type WriteAssetArchiveOptions
+  archiveArtifactAssets,
+  writeAssetArchive,
+  type ArchiveArtifactAssetsOptions,
+  type AssetArchiveSettings,
+  type AssetArchiveSummary,
+  type AssetInfo,
+  type AssetResponder,
+  type AssetRoutes,
+  type WriteAssetArchiveOptions,
 } from "./asset-archive.ts";
 export type { BuildBackend, IntlOptions } from "./polyfills/plan.ts";
 
+/** An entry module given as source instead of a file. */
+export interface EntrySource {
+  /** The module's source. */
+  source: string;
+  /** The directory its relative and package imports resolve from. */
+  resolveDir: string;
+}
+
 export interface BuildArtifactOptions {
-  /** The framework's server entry, which exports `handle` and any functions. */
-  entry: string;
+  /**
+   * The server entry, which exports `handle` and any functions: a module
+   * path, or the module's source with the directory its imports resolve
+   * from. Adapters pass the glue around a framework's server build as
+   * source, so nothing is written to disk.
+   */
+  entry: string | EntrySource;
   /** The artifact directory; `server.js` and `fetchlet.json` are written here. */
   outDir: string;
   /** Rolldown plugins, after fetchlet's own. */
@@ -58,6 +77,8 @@ const runtimeEntry = createRequire(import.meta.url).resolve("fetchlet/runtime");
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
 const entryId = "\0fetchlet:entry";
+// The file name of an entry given as source; it is never read or written.
+const sourceEntryName = "fetchlet-entry.js";
 const nativeCheckId = "\0fetchlet:native-check";
 const nodeBuiltinPrefix = "\0fetchlet:node-builtin:";
 
@@ -66,15 +87,24 @@ const nodeBuiltinPrefix = "\0fetchlet:node-builtin:";
  * planned polyfills and the native capability check, then reexports the
  * framework's server entry.
  */
-function artifactEntry(input: string, plan: PolyfillPlan): Plugin {
+function artifactEntry(input: string, plan: PolyfillPlan, source?: string): Plugin {
   return {
     name: "fetchlet:artifact-entry",
-    resolveId(id) {
+    resolveId(id, importer) {
       if (id === entryId || id === nativeCheckId) {
         return id;
       }
+      if (source !== undefined && importer === entryId && resolve(id) === input) {
+        return input;
+      }
     },
     load(id) {
+      if (source !== undefined && id === input) {
+        return {
+          code: source,
+          moduleType: "js",
+        };
+      }
       if (id === entryId) {
         return [runtimeEntry, ...plan.imports, nativeCheckId]
           .map((file) => `import ${JSON.stringify(modulePath(file))};`)
@@ -153,7 +183,9 @@ export async function buildArtifact({
       conditionNames: [...conditions, "module", "production", "import", "default"],
     },
     plugins: [
-      artifactEntry(resolve(entry), plan),
+      typeof entry === "string"
+        ? artifactEntry(resolve(entry), plan)
+        : artifactEntry(join(resolve(entry.resolveDir), sourceEntryName), plan, entry.source),
       ...(asyncContext === "serialized" ? [serializedAsyncContext()] : []),
       ...plugins,
       emptyNodeBuiltins(),

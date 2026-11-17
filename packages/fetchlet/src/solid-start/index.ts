@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import type { Plugin } from "vite";
@@ -87,12 +87,9 @@ export default function fetchletSolidStart({
       if (!serverModule || !existsSync(serverModule)) {
         throw new Error("fetchlet/solid-start found no server entry in " + directory);
       }
-      const entry = join(directory, "fetchlet.mjs");
       // h3 reads the client address, waitUntil and the runtime from the
       // request; srvx adapters for other platforms set the same fields.
-      writeFileSync(
-        entry,
-        `
+      const entrySource = `
         import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
         import app from ${JSON.stringify(modulePath(serverModule))};
 
@@ -112,10 +109,12 @@ export default function fetchletSolidStart({
           });
           return app.fetch(request);
         });
-        `,
-      );
+        `;
       await buildArtifact({
-        entry,
+        entry: {
+          source: entrySource,
+          resolveDir: directory,
+        },
         outDir: resolve(root, outDir),
         framework: "solid-start",
         rendering: "streaming",

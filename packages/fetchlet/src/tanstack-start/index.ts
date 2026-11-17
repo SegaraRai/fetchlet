@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import type { Plugin } from "vite";
@@ -88,7 +88,10 @@ export default function fetchletStart({
     // which the engines do not provide; the edge build uses setTimeout.
     resolveId(source, importer, options) {
       if (source === "react-dom/server") {
-        return this.resolve("react-dom/server.edge", importer, { ...options, skipSelf: true });
+        return this.resolve("react-dom/server.edge", importer, {
+          ...options,
+          skipSelf: true,
+        });
       }
     },
     configEnvironment(name, config) {
@@ -105,10 +108,7 @@ export default function fetchletStart({
       if (!existsSync(serverModule)) {
         throw new Error("fetchlet/tanstack-start found no server entry in " + directory);
       }
-      const entry = join(directory, "fetchlet.mjs");
-      writeFileSync(
-        entry,
-        `
+      const entrySource = `
         import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
         import server from ${JSON.stringify(modulePath(serverModule))};
 
@@ -119,10 +119,12 @@ export default function fetchletStart({
             context: { clientAddress: context.clientAddress, env, waitUntil },
           }),
         );
-        `,
-      );
+        `;
       await buildArtifact({
-        entry,
+        entry: {
+          source: entrySource,
+          resolveDir: directory,
+        },
         outDir: resolve(root, outDir),
         framework: "tanstack-start",
         rendering: "streaming",

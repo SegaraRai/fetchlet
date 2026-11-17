@@ -16,7 +16,7 @@ export default defineConfig({
 
 ## 出力
 
-vinextが全environmentをbuildした後に、`dist/server/index.js` を接続した `build/server.js` と `build/fetchlet.json` を書き、`dist/client` を `build/client` へ複製します。rsc / ssr environmentと再bundleは `workerd` / `edge-light` / `worker` 条件で依存を解決します（`react-dom/server.edge` など）。
+client environmentは `build/client` へ直接buildします。vinextが全environmentをbuildした後に、`dist/server/index.js` を接続した `build/server.js` と `build/fetchlet.json` を書きます。rsc / ssr environmentと再bundleは `workerd` / `edge-light` / `worker` 条件で依存を解決します（`react-dom/server.edge` など）。
 
 `assets: true` はclient assetsを `assets.flpk` にまとめ、`_next/static/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
 

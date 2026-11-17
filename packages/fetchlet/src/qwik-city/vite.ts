@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, parse, resolve } from "node:path";
 
 import type { Plugin } from "vite";
@@ -99,18 +99,17 @@ export function fetchletAdapter({
       if (!serverModule || !existsSync(serverModule)) {
         throw new Error(`fetchlet/qwik-city found no "${name}" entry in ${directory}`);
       }
-      const fetchletEntry = join(directory, "fetchlet.mjs");
-      writeFileSync(
-        fetchletEntry,
-        `
+      const entrySource = `
         import { createFetchHandler } from "fetchlet/runtime/adapter";
         import handler from ${JSON.stringify(modulePath(serverModule))};
 
         export const handle = createFetchHandler(handler);
-        `,
-      );
+        `;
       await buildArtifact({
-        entry: fetchletEntry,
+        entry: {
+          source: entrySource,
+          resolveDir: directory,
+        },
         outDir: resolve(root, outDir),
         framework: "qwik-city",
         rendering: "streaming",

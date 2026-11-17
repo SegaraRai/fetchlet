@@ -1,11 +1,10 @@
-import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import buildPlugin from "@hono/vite-build";
 import type { Plugin } from "vite";
 
+import { frameworkAssets, type AssetArchiveSettings } from "../build/asset-archive.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
-import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
@@ -66,14 +65,11 @@ export default function fetchletBuild({
     },
     async closeBundle() {
       const serverDir = resolve(root, "node_modules/.cache/fetchlet-hono");
-      const fetchEntry = join(serverDir, "fetchlet.mjs");
       // Named exports of `functions` stay callable from Rust beside the Fetch handler.
       const functionExports = functions
         ? `export * from ${JSON.stringify(modulePath(resolve(root, functions)))};`
         : "";
-      writeFileSync(
-        fetchEntry,
-        `
+      const entrySource = `
         import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
         import app from ${JSON.stringify(modulePath(join(serverDir, "index.mjs")))};
 
@@ -93,10 +89,12 @@ export default function fetchletBuild({
             executionContext,
           ),
         );
-        `,
-      );
+        `;
       await buildArtifact({
-        entry: fetchEntry,
+        entry: {
+          source: entrySource,
+          resolveDir: serverDir,
+        },
         outDir: resolve(root, outDir),
         asyncContext: "serialized",
         framework: "hono",

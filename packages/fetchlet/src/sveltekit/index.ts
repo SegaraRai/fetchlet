@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 
 import type { Adapter } from "@sveltejs/kit";
@@ -75,7 +75,6 @@ export default function fetchletAdapter({
       const output = resolve(out);
       const temporary = resolve(builder.getBuildDirectory("fetchlet"));
       const server = join(temporary, "server");
-      const entry = join(temporary, "entry.ts");
       mkdirSync(output, { recursive: true });
       mkdirSync(temporary, { recursive: true });
 
@@ -86,9 +85,7 @@ export default function fetchletAdapter({
       builder.writeClient(join(output, "client"));
       builder.writePrerendered(join(output, "client"));
 
-      writeFileSync(
-        entry,
-        `
+      const entrySource = `
         import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
         import { server } from "./server-instance.js";
 
@@ -111,11 +108,13 @@ export default function fetchletAdapter({
             },
           });
         });
-      `,
-      );
+      `;
 
       await buildArtifact({
-        entry,
+        entry: {
+          source: entrySource,
+          resolveDir: temporary,
+        },
         outDir: output,
         // An App runs one invocation at a time, so a store that lasts until
         // the request's promise settles is the request's own.
@@ -130,9 +129,15 @@ export default function fetchletAdapter({
           ? {
               assets: frameworkAssets(assets, {
                 cache: [
-                  { prefix: `/${builder.config.appDir}/immutable/`, cacheControl: IMMUTABLE },
+                  {
+                    prefix: `/${builder.config.appDir}/immutable/`,
+                    cacheControl: IMMUTABLE,
+                  },
                 ],
-                routes: { trailingSlash: "never", htmlExtension: "strip" },
+                routes: {
+                  trailingSlash: "never",
+                  htmlExtension: "strip",
+                },
               }),
             }
           : {}),
