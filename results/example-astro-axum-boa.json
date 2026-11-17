@@ -1,0 +1,91 @@
+{
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@astrojs/check": "0.9.12",
+      "@astrojs/svelte": "9.1.6",
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@types/node": "26.6.6",
+      "astro": "7.4.12",
+      "fetchlet": "0.0.0",
+      "svelte": "5.57.3",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0"
+    }
+  },
+  "backend": "boa",
+  "browser": "159.0.8154.6",
+  "summary": {
+    "passed": 12,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "Astro SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "Astro streams the page while a component awaits",
+      "features": ["streaming-ssr"],
+      "status": "pass"
+    },
+    {
+      "name": "Astro JavaScript, CSS and static files",
+      "features": ["assets"],
+      "status": "pass"
+    },
+    {
+      "name": "Astro JSON endpoint",
+      "features": ["json"],
+      "status": "pass"
+    },
+    {
+      "name": "Astro form and Set-Cookie",
+      "features": ["form", "cookies"],
+      "status": "pass"
+    },
+    {
+      "name": "Astro client address and environment",
+      "features": ["client-address", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with Astro",
+      "features": ["rust-routes"],
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following Astro request",
+      "features": ["body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach the endpoint in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "background work runs after the response and before the next request",
+      "features": ["wait-until"],
+      "status": "pass"
+    },
+    {
+      "name": "concurrent Astro requests keep their own values",
+      "features": ["concurrency"],
+      "status": "pass"
+    },
+    {
+      "name": "island hydration, form submission and Astro navigation",
+      "features": ["form", "hydration", "navigation"],
+      "status": "pass"
+    }
+  ]
+}

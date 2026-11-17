@@ -23,10 +23,10 @@ describes the suites. Each section names the versions its run recorded.
 
 | Engine           | Passed  | Engine version    |
 | ---------------- | ------- | ----------------- |
-| QuickJS          | 23 / 23 | rquickjs 0.14.0   |
-| Boa              | 23 / 23 | boa_engine 0.22.0 |
-| V8               | 23 / 23 | v8 150.4.0        |
-| Node (reference) | 23 / 23 | v26.13.1          |
+| QuickJS          | 27 / 27 | rquickjs 0.14.0   |
+| Boa              | 27 / 27 | boa_engine 0.22.0 |
+| V8               | 27 / 27 | v8 150.4.0        |
+| Node (reference) | 27 / 27 | v26.13.1          |
 
 ## Host services
 
@@ -41,15 +41,15 @@ describes the suites. Each section names the versions its run recorded.
 ## Conformance
 
 `vp run test:conformance`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. Passed / failed, with recorded known failures; [conformance](../conformance.md) explains each category.
-WPT c43f14b481a9 (86 files), Test262 2e58f87d8350 (44 files).
+WPT c43f14b481a9 (95 files), Test262 2e58f87d8350 (44 files).
 Unexpected results: 0.
 
 | Engine           | WPT                    | Test262 | Regressions |
 | ---------------- | ---------------------- | ------- | ----------- |
-| QuickJS          | 1210 / 241 (241 known) | 88 / 0  | 32 / 0      |
-| Boa              | 1210 / 241 (241 known) | 88 / 0  | 32 / 0      |
-| V8               | 1281 / 170 (170 known) | 88 / 0  | 32 / 0      |
-| Node (reference) | 1278 / 173 (173 known) | 88 / 0  | 32 / 0      |
+| QuickJS          | 1250 / 242 (242 known) | 88 / 0  | 32 / 0      |
+| Boa              | 1250 / 242 (242 known) | 88 / 0  | 32 / 0      |
+| V8               | 1321 / 171 (171 known) | 88 / 0  | 32 / 0      |
+| Node (reference) | 1317 / 175 (175 known) | 88 / 0  | 32 / 0      |
 
 ## URL
 
@@ -68,30 +68,30 @@ Unexpected results: 0.
 
 | Build   | Bytes     | Intl polyfills                                                                                  |
 | ------- | --------- | ----------------------------------------------------------------------------------------------- |
-| quickjs | 2,732,938 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
-| v8      | 400,181   | none                                                                                            |
-| plain   | 400,087   | none                                                                                            |
-| plural  | 1,050,538 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
+| quickjs | 2,739,711 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
+| v8      | 406,954   | none                                                                                            |
+| plain   | 406,860   | none                                                                                            |
+| plural  | 1,057,311 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
 
 ## Examples
 
-`vp run test:examples`. HTTP and browser checks of each example on QuickJS.
+`vp run test:examples` on QuickJS; `vp run test:examples -- --backends boa,v8` records the other engines. HTTP and browser checks per example; the feature table below shows the QuickJS run.
 
-| Example                      | Passed  | Framework                     | Browser       |
-| ---------------------------- | ------- | ----------------------------- | ------------- |
-| sveltekit-axum               | 17 / 17 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
-| sveltekit-axum-tauri         | 15 / 15 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
-| sveltekit-axum-tauri-desktop | 5 / 5   | @sveltejs/kit 3.2.0           | 157.0.4341.46 |
-| astro-axum                   | 12 / 12 | astro 7.4.12                  | 159.0.8154.6  |
-| nuxt-axum                    | 11 / 11 | nuxt 4.6.4                    | 159.0.8154.6  |
-| react-router-axum            | 12 / 12 | react-router 8.5.1            | 159.0.8154.6  |
-| honox-axum                   | 11 / 11 | honox 0.1.62                  | 159.0.8154.6  |
-| honox-tauri                  | 10 / 10 | honox 0.1.62                  | 157.0.4341.46 |
-| tanstack-start-axum          | 11 / 11 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
-| solidstart-axum              | 11 / 11 | @solidjs/start 2.2.3          | 159.0.8154.6  |
-| qwik-city-axum               | 11 / 11 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
-| waku-axum                    | 11 / 11 | waku 1.0.0-rc.5               | 159.0.8154.6  |
-| vinext-axum                  | 11 / 11 | vinext 1.4.6                  | 159.0.8154.6  |
+| Example                      | QuickJS | Boa     | V8      | Framework                     | Browser       |
+| ---------------------------- | ------- | ------- | ------- | ----------------------------- | ------------- |
+| sveltekit-axum               | 17 / 17 | 17 / 17 | 17 / 17 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
+| sveltekit-axum-tauri         | 15 / 15 | 15 / 15 | 15 / 15 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
+| sveltekit-axum-tauri-desktop | 5 / 5   | 5 / 5   | 5 / 5   | @sveltejs/kit 3.2.0           | 157.0.4341.46 |
+| astro-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | astro 7.4.12                  | 159.0.8154.6  |
+| nuxt-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | nuxt 4.6.4                    | 159.0.8154.6  |
+| react-router-axum            | 12 / 12 | 12 / 12 | 12 / 12 | react-router 8.5.1            | 159.0.8154.6  |
+| honox-axum                   | 11 / 11 | 11 / 11 | 11 / 11 | honox 0.1.62                  | 159.0.8154.6  |
+| honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 157.0.4341.46 |
+| tanstack-start-axum          | 11 / 11 | 11 / 11 | 11 / 11 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
+| solidstart-axum              | 11 / 11 | 11 / 11 | 11 / 11 | @solidjs/start 2.2.3          | 159.0.8154.6  |
+| qwik-city-axum               | 11 / 11 | 11 / 11 | 11 / 11 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
+| waku-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | waku 1.0.0-rc.5               | 159.0.8154.6  |
+| vinext-axum                  | 11 / 11 | 11 / 11 | 11 / 11 | vinext 1.4.6                  | 159.0.8154.6  |
 
 ## Framework features
 

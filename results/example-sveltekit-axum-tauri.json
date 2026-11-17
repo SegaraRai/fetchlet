@@ -1,4 +1,5 @@
 {
+  "backend": "quickjs",
   "environment": {
     "node": "v26.13.1",
     "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",

@@ -1,0 +1,86 @@
+{
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@solidjs/meta": "0.29.8",
+      "@solidjs/router": "1.0.3",
+      "@solidjs/start": "2.2.3",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "solid-js": "1.9.19",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0"
+    }
+  },
+  "backend": "boa",
+  "browser": "159.0.8154.6",
+  "summary": {
+    "passed": 11,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "SolidStart SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart JavaScript, CSS and public files",
+      "features": ["assets"],
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart JSON endpoint",
+      "features": ["json"],
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart client address and host bindings",
+      "features": ["client-address", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with SolidStart",
+      "features": ["rust-routes"],
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following SolidStart request",
+      "features": ["body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach SolidStart in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart background work runs after the response and before the next request",
+      "features": ["wait-until"],
+      "status": "pass"
+    },
+    {
+      "name": "concurrent SolidStart requests keep their own values",
+      "features": ["concurrency"],
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart hydration and client navigation",
+      "features": ["hydration", "navigation"],
+      "status": "pass"
+    },
+    {
+      "name": "SolidStart streams deferred content after the shell",
+      "features": ["streaming-ssr"],
+      "status": "pass"
+    }
+  ]
+}

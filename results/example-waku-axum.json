@@ -22,6 +22,7 @@
       "waku": "1.0.0-rc.5"
     }
   },
+  "backend": "quickjs",
   "browser": "159.0.8154.6",
   "summary": {
     "passed": 11,

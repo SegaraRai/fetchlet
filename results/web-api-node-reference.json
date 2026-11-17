@@ -32,8 +32,12 @@
     "DOMException": "function",
     "Event": "function",
     "EventTarget": "function",
+    "CustomEvent": "function",
     "fetch": "function",
     "setTimeout": "function",
+    "setInterval": "function",
+    "reportError": "function",
+    "navigator": "object",
     "queueMicrotask": "function",
     "structuredClone": "function",
     "crypto": "object",
@@ -122,6 +126,22 @@
       "status": "pass"
     },
     {
+      "id": "interval-repeats-until-cleared",
+      "status": "pass"
+    },
+    {
+      "id": "event-target-dispatch",
+      "status": "pass"
+    },
+    {
+      "id": "abort-signal-is-event-target",
+      "status": "pass"
+    },
+    {
+      "id": "navigator-user-agent-and-report-error",
+      "status": "pass"
+    },
+    {
       "id": "structured-clone-cycle-and-bytes",
       "status": "pass"
     },
@@ -135,8 +155,8 @@
     }
   ],
   "summary": {
-    "total": 23,
-    "passed": 23,
+    "total": 27,
+    "passed": 27,
     "failed": 0
   }
 }

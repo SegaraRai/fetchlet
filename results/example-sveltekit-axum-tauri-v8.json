@@ -1,0 +1,121 @@
+{
+  "backend": "v8",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@fetchlet-internal/tools-workspace": "0.0.0",
+      "@hey-api/openapi-ts": "0.99.0",
+      "@sveltejs/kit": "3.2.0",
+      "@sveltejs/vite-plugin-svelte": "7.3.1",
+      "@tauri-apps/api": "2.12.5",
+      "@types/hast": "3.0.5",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "github-slugger": "2.0.0",
+      "playwright": "1.65.1",
+      "rehype-stringify": "10.0.1",
+      "remark-frontmatter": "5.0.0",
+      "remark-gfm": "4.0.1",
+      "remark-parse": "11.0.0",
+      "remark-rehype": "11.1.2",
+      "svelte": "5.57.3",
+      "svelte-check": "4.7.8",
+      "typescript": "6.0.3",
+      "unified": "11.0.5",
+      "unist-util-visit": "5.2.0",
+      "valibot": "1.5.0",
+      "vite-plus": "1.7.0",
+      "yaml": "2.9.1"
+    }
+  },
+  "browser": "159.0.8154.6",
+  "summary": {
+    "passed": 15,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "client assets come from the archive embedded in mdw",
+      "features": ["assets"],
+      "status": "pass"
+    },
+    {
+      "name": "SSR renders the workspace, the note tree and Markdown through the JavaScript renderer",
+      "features": ["ssr"],
+      "status": "pass"
+    },
+    {
+      "name": "code blocks are highlighted by syntect in Rust during SSR",
+      "features": ["ssr", "internal-fetch"],
+      "status": "pass"
+    },
+    {
+      "name": "raw HTML in a note is dropped from the rendered page",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "the public API serves the same typed handlers as the in-process API",
+      "features": ["json", "internal-fetch"],
+      "status": "pass"
+    },
+    {
+      "name": "a save based on a stale version is a conflict that names the current version",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "paths outside the workspace are refused by the API and the file route",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "workspace files are served sandboxed",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "requests for another host name are refused",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "the page hydrates, searches with remote functions and navigates on the client",
+      "features": ["server-functions", "hydration", "navigation"],
+      "status": "pass"
+    },
+    {
+      "name": "the editor previews through the Rust process and saves with Ctrl+S",
+      "features": ["server-functions"],
+      "status": "pass"
+    },
+    {
+      "name": "a change saved outside the browser reaches the open page",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "the editor reports a conflict and can overwrite the version on disk",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "new notes are created through a validated remote form",
+      "features": ["form", "server-functions"],
+      "status": "pass"
+    },
+    {
+      "name": "search and notes work without JavaScript",
+      "features": ["ssr", "form"],
+      "status": "pass"
+    }
+  ]
+}

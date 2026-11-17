@@ -239,11 +239,20 @@ function frameworkFeatures(): string[] {
 
 function examples(): string[] {
   const names = exampleNames();
+  const passed = (file: string) => {
+    if (!existsSync(resolve(root, "results", file))) {
+      return "—";
+    }
+    const { summary } = read(file);
+    return `${summary.passed} / ${summary.passed + summary.failed}`;
+  };
   const rows = names.map((name) => {
     const result = read(`example-${name}.json`);
     return [
       name,
-      `${result.summary.passed} / ${result.summary.passed + result.summary.failed}`,
+      passed(`example-${name}.json`),
+      passed(`example-${name}-boa.json`),
+      passed(`example-${name}-v8.json`),
       framework(result),
       result.browser ?? "—",
     ];
@@ -251,9 +260,9 @@ function examples(): string[] {
   return [
     "## Examples",
     "",
-    "`vp run test:examples`. HTTP and browser checks of each example on QuickJS.",
+    "`vp run test:examples` on QuickJS; `vp run test:examples -- --backends boa,v8` records the other engines. HTTP and browser checks per example; the feature table below shows the QuickJS run.",
     "",
-    ...table(["Example", "Passed", "Framework", "Browser"], rows),
+    ...table(["Example", "QuickJS", "Boa", "V8", "Framework", "Browser"], rows),
   ];
 }
 

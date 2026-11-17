@@ -1,0 +1,71 @@
+{
+  "backend": "boa",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@fetchlet-internal/tools-workspace": "0.0.0",
+      "@hey-api/openapi-ts": "0.99.0",
+      "@sveltejs/kit": "3.2.0",
+      "@sveltejs/vite-plugin-svelte": "7.3.1",
+      "@tauri-apps/api": "2.12.5",
+      "@types/hast": "3.0.5",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "github-slugger": "2.0.0",
+      "playwright": "1.65.1",
+      "rehype-stringify": "10.0.1",
+      "remark-frontmatter": "5.0.0",
+      "remark-gfm": "4.0.1",
+      "remark-parse": "11.0.0",
+      "remark-rehype": "11.1.2",
+      "svelte": "5.57.3",
+      "svelte-check": "4.7.8",
+      "typescript": "6.0.3",
+      "unified": "11.0.5",
+      "unist-util-visit": "5.2.0",
+      "valibot": "1.5.0",
+      "vite-plus": "1.7.0",
+      "yaml": "2.9.1"
+    }
+  },
+  "browser": "157.0.4341.46",
+  "summary": {
+    "passed": 5,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "the window renders the workspace through the URI scheme protocol",
+      "features": ["ssr"],
+      "status": "pass"
+    },
+    {
+      "name": "notes render with code highlighted by Rust, all in-process",
+      "features": ["ssr", "internal-fetch"],
+      "status": "pass"
+    },
+    {
+      "name": "the protocol keeps the workspace boundary",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "workspace changes arrive as Tauri events",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "the editor saves through the protocol",
+      "features": ["server-functions"],
+      "status": "pass"
+    }
+  ]
+}

@@ -19,6 +19,7 @@
       "vue-tsc": "3.3.14"
     }
   },
+  "backend": "quickjs",
   "browser": "159.0.8154.6",
   "summary": {
     "passed": 11,

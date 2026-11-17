@@ -1,0 +1,85 @@
+{
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "nuxt": "4.6.4",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0",
+      "vue": "3.5.45",
+      "vue-tsc": "3.3.14"
+    }
+  },
+  "backend": "boa",
+  "browser": "159.0.8154.6",
+  "summary": {
+    "passed": 11,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "Nuxt SSR, escaping, runtime config and the Rust service binding",
+      "features": ["ssr", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "Nuxt JavaScript, CSS and public files",
+      "features": ["assets"],
+      "status": "pass"
+    },
+    {
+      "name": "Nitro JSON route",
+      "features": ["json"],
+      "status": "pass"
+    },
+    {
+      "name": "form post, Set-Cookie and redirect",
+      "features": ["form", "cookies"],
+      "status": "pass"
+    },
+    {
+      "name": "Nitro client address and host bindings",
+      "features": ["client-address", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with Nuxt",
+      "features": ["rust-routes"],
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following Nuxt request",
+      "features": ["body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach the Nitro route in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "event.waitUntil work runs after the response and before the next request",
+      "features": ["wait-until"],
+      "status": "pass"
+    },
+    {
+      "name": "concurrent Nuxt requests keep their own values",
+      "features": ["concurrency"],
+      "status": "pass"
+    },
+    {
+      "name": "hydration, form submission and Nuxt navigation",
+      "features": ["form", "hydration", "navigation"],
+      "status": "pass"
+    }
+  ]
+}

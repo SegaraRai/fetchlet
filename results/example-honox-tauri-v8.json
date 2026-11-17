@@ -1,0 +1,83 @@
+{
+  "backend": "v8",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@fetchlet-internal/tools-workspace": "0.0.0",
+      "@hono/vite-build": "1.11.1",
+      "@tauri-apps/api": "2.12.5",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "hono": "4.13.19",
+      "honox": "0.1.62",
+      "playwright": "1.65.1",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0"
+    }
+  },
+  "browser": "157.0.4341.46",
+  "summary": {
+    "passed": 10,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "the main window opens on the fetchlet scheme",
+      "features": [],
+      "status": "pass"
+    },
+    {
+      "name": "HonoX SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "JavaScript, CSS and public files from the client build",
+      "features": ["assets"],
+      "status": "pass"
+    },
+    {
+      "name": "JSON endpoint",
+      "features": ["json"],
+      "status": "pass"
+    },
+    {
+      "name": "in-process requests carry no client address",
+      "features": ["bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "a Rust route of the protocol coexists with HonoX",
+      "features": ["rust-routes"],
+      "status": "pass"
+    },
+    {
+      "name": "request body budget and the following request",
+      "features": ["body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "background work runs after the response and before the next request",
+      "features": ["wait-until"],
+      "status": "pass"
+    },
+    {
+      "name": "concurrent requests keep their own values",
+      "features": ["concurrency"],
+      "status": "pass"
+    },
+    {
+      "name": "hydration, a Tauri command calling a JavaScript export, and navigation",
+      "features": ["hydration", "navigation"],
+      "status": "pass"
+    }
+  ]
+}
