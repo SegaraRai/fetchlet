@@ -13,5 +13,5 @@ allowBuilds:
   sharp: false
 minimumReleaseAgeExclude:
   - hono@4.13.19
-  - '@solidjs/start@2.2.3'
+  - "@solidjs/start@2.2.3"
   - vinext@1.4.6

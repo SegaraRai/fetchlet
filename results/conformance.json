@@ -23,12 +23,7 @@
   },
   "options": {
     "suite": "all",
-    "backends": [
-      "node-reference",
-      "quickjs",
-      "boa",
-      "v8"
-    ],
+    "backends": ["node-reference", "quickjs", "boa", "v8"],
     "filter": "",
     "timeoutMs": 30000,
     "jobs": 2,

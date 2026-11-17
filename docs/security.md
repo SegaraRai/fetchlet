@@ -4,17 +4,17 @@ fetchletのsecureは、明示的な権限、資源の所有権、用途に応じ
 
 ## 現在の実行境界
 
-| 対象               | 実装している契約                                               |
-| ------------------ | -------------------------------------------------------------- |
+| 対象               | 実装している契約                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 外向きfetch        | 指定したserviceと、許可した正規化originへの通信。`globalThis.fetch` はWebIDLと同じく書き換え可能で、置き換えたfetchもhostのfetchとRustのpolicyを通る |
-| 書き換えとredirect | 最終宛先を送信のたびに認可し、認証情報を送信先に結び付ける     |
-| envとservice       | Rustが指定したbindingをmodule評価前に固定                      |
-| JS状態             | App内で再利用。アプリ・テナント・権限構成ごとにAppを割り当てる |
-| 非同期資源         | Invocationがtransport Futureを所有し、終了時にdrop             |
-| ticket             | Invocationの世代と結び付け、同じ呼び出し内で完了を一回配送     |
-| 中断               | 中断済みまたは未完了処理を残したInstanceを退役                 |
-| host error         | guestへ安定したcodeと一般化したmessageを公開                   |
-| 資源予算           | 呼び出し側がLimitsとengine optionsを選択                       |
+| 書き換えとredirect | 最終宛先を送信のたびに認可し、認証情報を送信先に結び付ける                                                                                           |
+| envとservice       | Rustが指定したbindingをmodule評価前に固定                                                                                                            |
+| JS状態             | App内で再利用。アプリ・テナント・権限構成ごとにAppを割り当てる                                                                                       |
+| 非同期資源         | Invocationがtransport Futureを所有し、終了時にdrop                                                                                                   |
+| ticket             | Invocationの世代と結び付け、同じ呼び出し内で完了を一回配送                                                                                           |
+| 中断               | 中断済みまたは未完了処理を残したInstanceを退役                                                                                                       |
+| host error         | guestへ安定したcodeと一般化したmessageを公開                                                                                                         |
+| 資源予算           | 呼び出し側がLimitsとengine optionsを選択                                                                                                             |
 
 transportもこの境界の一部です。single-hop、Future dropによる中断、受信中のサイズ検査、DNS・接続先IPのpolicyをRust側で実装します。[Host services](host-services.md)と[資源予算](resource-policy.md)に詳細をまとめています。
 
