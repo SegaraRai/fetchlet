@@ -8,7 +8,7 @@ Astroで動的なHTMLとendpointを作り、axumから配信する例です。Sv
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:astro-axum
+vp run @fetchlet-internal/example-astro-axum#serve
 ```
 
 http://127.0.0.1:3100 を開きます。Rust側はQuickJSを使用します。AstroのIntl.DateTimeFormat要求と依存APIは、adapterがFormatJSで補います。SvelteKit例のQuickJSと同じAppHandle / fetchlet-axum APIを使います。
@@ -29,7 +29,7 @@ AstroとSvelte 5の同期SSRを使い、本文はRustへbufferとして返しま
 
 ```powershell
 vp run browser:install
-vp run test:example:astro-axum
+vp run test:examples -- astro-axum
 ```
 
 インストール済みChromeにはFETCHLET_BROWSER_CHANNEL=chromeを指定できます。SSR、escape、assets、JSON endpoint、フォーム、Cookie、context、Rust route、予算、並行Request、island hydrationとclient navigationを9項目で確認します。

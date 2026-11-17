@@ -1,0 +1,12 @@
+{
+  "name": "@fetchlet-internal/tools-fixtures",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Builds the compatibility fixtures into artifacts/",
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@types/node": "^26.6.6",
+    "vite-plus": "^1.6.0"
+  }
+}

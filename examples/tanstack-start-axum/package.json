@@ -1,5 +1,5 @@
 {
-  "name": "@fetchlet/example-tanstack-start-axum",
+  "name": "@fetchlet-internal/example-tanstack-start-axum",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -9,6 +9,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/tanstack-start": "workspace:*",
     "@types/node": "^26.6.6",
     "@types/react": "19.3.0",

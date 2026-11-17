@@ -1,0 +1,16 @@
+{
+  "name": "@fetchlet-internal/tools-examples",
+  "version": "0.0.0",
+  "private": true,
+  "description": "End-to-end harness and shared checks of the framework examples",
+  "type": "module",
+  "exports": {
+    "./common-checks": "./common-checks.ts",
+    "./suite": "./suite.ts"
+  },
+  "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@types/node": "^26.6.6",
+    "playwright": "1.65.1"
+  }
+}

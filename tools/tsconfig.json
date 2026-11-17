@@ -1,0 +1,23 @@
+{
+  // Node runs the tools directly with type stripping, so imports name their
+  // `.ts` files and only erasable TypeScript syntax is allowed.
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowJs": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts", "../fixtures/probe/run.ts"],
+  // Guest entries bundled with @fetchlet/runtime are checked with the runtime's
+  // own configuration in the root tsconfig.json.
+  "exclude": ["bench/bare/entry.ts", "bench/probe/**"]
+}

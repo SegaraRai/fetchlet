@@ -21,7 +21,7 @@ export default defineConfig({
         cache: false,
       },
       serve: {
-        command: "pwsh -NoProfile -File ../../tools/cargo.ps1 run --locked -p example-honox-axum",
+        command: "node ../../tools/workspace/cargo.ts run --locked -p example-honox-axum",
         dependsOn: ["build"],
         cache: false,
       },

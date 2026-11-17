@@ -4,7 +4,7 @@
 //! fetchlet-invoke <probe-dir> [--iterations 5000] [--backends quickjs,boa,v8]
 //! ```
 //!
-//! `<probe-dir>/<backend>/build/server.js` is tools/bench/probe/entry.mjs
+//! `<probe-dir>/<backend>/build/server.js` is tools/bench/probe/entry.ts
 //! built for that backend. Prints one JSON object per backend with
 //! microseconds per operation.
 

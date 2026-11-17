@@ -1,8 +1,9 @@
 {
-  "name": "@fetchlet/example-sveltekit-axum",
+  "name": "@fetchlet-internal/example-sveltekit-axum",
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/runtime": "workspace:*",
     "@fetchlet/sveltekit-adapter": "workspace:*",
     "@sveltejs/kit": "^3.2.0",

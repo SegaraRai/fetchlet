@@ -8,7 +8,7 @@ vinext（Vite上のNext.js API実装）のApp Router、React Server Components�
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:vinext-axum
+vp run @fetchlet-internal/example-vinext-axum#serve
 ```
 
 http://127.0.0.1:3900 を開きます。taskはbuildしてからサーバ（QuickJS）を起動します。
@@ -32,7 +32,7 @@ config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB�
 
 ```powershell
 vp run browser:install
-vp run test:example:vinext-axum
+vp run test:examples -- vinext-axum
 ```
 
-SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/testing/common-checks.mjs）で確認します。結果はresults/example-vinext-axum.jsonです。
+SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/examples/common-checks.ts）で確認します。結果はresults/example-vinext-axum.jsonです。

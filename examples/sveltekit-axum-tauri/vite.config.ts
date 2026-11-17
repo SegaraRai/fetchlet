@@ -2,7 +2,7 @@ import fetchletAdapter from "@fetchlet/sveltekit-adapter";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite-plus";
 
-const cargo = "pwsh -NoProfile -File ../../tools/cargo.ps1";
+const cargo = "node ../../tools/workspace/cargo.ts";
 // Demo notes are copied here so that editing them leaves sample/ unchanged.
 const demo = "../../.cache/sveltekit-axum-tauri/notes";
 

@@ -9,7 +9,15 @@
     "skipLibCheck": true,
     "strict": false,
     "strictNullChecks": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["fixtures/**/*.ts", "fixtures/**/*.tsx", "packages/runtime/src/**/*.ts"]
+  "include": [
+    "fixtures/**/*.ts",
+    "fixtures/**/*.tsx",
+    "packages/runtime/src/**/*.ts",
+    "tools/bench/bare/entry.ts",
+    "tools/bench/probe/entry.ts"
+  ],
+  "exclude": ["fixtures/probe/run.ts"]
 }

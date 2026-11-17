@@ -21,8 +21,7 @@ export default defineConfig({
         cache: false,
       },
       serve: {
-        command:
-          "pwsh -NoProfile -File ../../tools/cargo.ps1 run --locked -p example-qwik-city-axum",
+        command: "node ../../tools/workspace/cargo.ts run --locked -p example-qwik-city-axum",
         dependsOn: ["build"],
         cache: false,
       },

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { exampleSuite } from "../../../tools/testing/example-suite.mjs";
+import { exampleSuite } from "@fetchlet-internal/tools-examples/suite";
 
 const suite = exampleSuite("sveltekit-axum");
 const { check } = suite;

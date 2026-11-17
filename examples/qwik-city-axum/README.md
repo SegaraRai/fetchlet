@@ -8,7 +8,7 @@ Qwik Cityのresumable SSR、`routeLoader$`、endpointをaxumから配信する�
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:qwik-city-axum
+vp run @fetchlet-internal/example-qwik-city-axum#serve
 ```
 
 http://127.0.0.1:3700 を開きます。taskはclient buildとSSR build（`vp build --ssr`）をしてからサーバ（QuickJS）を起動します。
@@ -33,7 +33,7 @@ config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB�
 
 ```powershell
 vp run browser:install
-vp run test:example:qwik-city-axum
+vp run test:examples -- qwik-city-axum
 ```
 
-SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/testing/common-checks.mjs）で確認します。結果はresults/example-qwik-city-axum.jsonです。
+SSRとescape、Rust serviceのbinding、assets、JSON endpoint、接続元とbinding、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとnavigationを共通の10項目（tools/examples/common-checks.ts）で確認します。結果はresults/example-qwik-city-axum.jsonです。

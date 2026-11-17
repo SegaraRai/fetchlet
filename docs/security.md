@@ -61,7 +61,7 @@ cargo install cargo-fuzz --version 0.13.2 --locked --root .cache/tools/cargo-fuz
 vp run test:fuzz
 ```
 
-nightly Rustを使います。WindowsではVisual Studio C++ AddressSanitizerが必要です。`tools/test-fuzz.ps1` はMSVCを検出し、ASan runtimeのPATHを設定します。[公式Windows setup](https://rust-fuzz.github.io/book/cargo-fuzz/windows/setup.html)
+nightly Rustを使います。WindowsではVisual Studio C++ AddressSanitizerが必要です。`tools/rust/fuzz.ts` はMSVCを検出し、ASan runtimeのPATHを設定します。[公式Windows setup](https://rust-fuzz.github.io/book/cargo-fuzz/windows/setup.html)
 
 既定のsmoke runは各targetをAddressSanitizer付きで最大100万回・30秒実行します。実行回数と時間予算はスクリプトの引数で変更できます。[fuzz-smoke.json](../results/fuzz-smoke.json)にcompilerと結果を残します。
 

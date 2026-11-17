@@ -10,4 +10,4 @@
 | expectations.json | 個別にレビューした既知失敗と理由                |
 | regressions/      | fetchletで発見・修正した不具合の独立回帰試験    |
 
-上流の原本は取得したbytesを維持します。formatterの対象はfetchlet側のrunnerとregressionsです。新しい試験は、その試験が必要とするhost機能、META script / includes、適用modeを確認してから選定へ追加します。原本の更新はtools/conformance/update-sources.mjs、記録した版の復元はvp run conformance:restoreで行います。
+上流の原本は取得したbytesを維持します。formatterの対象はfetchlet側のrunnerとregressionsです。新しい試験は、その試験が必要とするhost機能、META script / includes、適用modeを確認してから選定へ追加します。原本の更新はtools/conformance/update-sources.ts、記録した版の復元はvp run fetch:conformanceで行います。

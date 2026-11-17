@@ -43,9 +43,9 @@ vp run bench -- --frameworks honox,waku --backends quickjs,v8 --endpoints ssr,co
 
 ## 基準
 
-`bare`（[bare/app.mjs](bare/app.mjs)）は例と同じ `/`、`/api/context`、`/api/echo` を標準のRequest / Responseだけで実装したhandlerです。fetchletでは[build-artifact.mjs](build-artifact.mjs)が共通builderでartifactにし、HonoX例のRustサーバ（同じhost service）で動かします。
+`bare`（[bare/app.ts](bare/app.ts)）は例と同じ `/`、`/api/context`、`/api/echo` を標準のRequest / Responseだけで実装したhandlerです。fetchletでは[build-artifact.ts](build-artifact.ts)が共通builderでartifactにし、HonoX例のRustサーバ（同じhost service）で動かします。
 
-`node` は[node-server.mjs](node-server.mjs)がnode:httpで同じendpointを1 processで配信します。
+`node` は[node-server.ts](node-server.ts)がnode:httpで同じendpointを1 processで配信します。
 
 - frameworkの行はv8向けartifactの `build/server.js` をNodeのmain contextで評価します。@fetchlet/runtimeは既存のglobalを保持するため、frameworkはNode自身のRequest、Response、Streams、timersで動きます。各frameworkの公式Node adapterではありません。
 - `bare` の行はhandlerを直接importし、fetchletのbuildとruntimeを通しません。
@@ -60,14 +60,14 @@ vp run bench -- --frameworks honox,waku --backends quickjs,v8 --endpoints ssr,co
 
 ## 呼び出しの内訳
 
-`invoke` はHTTPを通さずにAppを直接呼び、1回のfetchを段階に分けて測ります。[probe/entry.mjs](probe/entry.mjs)をbackendごとにbuildしてから実行します。
+`invoke` はHTTPを通さずにAppを直接呼び、1回のfetchを段階に分けて測ります。[probe/entry.ts](probe/entry.ts)をbackendごとにbuildしてから実行します。
 
 ```bash
-node tools/bench/build-artifact.mjs probe .cache/bench/probe/quickjs/build quickjs
+node tools/bench/build-artifact.ts probe .cache/bench/probe/quickjs/build quickjs
 ```
 
 ```bash
-pwsh -NoProfile -File tools/cargo.ps1 run --release -p fetchlet-bench --bin invoke -- .cache/bench/probe --backends quickjs --iterations 3000
+node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin invoke -- .cache/bench/probe --backends quickjs --iterations 3000
 ```
 
 | 値                                                   | 内容                                                               |

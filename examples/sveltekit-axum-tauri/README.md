@@ -18,8 +18,8 @@ Tauri webview ─URI scheme─┘          ├─ /files/*   ワークスペー�
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:sveltekit-axum-tauri          # ブラウザーで開く（mdw serve --open）
-vp run example:sveltekit-axum-tauri:desktop  # デスクトップウィンドウで開く
+vp run @fetchlet-internal/example-sveltekit-axum-tauri#serve          # ブラウザーで開く（mdw serve --open）
+vp run @fetchlet-internal/example-sveltekit-axum-tauri#desktop  # デスクトップウィンドウで開く
 ```
 
 taskは `sample/` を `.cache/sveltekit-axum-tauri/notes` へ一度だけ複製し、そのフォルダーを開きます。編集してもリポジトリのファイルは変わりません。複製を消すと最初の状態に戻ります。
@@ -63,7 +63,7 @@ web/lib/notes.remote.ts（remote functions） ─▶ コンポーネント
 - サーバー側JSは `rust.getNote({ query: { path } })` のように、utoipaのoperation IDから生成した関数を型付きで呼びます。引数の名前や型、応答の形の違いは `svelte-check` が型エラーにします。
 - 生成したclientは `https://rust.fetchlet.test` を基準URLに持ち、実行時の依存packageはありません。設定は `openapi-ts.config.ts` です。
 - remote functionsが、同じ型をブラウザー側のコンポーネントまで届けます。
-- APIを変えたら `vp run --filter @fetchlet/example-sveltekit-axum-tauri generate:api` で両方を再生成します。`cargo test` は、checked-inの `openapi.json` が現在のhandlerと一致することを確認します。
+- APIを変えたら `vp run --filter @fetchlet-internal/example-sveltekit-axum-tauri generate:api` で両方を再生成します。`cargo test` は、checked-inの `openapi.json` が現在のhandlerと一致することを確認します。
 
 プロセス内のAPIと、`mdw serve` が `/api/v1` で公開するAPIは同じaxum Routerです。プロセス内のRequestはsocketを使わず、`fetchlet_axum::router_transport` からRouterへ届きます。fetch policyは `https://rust.fetchlet.test` だけを許可します。
 
@@ -136,7 +136,7 @@ Rust APIのRequest本文はnote_bytesの2倍までです（JSONのescapeを含�
 
 ```powershell
 vp run browser:install
-vp run test:example:sveltekit-axum-tauri
+vp run test:examples -- sveltekit-axum-tauri
 ```
 
 frontendとRustをbuildし、`tests/e2e.mjs` と `tests/desktop.mjs` を実行します。

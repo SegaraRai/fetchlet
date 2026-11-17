@@ -1,5 +1,5 @@
 {
-  "name": "@fetchlet/example-honox-axum",
+  "name": "@fetchlet-internal/example-honox-axum",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -7,6 +7,7 @@
     "honox": "0.1.62"
   },
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/hono": "workspace:*",
     "@hono/vite-build": "1.11.1",
     "@types/node": "^26.6.6",

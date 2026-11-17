@@ -22,7 +22,7 @@ export default defineConfig({
         cache: false,
       },
       app: {
-        command: "pwsh -NoProfile -File ../../tools/cargo.ps1 run --locked -p example-honox-tauri",
+        command: "node ../../tools/workspace/cargo.ts run --locked -p example-honox-tauri",
         dependsOn: ["build"],
         cache: false,
       },

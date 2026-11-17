@@ -21,6 +21,7 @@
 /examples/*/build/
 /examples/*/node_modules/
 /packages/*/node_modules/
+/tools/*/node_modules/
 
 /examples/*/.astro/
 /examples/*/.nuxt/

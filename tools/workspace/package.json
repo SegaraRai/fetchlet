@@ -1,0 +1,17 @@
+{
+  "name": "@fetchlet-internal/tools-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Paths, process and Cargo helpers, and the verification host protocol shared by the tools",
+  "type": "module",
+  "exports": {
+    "./cargo": "./cargo.ts",
+    "./lab": "./lab.ts",
+    "./paths": "./paths.ts",
+    "./process": "./process.ts",
+    "./results": "./results.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6"
+  }
+}

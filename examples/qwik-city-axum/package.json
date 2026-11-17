@@ -1,10 +1,11 @@
 {
-  "name": "@fetchlet/example-qwik-city-axum",
+  "name": "@fetchlet-internal/example-qwik-city-axum",
   "private": true,
   "type": "module",
   "devDependencies": {
     "@builder.io/qwik": "1.20.4",
     "@builder.io/qwik-city": "1.20.4",
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/qwik-city": "workspace:*",
     "@types/node": "^26.6.6",
     "typescript": "~6.0.3",

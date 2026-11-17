@@ -59,14 +59,14 @@ Cargo featureで `quickjs`（既定）、`boa`、`v8` を選択できます。�
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:sveltekit-axum
+vp run @fetchlet-internal/example-sveltekit-axum#serve
 ```
 
 ブラウザで `http://127.0.0.1:3000` を開きます。HTTPサーバはRustが起動し、専用スレッドでJSを実行します。
 
-Astro＋axumの例も `vp run example:astro-axum` で起動できます（http://127.0.0.1:3100、QuickJS＋FormatJS）。[Nuxt + axum](examples/nuxt-axum/README.md)（`vp run example:nuxt-axum`、http://127.0.0.1:3200）はNitro presetで、[React Router + axum](examples/react-router-axum/README.md)（`vp run example:react-router-axum`、http://127.0.0.1:3300）はReact Router presetでbuildします。HonoX（3400）、TanStack Start（3500）、SolidStart（3600）、Qwik City（3700）、Waku（3800）、vinext（3900）の例も `vp run example:<name>` で起動できます（[一覧](examples/README.md)）。10の例は同じRustの公開APIを使います。adapterのbackend設定から不足するIntl APIを選び、localeとタイムゾーンデータを絞って組み込みます。[polyfillの選択](packages/build/README.md)を参照してください。
+Astro＋axumの例も `vp run @fetchlet-internal/example-astro-axum#serve` で起動できます（http://127.0.0.1:3100、QuickJS＋FormatJS）。[Nuxt + axum](examples/nuxt-axum/README.md)（`vp run @fetchlet-internal/example-nuxt-axum#serve`、http://127.0.0.1:3200）はNitro presetで、[React Router + axum](examples/react-router-axum/README.md)（`vp run @fetchlet-internal/example-react-router-axum#serve`、http://127.0.0.1:3300）はReact Router presetでbuildします。HonoX（3400）、TanStack Start（3500）、SolidStart（3600）、Qwik City（3700）、Waku（3800）、vinext（3900）の例も `vp run @fetchlet-internal/example-<name>#serve` で起動できます（[一覧](examples/README.md)）。10の例は同じRustの公開APIを使います。adapterのbackend設定から不足するIntl APIを選び、localeとタイムゾーンデータを絞って組み込みます。[polyfillの選択](packages/build/README.md)を参照してください。
 
-[Markdown Workspace](examples/sveltekit-axum-tauri/README.md) は実用アプリの例です。1つのRustバイナリ `mdw` がCLIのWebサーバ（`vp run example:sveltekit-axum-tauri`）とTauriのデスクトップアプリ（`vp run example:sveltekit-axum-tauri:desktop`）を兼ね、SvelteKitのserver JSがutoipaのOpenAPIから生成した型でRust APIをプロセス内fetchで呼びます。
+[Markdown Workspace](examples/sveltekit-axum-tauri/README.md) は実用アプリの例です。1つのRustバイナリ `mdw` がCLIのWebサーバ（`vp run @fetchlet-internal/example-sveltekit-axum-tauri#serve`）とTauriのデスクトップアプリ（`vp run @fetchlet-internal/example-sveltekit-axum-tauri#desktop`）を兼ね、SvelteKitのserver JSがutoipaのOpenAPIから生成した型でRust APIをプロセス内fetchで呼びます。
 
 ## Workspace
 
@@ -105,10 +105,8 @@ Rustの共通依存とlockfileはworkspaceで管理します。JS側もpnpm work
 
 ```powershell
 vp install --frozen-lockfile
-vp run build:fixtures
+vp run check
 vp run test:rust
-vp run check:types
-vp run check:format
 vp run test:matrix
 vp run test:host
 vp run example:embed

@@ -1,5 +1,12 @@
 import { defineConfig } from "vite-plus";
 
+// Task names: `build:*` produces local outputs, `test:*` asserts behavior and
+// records results/, `check:*` verifies static consistency, `fetch:*` restores
+// pinned external inputs, `refresh:*` updates them, and `setup:*` installs
+// optional toolchains. `check` and `verify` aggregate the regular gates.
+const lab =
+  "node tools/workspace/cargo.ts build --locked -p fetchlet --bin fetchlet-lab --all-features";
+
 export default defineConfig({
   fmt: {
     printWidth: 100,
@@ -10,35 +17,14 @@ export default defineConfig({
   },
   run: {
     tasks: {
-      "browser:install": { command: "playwright install --with-deps chromium", cache: false },
-      "build:fixtures": { command: "node tools/build-fixtures.mjs", cache: false },
-      "conformance:update": { command: "node tools/conformance/update-sources.mjs", cache: false },
-      "conformance:restore": { command: "node tools/conformance/fetch-sources.mjs", cache: false },
-      "test:conformance:runner": {
-        command: "node --test tools/conformance/tests/runner.test.mjs",
-        cache: false,
-      },
-      "test:conformance": {
-        command: "pwsh -NoProfile -File tools/test-conformance.ps1",
-        cache: false,
-      },
-      "test:build": { command: "node --test packages/build/tests/*.test.mjs", cache: false },
-      "test:polyfills": { command: "pwsh -NoProfile -File tools/test-polyfills.ps1", cache: false },
-      "test:matrix": { command: "pwsh -NoProfile -File tools/test-matrix.ps1", cache: false },
-      "test:host": { command: "pwsh -NoProfile -File tools/test-js.ps1 -Suite Host", cache: false },
-      "test:fuzz": { command: "pwsh -NoProfile -File tools/test-fuzz.ps1", cache: false },
-      "test:rust": { command: "pwsh -NoProfile -File tools/test-rust.ps1", cache: false },
-      "test:aot": { command: "node tools/test-aot.mjs", cache: false },
-      bench: { command: "node tools/bench/run.mjs", cache: false },
-      "test:url": {
-        command:
-          "pwsh -NoProfile -File tools/cargo.ps1 build --locked -p fetchlet --bin fetchlet-lab --all-features && node tools/test-url.mjs",
-        cache: false,
-      },
-      "test:native": { command: "pwsh -NoProfile -File tools/test-native-link.ps1", cache: false },
+      // build
+      "build:fixtures": { command: "node tools/fixtures/build.ts" },
+      "build:lab": { command: lab, cache: false },
+
+      // check
       "check:types": {
         command:
-          "tsc --noEmit && tsc --noEmit -p packages/astro-adapter/tsconfig.json && tsc --noEmit -p packages/react-router-preset/tsconfig.json && tsc --noEmit -p packages/hono/tsconfig.json && vp run --filter @fetchlet/example-* check:types",
+          "tsc --noEmit && tsc --noEmit -p tools && tsc --noEmit -p packages/astro-adapter/tsconfig.json && tsc --noEmit -p packages/react-router-preset/tsconfig.json && tsc --noEmit -p packages/hono/tsconfig.json && vp run --filter @fetchlet-internal/example-* check:types",
         cache: false,
       },
       "check:format": {
@@ -46,111 +32,67 @@ export default defineConfig({
           "vp fmt crates/fetchlet/js crates/fetchlet/tests/fixtures crates/fetchlet-axum/tests/fixtures packages examples fixtures tools tests/conformance/regressions vite.config.ts tsconfig.json package.json --check",
         cache: false,
       },
-      "example:sveltekit-axum": {
-        command: "vp run --filter @fetchlet/example-sveltekit-axum serve",
+      check: { command: "", dependsOn: ["check:types", "check:format"] },
+
+      // test
+      "test:rust": { command: "node tools/rust/test.ts", cache: false },
+      "test:tools": {
+        command: "node --test tools/conformance/runner.test.ts",
         cache: false,
       },
-      "test:example:sveltekit-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name sveltekit-axum",
+      "test:build": { command: "node --test packages/build/tests/*.test.mjs", cache: false },
+      "test:matrix": {
+        command: "node tools/matrix/runtime.ts",
+        dependsOn: ["build:lab", "build:fixtures"],
         cache: false,
       },
-      "example:astro-axum": {
-        command: "vp run --filter @fetchlet/example-astro-axum serve",
+      "test:host": {
+        command: "node tools/matrix/host.ts",
+        dependsOn: ["build:lab", "build:fixtures"],
         cache: false,
       },
-      "test:example:astro-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name astro-axum",
+      "test:polyfills": {
+        command: "node --test tools/matrix/polyfills.test.ts",
+        dependsOn: ["build:lab"],
         cache: false,
       },
-      "example:nuxt-axum": {
-        command: "vp run --filter @fetchlet/example-nuxt-axum serve",
+      "test:url": { command: "node tools/matrix/url.ts", dependsOn: ["build:lab"], cache: false },
+      "test:conformance": {
+        command: "node tools/conformance/cli.ts",
+        dependsOn: ["build:lab"],
         cache: false,
       },
-      "test:example:nuxt-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name nuxt-axum",
+      "test:examples": { command: "node tools/examples/test.ts", cache: false },
+      "test:fuzz": { command: "node tools/rust/fuzz.ts", cache: false },
+      "test:aot": { command: "node tools/aot/test.ts", cache: false },
+      "test:aot-link": { command: "node tools/aot/native-link.ts", cache: false },
+      verify: {
+        command: "",
+        dependsOn: [
+          "check",
+          "test:rust",
+          "test:tools",
+          "test:conformance",
+          "test:polyfills",
+          "test:matrix",
+          "test:host",
+          "test:examples",
+        ],
+      },
+
+      // inputs and toolchains
+      "fetch:conformance": { command: "node tools/conformance/fetch-sources.ts", cache: false },
+      "refresh:conformance": { command: "node tools/conformance/update-sources.ts", cache: false },
+      "setup:aot": { command: "node tools/aot/install.ts", cache: false },
+      "setup:browser": { command: "playwright install --with-deps chromium", cache: false },
+
+      // run
+      bench: { command: "node tools/bench/run.ts", cache: false },
+      "example:embed": {
+        command: "node tools/workspace/cargo.ts run --locked -p fetchlet --example embed",
+        dependsOn: ["build:fixtures"],
         cache: false,
       },
-      "example:react-router-axum": {
-        command: "vp run --filter @fetchlet/example-react-router-axum serve",
-        cache: false,
-      },
-      "test:example:react-router-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name react-router-axum",
-        cache: false,
-      },
-      "example:honox-axum": {
-        command: "vp run --filter @fetchlet/example-honox-axum serve",
-        cache: false,
-      },
-      "test:example:honox-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name honox-axum",
-        cache: false,
-      },
-      "example:tanstack-start-axum": {
-        command: "vp run --filter @fetchlet/example-tanstack-start-axum serve",
-        cache: false,
-      },
-      "test:example:tanstack-start-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name tanstack-start-axum",
-        cache: false,
-      },
-      "example:solidstart-axum": {
-        command: "vp run --filter @fetchlet/example-solidstart-axum serve",
-        cache: false,
-      },
-      "test:example:solidstart-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name solidstart-axum",
-        cache: false,
-      },
-      "example:qwik-city-axum": {
-        command: "vp run --filter @fetchlet/example-qwik-city-axum serve",
-        cache: false,
-      },
-      "test:example:qwik-city-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name qwik-city-axum",
-        cache: false,
-      },
-      "example:waku-axum": {
-        command: "vp run --filter @fetchlet/example-waku-axum serve",
-        cache: false,
-      },
-      "test:example:waku-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name waku-axum",
-        cache: false,
-      },
-      "example:vinext-axum": {
-        command: "vp run --filter @fetchlet/example-vinext-axum serve",
-        cache: false,
-      },
-      "test:example:vinext-axum": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name vinext-axum",
-        cache: false,
-      },
-      "example:honox-tauri": {
-        command: "vp run --filter @fetchlet/example-honox-tauri app",
-        cache: false,
-      },
-      "test:example:honox-tauri": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name honox-tauri",
-        cache: false,
-      },
-      "example:sveltekit-axum-tauri": {
-        command: "vp run --filter @fetchlet/example-sveltekit-axum-tauri serve",
-        cache: false,
-      },
-      "example:sveltekit-axum-tauri:desktop": {
-        command: "vp run --filter @fetchlet/example-sveltekit-axum-tauri desktop",
-        cache: false,
-      },
-      "test:example:sveltekit-axum-tauri": {
-        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name sveltekit-axum-tauri",
-        cache: false,
-      },
-      "test:examples": {
-        command: "pwsh -NoProfile -File tools/test-examples.ps1",
-        cache: false,
-      },
-      "example:embed": { command: "pwsh -NoProfile -File tools/run-example.ps1", cache: false },
     },
   },
 });

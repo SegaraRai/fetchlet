@@ -1,5 +1,5 @@
-import { commonChecks } from "../../../tools/testing/common-checks.mjs";
-import { exampleSuite } from "../../../tools/testing/example-suite.mjs";
+import { commonChecks } from "@fetchlet-internal/tools-examples/common-checks";
+import { exampleSuite } from "@fetchlet-internal/tools-examples/suite";
 
 const suite = exampleSuite("tanstack-start-axum");
 

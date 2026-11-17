@@ -38,9 +38,9 @@ Rustのlab binaryを全backendでbuildした後、各ファイル・mode・backe
 絞り込みと厳密評価は、binaryのbuild後に次のように実行できます。
 
 ```powershell
-node tools/conformance/cli.mjs --suite wpt --backend quickjs --filter Blob --output results/conformance-blob.json
-node tools/conformance/cli.mjs --suite test262 --backend quickjs,boa,v8 --output results/conformance-test262.json
-node tools/conformance/cli.mjs --strict --output results/conformance-strict.json
+node tools/conformance/cli.ts --suite wpt --backend quickjs --filter Blob --output results/conformance-blob.json
+node tools/conformance/cli.ts --suite test262 --backend quickjs,boa,v8 --output results/conformance-test262.json
+node tools/conformance/cli.ts --strict --output results/conformance-strict.json
 ```
 
 suiteはwpt / test262 / regressions / allです。filterはファイルパスの部分一致です。timeoutはprocessごとのミリ秒（既定30000）、jobsは同時実行数（既定2）で、各CLI optionで変更できます。実行ごとに生成先を分け、同時に走る試験の入力を独立させています。outputを変えると絞り込み結果と全体結果を併存できます。
@@ -125,15 +125,15 @@ Test262は、ファイルごとのflags、includes、strict / sloppy、asyncの�
 固定commitを明示して、選定ファイルを追加・削除できます。更新toolは依存script / includesも取得し、全原本のhashを再記録します。
 
 ```powershell
-node tools/conformance/update-sources.mjs --suite wpt --revision <40桁のcommit> --add fetch/api/response/response-clone.any.js
-node tools/conformance/update-sources.mjs --suite test262 --revision <40桁のcommit> --add test/built-ins/Array/prototype/at/returns-item.js
+node tools/conformance/update-sources.ts --suite wpt --revision <40桁のcommit> --add fetch/api/response/response-clone.any.js
+node tools/conformance/update-sources.ts --suite test262 --revision <40桁のcommit> --add test/built-ins/Array/prototype/at/returns-item.js
 vp run test:conformance:runner
 vp run test:conformance
 ```
 
 --addと--removeは複数指定できます。WPTの選定は現在.any.js、Test262はtest/配下の.jsを扱います。各テストが必要とする環境とmetadataを読んで選定し、評価可能な範囲を文書と結果へ反映します。
 
-同じ固定版の原本を復元するにはvp run conformance:restoreを使います。ネットワーク取得後も記録済みSHA-256を検証します。--removeは選定とlockから外し、展開済みの原本ファイルは残すため、不要になった原本は手動で削除します。
+同じ固定版の原本を復元するにはvp run fetch:conformanceを使います。ネットワーク取得後も記録済みSHA-256を検証します。--removeは選定とlockから外し、展開済みの原本ファイルは残すため、不要になった原本は手動で削除します。
 
 upstream/はvite.config.tsのfmt.ignorePatternsで整形対象から外しています。原本がformatterで書き換わるとchecksum検証で停止します。その場合はconformance:restoreで復元します。
 

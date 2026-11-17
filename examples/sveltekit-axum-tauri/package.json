@@ -1,5 +1,5 @@
 {
-  "name": "@fetchlet/example-sveltekit-axum-tauri",
+  "name": "@fetchlet-internal/example-sveltekit-axum-tauri",
   "private": true,
   "type": "module",
   "imports": {

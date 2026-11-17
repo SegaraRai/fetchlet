@@ -1,8 +1,9 @@
 {
-  "name": "@fetchlet/example-nuxt-axum",
+  "name": "@fetchlet-internal/example-nuxt-axum",
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/nitro-preset": "workspace:*",
     "@types/node": "^26.6.6",
     "nuxt": "4.6.4",

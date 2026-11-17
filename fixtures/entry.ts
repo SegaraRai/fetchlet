@@ -1,6 +1,6 @@
 import "@fetchlet/runtime";
 
-import "../probes/web-api.js";
+import "./probe/web-api.js";
 
 export * from "./functions";
 export { handle } from "./hono";

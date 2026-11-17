@@ -16,8 +16,7 @@ export default defineConfig({
         cache: false,
       },
       serve: {
-        command:
-          "pwsh -NoProfile -File ../../tools/cargo.ps1 run --locked -p example-solidstart-axum",
+        command: "node ../../tools/workspace/cargo.ts run --locked -p example-solidstart-axum",
         dependsOn: ["build"],
         cache: false,
       },

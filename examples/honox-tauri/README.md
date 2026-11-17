@@ -8,7 +8,7 @@ HonoXのSSR、islandのassets、API routeを、Tauri 2のwebviewへHTTPサーバ
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:honox-tauri
+vp run @fetchlet-internal/example-honox-tauri#app
 ```
 
 taskはclient（`--mode client`）とserverの2回buildしてからTauriアプリ（QuickJS）を起動します。Tauri CLIは使わず、`cargo run` で起動します。
@@ -45,8 +45,8 @@ webviewのURLはWindows（WebView2）とAndroidで `http://fetchlet.localhost/`�
 ## backendの切り替え
 
 ```powershell
-$env:FETCHLET_BACKEND = 'v8'; vp run --filter @fetchlet/example-honox-tauri build
-pwsh -NoProfile -File tools/cargo.ps1 run -p example-honox-tauri --features v8
+$env:FETCHLET_BACKEND = 'v8'; vp run --filter @fetchlet-internal/example-honox-tauri build
+node tools/workspace/cargo.ts run -p example-honox-tauri --features v8
 ```
 
 `FETCHLET_BACKEND`（`quickjs` / `boa` / `v8`）がartifactのbackendを決め、`config.json` の `"backend"` がRust側のBackendを選びます。featureを付けずにbuildしたアプリはBoa / V8の設定を起動時にerrorにします。E2Eは `FETCHLET_BACKEND` を設定するとconfig.jsonのbackendも合わせます。QuickJS / Boa / V8の3つで同じE2Eが通ることを確認しています。
@@ -64,7 +64,7 @@ pwsh -NoProfile -File tools/cargo.ps1 run -p example-honox-tauri --features v8
 ## 検証
 
 ```powershell
-vp run test:example:honox-tauri
+vp run test:examples -- honox-tauri
 ```
 
 frontendとアプリをbuildし、`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` でアプリを起動してPlaywrightの `connectOverCDP` で接続します。要求はすべてwebview内から出すため、URI scheme protocolを通ります。SSRとescape、Rust serviceのbinding、JS / CSS / 公開ファイルとclient/外の非公開、JSON endpoint、接続元なしのcontext、protocolのRust route、本文予算、`waitUntil`、並行Request、hydration、commandからのJS関数呼び出し、navigationを確認します。結果はresults/example-honox-tauri.jsonです。Windows以外ではskipします。

@@ -17,7 +17,7 @@
 | [HonoX + Tauri](honox-tauri/README.md)                     | QuickJS           | HTTPサーバなしのURI scheme配信、SSR、assets、island、API route、Tauri commandからのJS関数呼び出し                                                                |
 | [SvelteKit + axum / Tauri](sveltekit-axum-tauri/README.md) | QuickJS           | Markdownワークスペース。CLIのHTTPとTauriのURI schemeで同じRouterを配信、utoipaのOpenAPIから型共有、remote functions、async SSR、Rustでのハイライト、ファイル監視 |
 
-後半の6例は共通の10項目（tools/testing/common-checks.mjs）で同じアプリの形を確認します。Next.js本体（`next build` の出力）、Qwik 2、SolidStartのNitro経由のbuildは次の対象です。
+後半の6例は共通の10項目（tools/examples/common-checks.ts）で同じアプリの形を確認します。Next.js本体（`next build` の出力）、Qwik 2、SolidStartのNitro経由のbuildは次の対象です。
 
 ## 共通にする境界
 
@@ -30,11 +30,11 @@ artifactはserver.js、client/、fetchlet.jsonです。manifestは形式版、en
 各例の既定はQuickJSです。Boa / V8で動かすときは、artifactとサーバを同じbackendに揃えます。
 
 ```bash
-FETCHLET_BACKEND=v8 vp run --filter @fetchlet/example-honox-axum build
+FETCHLET_BACKEND=v8 vp run --filter @fetchlet-internal/example-honox-axum build
 ```
 
 ```bash
-pwsh -NoProfile -File tools/cargo.ps1 run --release -p example-honox-axum --features v8
+node tools/workspace/cargo.ts run --release -p example-honox-axum --features v8
 ```
 
 `FETCHLET_BACKEND`（`quickjs` / `boa` / `v8`）はframework設定のbackendをbuild時に上書きし、`config.json` の `"backend": "v8"` がRust側のBackendを選びます。featureを付けずにbuildしたサーバはBoa / V8の設定を起動時にerrorにします。V8の `worker_stack_bytes` はV8のworker threadにも使います。
@@ -50,4 +50,4 @@ pwsh -NoProfile -File tools/cargo.ps1 run --release -p example-honox-axum --feat
 - E2EでHTML、公開assets、hydration、navigationと、その例が使うhost機能を確認する。
 - framework / backend版とprofileを記録する。
 
-共通のテスト用サーバ起動と結果保存はtools/testing/example-suite.mjsを使います。vp run test:examplesで全例を検証できます。Tauriの例は独自のE2E（WebView2のDevTools protocol）を使います。
+共通のテスト用サーバ起動と結果保存はtools/examples/suite.tsを使います。vp run test:examplesで全例を検証できます。Tauriの例は独自のE2E（WebView2のDevTools protocol）を使います。

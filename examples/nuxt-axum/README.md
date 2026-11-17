@@ -8,7 +8,7 @@ NuxtでHTMLとserver routeを作り、axumから配信する例です。NuxtのN
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:nuxt-axum
+vp run @fetchlet-internal/example-nuxt-axum#serve
 ```
 
 http://127.0.0.1:3200 を開きます。taskはNuxtをbuildしてからRustサーバ（QuickJS）を起動します。
@@ -40,7 +40,7 @@ axumは `build/client` の静的ファイルと `/api/rust` を先に扱い、�
 
 ```powershell
 vp run browser:install
-vp run test:example:nuxt-axum
+vp run test:examples -- nuxt-axum
 ```
 
 SSRとescape、runtime config、Rust service、assets、JSON route、フォームとCookie、接続元とbinding、axum route、本文予算、streaming upload、`event.waitUntil`、並行Request、hydrationとclient navigationを11項目で確認します。結果はresults/example-nuxt-axum.jsonです。

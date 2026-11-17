@@ -5,7 +5,7 @@ export default defineConfig({
     tasks: {
       build: { command: "astro build", cache: false },
       serve: {
-        command: "pwsh -NoProfile -File ../../tools/cargo.ps1 run --locked -p example-astro-axum",
+        command: "node ../../tools/workspace/cargo.ts run --locked -p example-astro-axum",
         dependsOn: ["build"],
         cache: false,
       },

@@ -1,10 +1,11 @@
 {
-  "name": "@fetchlet/example-astro-axum",
+  "name": "@fetchlet-internal/example-astro-axum",
   "private": true,
   "type": "module",
   "devDependencies": {
     "@astrojs/check": "0.9.12",
     "@astrojs/svelte": "9.1.6",
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/astro-adapter": "workspace:*",
     "@fetchlet/runtime": "workspace:*",
     "@types/node": "^26.6.6",

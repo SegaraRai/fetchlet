@@ -99,7 +99,7 @@ Perry **0.5.1665** / scriptc **0.4.14** の公式Windows配布物を固定し、
 
 両compilerの静的ライブラリ生成に成功しています。scriptcのnative-link-infoはMSVC targetを記載し、driverはWindows GNU targetを指定していたため、最後の試験はCRTを揃えた最小ABI検証です。
 
-[native-link-matrix.json](../results/native-link-matrix.json)が実測、`tools/test-native-link.ps1` が再現手順です。次は通常のCargoアプリとのリンク、文字列・バイト列の所有権、解放、例外、Promise、Fetch adapterを検証します。Appのbackendへ統合する前段階として維持します。
+[native-link-matrix.json](../results/native-link-matrix.json)が実測、`vp run test:aot-link`（tools/aot/native-link.ts）が再現手順です。次は通常のCargoアプリとのリンク、文字列・バイト列の所有権、解放、例外、Promise、Fetch adapterを検証します。Appのbackendへ統合する前段階として維持します。
 
 ## 再現環境
 
@@ -107,10 +107,8 @@ Windows x64、Rust 1.100.0、Node 26.13.1、pnpm 12.21.0、Vite+ 1.6.0、TypeScr
 
 ```powershell
 vp install --frozen-lockfile
-vp run build:fixtures
+vp run check
 vp run test:rust
-vp run check:types
-vp run check:format
 vp run test:matrix
 vp run test:host
 vp run example:embed
@@ -119,11 +117,9 @@ vp run example:embed
 AOT用の追加手順です。
 
 ```powershell
-pwsh -File tools/install-aot.ps1 -Tool perry
-pwsh -File tools/install-aot.ps1 -Tool scriptc
-pwsh -File tools/install-zig.ps1
+vp run setup:aot
 vp run test:aot
-vp run test:native
+vp run test:aot-link
 ```
 
 compilerは `.cache/tools`、生成物は `artifacts`、詳細ログは `results/logs` に保存します。AOT行列は障害がある行を結果へ保存し、終了コード1を返します。最新版の実行結果と今回の再検証対象は[validation.json](../results/validation.json)を参照してください。
@@ -136,7 +132,7 @@ workspace移行後はRust本体・axum worker・3VMの互換性・host往復・b
 
 ## 共有handleとframework
 
-AppHandleの3試験、streamingの13試験を3VMで確認しています。Rust HTTP統合はfetchlet-tower、fetchlet-hyper、fetchlet-axum、fetchlet-actixの4crateで、共通契約の8試験（公開origin・headers・binary・Set-Cookie・接続元、context、回収本文、streaming本文、エラー詳細とworker終了、信頼できるContext、切断によるcancel、origin検証）をそれぞれ3VMで実行します。fetchlet-hyperはloopbackの実TCP接続で実行します。Astro 7.4.12 / @astrojs/svelte 9.1.6の例を追加し、QuickJS＋FormatJSでSSRとSvelte islandを実行します。SvelteKit例はQuickJSを使い、両例で同じRust APIとartifact builderを利用します。Astro例はRequest本文をstreamingで受け、chunked uploadの受信と予算超過を検査します。Nuxt 4.6.4（nitropack 2.13.6）の例は@fetchlet/nitro-presetでbuildし、11項目を確認します。React Router 7.18.5 / React 19.3.1の例は@fetchlet/react-router-presetでbuildし、遅延データのstreaming SSRを含む12項目を確認します。React Routerの例はQuickJSのstack上限を4 MiBに設定しています。既定の1 MiBではRustのdebug buildでReactがstack overflowから描画をやり直し、head内に `<link` の断片を残しました。HonoX 0.1.62（@fetchlet/hono）、TanStack Start 1.169.5（@fetchlet/tanstack-start）、SolidStart 2.2.3（@fetchlet/solid-start）、Qwik City 1.20.4（@fetchlet/qwik-city）、Waku 1.0.0-rc.5（@fetchlet/waku）、vinext 1.4.6（@fetchlet/vinext）の例は、共通の10項目（tools/testing/common-checks.mjs）をQuickJSで確認します。HonoX、TanStack Start、SolidStart、Waku、vinextは `node:async_hooks` を@fetchlet/buildの直列化した `AsyncLocalStorage` で実行します。vinextはCloudflare Workersの `nodejs_compat` を前提にするため、`node:path` / `fs` / `buffer` / `crypto` / `module` を置き換えます。Next.jsのfetch cacheが `globalThis.fetch` を置き換えるため、runtimeのfetchはWebIDLの操作と同じく書き換え可能です。置き換えたfetchもhostのfetchを呼び、FetchPolicyが送信を認可することをhandleの試験で3VMごとに確認しています。結果はresults/example-{framework}-axum.jsonです。
+AppHandleの3試験、streamingの13試験を3VMで確認しています。Rust HTTP統合はfetchlet-tower、fetchlet-hyper、fetchlet-axum、fetchlet-actixの4crateで、共通契約の8試験（公開origin・headers・binary・Set-Cookie・接続元、context、回収本文、streaming本文、エラー詳細とworker終了、信頼できるContext、切断によるcancel、origin検証）をそれぞれ3VMで実行します。fetchlet-hyperはloopbackの実TCP接続で実行します。Astro 7.4.12 / @astrojs/svelte 9.1.6の例を追加し、QuickJS＋FormatJSでSSRとSvelte islandを実行します。SvelteKit例はQuickJSを使い、両例で同じRust APIとartifact builderを利用します。Astro例はRequest本文をstreamingで受け、chunked uploadの受信と予算超過を検査します。Nuxt 4.6.4（nitropack 2.13.6）の例は@fetchlet/nitro-presetでbuildし、11項目を確認します。React Router 7.18.5 / React 19.3.1の例は@fetchlet/react-router-presetでbuildし、遅延データのstreaming SSRを含む12項目を確認します。React Routerの例はQuickJSのstack上限を4 MiBに設定しています。既定の1 MiBではRustのdebug buildでReactがstack overflowから描画をやり直し、head内に `<link` の断片を残しました。HonoX 0.1.62（@fetchlet/hono）、TanStack Start 1.169.5（@fetchlet/tanstack-start）、SolidStart 2.2.3（@fetchlet/solid-start）、Qwik City 1.20.4（@fetchlet/qwik-city）、Waku 1.0.0-rc.5（@fetchlet/waku）、vinext 1.4.6（@fetchlet/vinext）の例は、共通の10項目（tools/examples/common-checks.ts）をQuickJSで確認します。HonoX、TanStack Start、SolidStart、Waku、vinextは `node:async_hooks` を@fetchlet/buildの直列化した `AsyncLocalStorage` で実行します。vinextはCloudflare Workersの `nodejs_compat` を前提にするため、`node:path` / `fs` / `buffer` / `crypto` / `module` を置き換えます。Next.jsのfetch cacheが `globalThis.fetch` を置き換えるため、runtimeのfetchはWebIDLの操作と同じく書き換え可能です。置き換えたfetchもhostのfetchを呼び、FetchPolicyが送信を認可することをhandleの試験で3VMごとに確認しています。結果はresults/example-{framework}-axum.jsonです。
 
 AstroのIntl.DateTimeFormat要求はbuild backendに応じて満たします。QuickJS / BoaへはFormatJSの依存とlocaleデータを追加し、V8向けbundleはnative Intlを使います。[選択と実測](../packages/build/README.md)を参照してください。共通profileにはRustの単調時計に接続したperformance.now / timeOriginを追加しました。Web API層をframework評価前に初期化する順序を@fetchlet/buildで揃えています。
 

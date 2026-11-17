@@ -8,7 +8,7 @@ SvelteKitでHTMLを生成し、axumがHTTPとJS / CSSを配信する例です。
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:sveltekit-axum
+vp run @fetchlet-internal/example-sveltekit-axum#serve
 ```
 
 `http://127.0.0.1:3000` を開きます。taskはSvelteKitをbuildしてからRustサーバを起動します。終了はCtrl+Cです。
@@ -68,7 +68,7 @@ AppHandleが所有スレッド、キュー、キャンセルとInstance再生成
 別の設定を使う場合は、build後にRustサーバへ設定ファイルを渡します。
 
 ```powershell
-pwsh -File tools/cargo.ps1 run --locked -p example-sveltekit-axum -- path/to/config.json
+node tools/workspace/cargo.ts run --locked -p example-sveltekit-axum -- path/to/config.json
 ```
 
 build_directoryは設定ファイルからの相対パス、または絶対パスです。public_originを設定すると、proxyの外側の公開originをRequestに使います。既定は実際のlisten先です。
@@ -79,7 +79,7 @@ cookieはローカルHTTP用です。HTTPSの構成ではactionのcookieをsecur
 
 ```powershell
 vp run browser:install
-vp run test:example:sveltekit-axum
+vp run test:examples -- sveltekit-axum
 ```
 
 インストール済みChromeを使う場合は `FETCHLET_BROWSER_CHANNEL=chrome` を環境変数に設定します。

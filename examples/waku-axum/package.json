@@ -1,5 +1,5 @@
 {
-  "name": "@fetchlet/example-waku-axum",
+  "name": "@fetchlet-internal/example-waku-axum",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -9,6 +9,7 @@
     "waku": "1.0.0-rc.5"
   },
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/waku": "workspace:*",
     "@types/node": "^26.6.6",
     "@types/react": "19.3.0",

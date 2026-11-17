@@ -1,0 +1,13 @@
+{
+  "name": "@fetchlet-internal/tools-conformance",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pinned WPT and Test262 runner with recorded expectations",
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@types/node": "^26.6.6",
+    "vite-plus": "^1.6.0",
+    "yaml": "2.9.1"
+  }
+}

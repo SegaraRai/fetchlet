@@ -105,6 +105,6 @@ Cloudflare出力にはcloudflare:workers / ASSETS等のplatform依存があり�
 
 ## 動作プローブ
 
-23項目の[共通プローブ](../probes/README.md)を維持します。Deno CLI 2.9.8 / Node 26.13.1の参照実行、fetchlet profileによるQuickJS / Boa / V8の実行がそれぞれ23 / 23です。LLRT / rustyscript / boa_runtimeを直接組み込む構成は、次に同じprobeとfixtureで評価します。
+23項目の[共通プローブ](../fixtures/probe/README.md)を維持します。Deno CLI 2.9.8 / Node 26.13.1の参照実行、fetchlet profileによるQuickJS / Boa / V8の実行がそれぞれ23 / 23です。LLRT / rustyscript / boa_runtimeを直接組み込む構成は、次に同じprobeとfixtureで評価します。
 
 [初回Deno結果](research/2026-11-16/probe-deno-reference.json)、[初回Node結果](research/2026-11-16/probe-node-reference.json)、[QuickJS](../results/web-api-quickjs.json)、[Boa](../results/web-api-boa.json)、[V8](../results/web-api-v8.json)

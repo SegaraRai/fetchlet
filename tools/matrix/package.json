@@ -1,0 +1,13 @@
+{
+  "name": "@fetchlet-internal/tools-matrix",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Runtime, host service, polyfill and URL matrices across the backends",
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@fetchlet/build": "workspace:*",
+    "@types/node": "^26.6.6",
+    "vite-plus": "^1.6.0"
+  }
+}

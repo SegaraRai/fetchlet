@@ -1,0 +1,13 @@
+{
+  "name": "@fetchlet-internal/tools-bench",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Request throughput benchmark of the examples and the invocation probe",
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@fetchlet/build": "workspace:*",
+    "@fetchlet/runtime": "workspace:*",
+    "@types/node": "^26.6.6"
+  }
+}

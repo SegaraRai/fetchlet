@@ -8,7 +8,7 @@ React Router（framework mode）でHTMLとresource routeを作り、axumから�
 
 ```powershell
 vp install --frozen-lockfile
-vp run example:react-router-axum
+vp run @fetchlet-internal/example-react-router-axum#serve
 ```
 
 http://127.0.0.1:3300 を開きます。taskはReact Routerをbuildしてからサーバ（QuickJS）を起動します。
@@ -46,7 +46,7 @@ config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB�
 
 ```powershell
 vp run browser:install
-vp run test:example:react-router-axum
+vp run test:examples -- react-router-axum
 ```
 
 SSRとescape、hoistされたlinkの完全性、assets、遅延データのstreaming、resource route、document actionとCookie、load context、axum route、本文予算、streaming upload、`waitUntil`、並行Request、hydrationとclient action / navigationを12項目で確認します。結果はresults/example-react-router-axum.jsonです。

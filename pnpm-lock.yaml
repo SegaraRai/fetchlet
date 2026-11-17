@@ -215,9 +215,6 @@ importers:
       web-streams-polyfill:
         specifier: 4.5.1
         version: 4.5.1
-      yaml:
-        specifier: 2.9.1
-        version: 2.9.1
 
   examples/astro-axum:
     devDependencies:
@@ -227,6 +224,9 @@ importers:
       '@astrojs/svelte':
         specifier: 9.1.6
         version: 9.1.6(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(astro@7.4.12(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(db0@0.3.4)(esbuild@0.28.2)(ioredis@5.11.1(supports-color@10.2.2))(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3(@typescript-eslint/types@8.72.2))(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/astro-adapter':
         specifier: workspace:*
         version: link:../../packages/astro-adapter
@@ -258,6 +258,9 @@ importers:
         specifier: 0.1.62
         version: 0.1.62(hono@4.13.19)(supports-color@10.2.2)
     devDependencies:
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/hono':
         specifier: workspace:*
         version: link:../../packages/hono
@@ -307,6 +310,9 @@ importers:
 
   examples/nuxt-axum:
     devDependencies:
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/nitro-preset':
         specifier: workspace:*
         version: link:../../packages/nitro-preset
@@ -337,6 +343,9 @@ importers:
       '@builder.io/qwik-city':
         specifier: 1.20.4
         version: 1.20.4(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(rollup@4.68.3)(supports-color@10.2.2)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/qwik-city':
         specifier: workspace:*
         version: link:../../packages/qwik-city
@@ -365,6 +374,9 @@ importers:
         specifier: 7.18.5
         version: 7.18.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/react-router-preset':
         specifier: workspace:*
         version: link:../../packages/react-router-preset
@@ -402,6 +414,9 @@ importers:
         specifier: 1.9.19
         version: 1.9.19
     devDependencies:
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/solid-start':
         specifier: workspace:*
         version: link:../../packages/solid-start
@@ -417,6 +432,9 @@ importers:
 
   examples/sveltekit-axum:
     devDependencies:
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
@@ -533,6 +551,9 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
     devDependencies:
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/tanstack-start':
         specifier: workspace:*
         version: link:../../packages/tanstack-start
@@ -570,6 +591,9 @@ importers:
         specifier: 1.4.6
         version: 1.4.6(e38a09614de675991afbd3f057c97de5)
     devDependencies:
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/vinext':
         specifier: workspace:*
         version: link:../../packages/vinext
@@ -610,6 +634,9 @@ importers:
         specifier: 1.0.0-rc.5
         version: 1.0.0-rc.5(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.1(react@19.3.1))(react-server-dom-webpack@19.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(webpack@5.112.2(cssnano@9.9.0(postcss@8.5.33))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.33)(sharp@0.35.5(@types/node@26.6.6))(svgo@4.1.0)))(react@19.3.1)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
     devDependencies:
+      '@fetchlet-internal/tools-examples':
+        specifier: workspace:*
+        version: link:../../tools/examples
       '@fetchlet/waku':
         specifier: workspace:*
         version: link:../../packages/waku
@@ -958,6 +985,99 @@ importers:
       vite-plus:
         specifier: ^1.6.0
         version: 1.6.0(@astrojs/compiler-rs@0.5.3)(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.1)(svelte@5.57.3(@typescript-eslint/types@8.72.2))(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
+
+  tools/aot:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+
+  tools/bench:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@fetchlet/build':
+        specifier: workspace:*
+        version: link:../../packages/build
+      '@fetchlet/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+
+  tools/conformance:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      vite-plus:
+        specifier: ^1.6.0
+        version: 1.6.0(@astrojs/compiler-rs@0.5.3)(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.1)(svelte@5.57.3(@typescript-eslint/types@8.72.2))(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
+
+  tools/examples:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      playwright:
+        specifier: 1.65.1
+        version: 1.65.1
+
+  tools/fixtures:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      vite-plus:
+        specifier: ^1.6.0
+        version: 1.6.0(@astrojs/compiler-rs@0.5.3)(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.1)(svelte@5.57.3(@typescript-eslint/types@8.72.2))(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
+
+  tools/matrix:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@fetchlet/build':
+        specifier: workspace:*
+        version: link:../../packages/build
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      vite-plus:
+        specifier: ^1.6.0
+        version: 1.6.0(@astrojs/compiler-rs@0.5.3)(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.1)(svelte@5.57.3(@typescript-eslint/types@8.72.2))(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
+
+  tools/rust:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+
+  tools/workspace:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
 
 packages:
 

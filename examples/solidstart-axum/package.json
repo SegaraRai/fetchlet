@@ -1,5 +1,5 @@
 {
-  "name": "@fetchlet/example-solidstart-axum",
+  "name": "@fetchlet-internal/example-solidstart-axum",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -9,6 +9,7 @@
     "solid-js": "1.9.19"
   },
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/solid-start": "workspace:*",
     "@types/node": "^26.6.6",
     "typescript": "~6.0.3",

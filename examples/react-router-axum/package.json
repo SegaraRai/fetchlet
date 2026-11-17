@@ -1,5 +1,5 @@
 {
-  "name": "@fetchlet/example-react-router-axum",
+  "name": "@fetchlet-internal/example-react-router-axum",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -9,6 +9,7 @@
     "react-router": "7.18.5"
   },
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/react-router-preset": "workspace:*",
     "@react-router/dev": "7.18.5",
     "@types/node": "^26.6.6",

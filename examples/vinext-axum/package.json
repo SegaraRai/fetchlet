@@ -1,5 +1,5 @@
 {
-  "name": "@fetchlet/example-vinext-axum",
+  "name": "@fetchlet-internal/example-vinext-axum",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -9,6 +9,7 @@
     "vinext": "1.4.6"
   },
   "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
     "@fetchlet/vinext": "workspace:*",
     "@types/node": "^26.6.6",
     "@types/react": "19.3.0",
