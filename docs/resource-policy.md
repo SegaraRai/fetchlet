@@ -55,12 +55,16 @@ to stop.
 | ------------------------------- | ------------------------------------------------------------------ |
 | `QuickJsOptions` heap and stack | The caller; unset values keep QuickJS's own defaults (1 MiB stack) |
 | `V8Options` worker stack        | The caller; unset keeps the platform's thread stack size           |
+| `BoaOptions` value stack, calls | The caller; unset values keep Boa's own (10,240 slots, 512 calls)  |
 | `WorkerOptions` stack           | The caller; unset keeps the platform's thread stack size           |
 
 Explicit values must be positive. How well a setting is enforced depends on
 the engine and operating system. A QuickJS stack limit must be smaller than
-the native stack of the thread running it; examples/react-router-axum sets
-4 MiB and 8 MiB because React's recursion exceeds 1 MiB in debug builds.
+the native stack of the thread running it. The examples set an 8 MiB worker
+stack (and a 4 MiB QuickJS limit where React renders) because framework
+recursion in debug builds exceeds the platform default, notably on Boa.
+examples/vinext-axum also raises Boa's value stack to 131,072 slots for
+React Server Components rendering.
 
 ## Limits from specifications and capacity
 

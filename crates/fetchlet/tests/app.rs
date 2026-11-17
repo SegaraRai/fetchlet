@@ -93,7 +93,7 @@ async fn managed_app_contracts() -> anyhow::Result<()> {
     #[cfg(feature = "quickjs")]
     contracts(Backend::quickjs()).await?;
     #[cfg(feature = "boa")]
-    contracts(Backend::Boa).await?;
+    contracts(Backend::boa()).await?;
     #[cfg(feature = "v8")]
     contracts(Backend::v8()).await?;
     Ok(())
@@ -159,7 +159,7 @@ async fn console_reaches_the_host_sink() -> anyhow::Result<()> {
     #[cfg(feature = "quickjs")]
     console_output(Backend::quickjs()).await?;
     #[cfg(feature = "boa")]
-    console_output(Backend::Boa).await?;
+    console_output(Backend::boa()).await?;
     #[cfg(feature = "v8")]
     console_output(Backend::v8()).await?;
     Ok(())

@@ -8,5 +8,6 @@
   "message": "From vinext",
   "build_directory": "build",
   "quickjs_stack_bytes": 4194304,
-  "worker_stack_bytes": 8388608
+  "worker_stack_bytes": 8388608,
+  "boa_stack_slots": 131072
 }

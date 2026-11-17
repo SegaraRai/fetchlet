@@ -21,7 +21,7 @@ impl Engine {
                 super::QuickJs::with_host(module.source(), host, options).map(Self::QuickJs)
             }
             #[cfg(feature = "boa")]
-            Backend::Boa => super::Boa::with_host(module.source(), host)
+            Backend::Boa(options) => super::Boa::with_host(module.source(), host, options)
                 .map(|engine| Self::Boa(Box::new(engine))),
             #[cfg(feature = "v8")]
             Backend::V8(options) => {

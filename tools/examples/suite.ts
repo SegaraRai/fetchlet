@@ -19,6 +19,14 @@ import { chromium, type Browser, type Page } from "playwright";
 
 import type { Feature } from "./features.ts";
 
+/** The engine the example runs on: FETCHLET_BACKEND, as `test:examples --backends` sets it. */
+export const backend = process.env.FETCHLET_BACKEND || "quickjs";
+
+/** The result file of an example run; QuickJS runs keep the plain name. */
+export function resultFile(name: string): string {
+  return backend === "quickjs" ? `example-${name}.json` : `example-${name}-${backend}.json`;
+}
+
 export interface ExampleSuite {
   /** The server origin, available once the suite's `before` hook ran. */
   readonly base: string;
@@ -44,6 +52,7 @@ export function exampleSuite(name: string): ExampleSuite {
     config.listen = "127.0.0.1:0";
     config.build_directory = resolve(example, "build");
     config.request_body_bytes = 4096;
+    config.backend = backend;
     const configPath = resolve(output, "config.json");
     await writeFile(configPath, JSON.stringify(config, null, 2));
 
@@ -85,8 +94,9 @@ export function exampleSuite(name: string): ExampleSuite {
       await exited;
     }
     await writeFile(resolve(output, "server.log"), stderr);
-    writeResult(`example-${name}.json`, {
+    writeResult(resultFile(name), {
       environment: environment({ packagesOf: example }),
+      backend,
       browser: browser?.version(),
       summary: summarize(results),
       results,

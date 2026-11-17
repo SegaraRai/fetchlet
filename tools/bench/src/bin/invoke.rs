@@ -67,9 +67,9 @@ fn main() -> Result<()> {
 
 fn backend(name: &str) -> Result<Backend> {
     Ok(match name {
+        "boa" => Backend::boa(),
         // The examples' React stack limit; the probe does not need it.
         "quickjs" => Backend::QuickJs(QuickJsOptions::default()),
-        "boa" => Backend::Boa,
         "v8" => Backend::v8(),
         _ => bail!("unknown backend {name}"),
     })

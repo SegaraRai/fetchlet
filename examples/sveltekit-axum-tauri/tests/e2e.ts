@@ -13,6 +13,7 @@ import { brotliDecompressSync } from "node:zlib";
 import { after, before, test } from "node:test";
 
 import type { Feature } from "@fetchlet-internal/tools-examples/features";
+import { backend, resultFile } from "@fetchlet-internal/tools-examples/suite";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
@@ -35,7 +36,7 @@ before(async () => {
   // A file outside the workspace that no request may read.
   await writeFile(resolve(output, "secret.md"), "# Secret\n");
   const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
-  if (process.env.FETCHLET_BACKEND) config.backend = process.env.FETCHLET_BACKEND;
+  config.backend = backend;
   const configPath = resolve(output, "config.json");
   await writeFile(configPath, JSON.stringify(config, null, 2));
 
@@ -80,7 +81,8 @@ after(async () => {
     await exited;
   }
   await writeFile(resolve(output, "server.log"), stderr);
-  writeResult(`example-${name}.json`, {
+  writeResult(resultFile(name), {
+    backend,
     environment: environment({ packagesOf: example }),
     browser: browser?.version(),
     summary: summarize(results),

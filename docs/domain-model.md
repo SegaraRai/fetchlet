@@ -46,8 +46,8 @@ backend, the required APIs, the chosen polyfills and the asset archive.
 
 `Module` holds the built source. `Backend` selects the engine: `quickjs`
 (default feature), `boa` or `v8`. Several engine features can be enabled at
-once. `QuickJsOptions` and `V8Options` carry engine-specific heap and stack
-settings.
+once. `QuickJsOptions`, `BoaOptions` and `V8Options` carry engine-specific
+heap, stack and recursion settings.
 
 ### App and AppBuilder
 

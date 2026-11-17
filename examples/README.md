@@ -72,5 +72,7 @@ each example, backend and endpoint.
 - Record the framework and backend versions and the profile.
 
 `tools/examples/suite.ts` starts test servers and records results;
-`vp run test:examples` checks every example. The Tauri examples drive
-WebView2 through the DevTools protocol.
+`vp run test:examples` checks every example on QuickJS, and
+`vp run test:examples -- --backends boa,v8,quickjs` on each engine; results
+for Boa and V8 go to `example-<name>-<engine>.json`. The Tauri examples
+drive WebView2 through the DevTools protocol.

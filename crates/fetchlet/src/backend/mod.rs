@@ -12,7 +12,7 @@ pub(crate) use engine::Engine;
 pub use selection::Backend;
 
 #[cfg(feature = "boa")]
-pub use boa::Boa;
+pub use boa::{Boa, BoaOptions};
 #[cfg(feature = "quickjs")]
 pub use quickjs::{QuickJs, QuickJsOptions};
 #[cfg(feature = "v8")]

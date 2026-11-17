@@ -7,7 +7,7 @@ use boa_engine::{
 };
 use serde_json::Value;
 
-use super::array_buffer;
+use super::{BoaOptions, array_buffer};
 use crate::Instance;
 use crate::bridge::HostBridge;
 use crate::execution::{HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation};
@@ -21,11 +21,12 @@ struct BoaHost(HostBridge);
 
 impl Boa {
     pub fn new(source: &str) -> Result<Self> {
-        Self::with_host(source, HostBridge::default())
+        Self::with_host(source, HostBridge::default(), BoaOptions::default())
     }
 
-    pub(crate) fn with_host(source: &str, host: HostBridge) -> Result<Self> {
+    pub(crate) fn with_host(source: &str, host: HostBridge, options: BoaOptions) -> Result<Self> {
         let mut context = Context::default();
+        options.apply(&mut context);
         // Host-defined data contains no JS values and stays with its Context.
         let wake = host.wake_signal();
         context.insert_data(BoaHost(host));

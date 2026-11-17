@@ -42,7 +42,7 @@ pub use app::{App, AppBuilder, Module};
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub use backend::Backend;
 #[cfg(feature = "boa")]
-pub use backend::Boa;
+pub use backend::{Boa, BoaOptions};
 #[cfg(feature = "quickjs")]
 pub use backend::{QuickJs, QuickJsOptions};
 #[cfg(feature = "v8")]

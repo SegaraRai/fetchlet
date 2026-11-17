@@ -6,7 +6,7 @@ responses and named functions share one runtime on QuickJS, Boa or V8.
 | Feature             | Adds                                                     |
 | ------------------- | -------------------------------------------------------- |
 | `quickjs` (default) | `Backend::quickjs()`, `Backend::QuickJs(QuickJsOptions)` |
-| `boa`               | `Backend::Boa`                                           |
+| `boa`               | `Backend::boa()`, `Backend::Boa(BoaOptions)`             |
 | `v8`                | `Backend::v8()`, `Backend::V8(V8Options)`                |
 
 Several engine features can be enabled together. Without any, the host API

@@ -31,7 +31,7 @@ pub const BODY_BUDGET: usize = 32;
 pub const PUBLIC_ORIGIN: &str = "https://public.test:8443";
 
 pub fn backends() -> Vec<Backend> {
-    vec![Backend::quickjs(), Backend::Boa, Backend::v8()]
+    vec![Backend::quickjs(), Backend::boa(), Backend::v8()]
 }
 
 /// A request body as the client sends it.

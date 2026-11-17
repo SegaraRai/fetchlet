@@ -21,7 +21,7 @@ fn backends() -> Vec<Backend> {
         #[cfg(feature = "quickjs")]
         Backend::quickjs(),
         #[cfg(feature = "boa")]
-        Backend::Boa,
+        Backend::boa(),
         #[cfg(feature = "v8")]
         Backend::v8(),
     ]

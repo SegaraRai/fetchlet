@@ -39,6 +39,12 @@ pub(crate) struct Config {
     pub quickjs_stack_bytes: Option<usize>,
     /// The worker thread's native stack, which must exceed the QuickJS limit.
     pub worker_stack_bytes: Option<NonZeroUsize>,
+    /// Boa's value stack in slots, which bounds rendering depth on Boa.
+    #[cfg_attr(not(feature = "boa"), allow(dead_code))]
+    pub boa_stack_slots: Option<usize>,
+    /// Nested JavaScript calls Boa allows.
+    #[cfg_attr(not(feature = "boa"), allow(dead_code))]
+    pub boa_recursion_limit: Option<usize>,
 }
 
 impl Config {
@@ -62,7 +68,10 @@ impl Config {
                 ..QuickJsOptions::default()
             })),
             #[cfg(feature = "boa")]
-            Engine::Boa => Ok(Backend::Boa),
+            Engine::Boa => Ok(Backend::Boa(fetchlet::BoaOptions {
+                stack_size_limit: self.boa_stack_slots,
+                recursion_limit: self.boa_recursion_limit,
+            })),
             #[cfg(feature = "v8")]
             Engine::V8 => Ok(Backend::V8(fetchlet::V8Options {
                 worker_stack_bytes: self.worker_stack_bytes.map(NonZeroUsize::get),

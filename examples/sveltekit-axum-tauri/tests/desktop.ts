@@ -12,6 +12,7 @@ import { createInterface } from "node:readline";
 import { after, before, test } from "node:test";
 
 import type { Feature } from "@fetchlet-internal/tools-examples/features";
+import { backend, resultFile } from "@fetchlet-internal/tools-examples/suite";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
@@ -66,7 +67,7 @@ before(async () => {
   await cp(resolve(example, "sample"), notes, { recursive: true });
   await writeFile(resolve(output, "secret.md"), "# Secret\n");
   const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
-  if (process.env.FETCHLET_BACKEND) config.backend = process.env.FETCHLET_BACKEND;
+  config.backend = backend;
   const configPath = resolve(output, "config.json");
   await writeFile(configPath, JSON.stringify(config, null, 2));
 
@@ -122,7 +123,8 @@ after(async () => {
   }
   if (!supported) return;
   await writeFile(resolve(output, "app.log"), stderr);
-  writeResult(`example-${name}-desktop.json`, {
+  writeResult(resultFile(`${name}-desktop`), {
+    backend,
     environment: environment({ packagesOf: example }),
     browser: browser?.version(),
     summary: summarize(results),

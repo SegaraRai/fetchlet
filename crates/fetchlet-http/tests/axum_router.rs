@@ -16,7 +16,7 @@ use fetchlet_http::{AxumService, router_transport};
 const SOURCE: &str = include_str!("fixtures/router.js");
 
 fn backends() -> Vec<Backend> {
-    vec![Backend::quickjs(), Backend::Boa, Backend::v8()]
+    vec![Backend::quickjs(), Backend::boa(), Backend::v8()]
 }
 
 #[derive(Clone)]

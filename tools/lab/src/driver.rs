@@ -80,8 +80,8 @@ async fn execute() -> Result<()> {
     let source =
         std::fs::read_to_string(args.get(2).ok_or_else(|| anyhow!("Expected bundle path"))?)?;
     let backend = match backend.as_str() {
+        "boa" => Backend::boa(),
         "quickjs" => Backend::quickjs(),
-        "boa" => Backend::Boa,
         "v8" => Backend::v8(),
         _ => return Err(anyhow!("Unknown backend: {backend}")),
     };

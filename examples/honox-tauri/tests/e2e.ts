@@ -12,6 +12,7 @@ import { createInterface } from "node:readline";
 import { after, before, test } from "node:test";
 
 import type { Feature } from "@fetchlet-internal/tools-examples/features";
+import { backend, resultFile } from "@fetchlet-internal/tools-examples/suite";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
@@ -23,8 +24,12 @@ const origin = "http://fetchlet.localhost";
 const message = "Welcome to HonoX and Tauri.";
 // WebView2 exposes the DevTools protocol; WebKitGTK and WKWebView do not.
 const supported = process.platform === "win32";
-const results: { name: string; features: Feature[]; status: "pass" | "fail"; error?: string }[] =
-  [];
+const results: {
+  name: string;
+  features: Feature[];
+  status: "pass" | "fail";
+  error?: string;
+}[] = [];
 let child: ChildProcess | undefined;
 let browser: Browser | undefined;
 let page: Page;
@@ -66,7 +71,7 @@ before(async () => {
   config.build_directory = resolve(example, "build");
   config.request_body_bytes = 4096;
   // Match the backend of an artifact built with FETCHLET_BACKEND.
-  if (process.env.FETCHLET_BACKEND) config.backend = process.env.FETCHLET_BACKEND;
+  config.backend = backend;
   const configPath = resolve(output, "config.json");
   await writeFile(configPath, JSON.stringify(config, null, 2));
 
@@ -122,7 +127,8 @@ after(async () => {
   }
   if (!supported) return;
   await writeFile(resolve(output, "app.log"), stderr);
-  writeResult(`example-${name}.json`, {
+  writeResult(resultFile(name), {
+    backend,
     environment: environment({ packagesOf: example }),
     browser: browser?.version(),
     summary: summarize(results),
