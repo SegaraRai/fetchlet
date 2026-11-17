@@ -2,10 +2,12 @@
 //!
 //! [`FetchletService`] is a Tower service over `http` 1 types and is always
 //! available. The `hyper`, `axum` and `actix` features add thin integrations
-//! for those servers. [`Artifact`] reads the output of `fetchlet/build`.
+//! for those servers. [`Artifact`] reads the output of `fetchlet/build`, and
+//! [`AssetService`] serves its client assets from an [`AssetArchive`].
 //! The JavaScript engine is chosen on the `fetchlet` crate.
 
 mod artifact;
+mod assets;
 mod service;
 
 #[cfg(feature = "actix")]
@@ -16,6 +18,7 @@ mod axum_server;
 mod hyper_server;
 
 pub use artifact::{Artifact, ArtifactError};
+pub use assets::{Asset, AssetArchive, AssetArchiveError, AssetBody, AssetFuture, AssetService};
 pub use service::{
     BoxError, Error, FetchletService, PublicOrigin, RequestContext, service_transport,
 };
@@ -26,3 +29,8 @@ pub use actix_server::ActixService;
 pub use axum_server::{AxumService, artifact_router, connect_info, router_transport};
 #[cfg(feature = "hyper")]
 pub use hyper_server::{HyperConnection, HyperService, PeerAddr, peer_addr};
+
+#[doc(hidden)]
+pub mod __private {
+    pub use bytes::Bytes;
+}

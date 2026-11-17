@@ -19,6 +19,8 @@ Nitro単体では `nitro.config.ts` に同じ `preset` と `fetchlet` を書き�
 
 出力先は `build/` です。`server.js`、`client/`（Nitroのpublic assets）、`fetchlet.json` を書き、Nitroの `nitro.json` はfetchlet.jsonに置き換えます。Rust側のFetch entryは `handle` です。Nitroのserver bundleは `.nuxt/fetchlet/server`（Nuxtの場合）に作り、fetchlet/buildがWeb API profileの後に評価するよう再bundleします。public assetsはRustサーバが配信するため、Nitroの `serveStatic` は無効です。
 
+`nitro.fetchlet.assets: true` はpublic assetsを `assets.flpk` にまとめ、`maxAge` を持つ `publicAssets`（Nuxtの `/_nuxt/` など）をその期間キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## Requestとcontext
 
 - h3の `toWebHandler` でRequestをNitroへ渡します。Request本文は受信中のstreamのままで、`getRequestWebStream(event)` で読めます。`readBody` 等は本文を回収して使います。

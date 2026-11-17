@@ -39,6 +39,19 @@ axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>()
 
 Manifest paths that leave the artifact directory are refused. Client files answer GET and HEAD; other methods and missing files reach the application, so the framework handles its own routes, actions and 404 pages.
 
+## Asset archives
+
+`archiveArtifactAssets` in `fetchlet/build` packs the client directory into
+`assets.flpk` and names it in `fetchlet.json`. `Artifact::open` then reads and
+checks it, and `artifact_router` serves assets from it instead of the
+directory. Text assets are stored Brotli-compressed and sent as they are to
+clients that accept `br`; other clients receive them decompressed. Outside
+axum, `AssetService::new(archive, fallback)` is the same Tower service; an
+archive can also be embedded with
+`AssetArchive::new(Bytes::from_static(include_bytes!("assets.flpk")))`.
+[docs/asset-archive.md](../../docs/asset-archive.md) describes the format and
+the responses.
+
 ## Request handling
 
 These rules hold for every integration and are checked by the shared contract in `tests/contract/`:

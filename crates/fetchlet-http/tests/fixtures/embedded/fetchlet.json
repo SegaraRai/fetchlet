@@ -1,0 +1,7 @@
+{
+  "format": "fetchlet-iife",
+  "formatVersion": 1,
+  "handler": "handle",
+  "server": "server.js",
+  "assets": "assets.flpk"
+}

@@ -13,6 +13,7 @@ export default defineConfig({
   },
   adapter: fetchletAdapter({
     backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as BuildBackend,
+    assets: true,
   }),
   integrations: [
     svelte({

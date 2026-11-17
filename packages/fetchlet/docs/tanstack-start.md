@@ -20,6 +20,8 @@ clientを `build/client/`、serverを `node_modules/.cache/fetchlet-tanstack-sta
 
 SSR environmentは `worker` / `edge-light` 条件で依存をすべてbundleします。router-coreはserver用のbuildになります。`react-dom/server` は `react-dom/server.edge` に解決します（worker用のbuildは `MessageChannel` を使います）。Startがmodule評価時に読む `process.env.TSS_PRERENDERING` と `TSS_SHELL` は `"false"` に置き換えます。
 
+`assets: true` はclient assetsを `assets.flpk` にまとめ、`assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## request context
 
 server function、server route、middlewareの `context` は `FetchletRequestContext` です。

@@ -19,6 +19,10 @@ export default defineConfig({
 
 出力は `server.js`、`client/`、`fetchlet.json`。Rust側のFetch entryは `handle` です。contextにclientAddressを渡すとSvelteKitのgetClientAddressへ接続します。固定bindingはplatform.envへ、応答後の処理を登録する `waitUntil` はplatform.context.waitUntilへ、文字列bindingはserver.initのenvへ渡します。
 
+## 静的アセットのアーカイブ
+
+`assets: true` は、client assetsを `build/assets.flpk` にまとめ、`fetchlet.json` に記録します。`_app/immutable/` 以下には1年の `Cache-Control: immutable` を付け、prerenderしたページはSvelteKitの既定 `trailingSlash: "never"` に合わせて `.html` と末尾の `/` なしで配信します。`assets: { respond, routes }` で応答とpathの規則を指定できます（`respond` はimmutableの設定の後に呼ばれます）。Rustでは `Artifact::open` または `include_artifact!` が読み込み、`artifact_router` が配信します。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## rendering profile
 
 | `rendering`             | 用途                                                                                                                |

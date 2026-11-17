@@ -34,6 +34,8 @@ buildは `vp build && vp build --ssr` の2段です。`entry`（既定は `src/e
 
 SSR buildで `entry` と `@qwik-city-plan` をbundleし、`build/server.js` と `build/fetchlet.json` を書きます。client buildでは、Qwikがmodule pathから付けるchunk名をRolldownが受け付ける名前に変えます（ファイル名はhashのみ）。
 
+`assets: true` はclient assetsを `assets.flpk` にまとめ、`build/` と `assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## request event
 
 | 値                   | 内容                                                       |

@@ -9,6 +9,7 @@ export default defineConfig({
     react(),
     fetchletStart({
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+      assets: true,
     }),
   ],
   run: {

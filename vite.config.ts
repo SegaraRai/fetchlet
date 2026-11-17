@@ -121,6 +121,10 @@ export default defineConfig({
         command: "node tools/conformance/fetch-sources.ts",
         cache: false,
       },
+      "refresh:asset-archive": {
+        command: "node tools/fixtures/asset-archive.ts",
+        cache: false,
+      },
       "refresh:conformance": {
         command: "node tools/conformance/update-sources.ts",
         cache: false,

@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 
 import { build, type Plugin } from "rolldown";
 
+import { archiveArtifactAssets, type AssetArchiveSettings } from "./asset-archive.ts";
 import { serializedAsyncContext } from "./async-context.ts";
 import { nativeCapabilityCheck } from "./polyfills/bootstrap.ts";
 import {
@@ -13,6 +14,11 @@ import {
   type PolyfillPlan,
 } from "./polyfills/plan.ts";
 
+export {
+  archiveArtifactAssets, writeAssetArchive,
+  type ArchiveArtifactAssetsOptions, type AssetArchiveSettings, type AssetArchiveSummary, type AssetInfo, type AssetResponder, type AssetRoutes,
+  type WriteAssetArchiveOptions
+} from "./asset-archive.ts";
 export type { BuildBackend, IntlOptions } from "./polyfills/plan.ts";
 
 export interface BuildArtifactOptions {
@@ -36,6 +42,12 @@ export interface BuildArtifactOptions {
   conditions?: string[];
   /** Global replacements, in addition to `process.env.NODE_ENV`. */
   define?: Record<string, string>;
+  /**
+   * Archive the client directory as `assets.flpk` after the build, for
+   * adapters that wrote it before calling `buildArtifact`. Others call
+   * `archiveArtifactAssets` once the directory is complete.
+   */
+  assets?: AssetArchiveSettings;
 }
 
 // The Web API profile, initialized before the framework modules. The package
@@ -126,6 +138,7 @@ export async function buildArtifact({
   asyncContext,
   conditions = [],
   define = {},
+  assets,
 }: BuildArtifactOptions): Promise<void> {
   const plan = planPolyfills({ backend, requirements, intl });
   const output = resolve(outDir);
@@ -185,4 +198,10 @@ export async function buildArtifact({
       2,
     ) + "\n",
   );
+  if (assets) {
+    await archiveArtifactAssets({
+      outDir: output,
+      ...assets,
+    });
+  }
 }

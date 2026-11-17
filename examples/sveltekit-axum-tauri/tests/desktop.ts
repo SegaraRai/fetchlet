@@ -63,7 +63,6 @@ before(async () => {
   await cp(resolve(example, "sample"), notes, { recursive: true });
   await writeFile(resolve(output, "secret.md"), "# Secret\n");
   const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
-  config.build_directory = resolve(example, "build");
   if (process.env.FETCHLET_BACKEND) config.backend = process.env.FETCHLET_BACKEND;
   const configPath = resolve(output, "config.json");
   await writeFile(configPath, JSON.stringify(config, null, 2));

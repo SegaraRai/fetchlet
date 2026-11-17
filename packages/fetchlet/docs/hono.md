@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => ({
 
 `build/server.js` と `build/fetchlet.json` を書きます。公開ファイルはRustサーバが配信するため、`staticPaths` は空にしています。HonoXではclient buildを `build/client` へ出力します。
 
+`assets` を指定するとclient assetsを `assets.flpk` にまとめます。Honoのpublicファイルはハッシュ付きとは限らないので既定のキャッシュ規則はありません。`respond` で指定します（examples/honox-axumは `/static/` を1年キャッシュします）。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## Rustからの値
 
 | 値                         | 内容                                                          |

@@ -4,10 +4,18 @@ import { join } from "node:path";
 import type { Preset } from "@react-router/dev/config";
 
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
 export interface FetchletPresetOptions {
+  /**
+   * Also pack the client assets into `assets.flpk` for fetchlet-http to
+   * serve or embed. `true` uses React Router's: hashed files under `assets/` are
+   * cached for a year; an object adds
+   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   */
+  assets?: boolean | AssetArchiveSettings;
   /** The engine the artifact targets. */
   backend?: BuildBackend;
   /** Intl data for engines without native Intl, as in fetchlet/build. */
@@ -15,9 +23,13 @@ export interface FetchletPresetOptions {
 }
 
 interface ArtifactOptions {
-  reactRouterConfig: { buildDirectory: string; serverBuildFile: string };
+  reactRouterConfig: {
+    buildDirectory: string;
+    serverBuildFile: string;
+  };
   backend: BuildBackend;
   intl: IntlOptions;
+  assets: boolean | AssetArchiveSettings;
 }
 
 /**
@@ -27,6 +39,7 @@ interface ArtifactOptions {
 export function fetchletPreset({
   backend = "portable",
   intl = {},
+  assets = false,
 }: FetchletPresetOptions = {}): Preset {
   return {
     name: "fetchlet/react-router",
@@ -38,6 +51,7 @@ export function fetchletPreset({
           reactRouterConfig,
           backend,
           intl,
+          assets,
         }),
     }),
     reactRouterConfigResolved({ reactRouterConfig }) {
@@ -51,7 +65,12 @@ export function fetchletPreset({
   };
 }
 
-async function writeArtifact({ reactRouterConfig, backend, intl }: ArtifactOptions): Promise<void> {
+async function writeArtifact({
+  reactRouterConfig,
+  backend,
+  intl,
+  assets,
+}: ArtifactOptions): Promise<void> {
   const { buildDirectory, serverBuildFile } = reactRouterConfig;
   const serverDirectory = join(buildDirectory, "server");
   const entry = join(serverDirectory, "fetchlet.mjs");
@@ -84,5 +103,12 @@ async function writeArtifact({ reactRouterConfig, backend, intl }: ArtifactOptio
     rendering: "streaming",
     backend,
     intl,
+    ...(assets
+      ? {
+          assets: frameworkAssets(assets, {
+            cache: [{ prefix: "/assets/", cacheControl: IMMUTABLE }],
+          }),
+        }
+      : {}),
   });
 }

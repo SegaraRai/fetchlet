@@ -3,6 +3,7 @@ import { Hono } from "hono/tiny";
 import { unstable_createServerEntryAdapter as createServerEntryAdapter } from "waku/adapter-builders";
 import { unstable_honoMiddleware as honoMiddleware } from "waku/internals";
 
+import type { AssetArchiveSettings } from "../build/asset-archive.ts";
 import type { BuildBackend, IntlOptions } from "../build/index.ts";
 import type { FetchletRequestContext } from "./context.ts";
 import { contextKey } from "./symbol.ts";
@@ -10,6 +11,13 @@ import { contextKey } from "./symbol.ts";
 type WakuMiddleware = (options: { app: HonoApp }) => MiddlewareHandler;
 
 export interface FetchletWakuOptions {
+  /**
+   * Also pack the client assets into `assets.flpk` for fetchlet-http to
+   * serve or embed. `true` uses Waku's: hashed files under `assets/` are cached
+   * for a year; an object adds
+   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   */
+  assets?: boolean | AssetArchiveSettings;
   /** Where server.js, fetchlet.json and client/ are written. Defaults to "build". */
   outDir?: string;
   /** The engine the artifact targets. */

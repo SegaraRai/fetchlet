@@ -7,6 +7,7 @@ export default {
   presets: [
     fetchletPreset({
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+      assets: true,
     }),
   ],
 } satisfies Config;

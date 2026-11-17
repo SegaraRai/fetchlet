@@ -4,10 +4,18 @@ import { join, parse, resolve } from "node:path";
 import type { Plugin } from "vite";
 
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
 export interface FetchletQwikCityOptions {
+  /**
+   * Also pack the client assets into `assets.flpk` for fetchlet-http to
+   * serve or embed. `true` uses Qwik's: hashed files under `build/` and `assets/`
+   * are cached for a year; an object adds
+   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   */
+  assets?: boolean | AssetArchiveSettings;
   /** The server entry that default-exports `createQwikCity(...)`. Defaults to "src/entry.fetchlet.tsx". */
   entry?: string;
   /** Where server.js and fetchlet.json are written, next to the client build in `client/`. Defaults to "build". */
@@ -28,6 +36,7 @@ export function fetchletAdapter({
   outDir = "build",
   backend = "portable",
   intl = {},
+  assets = false,
 }: FetchletQwikCityOptions = {}): Plugin {
   let root = process.cwd();
   let ssr = false;
@@ -35,7 +44,7 @@ export function fetchletAdapter({
     name: "fetchlet/qwik-city",
     apply: "build",
     enforce: "post",
-    config(config, env) {
+    config(_config, env) {
       if (!env.isSsrBuild) {
         return;
       }
@@ -44,12 +53,17 @@ export function fetchletAdapter({
         resolve: {
           conditions: ["edge-light", "webworker", "worker", "browser", "module", "main"],
         },
-        ssr: { target: "webworker", noExternal: true },
+        ssr: {
+          target: "webworker",
+          noExternal: true,
+        },
         publicDir: false,
         build: {
           ssr: true,
           outDir: "node_modules/.cache/fetchlet-qwik-city",
-          rollupOptions: { input: [entry, "@qwik-city-plan"] },
+          rollupOptions: {
+            input: [entry, "@qwik-city-plan"],
+          },
         },
       };
     },
@@ -103,6 +117,16 @@ export function fetchletAdapter({
         asyncContext: "serialized",
         backend,
         intl,
+        ...(assets
+          ? {
+              assets: frameworkAssets(assets, {
+                cache: [
+                  { prefix: "/assets/", cacheControl: IMMUTABLE },
+                  { prefix: "/build/", cacheControl: IMMUTABLE },
+                ],
+              }),
+            }
+          : {}),
       });
     },
   };

@@ -8,7 +8,6 @@
   "file_bytes": 16777216,
   "workspace_notes": 10000,
   "watch_debounce_ms": 150,
-  "build_directory": "build",
   "quickjs_stack_bytes": 4194304,
   "worker_stack_bytes": 8388608
 }

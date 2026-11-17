@@ -18,6 +18,8 @@ export default {
 
 React Routerの `buildEnd` で、`build/server/` のserver buildを `createRequestHandler` に接続し、`build/server.js` と `build/fetchlet.json` を書きます。`build/client/` はReact Routerのclient assetsです。`build/server/` は中間出力で、Rustサーバからは配信しません。アプリの設定で `buildEnd` を定義すると、presetのartifact生成を置き換えます。
 
+`assets: true` はclient assetsを `assets.flpk` にまとめ、`assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## load context
 
 loader / action / middlewareのcontextは `RouterContextProvider` です。fetchletの値は `FetchletLoadContext` で、`context.get(fetchletContext)`、またはbindingの型を指定する `getLoadContext<Bindings>(context)` で読みます。

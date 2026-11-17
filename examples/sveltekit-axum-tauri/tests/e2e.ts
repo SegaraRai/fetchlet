@@ -1,5 +1,6 @@
 // `mdw serve` over real HTTP and a real browser: SSR, hydration, remote
-// functions, the typed Rust API, live updates and the workspace boundary.
+// functions, the typed Rust API, live updates, the workspace boundary and the
+// client assets embedded in the binary.
 
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -8,6 +9,7 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { request } from "node:http";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
+import { brotliDecompressSync } from "node:zlib";
 import { after, before, test } from "node:test";
 
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
@@ -30,7 +32,6 @@ before(async () => {
   // A file outside the workspace that no request may read.
   await writeFile(resolve(output, "secret.md"), "# Secret\n");
   const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
-  config.build_directory = resolve(example, "build");
   if (process.env.FETCHLET_BACKEND) config.backend = process.env.FETCHLET_BACKEND;
   const configPath = resolve(output, "config.json");
   await writeFile(configPath, JSON.stringify(config, null, 2));
@@ -136,7 +137,12 @@ function withHost(host: string, path: string): Promise<number | undefined> {
   const url = new URL(path, base);
   return new Promise<number | undefined>((resolveStatus, reject) => {
     const outgoing = request(
-      { host: url.hostname, port: url.port, path: url.pathname, headers: { host } },
+      {
+        host: url.hostname,
+        port: url.port,
+        path: url.pathname,
+        headers: { host },
+      },
       (response) => {
         response.resume();
         resolveStatus(response.statusCode);
@@ -146,6 +152,62 @@ function withHost(host: string, path: string): Promise<number | undefined> {
     outgoing.end();
   });
 }
+
+/** A raw GET with chosen headers, keeping the body as sent. */
+function raw(
+  path: string,
+  headers: Record<string, string>,
+): Promise<{
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  body: Buffer;
+}> {
+  const url = new URL(path, base);
+  return new Promise((resolveResponse, reject) => {
+    const outgoing = request(
+      {
+        host: url.hostname,
+        port: url.port,
+        path: url.pathname + url.search,
+        headers,
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.on("end", () =>
+          resolveResponse({
+            status: response.statusCode ?? 0,
+            headers: response.headers,
+            body: Buffer.concat(chunks),
+          }),
+        );
+      },
+    );
+    outgoing.on("error", reject);
+    outgoing.end();
+  });
+}
+
+check("client assets come from the archive embedded in mdw", async () => {
+  const home = await fetch(base + "/").then((response) => response.text());
+  const script = /\/_app\/immutable\/[^"]+\.js/.exec(home)?.[0];
+  assert.ok(script, "the page links a hashed script");
+  const compressed = await raw(script, {
+    "accept-encoding": "gzip, deflate, br",
+  });
+  assert.equal(compressed.status, 200);
+  assert.equal(compressed.headers["content-encoding"], "br");
+  assert.equal(compressed.headers["cache-control"], "public, max-age=31536000, immutable");
+  assert.equal(compressed.headers.vary, "accept-encoding");
+  // Clients without Brotli, such as plain HTTP outside localhost, get it decompressed.
+  const plain = await raw(script, { "accept-encoding": "gzip, deflate" });
+  assert.equal(plain.headers["content-encoding"], undefined);
+  assert.deepEqual(brotliDecompressSync(compressed.body), plain.body);
+  const cached = await raw(script, {
+    "if-none-match": String(plain.headers.etag),
+  });
+  assert.equal(cached.status, 304);
+});
 
 check(
   "SSR renders the workspace, the note tree and Markdown through the JavaScript renderer",
@@ -242,7 +304,11 @@ check("paths outside the workspace are refused by the API and the file route", a
   const put = await fetch(base + "/api/v1/note", {
     method: "PUT",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ path: "../escape.md", content: "x", base_version: null }),
+    body: JSON.stringify({
+      path: "../escape.md",
+      content: "x",
+      base_version: null,
+    }),
   });
   assert.equal(put.status, 400);
 });

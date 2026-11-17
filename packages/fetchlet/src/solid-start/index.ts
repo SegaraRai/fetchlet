@@ -4,12 +4,20 @@ import { join, resolve } from "node:path";
 import type { Plugin } from "vite";
 
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 export type { FetchletBindings, FetchletRequestContext } from "./context.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
 export interface FetchletSolidStartOptions {
+  /**
+   * Also pack the client assets into `assets.flpk` for fetchlet-http to
+   * serve or embed. `true` uses SolidStart's: hashed files under `_build/assets/`
+   * are cached for a year; an object adds
+   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   */
+  assets?: boolean | AssetArchiveSettings;
   /** Where server.js, fetchlet.json and client/ are written. Defaults to "build". */
   outDir?: string;
   /** The engine the artifact targets. */
@@ -26,6 +34,7 @@ export default function fetchletSolidStart({
   outDir = "build",
   backend = "portable",
   intl = {},
+  assets = false,
 }: FetchletSolidStartOptions = {}): Plugin {
   let root = process.cwd();
   let serverDirectory: string | undefined;
@@ -34,10 +43,18 @@ export default function fetchletSolidStart({
     config() {
       return {
         environments: {
-          client: { build: { outDir: join(outDir, "client") } },
+          client: {
+            build: {
+              outDir: join(outDir, "client"),
+            },
+          },
           ssr: {
-            resolve: { noExternal: true },
-            build: { outDir: "node_modules/.cache/fetchlet-solid-start" },
+            resolve: {
+              noExternal: true,
+            },
+            build: {
+              outDir: "node_modules/.cache/fetchlet-solid-start",
+            },
           },
         },
       };
@@ -105,6 +122,13 @@ export default function fetchletSolidStart({
         asyncContext: "serialized",
         backend,
         intl,
+        ...(assets
+          ? {
+              assets: frameworkAssets(assets, {
+                cache: [{ prefix: "/_build/assets/", cacheControl: IMMUTABLE }],
+              }),
+            }
+          : {}),
       });
     },
   };

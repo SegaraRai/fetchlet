@@ -26,6 +26,8 @@ export default defineConfig({
       adapter: fetchletAdapter({
         backend: process.env.FETCHLET_BACKEND as "quickjs" | "boa" | "v8" | undefined,
         rendering: "async",
+        // Packed into build/assets.flpk, which build.rs embeds in mdw.
+        assets: true,
       }),
     }),
   ],

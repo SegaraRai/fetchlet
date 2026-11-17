@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import type { Nitro } from "nitropack/types";
 
+import { frameworkAssets, type CacheRule } from "../build/asset-archive.ts";
 import { buildArtifact } from "../build/index.ts";
 import type {} from "./types.d.ts";
 
@@ -13,7 +14,7 @@ const modulePath = (file: string): string => file.replaceAll("\\", "/");
  * server.js and fetchlet.json next to the public assets.
  */
 export async function writeArtifact(nitro: Nitro): Promise<void> {
-  const { backend = "portable", intl = {} } = nitro.options.fetchlet ?? {};
+  const { backend = "portable", intl = {}, assets = false } = nitro.options.fetchlet ?? {};
   const serverDir = nitro.options.output.serverDir;
   const entry = join(serverDir, "fetchlet.mjs");
   writeFileSync(
@@ -53,5 +54,25 @@ export async function writeArtifact(nitro: Nitro): Promise<void> {
     rendering: "buffered",
     backend,
     intl,
+    ...(assets
+      ? {
+          assets: frameworkAssets(assets, {
+            cache: publicAssetCache(nitro),
+          }),
+        }
+      : {}),
   });
+}
+
+/**
+ * `Cache-Control` for Nitro's public asset directories that set `maxAge`,
+ * such as Nuxt's hashed `/_nuxt/` build output.
+ */
+function publicAssetCache(nitro: Nitro): CacheRule[] {
+  return nitro.options.publicAssets
+    .filter((asset) => asset.maxAge)
+    .map((asset) => ({
+      prefix: (asset.baseURL ?? "/").replace(/\/?$/, "/"),
+      cacheControl: `public, max-age=${asset.maxAge}, immutable`,
+    }));
 }

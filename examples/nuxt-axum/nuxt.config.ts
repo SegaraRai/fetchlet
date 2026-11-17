@@ -19,6 +19,7 @@ export default defineNuxtConfig({
     preset: "fetchlet/nitro",
     fetchlet: {
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+      assets: true,
     },
   },
 });

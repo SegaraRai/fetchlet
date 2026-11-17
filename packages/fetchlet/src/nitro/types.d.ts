@@ -15,6 +15,13 @@ export interface FetchletNitroOptions {
     timeZoneData?: "utc" | "golden" | "all";
     apis?: string[];
   };
+  /**
+   * Also pack the client assets into `assets.flpk` for fetchlet-http to
+   * serve or embed. `true` caches each `publicAssets` directory for its
+   * `maxAge`; an object adds `respond`, which runs after that, and `routes`.
+   * See docs/asset-archive.md.
+   */
+  assets?: boolean | import("../build/asset-archive.ts").AssetArchiveSettings;
 }
 
 declare module "nitropack/types" {
@@ -31,6 +38,8 @@ declare module "h3" {
     /** The client address the Rust server passed in the request context. */
     clientAddress?: string;
     /** Present for requests served by the fetchlet App. */
-    fetchlet?: { env: Readonly<FetchletBindings> };
+    fetchlet?: {
+      env: Readonly<FetchletBindings>;
+    };
   }
 }

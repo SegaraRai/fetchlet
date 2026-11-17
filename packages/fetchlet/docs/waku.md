@@ -23,6 +23,8 @@ export default adapter(fsRouter(modules), { backend: "quickjs" });
 
 Wakuのstatic generationの後に、`dist/server/index.js` を接続した `build/server.js` と `build/fetchlet.json` を書き、`dist/public` を `build/client` へ複製します。
 
+`assets: true` はclient assetsを `assets.flpk` にまとめ、`assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## request context
 
 ```ts

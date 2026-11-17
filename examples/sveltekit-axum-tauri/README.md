@@ -33,7 +33,7 @@ mdw openapi [--output openapi.json]
 mdw --config path/to/config.json …
 ```
 
-`--config` を省くと実行ファイルの隣の `config.json`、なければこのディレクトリの `config.json` を使います。build済みのSvelteKit（`build/`）は設定ファイルからの相対パスで探します。
+`--config` を省くと実行ファイルの隣の `config.json`、なければこのディレクトリの `config.json` を使います。SvelteKitのbuild（server.jsとBrotliで圧縮したassets.flpk）は `build.rs` が `include_artifact!` で `mdw` に埋め込むので、実行時に `build/` は要りません。`vp run build` の前にbuildした `mdw` は埋め込みを持たず、設定の `build_directory` に指定したbuildを配信します。設定に `build_directory` を書くと、埋め込みの代わりにそのディレクトリを読みます。
 
 ## 機能
 
@@ -141,14 +141,14 @@ vp run test:examples -- sveltekit-axum-tauri
 
 frontendとRustをbuildし、`tests/e2e.ts` と `tests/desktop.ts` を実行します。
 
-- e2e.ts（14項目）：SSR、Rustでのハイライト、生のHTMLの除去、公開API、競合の409、ワークスペース外のpathの拒否、`/files` のsandbox、Hostヘッダー、hydrationと検索候補とクライアント遷移、エディターのプレビューとCtrl+Sでの保存、外部での変更の反映、エディターでの競合と上書き、remote formでの新規作成と検証、JavaScriptなしの検索と閲覧。結果は `results/example-sveltekit-axum-tauri.json` です。
+- e2e.ts（15項目）：埋め込んだassetsのBrotli配信とETag、SSR、Rustでのハイライト、生のHTMLの除去、公開API、競合の409、ワークスペース外のpathの拒否、`/files` のsandbox、Hostヘッダー、hydrationと検索候補とクライアント遷移、エディターのプレビューとCtrl+Sでの保存、外部での変更の反映、エディターでの競合と上書き、remote formでの新規作成と検証、JavaScriptなしの検索と閲覧。結果は `results/example-sveltekit-axum-tauri.json` です。
 - desktop.ts（5項目、Windowsのみ）：URI schemeでの描画、プロセス内のハイライト、ワークスペースの境界、Tauri eventでの変更通知、protocol経由の保存。結果は `results/example-sveltekit-axum-tauri-desktop.json` です。
 
 `cargo test -p example-sveltekit-axum-tauri` はpathの検証、検索と抜粋、索引、保存の並行制御、予算、シンボリックリンク、syntect、OpenAPI文書の一致を確認します。
 
 ## 次の作業
 
-- `build/` を実行ファイルへ埋め込み、設定ファイルとbuildディレクトリなしで配布できる単一バイナリにする。
+- 設定ファイルの既定値も実行ファイルへ持たせ、`mdw` 単体で配布できるようにする。
 - Tauriのinstaller（`tauri build`）とフォルダー選択ダイアログ。
 - 大きなワークスペース向けの永続的な検索index。
 - fetchletのstreaming応答に合わせて、remote functionsの `query.live` で変更通知を受ける。

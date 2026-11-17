@@ -12,6 +12,15 @@ export default defineConfig({
     fetchletBuild({
       entry: "./app/server.ts",
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+      assets: {
+        // HonoX names its client build output after its contents.
+        respond({ path, headers }) {
+          if (path.startsWith("/static/")) {
+            headers.set("cache-control", "public, max-age=31536000, immutable");
+          }
+          return headers;
+        },
+      },
     }),
   ],
   run: {

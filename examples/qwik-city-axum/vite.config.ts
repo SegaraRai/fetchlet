@@ -12,6 +12,7 @@ export default defineConfig({
     }),
     fetchletAdapter({
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+      assets: true,
     }),
   ],
   run: {

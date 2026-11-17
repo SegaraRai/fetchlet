@@ -1,6 +1,7 @@
 import { cpSync, existsSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+import { archiveArtifactAssets, frameworkAssets, IMMUTABLE } from "../build/asset-archive.ts";
 import { buildArtifact } from "../build/index.ts";
 import type { FetchletWakuOptions } from "./adapter.ts";
 
@@ -20,7 +21,7 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
   ): Promise<void> => {
     await (build as unknown as (utils: unknown, options: unknown) => Promise<void>)(utils, options);
     const { distDir, fetchlet = {} } = options;
-    const { outDir = "build", backend = "portable", intl = {} } = fetchlet;
+    const { outDir = "build", backend = "portable", intl = {}, assets = false } = fetchlet;
     const root = process.cwd();
     const serverModule = resolve(root, distDir, "server", "index.js");
     if (!existsSync(serverModule)) {
@@ -53,6 +54,14 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
     const client = join(output, "client");
     rmSync(client, { recursive: true, force: true });
     cpSync(resolve(root, distDir, "public"), client, { recursive: true });
+    if (assets) {
+      await archiveArtifactAssets({
+        outDir: output,
+        ...frameworkAssets(assets, {
+          cache: [{ prefix: "/assets/", cacheControl: IMMUTABLE }],
+        }),
+      });
+    }
   };
   return enhanced as unknown as Build;
 }

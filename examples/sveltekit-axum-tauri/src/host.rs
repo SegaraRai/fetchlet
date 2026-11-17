@@ -48,8 +48,7 @@ pub(crate) struct Host {
 
 impl Host {
     pub async fn start(config: &Config, workspace_directory: &Path, shell: Shell) -> Result<Self> {
-        let artifact = Artifact::open(&config.build_directory)
-            .context("build the SvelteKit frontend first")?;
+        let artifact = frontend(config)?;
         let workspace = Arc::new(Workspace::open(
             workspace_directory,
             config.workspace_limits(),
@@ -119,5 +118,24 @@ impl Host {
     pub async fn shutdown(self) -> Result<()> {
         self.app.shutdown().await?;
         Ok(())
+    }
+}
+
+/// The SvelteKit build: from `build_directory` when the configuration names
+/// one, otherwise the copy embedded in this binary.
+fn frontend(config: &Config) -> Result<Artifact> {
+    if let Some(directory) = &config.build_directory {
+        return Artifact::open(directory)
+            .with_context(|| format!("read the SvelteKit build in {}", directory.display()));
+    }
+    #[cfg(mdw_embedded)]
+    {
+        Ok(fetchlet_http::include_artifact!(env!("MDW_FRONTEND"))?)
+    }
+    #[cfg(not(mdw_embedded))]
+    {
+        anyhow::bail!(
+            "this mdw was built without the SvelteKit frontend: run `vp run build` before building mdw, or set build_directory"
+        )
     }
 }

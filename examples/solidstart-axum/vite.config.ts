@@ -7,6 +7,7 @@ export default defineConfig({
     solidStart(),
     fetchletSolidStart({
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+      assets: true,
     }),
   ],
   run: {

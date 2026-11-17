@@ -83,6 +83,9 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
           response.headers.get("content-type") ?? "",
           asset.pathname.endsWith(".css") ? /css/ : /javascript/,
         );
+        // Served from the artifact's asset archive with the framework's caching.
+        assert.ok(response.headers.get("etag"), `${asset.pathname} ETag`);
+        assert.match(response.headers.get("cache-control") ?? "", /immutable/, asset.pathname);
       }
       assert.match(
         await (await fetch(suite.base + "/health.txt")).text(),

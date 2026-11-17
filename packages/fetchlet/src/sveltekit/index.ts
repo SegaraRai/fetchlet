@@ -4,7 +4,13 @@ import { resolve, join } from "node:path";
 import type { Adapter } from "@sveltejs/kit";
 import type { Plugin } from "rolldown";
 
-import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import {
+  buildArtifact,
+  type AssetArchiveSettings,
+  type BuildBackend,
+  type IntlOptions,
+} from "../build/index.ts";
+import { frameworkAssets, IMMUTABLE } from "../build/asset-archive.ts";
 
 export interface FetchletSvelteKitOptions {
   /** The artifact directory. Defaults to "build". */
@@ -19,6 +25,16 @@ export interface FetchletSvelteKitOptions {
    * within one invocation. Defaults to "synchronous".
    */
   rendering?: "synchronous" | "async";
+  /**
+   * Also pack the client assets into `assets.flpk` for fetchlet-http to
+   * serve or embed. `true` uses SvelteKit's conventions: hashed files under
+   * `_app/immutable/` are cached for a year, and prerendered pages are served
+   * without `.html` and without a trailing slash, the default `trailingSlash:
+   * "never"`. An object sets `respond` and `routes` instead; its `respond`
+   * runs after the immutable caching is applied, and its `routes` replace
+   * SvelteKit's.
+   */
+  assets?: boolean | AssetArchiveSettings;
 }
 
 function synchronousRendering(): Plugin {
@@ -48,6 +64,7 @@ export default function fetchletAdapter({
   backend = "portable",
   intl = {},
   rendering = "synchronous",
+  assets = false,
 }: FetchletSvelteKitOptions = {}): Adapter {
   if (rendering !== "synchronous" && rendering !== "async") {
     throw new Error(`Unknown rendering profile ${JSON.stringify(rendering)}`);
@@ -109,6 +126,16 @@ export default function fetchletAdapter({
         rendering,
         backend,
         intl,
+        ...(assets
+          ? {
+              assets: frameworkAssets(assets, {
+                cache: [
+                  { prefix: `/${builder.config.appDir}/immutable/`, cacheControl: IMMUTABLE },
+                ],
+                routes: { trailingSlash: "never", htmlExtension: "strip" },
+              }),
+            }
+          : {}),
       });
     },
   };

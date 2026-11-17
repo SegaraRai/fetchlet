@@ -20,6 +20,8 @@ clientを `build/client/`、serverを `node_modules/.cache/fetchlet-solid-start/
 
 SSR environmentは依存をすべてbundleします。条件の `solid` はSolidのlibraryをSSR用にsourceからcompileし、`worker` はsolid-jsのserver buildを選びます。h3はruntime非依存のbuildのままです。
 
+`assets: true` はclient assetsを `assets.flpk` にまとめ、`_build/assets/` を1年キャッシュします。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## request context
 
 entryはh3が読むRequestの `ip`、`waitUntil`、`runtime` を設定します。`getRequestEvent().clientAddress`、h3の `getRequestIP(event)`、`event.waitUntil` はそのまま使えます。bindingは `getRequestContext()` で読みます。

@@ -4,10 +4,18 @@ import { join, resolve } from "node:path";
 import type { Plugin } from "vite";
 
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { frameworkAssets, IMMUTABLE, type AssetArchiveSettings } from "../build/asset-archive.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
 export interface FetchletStartOptions {
+  /**
+   * Also pack the client assets into `assets.flpk` for fetchlet-http to
+   * serve or embed. `true` uses TanStack Start's: hashed files under `assets/`
+   * are cached for a year; an object adds
+   * `respond`, which runs after them, and `routes`. See docs/asset-archive.md.
+   */
+  assets?: boolean | AssetArchiveSettings;
   /** Where server.js, fetchlet.json and client/ are written. Defaults to "build". */
   outDir?: string;
   /** The engine the artifact targets. */
@@ -34,6 +42,7 @@ export default function fetchletStart({
   outDir = "build",
   backend = "portable",
   intl = {},
+  assets = false,
 }: FetchletStartOptions = {}): Plugin {
   let root = process.cwd();
   let serverDirectory: string | undefined;
@@ -120,6 +129,13 @@ export default function fetchletStart({
         asyncContext: "serialized",
         backend,
         intl,
+        ...(assets
+          ? {
+              assets: frameworkAssets(assets, {
+                cache: [{ prefix: "/assets/", cacheControl: IMMUTABLE }],
+              }),
+            }
+          : {}),
       });
     },
   };

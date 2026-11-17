@@ -44,7 +44,9 @@ pub(crate) struct Config {
     pub workspace_notes: NonZeroUsize,
     /// Quiet period that coalesces a burst of file events into one rescan.
     pub watch_debounce_ms: u64,
-    pub build_directory: PathBuf,
+    /// A SvelteKit build to serve in place of the one embedded in the binary.
+    #[serde(default)]
+    pub build_directory: Option<PathBuf>,
     #[serde(default)]
     pub backend: Engine,
     pub quickjs_stack_bytes: Option<usize>,
@@ -58,11 +60,13 @@ impl Config {
             .with_context(|| format!("read configuration {}", path.display()))?;
         let mut config: Self = serde_json::from_slice(&source)
             .with_context(|| format!("parse configuration {}", path.display()))?;
-        if config.build_directory.is_relative() {
-            config.build_directory = path
+        if let Some(directory) = &mut config.build_directory
+            && directory.is_relative()
+        {
+            *directory = path
                 .parent()
                 .unwrap_or_else(|| Path::new("."))
-                .join(config.build_directory);
+                .join(&*directory);
         }
         Ok(config)
     }

@@ -49,6 +49,10 @@ localeとtimezone packはDateTimeFormat等のpolyfillを選んだ場合にbundle
 
 再bundleはRolldownで、依存をすべて含むIIFEのserver.jsを1つ出力します。entryは仮想moduleとして組み立て、ソースの隣に一時ファイルを作りません。adapterのshimも同名のnpm packageも提供しないNodeの組み込みmoduleは、Viteのbrowser buildと同じく空のmoduleになり、呼び出した箇所で失敗します。公開ファイルは各adapterがclient/へ置き、server.jsの隣には複製しません。HonoX、TanStack Start、SolidStart、Waku、vinextのadapterと、SvelteKit adapterの `rendering: "async"` が `asyncContext: "serialized"` を使います。
 
+## 静的アセットのアーカイブ
+
+`archiveArtifactAssets({ outDir, respond, routes })` は、artifactのclientディレクトリを `assets.flpk` にまとめ、`fetchlet.json` の `assets` に記録します。テキストはBrotli（品質11）で格納し、Rustの `AssetService` が `br` 対応クライアントへはそのまま、それ以外へは展開して返します。`respond(info)` は各パスの応答ヘッダーを `Headers` で返すか、`Response` で状態・ヘッダー・本文ごと置き換えます。各frameworkのadapterは `assets: true` で同じアーカイブを書き、ハッシュ付きのファイルにframeworkごとの `Cache-Control: immutable` を付けます。`.vite/` など `.` で始まるファイルとディレクトリは含めません。形式と応答の規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。
+
 ## artifactと検証
 
 出力はserver.js、client/への参照、fetchlet.jsonです。client assetsの生成は各framework adapterが担当します。manifestにはbackend、要求API、native前提、実際に選んだpolyfill / moduleとlocale・timezoneの設定を保存します。RustのModuleは現在ソースを受け取るため、これらのmetadataを用いるRust側の自動選択は次の統合対象です。

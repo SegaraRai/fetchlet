@@ -24,3 +24,7 @@ examples/astro-axumはQuickJS＋FormatJSで、SSR、Svelte island、フォーム
 画像変換、server islands、session、static output等は個別の能力と試験を追加する対象です。現在の実測範囲は例の9項目です。
 
 [Astro adapter API](https://docs.astro.build/en/reference/adapter-reference/)と[server entrypoint API](https://docs.astro.build/en/reference/modules/astro-app/)を使っています。
+
+## 静的アセットのアーカイブ
+
+`assets: true` はclient assetsを `assets.flpk` にまとめ、`build.assets`（既定 `_astro`）を1年キャッシュし、ページのpathを `trailingSlash` と `build.format` に合わせます。形式と規則は[docs/asset-archive.md](../../../docs/asset-archive.md)にあります。

@@ -1,11 +1,15 @@
 {
-  "checkedAt": "2026-11-17T05:56:30.056Z",
+  "checkedAt": "2026-11-17T12:27:05.872Z",
   "summary": {
-    "passed": 14,
+    "passed": 15,
     "failed": 0
   },
   "browser": "159.0.8154.6",
   "results": [
+    {
+      "name": "client assets come from the archive embedded in mdw",
+      "status": "pass"
+    },
     {
       "name": "SSR renders the workspace, the note tree and Markdown through the JavaScript renderer",
       "status": "pass"
