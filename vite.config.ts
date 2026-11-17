@@ -24,6 +24,10 @@ export default defineConfig({
         command: lab,
         cache: false,
       },
+      "build:reference": {
+        command: "node tools/docs/reference.ts",
+        cache: false,
+      },
 
       // check
       "check:types": {
@@ -36,9 +40,13 @@ export default defineConfig({
           "vp fmt crates/fetchlet/js crates/fetchlet/tests/fixtures crates/fetchlet-http/tests/fixtures crates/fetchlet-http/tests/contract packages examples fixtures tools tests/conformance/regressions vite.config.ts tsconfig.json package.json --check",
         cache: false,
       },
+      "check:generated": {
+        command: "node tools/docs/reference.ts --check",
+        cache: false,
+      },
       check: {
         command: "",
-        dependsOn: ["check:types", "check:format"],
+        dependsOn: ["check:types", "check:format", "check:generated"],
       },
 
       // test

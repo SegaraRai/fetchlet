@@ -1,10 +1,10 @@
 # Host services
 
-2026-11-16。開発中の公開APIと、その所有権・通信契約を説明します。
+`HostServices` is the authority an app receives from Rust: environment
+values, named services, outbound fetch and a console sink. This page covers
+configuring them and the contracts they keep.
 
-## Appとbinding
-
-`App` はmodule、Instance、固定binding、資源予算を保持します。呼び出しごとにInvocationを作り、その呼び出しで開始するRust Futureを所有します。
+## Bindings
 
 ```rust,ignore
 use fetchlet::{
@@ -34,86 +34,159 @@ let mut app = App::builder(Backend::quickjs())
     .build()?;
 ```
 
-JSでは `fetch(url, init)`、`fetchlet.env.API.fetch(url, init)`、`fetchlet.env.APP_ENV` を使います。bindingはmodule評価前に設置する読み取り専用のnull-prototype objectです。公開するenvの値とserviceはRust側で指定します。JSが読む必要のある値をenvへ渡し、上流の認証情報はRust側のcredentials callbackへ保持します。
+JavaScript uses `fetch(url, init)`, `fetchlet.env.API.fetch(url, init)` and
+`fetchlet.env.APP_ENV`. `getBindings()` from `fetchlet/runtime/adapter`
+returns the same object. The bindings are a read-only, null-prototype
+object installed before the module is evaluated. Rust decides every value
+and service in it. Pass JavaScript only what it must read; keep upstream
+credentials in Rust, in the service's credentials callback.
 
-Appは `&mut self` による直列実行です。QuickJSとBoaは呼び出し側が所有するスレッドで動作し、V8はisolate専用workerを持ちます。AppHandleでは所有スレッドとキューをライブラリが管理します。poolは今後の拡張対象です。
+`App` runs calls one at a time through `&mut self`. QuickJS and Boa run on
+the caller's thread; V8 keeps a dedicated worker per isolate. `AppHandle`
+manages the thread and queue itself.
 
-## console
+## Console
 
-`HostServices::console` に渡したcallbackが、JSの `console.debug` / `log` / `info` / `warn` / `error` を `ConsoleLevel` と整形済みの1行文字列で受け取ります。SvelteKitなどのframeworkはserver側のエラーを `console.error` で報告するため、Rust側のログへ流すと障害を追えます。
+The callback passed to `HostServices::console` receives each
+`console.debug`, `log`, `info`, `warn` and `error` call as a `ConsoleLevel`
+and one formatted line. Frameworks such as SvelteKit report server errors
+with `console.error`, so forwarding them to Rust logs makes failures
+visible.
 
 ```rust,ignore
 let hosts = HostServices::new()
     .console(|level, message| eprintln!("[js {level:?}] {message}"));
 ```
 
-文字列はそのまま、Errorはstack（なければ名前とmessage）、objectはJSON、その他は `String(value)` で整形し、空白で連結します。1回の呼び出しが1件のbridge messageで、`Limits::bridge_message_bytes` を超える場合は `[fetchlet: console message dropped]` に置き換わります。consoleの呼び出しがアプリへ例外を投げることはありません。callbackはJSを実行するスレッドで呼ばれるため、重い処理は別のスレッドやキューへ渡します。sinkを設定しない場合、console出力は従来どおり破棄されます。3つのbackendで同じ契約を `crates/fetchlet/tests/app.rs` が検証しています。
+Strings are kept as they are, errors become their stack (or name and
+message), objects become JSON and other values `String(value)`; the parts
+are joined with spaces. Each call is one bridge message; one larger than
+`Limits::bridge_message_bytes` is replaced with
+`[fetchlet: console message dropped]`. Console calls never throw into the
+application. The callback runs on the JavaScript thread, so hand heavy work
+to another thread or queue. Without a sink, console output is discarded.
+`crates/fetchlet/tests/app.rs` checks the contract on all three engines.
 
-## bundleの入口
+## Bundle entry
 
-現在のmoduleはビルド済みIIFEで、`fetchletExports` に公開関数を置きます。任意関数には `App::call` / `call_json`、Fetchには既定名 `handle` のwire adapterを使います。入口名は `AppBuilder::fetch_handler` で選択します。
+A module is a built IIFE that puts its exports on `fetchletExports`.
+`App::call` and `call_json` call any export; `fetch` calls the Fetch entry,
+`handle` unless `AppBuilder::fetch_handler` names another.
 
-Fetch adapterはURL、method、header pairs、本文バイト列をWeb Requestへ変換し、Web Responseを逆変換します。`fixtures/hono.tsx` と `fixtures/sveltekit/entry.ts` が例です。workspaceの `fetchlet/runtime/adapter` は標準Fetchハンドラを接続し、`fetchlet/sveltekit` はserver bundleとclient assetsを生成します。実行例は `examples/sveltekit-axum/` にあります。
+The Fetch entry converts the URL, method, header pairs and body into a Web
+`Request` and converts the returned `Response` back.
+`createFetchHandler` in `fetchlet/runtime/adapter` builds one from a
+standard handler; the framework adapters in the `fetchlet` package build
+their entries with it. `fixtures/hono.tsx` and `fixtures/sveltekit/entry.ts`
+are small examples.
 
-## プロセス内のRust関数を呼ぶ
+`App::fetch_with_context(request, &context)` passes a Serde value as the
+entry's second argument. `fetchlet-http` uses it for
+`RequestContext { clientAddress }`.
 
-上のtransport_fnの例は、Rust関数が直接Responseを作る構成です。HostServices::outboundへ渡せばglobal fetchから、serviceへ登録すればfetchlet.env.API.fetchから利用できます。内部呼び出しのためのHTTP接続やlistenを用意せず、同じFetchServiceの認可・資源予算を適用できます。
+## Calling Rust in-process
 
-`OriginRouter` はoriginの完全一致でtransportを選び、登録したoriginだけを許可するserviceを作ります。internal routeは、`App::fetch` に渡したRequestのextensionsにある `Context`（認証主体等、JSから読めない値）をrequest extensionsで受け取ります。`fetchlet_axum::router_transport` は同じaxum routerを公開HTTPとプロセス内fetchで共用します。host fetchの処理中に同じ `AppHandle` を呼ぶと `Error::Reentrant` になります。詳細は[プロセス内fetch](in-process-fetch.md)を参照してください。
+The `transport_fn` above answers with a Rust function directly. Registered
+as `outbound`, it serves global `fetch`; registered as a service, it serves
+`fetchlet.env.API.fetch`. No HTTP connection or listening socket is needed,
+and the same authorization and budgets apply.
 
-## fetchの処理順序
+`OriginRouter` selects a transport by exact origin and builds a service that
+allows only the registered origins. Internal routes receive the `Context`
+from the extensions of the request given to `App::fetch`.
+`fetchlet_http::router_transport` lets one axum router serve both public
+HTTP and in-process fetches. Calling the same `AppHandle` while one of its
+host fetches is running fails with `Error::Reentrant`. [In-process
+fetch](in-process-fetch.md) has the details.
 
-1. JS Requestの本文を読み取り、設定された本文・chunk・message予算を検査する。
-2. Invocationのsubrequest予算を消費し、serviceを選択する。
-3. Rustのrewrite callbackでRequestを書き換える。
-4. 書き換え後のorigin、method、header、本文を検査する。
-5. credentials callbackで認証情報を付け、transport用headerを整理する。
-6. single-hop transportを実行する。
-7. redirectを追う場合は、認証付与前のRequestを基に次のRequestを作り、同じ検査を行う。
+## Fetch processing order
 
-originはscheme / host / portの正規化後の完全一致で判定します。credentials callbackが追加したheaderの寿命は一回の送信です。別originへのredirectでは、guestが指定したAuthorization、Cookie等も除去します。
+1. Read the JavaScript request body and check the body, chunk and message
+   budgets.
+2. Count a subrequest against the invocation and select the service.
+3. Let the Rust rewrite callback change the request.
+4. Check the rewritten origin, method, headers and body.
+5. Attach credentials with the credentials callback and normalize transport
+   headers.
+6. Run the single-hop transport.
+7. To follow a redirect, build the next request from the request before
+   credentials and run the same checks.
 
-`FetchService::rewrite` は認可前、`credentials` は認可後に実行します。credentials callbackでは渡されたURLに応じて秘密の送信先を限定します。
+Origins match exactly after normalizing scheme, host and port. Headers added
+by the credentials callback live for one send. A redirect to another origin
+also removes guest-supplied `Authorization`, `Cookie` and similar headers.
 
-## transportの契約
+`FetchService::rewrite` runs before authorization and `credentials` after
+it, so the credentials callback can restrict each secret to the URL it is
+given.
 
-transportはRust側が信頼する実装を渡します。必要な契約は、single-hopの応答、Futureのdropによる処理中断、受信中の本文予算の適用です。実HTTP clientを接続するときは、DNS解決結果と実際の接続先IPも検査します。origin policyはURLの認可を担当し、ネットワーク到達性の制御はtransportが担当します。
+## Transport contract
 
-fetchletはtransportのFutureをInvocation内で直接pollします。Futureのwaker通知か、JSの次のtimer時刻でエンジンを起床させます。周期的なpoll待機時間は設けていません。
+A transport is a trusted Rust implementation. It must answer a single hop,
+stop work when its future is dropped and enforce the body budget while
+receiving. A real HTTP client must also check DNS results and the address it
+connects to: the origin policy authorizes URLs, and the transport controls
+network reachability.
 
-transportはstreaming本文を返せます（`Body::from_http_body`）。guestのfetchでは本文をJSのReadableStreamとして需要駆動で読み、`response_body_bytes` を宣言長と読み取りの累積で検査します。JS側のcancel・abort、Invocationの終了で本文をdropし、transportへcancelを伝えます。Rustから直接使う `FetchService::fetch` は本文を予算内で回収して返します。
+The invocation polls the transport future directly and wakes the engine on
+the future's waker or the next JavaScript timer; there is no periodic
+polling.
 
-## 本文とライフサイクル
+A transport may return a streaming body (`Body::from_http_body`). A guest
+fetch reads it on demand as a `ReadableStream` and checks
+`response_body_bytes` against the declared length and the running total.
+Cancelling or aborting in JavaScript, or ending the invocation, drops the
+body and cancels the transport. `FetchService::fetch`, called from Rust,
+collects the body within the budget.
 
-公開型は `http::Request<Body>` / `http::Response<Body>`。`Body` は `http_body::Body` を実装し、buffer、workerからのstreaming、任意の `http_body::Body` を包んだstreaming（`Body::from_http_body`）を保持します。バイナリ本文と複数のSet-Cookieを維持します。JSとの転送はJSON messageと、Invocationのbyte storeを介したtyped arrayです。
+## Bodies and lifetime
 
-Invocation終了時には所有するtransport Futureを同期的にdropします。通常の完了や、処理の残っていないJS例外の後はInstanceを再利用できます。Rust Futureの中断、期限切れ、未完了のhost fetchを残したreturnの後はInstanceを退役させます。`App::is_reusable()` で状態を確認でき、退役後の呼び出しは `InstanceUnavailable` を返します。
+The public types are `http::Request<Body>` and `http::Response<Body>`.
+`Body` implements `http_body::Body` and holds a buffer, a stream from the
+worker, or any wrapped `http_body::Body`. Binary bodies and repeated
+`Set-Cookie` headers are preserved.
 
-現profileでは呼び出し終了時に残ったtimerを破棄します。streaming本文はInvocationを保持するleaseで、本文完了・cancelまで実行環境を維持します。`fetchlet.waitUntil` で登録したbackground処理は、Invocationのhost scopeとtimerを保持したまま応答後に実行し、`background_timeout` と `background_tasks` の予算で制限します（[設計方針](design-proposal.md#streamingとbackground)）。
+When an invocation ends it drops its transport futures synchronously. After
+a normal completion, or a JavaScript exception with nothing pending, the
+instance is reused. A dropped Rust future, an expired deadline or a return
+with host fetches still pending retires it; `App::is_reusable()` reports
+this, and calls on a retired `App` fail with `InstanceUnavailable`.
+`AppHandle` rebuilds the instance instead.
 
-## 資源予算
+Timers left when a call ends are discarded. A streaming body holds its
+invocation until it completes or is cancelled, and work registered with
+`fetchlet.waitUntil` keeps the invocation open within `background_timeout`
+and `background_tasks` ([data flow](data-flow.md#background-work)).
 
-`AppBuilder::limits(Limits)` で用途に応じた予算を指定します。各項目は `Option` で、`Some(value)` がその予算を有効にします。`None` は周囲のHTTPサーバやprocess supervisorに予算管理を委ねます。既定の `Limits` は全項目 `None` です。
+## Budgets
 
-本文、headers、URL、message、digest、subrequest、redirect、協調的期限を設定できます。エンジン固有のheap / stackは `QuickJsOptions`、V8 workerのstackは `V8Options` で指定します。詳細と根拠は[資源予算](resource-policy.md)にまとめています。
+`AppBuilder::limits(Limits)` sets budgets for the use case. Each field is an
+`Option`; `None` leaves that budget to the surrounding server or process
+supervisor, and every field defaults to `None`. Engine heap and stack
+settings live in `QuickJsOptions` and `V8Options`. [Resource
+policy](resource-policy.md) lists them with their scopes.
 
-## 検証
+## Shared handles and HTTP
 
-`vp run test:host` は3エンジンで本物のJS fetchとmock transportを往復させます。通信権限、binary POST、Cookie、認証付与、redirect、rewrite、env、名前付きservice、abort、Instance退役を検査します。
+`AppBuilder::spawn` returns an `AppHandle` that clones share for functions,
+Fetch and Fetch with context, with an explicit queue capacity
+([crate README](../crates/fetchlet/README.md)).
+[fetchlet-http](../crates/fetchlet-http/README.md) connects it to HTTP
+servers; the same request handling contract runs against every layer.
 
-結果は [host-matrix.json](../results/host-matrix.json)。実装は `crates/fetchlet/src/host/`、`crates/fetchlet/src/bridge/`、`crates/fetchlet/js/host-bridge.js`、runnerは `tools/lab/` にあります。
+| Feature | Adds                                                                     |
+| ------- | ------------------------------------------------------------------------ |
+| (none)  | `FetchletService` (Tower and `http` 1), in-process transport, `Artifact` |
+| `hyper` | `HyperService`, with hyper 1 connections and the peer address            |
+| `axum`  | `AxumService`, `ConnectInfo`, `router_transport`, `artifact_router`      |
+| `actix` | `ActixService` for actix-web 4                                           |
 
-`App::fetch_with_context(request, &context)` はentryの第二引数へSerde対応の呼び出し固有情報を渡します。SvelteKit adapterではclient addressに利用します。
+## Tests
 
-## 共有実行とHTTP統合
-
-AppBuilder::spawnはSend + SyncのAppHandleを返します。関数、Fetch、context付きFetchをclone間で共有でき、キュー容量を明示設定します。Futureのdropをキャンセルへ伝え、退役したInstanceは次の呼び出し前に再生成します。shutdownは新規受付を終了し、受付済み処理と資源回収を待ちます。詳細は[共有handle](../crates/fetchlet/README.md)を参照してください。
-
-HTTPサーバとの接続は[fetchlet-http](../crates/fetchlet-http/README.md)が担います。受信の変換、公開origin、本文予算、context、エラー応答の振る舞いは共通で、[共通契約](../crates/fetchlet-http/tests/contract/mod.rs)を各層で実行して確認します。
-
-| feature  | 対象                                                                     |
-| -------- | ------------------------------------------------------------------------ |
-| （なし） | `FetchletService`（Towerと `http` 1系）、プロセス内transport、`Artifact` |
-| `hyper`  | `HyperService`。hyper 1のservice traitと接続のpeer address               |
-| `axum`   | `AxumService`。axumの型とConnectInfo、`artifact_router`                  |
-| `actix`  | `ActixService`。actix-web 4（`http` 0.2系、非Sendのhandler）             |
+`vp run test:host` sends real JavaScript fetches through mock transports on
+all three engines: permissions, binary POST, cookies, credentials,
+redirects, rewrites, env, named services, abort and instance retirement.
+Results are in [reference](reference/README.md#host-services). The
+implementation is in `crates/fetchlet/src/host/`,
+`crates/fetchlet/src/bridge/` and `crates/fetchlet/js/host-bridge.js`; the
+runner is in `tools/lab/`.

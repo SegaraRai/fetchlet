@@ -1,0 +1,51 @@
+# fetchlet documentation
+
+## Concepts
+
+- [Overview](overview.md): purpose, use cases, principles and scope.
+- [Domain model](domain-model.md): App, Instance, Invocation, host services
+  and artifacts, and who owns what.
+- [Data flow](data-flow.md): a build, a request, a response body and an
+  outbound fetch, step by step.
+
+## Using fetchlet from Rust
+
+- [fetchlet crate](../crates/fetchlet/README.md): `App`, `AppHandle` and
+  engine selection.
+- [fetchlet-http crate](../crates/fetchlet-http/README.md): Tower, hyper,
+  axum and actix integration, artifacts and errors.
+- [Host services](host-services.md): env, services, console, outbound fetch
+  and transports.
+- [In-process fetch](in-process-fetch.md): calling Rust routers from
+  JavaScript with a trusted Context.
+- [Resource policy](resource-policy.md): caller budgets and fixed limits.
+- [Embedding and distribution](embedding.md): single binaries and Tauri.
+- [Asset archive](asset-archive.md): the `assets.flpk` format and how it is
+  served.
+
+## Building JavaScript
+
+- [fetchlet npm package](../packages/fetchlet/README.md): subpaths and
+  framework adapters.
+- [fetchlet/build](../packages/fetchlet/docs/build.md): artifacts and
+  polyfill selection.
+- [fetchlet/runtime](../packages/fetchlet/docs/runtime.md): the Fetch entry
+  and bindings.
+- [Web API profile](web-api.md): what the profile provides on every engine.
+- [Examples](../examples/README.md): runnable applications per framework.
+
+## Security and verification
+
+- [Security](security.md): the execution boundary, isolation and fuzzing.
+- [Conformance](conformance.md): WPT, Test262 and known differences.
+- [Verification](verification.md): test suites and environment.
+- [Reference](reference/README.md): measured results, generated from
+  `results/`.
+
+## Planning and research
+
+- [Open work](TODO.md): remaining limitations and the evidence that would
+  resolve them.
+- [Web API implementations](research/web-api-implementations.md): a survey
+  of LLRT, Deno and Boa runtimes.
+- [Ahead-of-time compilation](research/native-aot.md): Perry and scriptc.

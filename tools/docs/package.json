@@ -1,0 +1,11 @@
+{
+  "name": "@fetchlet-internal/tools-docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Renders the recorded results into docs/reference",
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@types/node": "catalog:"
+  }
+}

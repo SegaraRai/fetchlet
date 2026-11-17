@@ -37,3 +37,95 @@ Sources: [SolidStart adapter](../packages/fetchlet/src/solid-start/index.ts),
 [Nitro runtime](../packages/fetchlet/src/nitro/runtime/nitro.ts),
 [Nitro declarations](../packages/fetchlet/src/nitro/types.d.ts),
 [workspace catalog](../pnpm-workspace.yaml).
+
+## Runtime
+
+### Capability negotiation
+
+`fetchlet.json` records the target backend, required APIs and chosen
+polyfills, but `Module` takes only source, so Rust does not compare them with
+the engine it runs. Add a check at build time of the `App` that refuses an
+artifact whose requirements the backend lacks, and extend the capability
+table beyond Intl as each polyfill gains conformance tests.
+
+### Enforcement and isolation
+
+Deadlines are cooperative. Stopping JavaScript that never yields, stopping
+initialization and bounding the whole heap need per-engine interrupts and
+heap limits, and third-party code needs a process boundary. Each engine's
+mechanism needs a regression test that stops a non-yielding script and
+retires the instance.
+
+### Instance pools
+
+`App` and `AppHandle` run one instance serially. A pool would key compiled
+code by code, engine version and profile, and reuse instances only within
+one application, tenant and authority configuration. Reentrancy under a
+pool (waiting for capacity) and calls from tasks spawned by host futures,
+which are not detected today, need defined behavior and tests.
+
+### Streaming outbound request bodies
+
+Outbound request bodies are read in full in JavaScript because a redirect
+may resend them. Streaming them needs rules for when a redirect may resend,
+and tests for cancellation and budgets on that path.
+
+### Context for function calls
+
+The trusted `Context` reaches host fetches made during `fetch`. `App::call`
+and `call_json` have no way to pass one; add an entry point and cover it in
+`crates/fetchlet/tests/in_process.rs`.
+
+### Values beyond JSON
+
+Function arguments and results are JSON-compatible values. Handles and host
+resources need a boundary with explicit ownership and lifetime.
+
+## Frameworks
+
+### Internal fetch per framework
+
+The split between framework-internal fetches and host fetches is verified
+for SvelteKit's `event.fetch`. Verify it for each other adapter and record
+the result in its guide.
+
+### React Router
+
+Split server bundles, prerendering and RSC mode are not supported by
+`fetchlet/react-router`; each needs its own example checks.
+
+### Asynchronous SvelteKit SSR
+
+`rendering: "async"` runs Svelte's experimental async SSR with the
+serialized `AsyncLocalStorage`. Concurrent `run` calls within one invocation
+share the last started store; isolating them needs engine support for async
+context or a different scheduler.
+
+## Distribution
+
+### Tauri
+
+Installers built with `tauri build`, bundling the build directory as a
+resource, and builds on macOS (WKWebView) and Linux (WebKitGTK) are not
+verified. examples/sveltekit-axum-tauri also reads its configuration from a
+file next to the binary; defaults compiled into the binary would make `mdw`
+distributable alone.
+
+### Measurements
+
+Startup time, time to first content, distribution size, RSS and latency
+under load have not been measured per engine and polyfill selection. Measure
+them on the same application, compare with a static build of the same pages,
+and use the results to recommend `Limits` values.
+
+### Windows CRT
+
+All-feature links on Windows warn `LNK4098 libcmt.lib`. Settle the CRT
+configuration before release.
+
+## Conformance
+
+Test262 host features, negative and module tests, writable, transform and
+piping Streams, the no-cors header guard, legacy multi-byte encodings, and
+fuzzing of JavaScript multipart and Body parsing are next
+([conformance](conformance.md#next)).

@@ -1,63 +1,86 @@
-# 資源予算と実装上の上限
+# Resource policy
 
-2026-11-16。値の所有者と根拠を区別し、運用ポリシーを呼び出し側で設定できる構成に整理しました。
+Every limit in fetchlet has an owner. Operational budgets belong to the
+caller and live in configuration. Limits that come from a specification or
+from the capacity of a type or dependency are fixed and documented with
+their source.
 
-## 呼び出し側が選ぶ予算
+## Caller budgets
 
-`Limits` の各項目は `Option` です。`Some(value)` で有効にし、`None` はホストへ管理を委ねます。既定値はすべて `None` です。必要な値は、アプリの入力、SSR出力、上流service、並列数、process全体の容量を計測して決めます。
+Each `Limits` field is an `Option`. `Some(value)` enables the budget;
+`None` leaves it to the host, and every field defaults to `None`. Choose
+values by measuring the application's inputs, SSR output, upstream
+services, concurrency and the process's total capacity.
 
-| 項目                 | 単位・適用箇所                                                                                     |
-| -------------------- | -------------------------------------------------------------------------------------------------- |
-| timeout              | 一回のApp呼び出し（streaming本文の完了まで）、またはRustから直接使うFetchServiceの協調的な経過時間 |
-| request_body_bytes   | 個々の入力Request・外向きRequest本文のバイト数。streaming本文は宣言長と読み取りの累積で検査        |
-| request_body_chunks  | JSから外向きRequest本文を読むときのchunk数。空chunkも数える                                        |
-| response_body_bytes  | 個々の出力Response・上流Response本文のバイト数。streaming本文は宣言長と累積で検査                  |
-| header_bytes         | 個々のheader集合の名前・値の合計バイト数                                                           |
-| url_bytes            | 入力Requestおよび書き換え後の送信先URLのバイト数                                                   |
-| bridge_message_bytes | native callbackへ渡す個々のJSON入力message、およびJSから渡す個々の本文bufferのバイト数             |
-| digest_bytes         | SHA-256へ渡す入力バイト数                                                                          |
-| subrequests          | 一回のInvocationで開始を試みるhost fetch数。失敗・中断でも消費を保持                               |
-| redirects            | 一回のfetchで追うredirect数。Fetchの仕様上限の範囲で適用                                           |
-| background_timeout   | `fetchlet.waitUntil` の処理の協調的な経過時間。結果または本文の終了時点から数える                  |
-| background_tasks     | 一回のInvocationでの `fetchlet.waitUntil` の登録数。完了済みの登録も数える                         |
+| Field                  | Unit and scope                                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `timeout`              | Cooperative elapsed time of one app call, until its streaming body completes, or of a `FetchService` call from Rust                       |
+| `request_body_bytes`   | Bytes of each incoming request body and each outbound request body; streams are checked against the declared length and the running total |
+| `request_body_chunks`  | Chunks read from an outbound request body in JavaScript, empty chunks included                                                            |
+| `response_body_bytes`  | Bytes of each outgoing response body and each upstream response body; declared length and running total                                   |
+| `header_bytes`         | Total bytes of names and values in each header set                                                                                        |
+| `url_bytes`            | Bytes of the incoming request URL and of each rewritten destination URL                                                                   |
+| `bridge_message_bytes` | Bytes of each JSON message to a native callback, and of each body buffer passed from JavaScript                                           |
+| `digest_bytes`         | Bytes of input to SHA-256                                                                                                                 |
+| `subrequests`          | Host fetches an invocation attempts to start; failed and aborted attempts still count                                                     |
+| `redirects`            | Redirects one fetch follows, within the Fetch specification's limit                                                                       |
+| `background_timeout`   | Cooperative elapsed time of `fetchlet.waitUntil` work, counted from the end of the result or body                                         |
+| `background_tasks`     | `fetchlet.waitUntil` registrations per invocation, completed ones included                                                                |
 
-`Some(0)` はゼロの予算です。timeoutでは呼び出し開始前の期限切れになります。Bodyの `collect(limit)` に渡す値も呼び出し側の予算です。
+`Some(0)` is a budget of zero; a zero `timeout` expires before the call
+starts. The `limit` passed to `Body::collect(limit)` is also a caller
+budget.
 
-`WorkerOptions::response_body_queue` はworkerがJSから先読みするstreaming本文のchunk数です。既定1で、consumerの読み取りに合わせて生成します。JS側で1回のpullにまとめるchunkの64 KiBはbackpressureの粒度で、本文の予算ではありません。
+`WorkerOptions::response_body_queue` is how many chunks of a streaming body
+the worker reads ahead from JavaScript. It defaults to one, so production
+follows consumption. JavaScript merges up to 64 KiB of available chunks into
+one pull; that is backpressure granularity, not a body budget.
 
-本文のbyte storeとbody sourceはInvocationが所有し、終了時に解放します。body sourceはRustが入力Requestとhost fetchの応答に対して開くため、数はsubrequest等の予算に従います。JSから渡したbufferは未取得のものを常に1つまで保持し、guestがengine heapの外にメモリを溜められない構成です。Rustから渡したbufferは各本文の予算の範囲です。
+The byte store and body sources belong to the invocation and are released
+when it ends. Body sources are opened by Rust for the incoming request and
+for host fetch responses, so their number follows `subrequests`. JavaScript
+can leave at most one unclaimed buffer in the byte store at a time, so a
+guest cannot accumulate memory outside the engine heap; buffers from Rust are
+bounded by each body's budget.
 
-本文、headers、messageの検査は個々の境界に適用します。JSON変換・buffering前後のコピーやエンジン全体のheap使用量は別に管理します。yieldしないJSと初期化時の実行には、エンジンの割り込みや外部process管理による強制が必要です。
+Body, header and message checks apply at each boundary. Copies made during
+JSON conversion and buffering, and the engine's total heap, are managed
+separately. JavaScript that never yields, and code running during
+initialization, needs engine interrupts or an external process supervisor
+to stop.
 
-## 既存の固定値の見直し
+## Engine settings
 
-| 以前の設定                                        | 現在の扱い                                 | 判断の理由                                      |
-| ------------------------------------------------- | ------------------------------------------ | ----------------------------------------------- |
-| Appの5秒、backendの10秒                           | 任意のtimeoutをAppで一元管理               | 用途ごとの応答時間とホストのdeadlineに合わせる  |
-| 本文1 MiB、headers64 KiB、message8 MiB、URL16 KiB | 個別の任意予算                             | 対象アプリの実測を根拠に選ぶ値                  |
-| subrequest16回、redirect5回、chunk16,384個        | 個別の任意予算                             | 呼び出し側の処理内容と通信policyに属する値      |
-| digest1 MiB                                       | digest_bytesで設定                         | SHA-256入力の運用予算として扱う                 |
-| timeout最大1時間等の設定値上限                    | 型・platformで表現できる値を受付           | 一律の実装上限にする根拠がなかった              |
-| binding数128、名前128文字、値64 KiB               | 呼び出し側がbindingを構成                  | trustedな構成入力。重複名は構成エラーとして検査 |
-| QuickJS heap256 MiB / stack2 MiB                  | QuickJsOptionsの明示設定、既定はengine設定 | エンジン固有の資源方針として扱う                |
-| V8 worker stack16 MiB                             | V8Optionsの明示設定、既定はplatform設定    | 使用するbundleとplatformに合わせる              |
-| loopの1〜10 ms待機                                | Futureの通知とJS timer時刻で駆動           | 非同期処理の完了と次の実行時刻に応じて起床する  |
+| Setting                         | Owner and default                                                  |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `QuickJsOptions` heap and stack | The caller; unset values keep QuickJS's own defaults (1 MiB stack) |
+| `V8Options` worker stack        | The caller; unset keeps the platform's thread stack size           |
+| `WorkerOptions` stack           | The caller; unset keeps the platform's thread stack size           |
 
-QuickJSのheap / stackとV8 worker stackを明示する場合は正の値を指定します。予算の有効性は各エンジン・OSが提供する範囲に従います。
+Explicit values must be positive. How well a setting is enforced depends on
+the engine and operating system. A QuickJS stack limit must be smaller than
+the native stack of the thread running it; examples/react-router-axum sets
+4 MiB and 8 MiB because React's recursion exceeds 1 MiB in debug builds.
 
-## 仕様・容量に由来する境界
+## Limits from specifications and capacity
 
-| 境界                          | 根拠・扱い                                                                                                                       |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| getRandomValuesの65,536バイト | [Web Cryptoのquota](https://www.w3.org/TR/webcrypto-2/#Crypto-method-getRandomValues)。仕様に従う固定値                          |
-| redirect20回                  | [FetchのHTTP-redirectアルゴリズム](https://fetch.spec.whatwg.org/#http-redirect-fetch)。呼び出し側はさらに小さい予算を指定できる |
-| usize / u64、時計の表現範囲   | checked arithmeticとtimeout構成検査で扱う                                                                                        |
-| http::HeaderMapやengineの容量 | 依存ライブラリの容量に従い、可能な境界ではエラーへ変換する                                                                       |
+| Limit                                 | Source and handling                                                                                        |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `getRandomValues` at 65,536 bytes     | The [Web Crypto quota](https://www.w3.org/TR/webcrypto-2/#Crypto-method-getRandomValues)                   |
+| 20 redirects                          | The [Fetch HTTP-redirect fetch](https://fetch.spec.whatwg.org/#http-redirect-fetch); callers may set fewer |
+| `usize`, `u64` and clock ranges       | Checked arithmetic and validation of timeout configuration                                                 |
+| `http::HeaderMap` and engine capacity | The dependency's capacity, turned into errors where the boundary allows                                    |
 
-これらは運用上の推奨予算とは別の根拠を持ちます。たとえば20回のredirectはFetchの互換性条件であり、上流APIに適した回数は呼び出し側が選びます。
+These have a different basis from operational budgets. Twenty redirects is
+a compatibility condition of Fetch; the right number for an upstream API is
+the caller's choice.
 
-## 確認方法
+## Checks
 
-以前の1 MiBを超える本文往復、1時間を超えるtimeout構成、任意のmessage / subrequest予算、仕様上限で終了するredirect、pending Futureからの起床を回帰テストで確認します。framework行列ではengine固有オプションの既定値でHono／SvelteKitを動かします。
+Regression tests cover bodies larger than any former default, timeouts
+longer than an hour, arbitrary message and subrequest budgets, redirects
+that stop at the specification limit, and waking from pending futures. The
+framework matrix runs Hono and SvelteKit with default engine settings.
 
-実運用の推奨値は、同一アプリ・同一負荷で起動時間、RSS、処理時間、同時実行数を測った後に提示します。
+Recommended production values will follow measurements of startup time,
+RSS, latency and concurrency on the same application under the same load.

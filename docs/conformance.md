@@ -1,148 +1,184 @@
-# Web APIとECMAScriptの適合性評価
+# Conformance
 
-2026-11-16。WPT、Test262、fetchlet独自の回帰試験を、Node参照とQuickJS / Boa / V8へ同じ入力で実行します。ここで扱う範囲は固定した選定テストです。API全体や上流suite全体の適合率は、対象をさらに広げて評価します。
+fetchlet runs selected WPT, Test262 and its own regression tests on QuickJS,
+Boa and V8, with Node as a reference, using the same inputs. The results
+describe that pinned selection, not a whole API or upstream suite.
 
-## 評価する層
+## Layers
 
-| 試験           | 対象                                                                  | 現在の選定                                                                        |
-| -------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| WPT            | Fetch、Headers、Blob、FormData、Encoding、Abort、StreamsのWeb API動作 | 80ファイル、各構成1266 subtest                                                    |
-| Test262        | engineのECMAScript動作                                                | Array.prototype.at、Promise.resolve、throwの44ファイル。strict / sloppyで88ケース |
-| 独自回帰       | 発見済み不具合の再現と修正                                            | Body、所有権、validation、Blob、FormData、Encodingの15件                          |
-| runner自己試験 | テストを評価する基盤の正しさ                                          | assertion失敗、async完了、mode、global code、期待値、timeout等の8件               |
+| Suite             | Covers                                                               | Selection                                                                        |
+| ----------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| WPT               | Fetch, Headers, Blob, FormData, Encoding, Abort and Streams behavior | 86 files                                                                         |
+| Test262           | The engine's ECMAScript behavior                                     | `Array.prototype.at`, `Promise.resolve` and `throw`: 44 files, strict and sloppy |
+| Regressions       | Reproductions of fixed bugs                                          | Body, ownership, validation, Blob, FormData, Encoding, URL                       |
+| Runner self-tests | The runner itself                                                    | Assertion failures, async completion, modes, global code, expectations, timeouts |
 
-framework E2E、RustのHTTP変換、権限、streamingのbackpressure、host境界のfuzzingは、それぞれ別の試験を維持します。[実装状況](implementation-status.md)と[安全性](security.md)を併せて参照してください。
+Framework end-to-end tests, Rust HTTP conversion, permissions, streaming
+backpressure and host fuzzing are separate suites ([security](security.md)).
 
-## 原本と固定版
+## Sources
 
-上流の原本、公式harness、参照するMETA script / Test262 includes、ライセンスを[upstream](../tests/conformance/upstream/)へ保存しています。[sources.lock.json](../tests/conformance/sources.lock.json)に選定パス、repository、commitと全ファイルのSHA-256を記録し、毎回検証します。原本へはformatterやassertionの変更を適用せず、fetchlet側の実装とrunnerで対応します。
+Upstream sources, official harnesses, the META scripts and Test262 includes
+they use, and licenses are stored in
+[upstream](../tests/conformance/upstream/).
+[sources.lock.json](../tests/conformance/sources.lock.json) records the
+selected paths, repository, commit and SHA-256 of every file, verified on
+each run. Sources are never reformatted or edited; fetchlet's implementation
+and runner adapt to them.
 
 - WPT: [c43f14b481a9960c6bc553c68e2e489bf6f95ac9](https://github.com/web-platform-tests/wpt/tree/c43f14b481a9960c6bc553c68e2e489bf6f95ac9)
 - Test262: [2e58f87d8350ad51224617a041c6e041d52f8444](https://github.com/tc39/test262/tree/2e58f87d8350ad51224617a041c6e041d52f8444)
 
-取り込む版を更新するtoolは、既知の公式repositoryからソースを取得して保存します。その処理中に上流コードやinstall scriptを実行する経路はありません。更新後に原本とライセンスの差分をレビューしてから試験します。
+The update tool downloads sources from the known official repositories and
+stores them; it runs no upstream code or install scripts. Review the source
+and license diff after an update, then run the tests.
 
-## 実行
+## Running
 
-プロジェクトルートから実行します。
+From the repository root:
 
-```powershell
-vp run test:conformance:runner
+```bash
+vp run test:tools
 vp run test:conformance
 ```
 
-Rustのlab binaryを全backendでbuildした後、各ファイル・mode・backendを新しいprocess / realmで評価します。Nodeはnative Web APIの参照、3VMはfetchletのWeb API profileを使います。Test262にはWeb API bundleを注入せず、engineとfetchletの基本host環境を使います。
+The lab binary is built with every engine, then each file, mode and engine
+is evaluated in a fresh process and realm. Node uses its native Web APIs;
+the engines use fetchlet's profile. Test262 runs without the Web API bundle,
+on the engine and fetchlet's base host environment.
 
-結果は[conformance.json](../results/conformance.json)です。原本のcommit、lockfile / profileのhash、Node / platform、試験名、実測status、診断、期待値との一致を保存します。fileDurationMsはファイル全体の実行時間で、個別assertionの時間とは区別します。
+Results go to [conformance.json](../results/conformance.json): source
+commits, lockfile and profile hashes, Node and platform, test names, actual
+status, diagnostics and whether each matches its expectation.
+`fileDurationMs` is the time for the whole file.
 
-絞り込みと厳密評価は、binaryのbuild後に次のように実行できます。
+After the binary is built, runs can be narrowed or made strict:
 
-```powershell
+```bash
 node tools/conformance/cli.ts --suite wpt --backend quickjs --filter Blob --output results/conformance-blob.json
 node tools/conformance/cli.ts --suite test262 --backend quickjs,boa,v8 --output results/conformance-test262.json
 node tools/conformance/cli.ts --strict --output results/conformance-strict.json
 ```
 
-suiteはwpt / test262 / regressions / allです。filterはファイルパスの部分一致です。timeoutはprocessごとのミリ秒（既定30000）、jobsは同時実行数（既定2）で、各CLI optionで変更できます。実行ごとに生成先を分け、同時に走る試験の入力を独立させています。outputを変えると絞り込み結果と全体結果を併存できます。
+`--suite` is `wpt`, `test262`, `regressions` or `all`; `--filter` matches
+part of the file path. `--timeout` is milliseconds per process (default 30000) and `--jobs` the concurrency (default 2). Each run uses its own
+output directory, so concurrent runs are independent, and a different
+`--output` keeps narrowed results beside the full ones.
 
-## 結果と回帰判定
+## Results and regressions
 
-| 実測status                   | 扱い                                                           |
-| ---------------------------- | -------------------------------------------------------------- |
-| pass                         | 試験の成功                                                     |
-| fail                         | assertionやTest262 scriptの失敗。既知の場合も失敗件数へ計上    |
-| unsupported                  | runnerが対応するmode・host機能の範囲外。成功件数とは分けて表示 |
-| timeout                      | 親processが期限で終了。回帰チェックのエラー                    |
-| harness-error / runner-error | harnessの異常、実行失敗等。回帰チェックのエラー                |
+| Status                          | Meaning                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `pass`                          | The test passed                                                         |
+| `fail`                          | An assertion or Test262 script failed; known failures are still counted |
+| `unsupported`                   | Outside the modes and host features the runner supports; counted apart  |
+| `timeout`                       | The parent process stopped it at the deadline; a regression error       |
+| `harness-error`, `runner-error` | The harness or execution failed; a regression error                     |
 
-[expectations.json](../tests/conformance/expectations.json)はbackend・ファイル・mode・subtest名ごとに、レビューした既知失敗と理由を持ちます。通常の終了コード0は「記録した既知差分と一致」という意味です。既知失敗はfailのまま残し、expectedFailuresにも計上します。
+[expectations.json](../tests/conformance/expectations.json) holds reviewed
+known failures with reasons, per engine, file, mode and subtest. Exit code 0
+means the results match the recorded differences; known failures remain
+`fail` and are also counted as `expectedFailures`.
 
-新規失敗、timeout、harness / runnerのエラー、期待していた失敗の成功化を終了コード1で通知します。全体実行では消えた期待値も検出します。改善時は試験を確認して該当expectationを外します。strictでは、既知失敗も含めて一件でも失敗があれば終了コード1にします。
+New failures, timeouts, harness or runner errors and expected failures that
+now pass exit with code 1. A full run also reports expectations that no
+longer apply. When a test improves, review it and remove its expectation.
+`--strict` exits with 1 on any failure, known or not.
 
-明示的に全行列の期待値を再記録するoptionは--record-baseline "レビュー理由"です。更新後も個々の理由を具体化し、差分をレビューします。runnerのエラーや独自回帰試験の失敗を期待値へ取り込む操作は拒否します。通常のCIは期待値を書き換えず照合します。
+`--record-baseline "<review reason>"` re-records the expectations of the
+whole matrix. Make each reason specific afterwards and review the diff.
+Runner errors and failing regression tests cannot be recorded as
+expectations. CI compares and never rewrites them.
 
-## 現在の実測と既知差分
+## Known differences
 
-Windowsローカル、固定版と選定範囲での実測です。
+Every WPT failure is a recorded difference. By category:
 
-| 構成     | WPT 成功 / 失敗 | Test262 成功 / 失敗 | 独自回帰 成功 / 失敗 |
-| -------- | --------------- | ------------------- | -------------------- |
-| QuickJS  | 1210 / 241      | 88 / 0              | 22 / 0               |
-| Boa      | 1210 / 241      | 88 / 0              | 22 / 0               |
-| V8       | 1281 / 170      | 88 / 0              | 22 / 0               |
-| Node参照 | 1278 / 173      | 88 / 0              | 22 / 0               |
+| Category               | Engines          | Reason                                                                                                                                                                                                                                                        |
+| ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server-profile`       | all, Node too    | Relative URLs resolved against a document base URL (`new Request("")` and similar). A server profile has no global base URL; adapters resolve server-side relative URLs against the incoming request. The `Set-Cookie` response guard is in this category too |
+| `host-capability`      | all              | Tests that fetch WPT server resources, and MessageChannel. Outbound fetch is verified by the host matrix                                                                                                                                                      |
+| `backend-capability`   | QuickJS, Boa     | SharedArrayBuffer is not exposed; the ArrayBuffer variants pass                                                                                                                                                                                               |
+| `profile-selection`    | QuickJS, Boa, V8 | encoding-lite provides UTF-8, UTF-16 and single-byte encodings, not the legacy multi-byte decoders                                                                                                                                                            |
+| `upstream-comparison`  | all, Node too    | An empty FormData body ends with the multipart terminator; the pinned WPT expects an empty string                                                                                                                                                             |
+| `reference-difference` | Node only        | Node's `TextDecoder` end-of-stream handling, and a difference observable through a patched `Object.prototype.then` in undici's body reading                                                                                                                   |
 
-WPTは86ファイル、各構成1451 subtestです。失敗はすべて[expectations.json](../tests/conformance/expectations.json)で分類と理由を記録した既知差分で、新規失敗は0件です。分類ごとの件数（QuickJS / Boa / V8 / Node）と範囲は次のとおりです。
+Test262 and the regression tests pass everywhere. Counts per engine are in
+[reference](reference/README.md#conformance).
 
-| 分類                 | 件数                  | 対象と理由                                                                                                                                                                                                                                                        |
-| -------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| server-profile       | 145 / 145 / 145 / 143 | 文書の基準URLに対する相対URLの解決（`new Request("")`等）。サーバーprofileはglobalな基準URLを持たず、サーバー側の相対URLはframework adapterが受信Requestから解決します（[設計](in-process-fetch.md)）。Node参照も同じく失敗。Set-Cookieのresponse guardもこの分類 |
-| host-capability      | 22 / 22 / 22 / 22     | WPT HTTP serverのresourceをfetchする試験と、MessageChannel。外向きfetchはRustのhost行列で検証しています                                                                                                                                                           |
-| backend-capability   | 71 / 71 / 0 / 0       | QuickJS / BoaのSharedArrayBuffer非公開（ArrayBuffer版は成功）                                                                                                                                                                                                     |
-| profile-selection    | 2 / 2 / 2 / 0         | encoding-liteはUTF-8 / UTF-16 / single-byteを提供し、legacy multi-byte decoderを含めない構成                                                                                                                                                                      |
-| upstream-comparison  | 1 / 1 / 1 / 1         | 空FormDataの本文にmultipart終端を出力。空文字列を期待する固定WPTと差があり、Node参照も失敗                                                                                                                                                                        |
-| reference-difference | 0 / 0 / 0 / 7         | Node参照のTextDecoderの終端処理の差と、undiciの本文読み取りが改変した`Object.prototype.then`から観測できる差                                                                                                                                                      |
+### Selection
 
-### 選定と除外
-
-86ファイルはFetch（Headers / Request / Response / Body）、FileAPI（Blob / File）、FormData、Encoding、DOM Abort、Streams（constructor、tee、cancel、async iterator、default reader、byte streamのtee）です。WPT serverを前提とするファイル（header-values、json、response-cancel-stream、response-headers-guard）は選定外です。request-disturbed / request-structure / request-keepaliveはtop-levelで相対URLのRequestを生成し、ファイル全体がrunner-errorになるため除外しています。Request属性のWeb IDLは独自回帰で検証しています。encodeInto-tail-unmodifiedは6万回超の反復を行う試験で、Boaのdebug buildがprocess期限30秒を超えるため除外し、同じ範囲をencodeInto.any.jsで評価しています。
-
-### この選定で修正した動作
-
-- AbortSignal.abort / timeout / any、dependent signalの中断順序、onabort、listenerの重複排除とonce、既定reasonのDOMException（AbortError / TimeoutError）。DOMExceptionはcore-js-pureで補います
-- Body / BlobのtextStream()、文字列・ArrayBuffer・URLSearchParams本文のbyte stream化（BYOB）、clone時の第2分岐へのstructuredClone
-- formData()が型判定より先に本文を読み、streamのエラーを伝播
-- Headersのrecord変換順序とSymbolキーの拒否、File / FormData constructorの引数検証、constructor名、FormDataでのlastModified保持
-- BoaでArrayBuffer transferを提供し、Body / BlobのBYOBとbyte streamのteeを全VMで有効化（Boa 0.22は`experimental` featureの背後に置くため、backendが `transfer` / `transferToFixedLength` / `detached` を補います。resizable bufferは固定長として転送）
-- Streams providerのasync iteratorを%AsyncIteratorPrototype%へ接続
-- 本文の全量読み取りをpipeToの内部read requestで行い、改変した`Object.prototype.then`から本文を観測・置換できない構成へ変更
-- multipart/form-dataをbyte単位で解析。行頭の区切りのみ認識し、preamble / epilogue、大小文字を区別しないMIME型と引数、quoted boundary、UTF-8と%0D / %0A / %22のescapeを扱い、不正な区切り・header・未終端をTypeErrorにする
-- Requestの属性（mode、credentials、cache、referrer、referrerPolicy、integrity、keepalive、duplex等）を読み取り専用のprototype accessorとして公開し、RequestInitのenumerationとonly-if-cachedの制約を検証
+The WPT files cover Fetch (Headers, Request, Response, Body), FileAPI (Blob,
+File), FormData, Encoding, DOM Abort and Streams (constructors, tee, cancel,
+async iteration, the default reader, byte stream tee). Files that need the
+WPT server (`header-values`, `json`, `response-cancel-stream`,
+`response-headers-guard`) are not selected. `request-disturbed`,
+`request-structure` and `request-keepalive` create relative-URL requests at
+the top level, which fails the whole file, so they are excluded; the
+regression tests cover Request's Web IDL attributes instead.
+`encodeInto-tail-unmodified` iterates more than 60,000 times and exceeds the
+30-second process deadline on Boa debug builds; `encodeInto.any.js` covers
+the same behavior.
 
 ### URL
 
-fetchlet hostのURLは `url` crate 2.5.8で解析します。`vp run test:url` は、そのcrateが同梱するWPTのurltestdata.json（constructor）とsetters_tests.json（setter）を各backendで実行し、失敗がcrateのtests/expected_failures.txtの範囲内であることを判定します。結果は[url-wpt.json](../results/url-wpt.json)に記録します。
+URLs are parsed by the `url` crate. `vp run test:url` runs the WPT data the
+crate ships (`urltestdata.json` for the constructor, `setters_tests.json` for
+setters) on each engine and checks that every failure is listed in the
+crate's `tests/expected_failures.txt`. The remaining failures are the
+crate's known differences: file URL hosts, empty path segments, Windows
+drive letters, and paths such as `/.//` with non-special schemes.
 
-| 構成     | 成功 / 全体 | expected_failures.txt外の失敗 |
-| -------- | ----------- | ----------------------------- |
-| QuickJS  | 1027 / 1073 | 0                             |
-| Boa      | 1027 / 1073 | 0                             |
-| V8       | 1027 / 1073 | 0                             |
-| Node参照 | 1052 / 1073 | 参考値（Nodeのparser）        |
+The crate's `quirks::origin` predates the current specification for `blob:`
+URLs, so the host returns the inner URL's origin only when it is http(s).
+URL IDL accessors, two-way `searchParams` updates and lone surrogate
+replacement are regression tests, and the `bridge_bodies` fuzz target calls
+`url.parse` and `url.set` with arbitrary input.
 
-残る46件は `url` crateの既知差分で、file URLのhost・空のpath segment・Windows drive letterの扱いと、特殊でないschemeで `/.//` のようなpathを伴うparse / setterです。以前のcore-js URLは同じデータで1007 / 1073でした。blob: URLのoriginはcrateの `quirks::origin` が現行仕様より前の動作のため、内側のURLがhttp(s)の場合だけそのoriginを返すようhostで補います。URLのIDL accessor、`searchParams` の双方向連動、lone surrogateの置換は独自回帰で検証し、`url.parse` / `url.set` はbridge_bodies fuzz targetが任意の入力で呼び出します。
+## Runtime environment
 
-CIにWindows / Linuxのrunner自己試験と適合性行列を組み込んでいます。remote CIの実行結果は、今後その環境で確認します。
+WPT runs in the official `testharness.js` shell environment, with `self`
+bound to the global object. META scripts resolve by their original relative
+paths and are evaluated as scripts. Window and DOM, a real HTTP server,
+WebDriver and reftests need environments that are not provided. GC tests use
+the upstream best-effort helpers; forced GC is not part of the results.
 
-## 実行環境の範囲
+Test262 handles per-file flags, includes, strict and sloppy modes and the
+official async `$DONE`. Harness and test run as native global scripts, so
+top-level lexical bindings persist. `$262` provides `global`. Module, raw
+and negative tests that compare the phase and type of an exception are
+recorded as `unsupported`. Agents, new realms, explicit detach and GC need
+host support; `$262` has no substitutes, so a selected positive test that
+calls a missing host feature is recorded as a failure, as is one that fails
+for missing syntax or built-ins.
 
-WPTは公式testharness.jsのshell環境を使い、selfをglobal objectへ接続します。META scriptを元の相対パスで解決し、scriptとして評価します。Window / DOM、実HTTP server、WebDriver、reftest等は、それぞれ対応する実行環境を加える対象です。GC関連の原本は上流のbest-effort helperを使い、強制GCの成立は現在の結果に含めません。
+## Adding tests
 
-Test262は、ファイルごとのflags、includes、strict / sloppy、asyncの公式$DONEを扱います。harnessとtestをネイティブglobal scriptとして評価し、top-level lexical bindingを維持します。現在の$262はglobalを提供します。module、raw、例外のphaseと型を照合するnegative試験はunsupportedを記録します。agent、別realm生成、明示的detach / GC等のhost依存は、各試験のmetadataとharnessを確認してhost対応とともに選定を広げます。現在の$262にはそれらの代替実装を設けず、選定したpositive scriptが不足するhost機能を呼んで失敗した場合は実測failとして記録します。新しい構文やbuiltinの不足によるpositive scriptの失敗は、実測failとして扱います。
+Add or remove selected files at an explicit commit. The update tool also
+fetches the scripts and includes they depend on and re-records every hash.
 
-## テストを増やす
-
-固定commitを明示して、選定ファイルを追加・削除できます。更新toolは依存script / includesも取得し、全原本のhashを再記録します。
-
-```powershell
-node tools/conformance/update-sources.ts --suite wpt --revision <40桁のcommit> --add fetch/api/response/response-clone.any.js
-node tools/conformance/update-sources.ts --suite test262 --revision <40桁のcommit> --add test/built-ins/Array/prototype/at/returns-item.js
-vp run test:conformance:runner
+```bash
+node tools/conformance/update-sources.ts --suite wpt --revision <40-character commit> --add fetch/api/response/response-clone.any.js
+node tools/conformance/update-sources.ts --suite test262 --revision <40-character commit> --add test/built-ins/Array/prototype/at/returns-item.js
+vp run test:tools
 vp run test:conformance
 ```
 
---addと--removeは複数指定できます。WPTの選定は現在.any.js、Test262はtest/配下の.jsを扱います。各テストが必要とする環境とmetadataを読んで選定し、評価可能な範囲を文書と結果へ反映します。
+`--add` and `--remove` can repeat. WPT selection takes `.any.js` files and
+Test262 `.js` files under `test/`. Read each test's metadata and required
+environment before selecting it, and update this page with what can be
+evaluated.
 
-同じ固定版の原本を復元するにはvp run fetch:conformanceを使います。ネットワーク取得後も記録済みSHA-256を検証します。--removeは選定とlockから外し、展開済みの原本ファイルは残すため、不要になった原本は手動で削除します。
+`vp run fetch:conformance` restores the pinned sources and verifies their
+recorded SHA-256. `--remove` drops a file from the selection and lock but
+leaves the extracted file; delete it by hand. `upstream/` is excluded from
+formatting in `vite.config.ts`; a source rewritten by a formatter stops the
+checksum verification, and `vp run fetch:conformance` restores it.
 
-upstream/はvite.config.tsのfmt.ignorePatternsで整形対象から外しています。原本がformatterで書き換わるとchecksum検証で停止します。その場合はconformance:restoreで復元します。
+## Next
 
-## 次に広げる範囲
-
-Test262のhost機能とnegative / module試験、Streamsのwritable / transform / piping、Requestのno-corsのheader guardへ順に広げます。Request属性のうちreferrerは環境のoriginを持たないため、URLを解析した値を保持します（Node参照と同じ扱い）。以前の修正は、Bodyのdisturbed状態、byte bodyのsnapshot、constructor / static method検証、HeadersとFormDataのlive iteration、Blobのslice / bytes、UTF-8 / BOM等を回帰試験へ結び付けています。
-
-Rustまで含むストリーミングと、JS側multipart / Bodyのfuzzingはそれぞれ追加の検証経路を整えます。現在のRust host境界のfuzzingと、Web API適合試験は対象を分けて維持します。
-
-## AOTとの対応
-
-現在の適合性runnerはVMのScript / Promise境界を使います。AOT compilerには同じテストを個別にcompileして結果を返すadapterを追加する段階で接続します。AOT行列は既存の別経路で継続します。今回のEncoding更新後はPerry / scriptcのplain関数が成功し、Perry Honoはutf-16beのnative TextDecoder初期化で失敗しました。VMのWeb API適合性改善と、AOT固有のprovider選択を分けて記録します。[AOTの現在の実測](native-aot-backends.md)を参照してください。
+Test262 host features, negative and module tests, writable, transform and
+piping Streams, and the no-cors header guard come next. `Request.referrer`
+keeps the parsed URL because there is no environment origin, as in Node.
+Streaming through Rust and fuzzing of JavaScript multipart and Body parsing
+need their own harnesses.

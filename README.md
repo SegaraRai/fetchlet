@@ -1,10 +1,15 @@
 # fetchlet
 
-RustアプリケーションにJavaScriptの関数とFetchハンドラを組み込むライブラリです。
+fetchlet embeds JavaScript functions and Fetch handlers in Rust
+applications. Choose QuickJS, Boa or V8; fetchlet supplies the Web APIs and
+polyfills that engine needs and connects the JavaScript side to Rust.
 
-選べるバックエンドと、その能力に合わせたWeb API・polyfillを通じて、サーバーサイドJSをRustアプリへ手軽に統合します。
-
-主用途は、Hono JSX、SvelteKit、Astro、Nuxt、React Routerなどのサーバー側処理をRustアプリへ組み込み、リッチなWeb UIを提供することです。特にCLI付属UI、ローカルツール、セルフホストなど、一つのRust配布物にまとめたい用途を重視します。RustがRequestを渡し、JSで生成したResponseを受け取ります。任意の同期・非同期関数も同じ実行基盤から呼び出せます。
+The main use is to run the server side of web frameworks — SvelteKit,
+Astro, Nuxt, React Router, HonoX and more — inside a Rust program, so a CLI,
+local tool, self-hosted service or desktop app ships one binary with a rich
+web UI. Rust passes a `Request` and receives the `Response` the JavaScript
+produced. Named synchronous and asynchronous functions run on the same
+runtime.
 
 ```rust
 use std::num::NonZeroUsize;
@@ -31,71 +36,95 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-この例のbundleは `vp run build:fixtures` で生成します。本文回収の1 MiBとキュー8件は、この例の呼び出し側が選ぶ予算です。`app.call("transform", &input)` でSerde対応の関数を、`app.call_json("add", &[...])` で複数引数の関数を呼び出せます。
+`vp run build:fixtures` builds the bundle this example loads; `vp run
+example:embed` runs it. The 1 MiB collection limit and the queue of eight
+are budgets the caller chooses. `app.call("transform", &input)` calls a
+function with a Serde value and `app.call_json("add", &[...])` with several
+JSON arguments.
 
-複製できるAppHandleは、AppBuilder::spawn(WorkerOptions)で作れます。所有スレッド、待機キュー、中断後のInstance再生成と終了待ちを扱います。HTTPサーバへはfetchlet-httpで接続します。Towerと `http` 1系のserviceは常に使え、`hyper`、`axum`、`actix` featureで各サーバ向けの層を加えます。すべての層を同じ契約試験で検証しています。
+## Features
 
-Cargo featureで `quickjs`（既定）、`boa`、`v8` を選択できます。複数の同時有効化にも対応します。AOTはexperimentalな比較・リンク検証として維持しています。
+- **One runtime, three engines.** The `quickjs` (default), `boa` and `v8`
+  Cargo features can be enabled together. The same Web API profile runs on
+  each, verified against WPT, Test262 and real framework builds.
+- **Shared handles.** `AppHandle` is `Clone + Send + Sync`, owns the
+  JavaScript thread and queue, cancels a call when its future is dropped,
+  rebuilds an instance after cancellation and drains on shutdown.
+- **HTTP integration.** `fetchlet-http` serves an app through Tower and
+  `http` 1, with thin layers for hyper, axum and actix-web behind features.
+  Request and response bodies stream in both directions.
+- **Explicit authority.** `HostServices` grants environment values, named
+  Rust services and outbound fetch. `FetchPolicy` allows origins; Rust
+  rewrites requests and attaches credentials. JavaScript can call Rust
+  routers in-process, with a trusted `Context` it cannot read or forge.
+- **Caller budgets.** Every `Limits` field is optional and owned by the
+  caller; limits that come from specifications are documented as such.
+- **Framework adapters.** The `fetchlet` npm package builds a framework's
+  server output into an artifact — `server.js`, `fetchlet.json` and a
+  Brotli asset archive — that Rust reads from disk or embeds with
+  `include_artifact!`.
 
-`HostServices` は明示的なenv、名前付きRustサービス、外向きfetchを提供します。通信先は `FetchPolicy` で許可し、送信前の書き換えや認証情報の付与をRustで行います。`Limits` の各項目は呼び出し側が設定する資源予算です。
+## Examples
 
-開発版では、固定したHono／SvelteKit fixtureと共通Web API profileを3エンジンで検証しています。本文はバッファ方式、期限は協調的です。実運用の隔離、HTTP transport、資源予算はホスト側の構成と合わせて設計します。
-
-- [Host servicesの使い方](docs/host-services.md)
-- [資源予算と仕様由来の上限](docs/resource-policy.md)
-- [安全性と検証](docs/security.md)
-- [WPT / Test262による適合性評価](docs/conformance.md)
-- [コンセプトと方針](docs/project-brief.md)
-- [組み込みアプリ・配布・Tauri連携の方針](docs/embedded-applications.md)
-- [プロセス内fetch](docs/in-process-fetch.md)
-- [設計と拡張計画](docs/design-proposal.md)
-- [実装・検証状況](docs/implementation-status.md)
-- [既存Web API実装の調査](docs/backend-web-api-support.md)
-- [AOTの調査](docs/native-aot-backends.md)
-
-## 起動できる例
-
-[SvelteKit + axum](examples/sveltekit-axum/README.md) はSSR、JS / CSS配信、form action、Rustサービスbindingを備えたアプリです。
-
-```powershell
+```bash
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-sveltekit-axum#serve
 ```
 
-ブラウザで `http://127.0.0.1:3000` を開きます。HTTPサーバはRustが起動し、専用スレッドでJSを実行します。
+Open `http://127.0.0.1:3000`. Rust runs the HTTP server, and a dedicated
+thread runs the SvelteKit server code on QuickJS.
 
-Astro＋axumの例も `vp run @fetchlet-internal/example-astro-axum#serve` で起動できます（http://127.0.0.1:3100、QuickJS＋FormatJS）。[Nuxt + axum](examples/nuxt-axum/README.md)（`vp run @fetchlet-internal/example-nuxt-axum#serve`、http://127.0.0.1:3200）はNitro presetで、[React Router + axum](examples/react-router-axum/README.md)（`vp run @fetchlet-internal/example-react-router-axum#serve`、http://127.0.0.1:3300）はReact Router presetでbuildします。HonoX（3400）、TanStack Start（3500）、SolidStart（3600）、Qwik City（3700）、Waku（3800）、vinext（3900）の例も `vp run @fetchlet-internal/example-<name>#serve` で起動できます（[一覧](examples/README.md)）。10の例は同じRustの公開APIを使います。adapterのbackend設定から不足するIntl APIを選び、localeとタイムゾーンデータを絞って組み込みます。[polyfillの選択](packages/fetchlet/docs/build.md)を参照してください。
+| Example                                                         | Port |
+| --------------------------------------------------------------- | ---- |
+| [SvelteKit + axum](examples/sveltekit-axum/README.md)           | 3000 |
+| [Astro + axum](examples/astro-axum/README.md)                   | 3100 |
+| [Nuxt + axum](examples/nuxt-axum/README.md)                     | 3200 |
+| [React Router + axum](examples/react-router-axum/README.md)     | 3300 |
+| [HonoX + axum](examples/honox-axum/README.md)                   | 3400 |
+| [TanStack Start + axum](examples/tanstack-start-axum/README.md) | 3500 |
+| [SolidStart + axum](examples/solidstart-axum/README.md)         | 3600 |
+| [Qwik City + axum](examples/qwik-city-axum/README.md)           | 3700 |
+| [Waku + axum](examples/waku-axum/README.md)                     | 3800 |
+| [vinext + axum](examples/vinext-axum/README.md)                 | 3900 |
 
-[Markdown Workspace](examples/sveltekit-axum-tauri/README.md) は実用アプリの例です。1つのRustバイナリ `mdw` がCLIのWebサーバ（`vp run @fetchlet-internal/example-sveltekit-axum-tauri#serve`）とTauriのデスクトップアプリ（`vp run @fetchlet-internal/example-sveltekit-axum-tauri#desktop`）を兼ね、SvelteKitのserver JSがutoipaのOpenAPIから生成した型でRust APIをプロセス内fetchで呼びます。
+Each starts with `vp run @fetchlet-internal/example-<name>#serve`. Two more
+examples run in Tauri: [HonoX + Tauri](examples/honox-tauri/README.md), and
+[Markdown Workspace](examples/sveltekit-axum-tauri/README.md), a note app
+whose single binary `mdw` is both a CLI web server and a desktop app, and
+whose SvelteKit server code calls the Rust API in-process through types
+generated from its OpenAPI document.
 
 ## Workspace
 
 ```text
-crates/fetchlet/              関数・Fetch実行、共有handle、host services
-crates/fetchlet-http/         Tower / hyper / axum / actix-webのHTTP統合、artifact配信
-tools/lab/                    toolsが使う行プロトコルのhost（fetchlet-lab）
-packages/fetchlet/            npmパッケージfetchlet：runtime、artifact builder、各framework adapter
-examples/sveltekit-axum/      QuickJSで動くSvelteKit例
-examples/astro-axum/          QuickJS＋Intl polyfillで動くAstro例
-examples/nuxt-axum/           QuickJSで動くNuxt例
-examples/react-router-axum/   QuickJSで動くReact Router例
-examples/<framework>-axum/    HonoX、TanStack Start、SolidStart、Qwik City、Waku、vinextの例
-examples/sveltekit-axum-tauri/ CLIとTauriを兼ねるSvelteKitのMarkdownワークスペース
-fixtures/                    backend互換性の回帰試験
-fuzz/                        Rust host境界のfuzzing
+crates/fetchlet/       Functions and Fetch, shared handles, host services
+crates/fetchlet-http/  Tower, hyper, axum and actix integration; artifacts and asset archives
+packages/fetchlet/     The fetchlet npm package: runtime, artifact builder, framework adapters
+examples/              Runnable applications per framework and Rust server
+fixtures/              Pinned framework builds and probes for the engine matrix
+tests/conformance/     Pinned WPT and Test262 sources and expectations
+tools/                 Repository tooling, including the fetchlet-lab host
+fuzz/                  Fuzzing of the Rust host boundary
+docs/                  Documentation
+results/               Recorded test results
 ```
 
-Rustの共通依存とlockfileはworkspaceで管理します。JS側もpnpm workspaceで接続します。将来のframework / Rustサーバの追加方針は[examples](examples/README.md)を参照してください。
+## Documentation
 
-## 開発と検証
+Start with the [overview](docs/overview.md), the [domain
+model](docs/domain-model.md) and the [data flow](docs/data-flow.md). The
+[documentation index](docs/README.md) lists every guide.
 
-```powershell
+## Development
+
+```bash
 vp install --frozen-lockfile
 vp run check
 vp run test:rust
 vp run test:matrix
 vp run test:host
-vp run example:embed
 ```
 
-依存の版はCargo.lockとpnpm-lock.yamlに固定しています。fuzzingの準備と実行は[安全性と検証](docs/security.md)を参照してください。
+`vp run verify` runs every regular suite. [Verification](docs/verification.md)
+describes each one, and [security](docs/security.md#fuzzing) covers fuzzing.
+Dependencies are pinned by `Cargo.lock` and `pnpm-lock.yaml`.

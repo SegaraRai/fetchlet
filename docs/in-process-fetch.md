@@ -1,37 +1,42 @@
-# プロセス内fetch
+# In-process fetch
 
-frameworkのserver-side JSから、Rustのhandler / routerをHTTP接続なしで呼ぶ経路です。宛先の振り分け、信頼できるContext、axum routerの再利用、再入の検出を実装しています。公開APIの基準は[Host services](host-services.md)です。
+Framework server code can call Rust handlers and routers through `fetch`
+without an HTTP connection. fetchlet routes such requests by origin, carries
+a trusted `Context` to them, reuses axum routers and detects reentrant
+calls. [Host services](host-services.md) covers the general API.
 
-## 利用モデル
+## Model
 
 ```text
-Rustホスト ─ Request + Context ─→ framework server-side JS
-                                        │ fetch(Request)
-                                        ▼
-                         FetchService（rewrite → 認可 → credentials）
-                                        │
-                              OriginRouter（originの完全一致）
-                       ┌────────────────┴────────────────┐
-                 internal route                      external route
-          Rust handler / axum router            network client等
-            （Contextを受け取る）                （Contextを渡さない）
+Rust host ── Request + Context ──▶ framework server-side JS
+                                         │ fetch(Request)
+                                         ▼
+                          FetchService (rewrite → authorize → credentials)
+                                         │
+                               OriginRouter (exact origin)
+                        ┌────────────────┴────────────────┐
+                  internal route                    external route
+           Rust handler / axum router           network client, …
+             (receives the Context)            (Context removed)
 ```
 
-JSはFetchのRequest / ResponseでRust APIを使います。内部宛先はプロセス内で完結し、Rustのアプリ状態を共有します。外部宛先は別に登録したtransportへ渡します。
+JavaScript uses Fetch `Request` and `Response` to reach Rust APIs. Internal
+destinations complete inside the process and share the Rust application's
+state. External destinations go to transports registered separately.
 
-## 構成するAPI
+## API
 
-| API                                 | 役割                                                                             |
-| ----------------------------------- | -------------------------------------------------------------------------------- |
-| `FetchTransport` / `transport_fn`   | single-hopの非同期境界。Rust関数を接続する。`Arc<T>` も共有transportとして使える |
-| `OriginRouter::internal(origin, t)` | originをtrusted transportへ登録する。Contextを受け取る                           |
-| `OriginRouter::external(origin, t)` | originをtransportへ登録する。Contextは取り除く                                   |
-| `OriginRouter::into_service()`      | 登録したoriginだけを許可するFetchServiceを作る                                   |
-| `Context`                           | Rustが作る型付きの値の集合。`App::fetch` へ渡すRequestのextensionsに入れる       |
-| `FetchService::forward_context()`   | 単一transportのserviceでContextを渡す。指定しないserviceはContextを取り除く      |
-| `fetchlet_http::service_transport`  | 任意のTower serviceをtransportにする                                             |
-| `fetchlet_http::router_transport`   | axumの `Router` をtransportにする（`axum` feature）                              |
-| `trusted_context`                   | 受信requestからContextを作る（fetchlet-httpの各service）                         |
+| API                                 | Role                                                                         |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| `FetchTransport` / `transport_fn`   | The single-hop async boundary; connects a Rust function. `Arc<T>` also works |
+| `OriginRouter::internal(origin, t)` | Registers a trusted transport for an origin; it receives the Context         |
+| `OriginRouter::external(origin, t)` | Registers a transport for an origin; the Context is removed                  |
+| `OriginRouter::into_service()`      | A `FetchService` that allows only the registered origins                     |
+| `Context`                           | Typed values built in Rust and placed in the extensions of the app's request |
+| `FetchService::forward_context()`   | Passes the Context on a single-transport service; others remove it           |
+| `fetchlet_http::service_transport`  | Turns any Tower service into a transport                                     |
+| `fetchlet_http::router_transport`   | Turns an axum `Router` into a transport (`axum` feature)                     |
+| `trusted_context`                   | Builds a Context from the incoming request (each fetchlet-http service)      |
 
 ```rust,ignore
 let service = OriginRouter::new()
@@ -40,83 +45,116 @@ let service = OriginRouter::new()
     .into_service();
 let services = HostServices::new()
     .outbound(service.clone())
-    .service("API", service);
+    .service("API", service)?;
 ```
 
-## 宛先の振り分け
+## Routing
 
-`OriginRouter` はscheme / host / portを正規化したoriginの完全一致で振り分けます。
+`OriginRouter` matches the origin exactly after normalizing scheme, host and
+port.
 
-1. 登録したoriginのRequestは、そのtransportだけが処理します。
-2. transportが返す404や500は、その内部APIのHTTP ResponseとしてJSへ届きます。
-3. 未登録のoriginはpolicyで `PERMISSION_DENIED` となり、どのtransportも呼びません。別のrouteやnetworkへのfallbackはありません。
-4. rewriteの後の宛先を分類・認可し、credentialsは最終宛先へ結び付けます。
-5. redirectの各hopで分類と認可をやり直します。内部から外部へのredirectは、外部originを登録した場合に限り進み、そのhopにContextは渡りません。
+1. A request to a registered origin is handled by that transport only.
+2. A 404 or 500 from the transport reaches JavaScript as that API's HTTP
+   response.
+3. An unregistered origin is refused by the policy with `PERMISSION_DENIED`
+   and calls no transport. There is no fallback to another route or the
+   network.
+4. The destination is classified and authorized after rewriting, and
+   credentials are bound to the final destination.
+5. Each redirect hop is classified and authorized again. A redirect from an
+   internal to an external origin proceeds only if that origin is
+   registered, and that hop carries no Context.
 
-同じoriginの重複登録、pathやqueryを含むoriginは構成エラーです。
+Registering an origin twice, or an origin with a path or query, is a
+configuration error.
 
-## 信頼できるContext
+## Trusted Context
 
-認証主体、tenant、traceの起点等は `Context` としてRustが作ります。
+Rust builds the `Context`: an authenticated principal, a tenant, a trace
+parent.
 
-- `App::fetch` / `AppHandle::fetch` に渡すRequestのextensionsに `Context` を入れると、そのInvocationが保持します。JSへ渡すwire requestには含まれません。
-- そのInvocationのhost fetchは、Contextのcloneをrequest extensionsに載せます。internal routeと `forward_context()` を指定したserviceだけが受け取ります。
-- JSはContextを読めず、作れず、置き換えられません。request headersからContextが作られることもありません。
-- fetchlet-httpの各service（`FetchletService` / `HyperService` / `AxumService` / `ActixService`）では `trusted_context` でConnectInfoや認証middlewareの結果からContextを作り、axum handlerは `Option<Extension<fetchlet::Context>>` で読みます。
-- 各hopのRequestはextensionsを引き継ぐため、internal route間のredirectでもContextが届きます。
+- A `Context` in the extensions of the request given to `App::fetch` or
+  `AppHandle::fetch` is kept by that invocation. It is not part of the wire
+  request JavaScript receives.
+- Host fetches of that invocation carry a clone in their request
+  extensions. Only internal routes and services with `forward_context()`
+  receive it.
+- JavaScript cannot read, create or replace the Context, and no Context is
+  ever built from request headers.
+- The fetchlet-http services (`FetchletService`, `HyperService`,
+  `AxumService`, `ActixService`) build it with `trusted_context` from
+  connection info or the result of authentication middleware; axum handlers
+  read it with `Option<Extension<fetchlet::Context>>`.
+- Each hop's request inherits the extensions, so redirects between internal
+  routes keep the Context.
 
-`App::fetch_with_context` のSerde値はJS entryの第二引数で、Contextとは別の、JSに見せるための値です。
+The Serde value of `App::fetch_with_context` is the entry's second argument:
+a separate value meant to be visible to JavaScript.
 
-## axum routerの再利用
+## Reusing an axum router
 
-`router_transport(router)` は、同じaxum routerを公開HTTPとプロセス内fetchの両方から使えるようにします。
+`router_transport(router)` lets one axum router serve public HTTP and
+in-process fetches.
 
-- method、絶対URI、headers、本文、extensionsをそのまま渡します。routerはpathで処理します。
-- 応答本文はstreamとしてJSへ返り、`response_body_bytes` の予算で読み取ります。
-- fetchのabortやInvocationの終了でhandlerのFutureをdropします。
-- プロセス内のRequestには `ConnectInfo` 等の接続情報がありません。必要な値はContextで渡します。
+- Method, absolute URI, headers, body and extensions are passed as they are;
+  the router dispatches on the path.
+- The response body streams back to JavaScript within
+  `response_body_bytes`.
+- Aborting the fetch or ending the invocation drops the handler's future.
+- In-process requests have no `ConnectInfo` or other connection data; pass
+  what handlers need in the Context.
 
-## cancel、本文とエラー
+## Cancellation, bodies and errors
 
-AbortSignal、host Futureのdrop、呼び出し期限は結び付いています。abortするとhandlerのFutureはInvocationの終了を待たずにdropされます。本文は需要に応じてstreamingし、本文の完了・cancelまでInvocationのleaseを維持します（[streaming設計](design-proposal.md#streamingとbackground)）。
+`AbortSignal`, dropping the host future and the call deadline are tied
+together. Aborting drops the handler's future without waiting for the
+invocation to end. Bodies stream on demand and hold the invocation's lease
+until they complete or are cancelled ([data flow](data-flow.md)).
 
-| Rust側の結果                                 | JS側の扱い                                                    |
-| -------------------------------------------- | ------------------------------------------------------------- |
-| HTTP Response。statusが404 / 500の場合も含む | fetchのPromiseをResponseで解決                                |
-| 権限拒否、transportの `Err`、cancel、再入等  | fetchのPromiseをreject。安定したcodeと一般化したmessageを提供 |
+| Result in Rust                                      | In JavaScript                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------------ |
+| An HTTP response, including 404 and 500             | The fetch promise resolves with the Response                       |
+| Permission denied, transport `Err`, cancel, reentry | The fetch promise rejects with a stable code and a general message |
 
-## 再入
+## Reentrancy
 
-`AppHandle` は一つのInstanceで直列に実行します。host fetchの処理中に同じ `AppHandle` を呼ぶと、その呼び出しは自身の完了を待つことになります。
+An `AppHandle` runs one instance serially. Calling the same handle from
+inside one of its host fetches would wait for itself.
 
-- workerはhost Futureをpollする間、そのアプリの識別子をthread-localに記録します。その間に同じアプリへ依頼すると、`AppHandle` は即座に `Error::Reentrant`（JSではcode `REENTRANT`）を返します。workerが作り直すInstanceも同じ識別子を使います。
-- 別のアプリの `AppHandle` への依頼は通常どおり実行します。
-- 検出の対象は、host Futureのpoll内で直接行う依頼です。handlerが `tokio::spawn` した別taskから同じアプリを呼んで結果を待つ構成は検出できず、呼び出し期限（`Limits::timeout`）まで待ちます。
+- While the worker polls host futures it records the app's identity in a
+  thread-local. A call to the same app during that time fails immediately
+  with `Error::Reentrant` (code `REENTRANT` in JavaScript). A rebuilt
+  instance keeps the same identity.
+- Calls to another app's `AppHandle` run normally.
+- Detection covers calls made directly inside the poll of a host future. A
+  handler that `tokio::spawn`s a task which calls the same app and waits for
+  it is not detected; it waits until `Limits::timeout`.
 
-## frameworkの内部fetchとの分担
+## Framework fetches
 
-SvelteKitの `event.fetch` で次の分担を確認しています。
+With SvelteKit's `event.fetch`:
 
-- 同一originの相対URL・絶対URLは、frameworkが自身のrouteとしてJS内で処理します。fetchletのhost fetchは使いません。
-- 他originのURLはframeworkがglobal fetchへ渡し、`HostServices::outbound` のserviceが処理します。frameworkが付けるheaders（cookieの転送規則等）はframeworkの仕様に従います。
-- `platform.env.RUST` 等の名前付きbindingは、frameworkを経由せずにserviceを呼びます。
+- Same-origin relative and absolute URLs are handled by the framework as
+  its own routes inside JavaScript; no host fetch is made.
+- URLs of other origins go to global `fetch`, served by the
+  `HostServices::outbound` service. Headers the framework adds, such as
+  forwarded cookies, follow the framework's rules.
+- Named bindings such as `platform.env.RUST` call their service without the
+  framework.
 
-内部originはserver-side JS用の宛先識別です。ブラウザーには公開origin上のURL（例では `/api/v1`）を渡し、同じrouterへつなぎます。[Tauri連携](embedded-applications.md#tauriとの関係)では、WebViewのorigin、protocol、権限をadapterごとに対応付けます。
+Internal origins identify destinations for server-side JavaScript only.
+Browsers receive URLs on the public origin (`/api/v1` in the example), which
+reach the same router.
 
-## 検証
+## Tests
 
-| 範囲                                       | 試験                                                                                |
-| ------------------------------------------ | ----------------------------------------------------------------------------------- |
-| Contextの付与・除去、originの完全一致      | `crates/fetchlet/src/host/tests.rs`                                                 |
-| 3エンジンでのContext、redirect、拒否、再入 | `crates/fetchlet/tests/in_process.rs`                                               |
-| axum routerの共用、`trusted_context`       | `crates/fetchlet-http/tests/axum_router.rs`、`crates/fetchlet-http/tests/contract/` |
-| SvelteKitでのE2E                           | [sveltekit-axum](../examples/sveltekit-axum/README.md#プロセス内のrust-api)の16項目 |
+| Scope                                           | Tests                                                                               |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Context attach and removal, exact origins       | `crates/fetchlet/src/host/tests.rs`                                                 |
+| Context, redirects, refusal, reentry, 3 engines | `crates/fetchlet/tests/in_process.rs`                                               |
+| Shared axum router, `trusted_context`           | `crates/fetchlet-http/tests/axum_router.rs`, `crates/fetchlet-http/tests/contract/` |
+| End to end with SvelteKit                       | [examples/sveltekit-axum](../examples/sveltekit-axum/README.md)                     |
 
-例のE2Eは、同じrouterの公開HTTPとプロセス内fetch、400 / 404 / 500のResponse、Contextによる呼び出し元、許可外originの拒否、abortによるhandlerのdrop、`event.fetch` の分担を確認します。
-
-## 次の作業
-
-1. 汎用関数呼び出し（`App::call` 等）にもContextを渡す入口を設ける。
-2. pool導入時の再入（容量の枯渇による待ち合わせ）と、spawnしたtaskからの再入の扱いを決める。
-3. Astro等、他frameworkの内部fetchの分担をadapterごとに確認する。
-4. artifactとassetsの埋め込み、CLI等の起動・終了、Tauriの読み込み経路を順に実測する。
+The example checks the router over public HTTP and in-process fetch, 400,
+404 and 500 responses, the caller identity from the Context, refusal of an
+unregistered origin, handler drop on abort and the `event.fetch` split.
