@@ -11,6 +11,14 @@ pub enum ConsoleLevel {
     Error,
 }
 
+// The host bridge reads console messages; it exists only where a guest runs.
+#[cfg(any(
+    feature = "boa",
+    feature = "quickjs",
+    feature = "v8",
+    feature = "fuzzing",
+    test
+))]
 impl ConsoleLevel {
     pub(crate) fn parse(name: &str) -> Option<Self> {
         match name {
@@ -27,8 +35,23 @@ impl ConsoleLevel {
 /// Receives the console output of the App's JavaScript, one formatted
 /// message per call. The callback runs on the thread that executes the
 /// JavaScript, so it should hand messages on rather than block.
+///
+/// Without an engine feature, `HostServices` still accepts a sink, but no
+/// guest runs to write to it.
 #[derive(Clone)]
-pub(crate) struct ConsoleSink(Arc<ConsoleCallback>);
+pub(crate) struct ConsoleSink(
+    #[cfg_attr(
+        not(any(
+            feature = "boa",
+            feature = "quickjs",
+            feature = "v8",
+            feature = "fuzzing",
+            test
+        )),
+        expect(dead_code, reason = "only the host bridge calls the sink")
+    )]
+    Arc<ConsoleCallback>,
+);
 
 type ConsoleCallback = dyn Fn(ConsoleLevel, &str) + Send + Sync;
 
@@ -37,6 +60,13 @@ impl ConsoleSink {
         Self(Arc::new(sink))
     }
 
+    #[cfg(any(
+        feature = "boa",
+        feature = "quickjs",
+        feature = "v8",
+        feature = "fuzzing",
+        test
+    ))]
     pub fn write(&self, level: ConsoleLevel, message: &str) {
         (self.0)(level, message);
     }
