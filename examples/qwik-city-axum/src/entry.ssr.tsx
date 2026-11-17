@@ -4,6 +4,6 @@ import Root from "./root";
 export default function (options: RenderToStreamOptions) {
   return renderToStream(<Root />, {
     ...options,
-    containerAttributes: { lang: "ja", ...options.containerAttributes },
+    containerAttributes: { lang: "en", ...options.containerAttributes },
   });
 }

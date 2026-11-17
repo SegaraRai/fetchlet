@@ -79,19 +79,19 @@ Unexpected results: 0.
 
 | Example                      | Passed  | Framework                     | Browser       |
 | ---------------------------- | ------- | ----------------------------- | ------------- |
-| sveltekit-axum               | 16 / 16 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
+| sveltekit-axum               | 17 / 17 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
 | sveltekit-axum-tauri         | 15 / 15 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
 | sveltekit-axum-tauri-desktop | 5 / 5   | @sveltejs/kit 3.2.0           | 157.0.4341.46 |
-| astro-axum                   | 11 / 11 | astro 7.4.12                  | 159.0.8154.6  |
+| astro-axum                   | 12 / 12 | astro 7.4.12                  | 159.0.8154.6  |
 | nuxt-axum                    | 11 / 11 | nuxt 4.6.4                    | 159.0.8154.6  |
 | react-router-axum            | 12 / 12 | react-router 8.5.1            | 159.0.8154.6  |
-| honox-axum                   | 10 / 10 | honox 0.1.62                  | 159.0.8154.6  |
+| honox-axum                   | 11 / 11 | honox 0.1.62                  | 159.0.8154.6  |
 | honox-tauri                  | 10 / 10 | honox 0.1.62                  | 157.0.4341.46 |
-| tanstack-start-axum          | 10 / 10 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
-| solidstart-axum              | 10 / 10 | @solidjs/start 2.2.3          | 159.0.8154.6  |
-| qwik-city-axum               | 10 / 10 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
-| waku-axum                    | 10 / 10 | waku 1.0.0-rc.5               | 159.0.8154.6  |
-| vinext-axum                  | 10 / 10 | vinext 1.4.6                  | 159.0.8154.6  |
+| tanstack-start-axum          | 11 / 11 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
+| solidstart-axum              | 11 / 11 | @solidjs/start 2.2.3          | 159.0.8154.6  |
+| qwik-city-axum               | 11 / 11 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
+| waku-axum                    | 11 / 11 | waku 1.0.0-rc.5               | 159.0.8154.6  |
+| vinext-axum                  | 11 / 11 | vinext 1.4.6                  | 159.0.8154.6  |
 
 ## Framework features
 
@@ -100,7 +100,7 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 | Feature             | sveltekit | sveltekit-tauri | sveltekit desktop | astro | nuxt    | react-router | honox | honox-tauri | tanstack-start | solidstart | qwik-city | waku | vinext |
 | ------------------- | --------- | --------------- | ----------------- | ----- | ------- | ------------ | ----- | ----------- | -------------- | ---------- | --------- | ---- | ------ |
 | SSR                 | ✓         | ✓               | ✓                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
-| Streaming SSR       | —         | —               | n/a (1)           | —     | n/a (2) | ✓            | —     | n/a (1)     | —              | —          | —         | —    | —      |
+| Streaming SSR       | ✓         | —               | n/a (1)           | ✓     | n/a (2) | ✓            | ✓     | n/a (1)     | ✓              | ✓          | ✓         | ✓    | ✓      |
 | Hydration           | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
 | Client navigation   | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
 | Assets              | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |

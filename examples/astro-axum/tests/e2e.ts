@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { assertStreams } from "@fetchlet-internal/tools-examples/common-checks";
 import { exampleSuite } from "@fetchlet-internal/tools-examples/suite";
 
 const suite = exampleSuite("astro-axum");
@@ -12,6 +13,10 @@ check("Astro SSR, escaping and the Rust service binding", ["ssr", "bindings"], a
   assert.match(html, /&lt;Rust &amp; Astro(?:>|&gt;)/);
   assert.match(html, /Welcome to Astro and Rust/);
   assert.match(html, /Greetings from the Rust service/);
+});
+
+check("Astro streams the page while a component awaits", ["streaming-ssr"], async () => {
+  await assertStreams(await fetch(suite.base + "/deferred"));
 });
 
 check("Astro JavaScript, CSS and static files", ["assets"], async () => {

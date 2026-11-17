@@ -26,7 +26,7 @@ function Root() {
 
 function Document({ children }: { children: ReactNode }) {
   return (
-    <html lang="ja">
+    <html lang="en">
       <head>
         <HeadContent />
       </head>

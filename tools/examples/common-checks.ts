@@ -13,7 +13,9 @@
 //   202 `{ accepted, completed }`; GET returns `{ completed }`;
 // - POST requests carry the Origin header a browser sends, which CSRF checks
 //   such as Qwik City's require;
-// - the Rust server serves `/api/rust` and `/health.txt`.
+// - the Rust server serves `/api/rust` and `/health.txt`;
+// - with `streaming`, `/deferred` sends `Loading…` first and
+//   `A value that arrived late` about 200 ms later, in the same response.
 import assert from "node:assert/strict";
 
 import type { ExampleSuite } from "./suite.ts";
@@ -26,6 +28,8 @@ export interface CommonCheckOptions {
   requireCss?: boolean;
   hiddenPaths?: string[];
   clientNavigation?: boolean;
+  /** Whether `/deferred` streams its slow part after the shell. */
+  streaming?: boolean;
 }
 
 declare global {
@@ -235,4 +239,38 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     assert.deepEqual(errors, []);
     await page.close();
   });
+
+  if (options.streaming) {
+    check(`${framework} streams deferred content after the shell`, ["streaming-ssr"], async () => {
+      await assertStreams(await fetch(suite.base + "/deferred", { headers: browserHeaders }));
+    });
+  }
+}
+
+/**
+ * Asserts that a response sends its `Loading…` shell before the slow value:
+ * the shell must arrive while the value is still pending on the server.
+ */
+export async function assertStreams(response: Response): Promise<void> {
+  assert.equal(response.status, 200);
+  assert.ok(response.body);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let received = "";
+  while (!received.includes("Loading")) {
+    const { done, value } = await reader.read();
+    assert.ok(!done, "the response ended before the shell: " + received.slice(-200));
+    received += decoder.decode(value, { stream: true });
+  }
+  assert.doesNotMatch(
+    received,
+    /A value that arrived late/,
+    "the slow value arrived with the shell",
+  );
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += decoder.decode(value, { stream: true });
+  }
+  assert.match(received, /A value that arrived late/);
 }

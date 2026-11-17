@@ -41,7 +41,8 @@ according to `trailingSlash` and `build.format`
 ## Tests
 
 examples/astro-axum runs on QuickJS with FormatJS and checks SSR, a Svelte
-island, forms, cookies, endpoints, streaming uploads and client navigation.
+island, forms, cookies, endpoints, streamed rendering, streaming uploads and
+client navigation.
 
 Image transformation, server islands, sessions and static output need their
 own capabilities and tests.

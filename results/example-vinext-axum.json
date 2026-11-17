@@ -26,7 +26,7 @@
   },
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 10,
+    "passed": 11,
     "failed": 0
   },
   "results": [
@@ -78,6 +78,11 @@
     {
       "name": "vinext hydration and client navigation",
       "features": ["hydration", "navigation"],
+      "status": "pass"
+    },
+    {
+      "name": "vinext streams deferred content after the shell",
+      "features": ["streaming-ssr"],
       "status": "pass"
     }
   ]

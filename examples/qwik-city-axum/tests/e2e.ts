@@ -10,4 +10,5 @@ commonChecks(suite, {
   // Qwik inlines component styles and loads its chunks from /build/.
   assetPrefix: "/build/",
   requireCss: false,
+  streaming: true,
 });

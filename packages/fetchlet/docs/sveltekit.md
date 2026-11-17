@@ -68,6 +68,7 @@ sveltekit({
 ```
 
 `examples/sveltekit-axum` uses the synchronous profile and
-`examples/sveltekit-axum-tauri` the asynchronous one. Server-side asset reads
-and streaming are next; remote functions' `query.live` needs streaming
-responses and follows them.
+`examples/sveltekit-axum-tauri` the asynchronous one. Promises returned from
+`load` stream after the page in the synchronous profile. Server-side asset
+reads are next, and remote functions' `query.live` needs long-lived streamed
+responses.

@@ -75,7 +75,7 @@ export default function fetchletAdapter({
           entry: serverEntry,
           outDir: output,
           framework: "astro",
-          rendering: "buffered",
+          rendering: "streaming",
           requirements: ["Intl.DateTimeFormat"],
           backend,
           intl,

@@ -8,4 +8,5 @@ commonChecks(suite, {
   example: "solidstart-axum",
   message: "From SolidStart",
   assetPrefix: "/",
+  streaming: true,
 });

@@ -8,4 +8,5 @@ commonChecks(suite, {
   example: "vinext-axum",
   message: "From vinext",
   assetPrefix: "/",
+  streaming: true,
 });

@@ -22,13 +22,18 @@
   },
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 16,
+    "passed": 17,
     "failed": 0
   },
   "results": [
     {
       "name": "SSR, escaping and the Rust service binding",
       "features": ["ssr", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "a promise from load streams after the page",
+      "features": ["streaming-ssr"],
       "status": "pass"
     },
     {

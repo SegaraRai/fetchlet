@@ -38,8 +38,8 @@ build directory. This local example uses a queue of 8, a 1 MiB request body
 and a 10-second cooperative deadline; `public_origin` sets the origin
 outside a proxy. Configuration works as in the SvelteKit example.
 
-Rendering uses Astro with Svelte 5's synchronous SSR, and the body returns
-to Rust as a buffer. Request bodies reach endpoints as a `ReadableStream`
+Rendering uses Astro with Svelte 5's synchronous SSR. Astro streams the page
+in order, so `/deferred` sends its start while a component awaits. Request bodies reach endpoints as a `ReadableStream`
 through `stream_request_bodies()`; `/api/upload` counts bytes as they
 arrive. A body whose `Content-Length` declares more than the budget is
 refused with 413 before execution; undeclared excess errors the endpoint's

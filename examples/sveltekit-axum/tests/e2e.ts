@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { assertStreams } from "@fetchlet-internal/tools-examples/common-checks";
 import { exampleSuite } from "@fetchlet-internal/tools-examples/suite";
 
 const suite = exampleSuite("sveltekit-axum");
@@ -13,6 +14,10 @@ check("SSR, escaping and the Rust service binding", ["ssr", "bindings"], async (
   assert.match(html, /&lt;Rust &amp; Svelte>/);
   assert.match(html, /Welcome to SvelteKit and Rust/);
   assert.match(html, /Greetings from the Rust service/);
+});
+
+check("a promise from load streams after the page", ["streaming-ssr"], async () => {
+  await assertStreams(await fetch(suite.base + "/deferred"));
 });
 
 check("client JavaScript, CSS and static files", ["assets"], async () => {

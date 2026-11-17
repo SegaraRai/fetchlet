@@ -98,7 +98,7 @@ export default function fetchletBuild({
         outDir: resolve(root, outDir),
         asyncContext: "serialized",
         framework: "hono",
-        rendering: "buffered",
+        rendering: "streaming",
         backend,
         intl,
         ...(assets ? { assets: frameworkAssets(assets, {}) } : {}),

@@ -7,7 +7,7 @@ interface RequestContext {
 }
 
 const app = createApp({
-  streaming: false,
+  streaming: true,
 });
 
 setGetEnv((key) => {

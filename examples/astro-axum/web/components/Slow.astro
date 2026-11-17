@@ -1,0 +1,8 @@
+---
+// Astro streams the page in order: everything before this component is sent
+// while it waits.
+const value = await new Promise<string>((resolve) =>
+  setTimeout(() => resolve("A value that arrived late"), 200),
+);
+---
+<p data-resolved>{value}</p>

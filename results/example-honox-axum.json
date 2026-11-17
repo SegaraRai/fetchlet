@@ -21,7 +21,7 @@
   },
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 10,
+    "passed": 11,
     "failed": 0
   },
   "results": [
@@ -73,6 +73,11 @@
     {
       "name": "HonoX hydration and navigation",
       "features": ["hydration", "navigation"],
+      "status": "pass"
+    },
+    {
+      "name": "HonoX streams deferred content after the shell",
+      "features": ["streaming-ssr"],
       "status": "pass"
     }
   ]

@@ -8,4 +8,5 @@ commonChecks(suite, {
   example: "waku-axum",
   message: "From Waku",
   assetPrefix: "/",
+  streaming: true,
 });

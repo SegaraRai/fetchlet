@@ -10,7 +10,7 @@ export default component$(() => (
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <RouterHead />
     </head>
-    <body lang="ja">
+    <body lang="en">
       <RouterOutlet />
     </body>
   </QwikCityProvider>

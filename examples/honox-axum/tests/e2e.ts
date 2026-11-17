@@ -10,4 +10,5 @@ commonChecks(suite, {
   assetPrefix: "/static/",
   // HonoX renders islands without a client-side router.
   clientNavigation: false,
+  streaming: true,
 });

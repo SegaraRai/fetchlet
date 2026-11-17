@@ -8,4 +8,5 @@ commonChecks(suite, {
   example: "tanstack-start-axum",
   message: "Welcome to TanStack Start and Rust.",
   assetPrefix: "/",
+  streaming: true,
 });

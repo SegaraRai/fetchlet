@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { assertStreams } from "@fetchlet-internal/tools-examples/common-checks";
 import { exampleSuite } from "@fetchlet-internal/tools-examples/suite";
 
 const suite = exampleSuite("react-router-axum");
@@ -44,22 +45,7 @@ check("React Router JavaScript, CSS and public files", ["assets"], async () => {
 });
 
 check("deferred loader data streams after the shell", ["streaming-ssr"], async () => {
-  const response = await fetch(suite.base + "/deferred", { headers: browser });
-  assert.equal(response.status, 200);
-  assert.ok(response.body);
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  const { value } = await reader.read();
-  const shell = decoder.decode(value, { stream: true });
-  assert.match(shell, /Loading/);
-  assert.doesNotMatch(shell, /A value that arrived late/);
-  let rest = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    rest += decoder.decode(value, { stream: true });
-  }
-  assert.match(rest, /A value that arrived late/);
+  await assertStreams(await fetch(suite.base + "/deferred", { headers: browser }));
 });
 
 check("resource route JSON action", ["json"], async () => {

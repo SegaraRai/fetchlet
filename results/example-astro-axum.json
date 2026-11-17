@@ -22,13 +22,18 @@
   },
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 11,
+    "passed": 12,
     "failed": 0
   },
   "results": [
     {
       "name": "Astro SSR, escaping and the Rust service binding",
       "features": ["ssr", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "Astro streams the page while a component awaits",
+      "features": ["streaming-ssr"],
       "status": "pass"
     },
     {
