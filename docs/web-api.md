@@ -17,6 +17,8 @@ implementation is in `packages/fetchlet/src/runtime/web/`.
 | URLSearchParams, base64, structuredClone, DOMException    | core-js-pure                                                   |
 | Streams                                                   | web-streams-polyfill, pinned                                   |
 | Encoding                                                  | `@exodus/bytes` encoding-lite                                  |
+| URLPattern                                                | Rust `urlpattern` crate through host operations                |
+| CompressionStream, DecompressionStream                    | Rust `flate2` and `brotli` through host operations             |
 | Random values, SHA-256                                    | Rust `getrandom` and `sha2` through host operations            |
 | `performance.now`, `timeOrigin`                           | Rust's monotonic clock                                         |
 | Fetch, Headers, Body, FormData, Blob, File, Abort, timers | fetchlet's own implementation                                  |
@@ -36,6 +38,8 @@ kept.
 | Events              | `Event`, `CustomEvent` and `EventTarget` with `once`, `passive`, `signal`, `handleEvent` objects and cancellation; dispatch reaches only the target, as there is no tree     |
 | Abort               | `AbortSignal` is an `EventTarget`; `abort`, `timeout` and `any`, DOMException reasons, aborting body reads and host fetches                                                  |
 | Crypto              | Secure random values, UUID v4, SHA-256                                                                                                                                       |
+| Compression         | Four formats over any BufferSource chunks; truncated, corrupt or trailing input errors the stream; the `decompressed_bytes` limit bounds the output                          |
+| URLPattern          | Patterns, base URLs, `ignoreCase`, `test` and `exec`; component regular expressions run in the engine's own `RegExp`                                                         |
 | Timers and jobs     | Promises, `setTimeout`, `setInterval` and their clear functions, driven by host future notifications                                                                         |
 | fetch and env       | Async bridge to Rust services, origin policy, fixed bindings                                                                                                                 |
 | Bodies, background  | Streaming response bodies, request and upstream bodies as `ReadableStream`, binary transfer through the byte store, `fetchlet.waitUntil`, timer cleanup at the end of a call |
@@ -63,11 +67,11 @@ fetchlet's status for each:
 | File API                 | `Blob`, `File`                                                                                                                                                       |
 | Streams                  | All thirteen interfaces                                                                                                                                              |
 | Encoding                 | `TextEncoder`, `TextDecoder`, `TextEncoderStream`, `TextDecoderStream`                                                                                               |
-| URL                      | `URL`, `URLSearchParams`; `URLPattern` is missing                                                                                                                    |
+| URL                      | `URL`, `URLSearchParams`, `URLPattern`                                                                                                                               |
 | DOM events and abort     | `Event`, `EventTarget`, `CustomEvent`, `AbortController`, `AbortSignal`                                                                                              |
 | HTML events and messages | `ErrorEvent`, `PromiseRejectionEvent`, `MessageChannel`, `MessagePort` and `MessageEvent` are missing                                                                |
 | WebIDL                   | `DOMException`                                                                                                                                                       |
-| Compression              | `CompressionStream` and `DecompressionStream` are missing                                                                                                            |
+| Compression              | `CompressionStream` and `DecompressionStream` with `gzip`, `deflate`, `deflate-raw` and `brotli`                                                                     |
 | Web Crypto               | `crypto.getRandomValues`, `randomUUID` and `subtle.digest` with SHA-256; the `Crypto`, `CryptoKey` and `SubtleCrypto` interfaces and other algorithms are missing    |
 | Performance              | `performance.now` and `timeOrigin`; the `Performance` interface is not exposed                                                                                       |
 | WebAssembly              | Native on V8; QuickJS and Boa have none                                                                                                                              |
@@ -98,7 +102,7 @@ fetchlet's status for each:
 
 ## Verification
 
-- 27 behavior probes ([fixtures/probe](../fixtures/probe/README.md)) run on
+- 29 behavior probes ([fixtures/probe](../fixtures/probe/README.md)) run on
   each engine and on Node as a reference.
 - Selected WPT, Test262 and regression tests run on each engine
   ([conformance](conformance.md)).

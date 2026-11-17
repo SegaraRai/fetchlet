@@ -45,12 +45,6 @@ Sources: [SolidStart adapter](../packages/fetchlet/src/solid-start/index.ts),
 The [WinterTC table](web-api.md#wintertc-minimum-common-api) lists what the
 profile lacks. In rough order of how often server code needs them:
 
-- `CompressionStream` and `DecompressionStream` (gzip, deflate,
-  deflate-raw), backed by a Rust codec through host operations so all
-  engines share one implementation; WPT `compression/` to verify.
-- `URLPattern`, which routers increasingly use; candidates are the
-  `urlpattern` crate through host operations or a JavaScript polyfill, and
-  WPT `urlpattern/` to choose between them.
 - Web Crypto beyond SHA-256: `CryptoKey`, HMAC sign and verify, the other
   SHA digests, then key import for JWT verification. Each algorithm needs WPT
   `WebCryptoAPI/` coverage.

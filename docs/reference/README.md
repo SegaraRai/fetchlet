@@ -23,10 +23,10 @@ describes the suites. Each section names the versions its run recorded.
 
 | Engine           | Passed  | Engine version    |
 | ---------------- | ------- | ----------------- |
-| QuickJS          | 27 / 27 | rquickjs 0.14.0   |
-| Boa              | 27 / 27 | boa_engine 0.22.0 |
-| V8               | 27 / 27 | v8 150.4.0        |
-| Node (reference) | 27 / 27 | v26.13.1          |
+| QuickJS          | 29 / 29 | rquickjs 0.14.0   |
+| Boa              | 29 / 29 | boa_engine 0.22.0 |
+| V8               | 29 / 29 | v8 150.4.0        |
+| Node (reference) | 29 / 29 | v26.13.1          |
 
 ## Host services
 
@@ -41,15 +41,15 @@ describes the suites. Each section names the versions its run recorded.
 ## Conformance
 
 `vp run test:conformance`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. Passed / failed, with recorded known failures; [conformance](../conformance.md) explains each category.
-WPT c43f14b481a9 (95 files), Test262 2e58f87d8350 (44 files).
+WPT c43f14b481a9 (114 files), Test262 2e58f87d8350 (44 files).
 Unexpected results: 0.
 
 | Engine           | WPT                    | Test262 | Regressions |
 | ---------------- | ---------------------- | ------- | ----------- |
-| QuickJS          | 1250 / 242 (242 known) | 88 / 0  | 32 / 0      |
-| Boa              | 1250 / 242 (242 known) | 88 / 0  | 32 / 0      |
-| V8               | 1321 / 171 (171 known) | 88 / 0  | 32 / 0      |
-| Node (reference) | 1317 / 175 (175 known) | 88 / 0  | 32 / 0      |
+| QuickJS          | 1925 / 238 (238 known) | 88 / 0  | 32 / 0      |
+| Boa              | 1537 / 257 (257 known) | 88 / 0  | 32 / 0      |
+| V8               | 2012 / 151 (151 known) | 88 / 0  | 32 / 0      |
+| Node (reference) | 2007 / 156 (156 known) | 88 / 0  | 32 / 0      |
 
 ## URL
 

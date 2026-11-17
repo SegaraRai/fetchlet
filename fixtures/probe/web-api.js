@@ -50,6 +50,7 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
     "Headers",
     "URL",
     "URLSearchParams",
+    "URLPattern",
     "FormData",
     "Blob",
     "File",
@@ -60,6 +61,8 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
     "TextDecoder",
     "TextEncoderStream",
     "TextDecoderStream",
+    "CompressionStream",
+    "DecompressionStream",
     "AbortController",
     "AbortSignal",
     "DOMException",
@@ -305,6 +308,21 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
       byte.toString(16).padStart(2, "0"),
     ).join("");
     equal(hex, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  });
+  await check("compression-gzip-round-trip", async () => {
+    const text = "fetchlet ".repeat(100);
+    const compressed = new Response(text).body.pipeThrough(new CompressionStream("gzip"));
+    const bytes = new Uint8Array(await new Response(compressed).arrayBuffer());
+    equal([bytes[0], bytes[1]], [0x1f, 0x8b]);
+    assert(bytes.length < text.length, "Expected compressed output to be smaller");
+    const restored = new Response(bytes).body.pipeThrough(new DecompressionStream("gzip"));
+    equal(await new Response(restored).text(), text);
+  });
+  await check("url-pattern-match", () => {
+    const pattern = new URLPattern({ pathname: "/books/:id(\\d+)" });
+    const match = pattern.exec("https://fetchlet.invalid/books/42?x=1");
+    equal([match.pathname.groups.id, match.search.input], ["42", "x=1"]);
+    equal(pattern.test("https://fetchlet.invalid/books/x"), false);
   });
   await check("synthetic-fetch-handler", async () => {
     const handler = async (request) =>

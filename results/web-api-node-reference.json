@@ -17,6 +17,7 @@
     "Headers": "function",
     "URL": "function",
     "URLSearchParams": "function",
+    "URLPattern": "function",
     "FormData": "function",
     "Blob": "function",
     "File": "function",
@@ -27,6 +28,8 @@
     "TextDecoder": "function",
     "TextEncoderStream": "function",
     "TextDecoderStream": "function",
+    "CompressionStream": "function",
+    "DecompressionStream": "function",
     "AbortController": "function",
     "AbortSignal": "function",
     "DOMException": "function",
@@ -40,9 +43,7 @@
     "navigator": "object",
     "queueMicrotask": "function",
     "structuredClone": "function",
-    "crypto": "object",
-    "CompressionStream": "function",
-    "DecompressionStream": "function"
+    "crypto": "object"
   },
   "checks": [
     {
@@ -150,13 +151,21 @@
       "status": "pass"
     },
     {
+      "id": "compression-gzip-round-trip",
+      "status": "pass"
+    },
+    {
+      "id": "url-pattern-match",
+      "status": "pass"
+    },
+    {
       "id": "synthetic-fetch-handler",
       "status": "pass"
     }
   ],
   "summary": {
-    "total": 27,
-    "passed": 27,
+    "total": 29,
+    "passed": 29,
     "failed": 0
   }
 }

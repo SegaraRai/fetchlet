@@ -17,6 +17,22 @@
         "FileAPI/blob/Blob-textStream.any.js",
         "FileAPI/file/File-constructor-endings.any.js",
         "FileAPI/file/File-constructor.any.js",
+        "compression/compression-bad-chunks.any.js",
+        "compression/compression-constructor-error.any.js",
+        "compression/compression-including-empty-chunk.any.js",
+        "compression/compression-multiple-chunks.any.js",
+        "compression/compression-with-detach.any.js",
+        "compression/decompression-bad-chunks.any.js",
+        "compression/decompression-brotli-large-window.tentative.any.js",
+        "compression/decompression-buffersource.any.js",
+        "compression/decompression-constructor-error.any.js",
+        "compression/decompression-correct-input.any.js",
+        "compression/decompression-corrupt-input.any.js",
+        "compression/decompression-empty-input.any.js",
+        "compression/decompression-extra-input.any.js",
+        "compression/decompression-split-chunk.any.js",
+        "compression/decompression-uint8array-output.any.js",
+        "compression/decompression-with-detach.any.js",
         "dom/abort/AbortSignal.any.js",
         "dom/abort/abort-signal-any.any.js",
         "dom/abort/event.any.js",
@@ -91,6 +107,9 @@
         "streams/readable-streams/default-reader.any.js",
         "streams/readable-streams/general.any.js",
         "streams/readable-streams/tee.any.js",
+        "urlpattern/urlpattern-constructor.any.js",
+        "urlpattern/urlpattern-hasregexpgroups.any.js",
+        "urlpattern/urlpattern.any.js",
         "xhr/formdata/append.any.js",
         "xhr/formdata/constructor.any.js",
         "xhr/formdata/delete.any.js",
@@ -109,6 +128,90 @@
         {
           "path": "common/sab.js",
           "sha256": "7f684ef9aaf7ad29822cbf2ab110463836387da97d230665fa2693c894478047"
+        },
+        {
+          "path": "compression/compression-bad-chunks.any.js",
+          "sha256": "978aaadc2b2d0db379ed70bba0ce0b8b74980e33b917e496d54826fb006320f8"
+        },
+        {
+          "path": "compression/compression-constructor-error.any.js",
+          "sha256": "6962026a159f9877c760347c32eafa9921f8ea778e89590cb119244748c752fb"
+        },
+        {
+          "path": "compression/compression-including-empty-chunk.any.js",
+          "sha256": "29d3829991b4df75b53627bc664d99d727b2326274e64cc3b9d4b00adc6db525"
+        },
+        {
+          "path": "compression/compression-multiple-chunks.any.js",
+          "sha256": "5e269c842867b1bc1c353b7a62d8b00afd0cc3c13018e4dbfc9eec78ffc38b18"
+        },
+        {
+          "path": "compression/compression-with-detach.any.js",
+          "sha256": "17e39d6f5c82ec30e262d123c4d669e0f13d4a56f4f8e750cdf0698466c1bd12"
+        },
+        {
+          "path": "compression/decompression-bad-chunks.any.js",
+          "sha256": "f76f579c3731f10305df303ad10191419ca651008aa9af03bd01cb58ed9ab7ca"
+        },
+        {
+          "path": "compression/decompression-brotli-large-window.tentative.any.js",
+          "sha256": "fcbd0b34aa3b4f87596e739c106515582be22b146441bf145a1ec837678f04bd"
+        },
+        {
+          "path": "compression/decompression-buffersource.any.js",
+          "sha256": "9a1d1d03eb8cf3a52bff6695a1be5ae07083286126d784428326a32c54d7675e"
+        },
+        {
+          "path": "compression/decompression-constructor-error.any.js",
+          "sha256": "01ef5a95e137c728d06d8de604253d7f2b1dcf1091035c71a9110fcd11424859"
+        },
+        {
+          "path": "compression/decompression-correct-input.any.js",
+          "sha256": "c904b130101735c79337c2cb3a2ac82ac7427be9861468ada0c5505c50bcce9c"
+        },
+        {
+          "path": "compression/decompression-corrupt-input.any.js",
+          "sha256": "618cddb1057ef9de3eac96cedc0e41650a8bb6a88a9b0dc464dab6cbc7682c0d"
+        },
+        {
+          "path": "compression/decompression-empty-input.any.js",
+          "sha256": "67d98ad3e14bbeff9a8a1a9f8b90bdf32fd7a0326de6306aaeab9befc50887cc"
+        },
+        {
+          "path": "compression/decompression-extra-input.any.js",
+          "sha256": "4a577fe09119111d837bdaa3542d5311b42c5195fa4432bd71f4100a6e4b97f0"
+        },
+        {
+          "path": "compression/decompression-split-chunk.any.js",
+          "sha256": "60e855b751fcb0896cc03b9f18ff2091abeca25a5fe477bd62e3d46919c13374"
+        },
+        {
+          "path": "compression/decompression-uint8array-output.any.js",
+          "sha256": "0e5085ffdab2924e0c94ea2a67a0e20e38aadf88fa38b54b2c8cd6a0adc33cd4"
+        },
+        {
+          "path": "compression/decompression-with-detach.any.js",
+          "sha256": "d7f46c17bd4a3471d31e22fdcd3f0496e1376046c0aa4f889b41183e76be7ed5"
+        },
+        {
+          "path": "compression/resources/concatenate-stream.js",
+          "sha256": "f7f9d08106559feed1ac57375d4e80c97e4d3955fa0b40cac31f4a7a4a055e87"
+        },
+        {
+          "path": "compression/resources/decompress.js",
+          "sha256": "d92f428ec464241c4f5f20e63fedc28d32581be7abeed2d88759033f123e2dea"
+        },
+        {
+          "path": "compression/resources/decompression-input.js",
+          "sha256": "b86fff0a0b52133cc20d175d48ea89c29db4a5c016f5c81e19ad9a3ff68c096f"
+        },
+        {
+          "path": "compression/resources/formats.js",
+          "sha256": "526bf869b3977efde841617c3e51777460bece8b5899e655916e54ff9eee30c1"
+        },
+        {
+          "path": "compression/third_party/pako/pako_inflate.min.js",
+          "sha256": "2ca27e9a8dae569cdeac42752ed1aed1afeff7f19282d3cc12c0aaa54a08bc04"
         },
         {
           "path": "dom/abort/abort-signal-any.any.js",
@@ -311,6 +414,10 @@
           "sha256": "9594fc0b9873ea3fe0f4f0ba126c76cb0601d375639bf153a7a3aa508525d8dd"
         },
         {
+          "path": "fetch/api/resources/data.json",
+          "sha256": "844d7743b13e1bdd66b003c29ebe5184dcf985434dde9f125952595cd533213e"
+        },
+        {
           "path": "fetch/api/resources/utils.js",
           "sha256": "b0471d45399909b060f9d36caca1346477c47852c280ac5a2fb4c3d7d85077aa"
         },
@@ -501,6 +608,30 @@
         {
           "path": "streams/resources/test-utils.js",
           "sha256": "6ba682d4fa67f654de9c0d3516b6c3e0cdf1f0017085c866418cf93ced85cce7"
+        },
+        {
+          "path": "urlpattern/resources/urlpattern-hasregexpgroups-tests.js",
+          "sha256": "130329152a601d2242b26eaed2b7a7837972a34c5df324ca284ab23fd986b2d4"
+        },
+        {
+          "path": "urlpattern/resources/urlpatterntestdata.json",
+          "sha256": "f52a8ba3940de7e55ad47dc58eab5bccb697d7d76335c20ed7aaef6b85b98ab9"
+        },
+        {
+          "path": "urlpattern/resources/urlpatterntests.js",
+          "sha256": "b7f8d058e73d85827a7e5611420edbf8fe6b54a1bb451ba09f30f7f696ae9e8b"
+        },
+        {
+          "path": "urlpattern/urlpattern-constructor.any.js",
+          "sha256": "1bd1e358e89e767f647824bca98584131d65f806de3324ef2786bc1c729f90d0"
+        },
+        {
+          "path": "urlpattern/urlpattern-hasregexpgroups.any.js",
+          "sha256": "3ddb2100f7b62cc0ff17d1e193cb6ded16be9cab07402bb783172a8ddeed3085"
+        },
+        {
+          "path": "urlpattern/urlpattern.any.js",
+          "sha256": "8e8f63551402b0b14ffedaba165c7d103430e705a335d744bd540db83348d174"
         },
         {
           "path": "xhr/formdata/append.any.js",

@@ -6,12 +6,12 @@ describe that pinned selection, not a whole API or upstream suite.
 
 ## Layers
 
-| Suite             | Covers                                                                       | Selection                                                                        |
-| ----------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| WPT               | Fetch, Headers, Blob, FormData, Encoding, Events, Abort and Streams behavior | 95 files                                                                         |
-| Test262           | The engine's ECMAScript behavior                                             | `Array.prototype.at`, `Promise.resolve` and `throw`: 44 files, strict and sloppy |
-| Regressions       | Reproductions of fixed bugs                                                  | Body, ownership, validation, Blob, FormData, Encoding, URL                       |
-| Runner self-tests | The runner itself                                                            | Assertion failures, async completion, modes, global code, expectations, timeouts |
+| Suite             | Covers                                                                                                | Selection                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| WPT               | Fetch, Headers, Blob, FormData, Encoding, Events, Abort, Streams, Compression and URLPattern behavior | 114 files                                                                        |
+| Test262           | The engine's ECMAScript behavior                                                                      | `Array.prototype.at`, `Promise.resolve` and `throw`: 44 files, strict and sloppy |
+| Regressions       | Reproductions of fixed bugs                                                                           | Body, ownership, validation, Blob, FormData, Encoding, URL                       |
+| Runner self-tests | The runner itself                                                                                     | Assertion failures, async completion, modes, global code, expectations, timeouts |
 
 Framework end-to-end tests, Rust HTTP conversion, permissions, streaming
 backpressure and host fuzzing are separate suites ([security](security.md)).
@@ -93,14 +93,14 @@ expectations. CI compares and never rewrites them.
 
 Every WPT failure is a recorded difference. By category:
 
-| Category               | Engines          | Reason                                                                                                                                                                                                                                                        |
-| ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server-profile`       | all, Node too    | Relative URLs resolved against a document base URL (`new Request("")` and similar). A server profile has no global base URL; adapters resolve server-side relative URLs against the incoming request. The `Set-Cookie` response guard is in this category too |
-| `host-capability`      | all              | Tests that fetch WPT server resources, and MessageChannel. Outbound fetch is verified by the host matrix                                                                                                                                                      |
-| `backend-capability`   | QuickJS, Boa     | SharedArrayBuffer is not exposed; the ArrayBuffer variants pass                                                                                                                                                                                               |
-| `profile-selection`    | QuickJS, Boa, V8 | encoding-lite provides UTF-8, UTF-16 and single-byte encodings, not the legacy multi-byte decoders                                                                                                                                                            |
-| `upstream-comparison`  | all, Node too    | An empty FormData body ends with the multipart terminator; the pinned WPT expects an empty string                                                                                                                                                             |
-| `reference-difference` | Node only        | Node's `TextDecoder` end-of-stream handling, and a difference observable through a patched `Object.prototype.then` in undici's body reading                                                                                                                   |
+| Category               | Engines          | Reason                                                                                                                                                                                                                                                                |
+| ---------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server-profile`       | all, Node too    | Relative URLs resolved against a document base URL (`new Request("")` and similar). A server profile has no global base URL; adapters resolve server-side relative URLs against the incoming request. The `Set-Cookie` response guard is in this category too         |
+| `host-capability`      | all              | Tests that fetch WPT server scripts (`trickle.py`), MessageChannel, and global-scope events. Pinned JSON data is served by the runner; outbound fetch is verified by the host matrix                                                                                  |
+| `backend-capability`   | QuickJS, Boa     | SharedArrayBuffer and WebAssembly are not exposed, so shared-buffer variants fail and the ArrayBuffer variants pass. Boa 0.22 lacks `Array.fromAsync`, used by the brotli checks, and its `JSON.parse` rejects the lone surrogate escapes in the URLPattern test data |
+| `profile-selection`    | QuickJS, Boa, V8 | encoding-lite provides UTF-8, UTF-16 and single-byte encodings, not the legacy multi-byte decoders                                                                                                                                                                    |
+| `upstream-comparison`  | all, Node too    | An empty FormData body ends with the multipart terminator; the pinned WPT expects an empty string                                                                                                                                                                     |
+| `reference-difference` | Node only        | Node's `TextDecoder` end-of-stream handling, a difference observable through a patched `Object.prototype.then` in undici's body reading, and brotli large-window decompression                                                                                        |
 
 Test262 and the regression tests pass everywhere. Counts per engine are in
 [reference](reference/README.md#conformance).
@@ -109,8 +109,15 @@ Test262 and the regression tests pass everywhere. Counts per engine are in
 
 The WPT files cover Fetch (Headers, Request, Response, Body), FileAPI (Blob,
 File), FormData, Encoding, DOM Events (Event, EventTarget and listener
-options), DOM Abort and Streams (constructors, tee, cancel, async iteration,
-the default reader, byte stream tee). Files that need the
+options), DOM Abort, Streams (constructors, tee, cancel, async iteration,
+the default reader, byte stream tee), Compression (every format, chunk
+validation, corrupt, split and trailing input, detached buffers) and
+URLPattern (the shared pattern data, the constructor and
+`hasRegExpGroups`). `compression-stream` and
+`compression-output-length` fetch binary media from the WPT server and are
+not selected; `compression-large-flush-output` inflates its output with pako
+and exceeds the 30-second process deadline on Boa debug builds, while
+`compression-multiple-chunks` covers the same flushing. Files that need the
 WPT server (`header-values`, `json`, `response-cancel-stream`,
 `response-headers-guard`) are not selected. `request-disturbed`,
 `request-structure` and `request-keepalive` create relative-URL requests at
@@ -155,7 +162,9 @@ for missing syntax or built-ins.
 ## Adding tests
 
 Add or remove selected files at an explicit commit. The update tool also
-fetches the scripts and includes they depend on and re-records every hash.
+fetches the scripts and includes they depend on, and JSON data that a WPT
+script fetches with a literal relative URL, which the runner then serves in
+place of the WPT server. It re-records every hash.
 
 ```bash
 node tools/conformance/update-sources.ts --suite wpt --revision <40-character commit> --add fetch/api/response/response-clone.any.js

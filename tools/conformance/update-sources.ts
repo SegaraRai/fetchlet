@@ -4,6 +4,7 @@ import { resolve, dirname, relative, isAbsolute, posix } from "node:path";
 import { parseArgs } from "node:util";
 import { parse } from "yaml";
 import { lock, root, type Suite } from "./sources.ts";
+import { fetchedData } from "./wpt.ts";
 
 const { values } = parseArgs({
   options: {
@@ -41,7 +42,8 @@ function destination(file: string): string {
   return target;
 }
 
-async function download(file: string): Promise<void> {
+/** `test` is the WPT test whose directory resolves the data its scripts fetch. */
+async function download(file: string, test = file): Promise<void> {
   destination(file);
   if (files.has(file)) return;
   const url = "https://raw.githubusercontent.com/" + repository + "/" + revision + "/" + file;
@@ -57,7 +59,11 @@ async function download(file: string): Promise<void> {
         dependency.startsWith("/")
           ? dependency.slice(1)
           : posix.normalize(posix.join(posix.dirname(file), dependency)),
+        test,
       );
+    }
+    for (const data of fetchedData(text)) {
+      await download(posix.normalize(posix.join(posix.dirname(test), data)), test);
     }
   } else {
     const match = /\/\*---([\s\S]*?)---\*\//.exec(text);

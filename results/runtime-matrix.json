@@ -107,8 +107,8 @@
       "id": "probe",
       "status": "pass",
       "details": {
-        "total": 27,
-        "passed": 27,
+        "total": 29,
+        "passed": 29,
         "failed": 0
       }
     },
@@ -214,8 +214,8 @@
       "id": "probe",
       "status": "pass",
       "details": {
-        "total": 27,
-        "passed": 27,
+        "total": 29,
+        "passed": 29,
         "failed": 0
       }
     },
@@ -321,8 +321,8 @@
       "id": "probe",
       "status": "pass",
       "details": {
-        "total": 27,
-        "passed": 27,
+        "total": 29,
+        "passed": 29,
         "failed": 0
       }
     },
@@ -428,8 +428,8 @@
       "id": "probe",
       "status": "pass",
       "details": {
-        "total": 27,
-        "passed": 27,
+        "total": 29,
+        "passed": 29,
         "failed": 0
       }
     },

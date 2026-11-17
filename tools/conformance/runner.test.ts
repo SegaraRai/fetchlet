@@ -8,7 +8,7 @@ import { runProcess } from "./process.ts";
 import { assess, key } from "./report.ts";
 import { verifySources } from "./sources.ts";
 import { metadata, test262Program, variantsForSource, type Variant } from "./test262.ts";
-import { wptScript } from "./wpt.ts";
+import { fetchedData, wptScript } from "./wpt.ts";
 
 async function execute(program: string): Promise<any> {
   const realm = vm.createContext({ setTimeout, clearTimeout });
@@ -104,6 +104,41 @@ test("unmodified WPT harness preserves sync and async assertion failures", async
   assert.deepEqual(
     Array.from(result.tests, (entry: { status: number }) => entry.status),
     [1, 1, 0],
+  );
+});
+
+test("pinned WPT data answers literal relative fetches", async () => {
+  assert.deepEqual(fetchedData("fetch('resources/a.json'); fetch(url); fetch(\"b.json\")"), [
+    "resources/a.json",
+    "b.json",
+  ]);
+  const realm = vm.createContext({
+    setTimeout,
+    clearTimeout,
+    fetch: () => Promise.reject("network"),
+    Response: class {
+      body: string;
+      constructor(body: string) {
+        this.body = body;
+      }
+      json() {
+        return Promise.resolve(JSON.parse(this.body));
+      }
+    },
+  });
+  new vm.Script(
+    wptScript(
+      [
+        "promise_test(async () => assert_equals((await (await fetch('d.json')).json()).x, 1), 'served');" +
+          "promise_test(() => fetch('other.json').then(assert_unreached, (e) => assert_equals(e, 'network')), 'unserved');",
+      ],
+      { "d.json": '{"x":1}' },
+    ),
+  ).runInContext(realm);
+  const result = await realm.fetchletExports.run();
+  assert.deepEqual(
+    Array.from(result.tests, (entry: { status: number }) => entry.status),
+    [0, 0],
   );
 });
 
