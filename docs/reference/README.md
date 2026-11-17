@@ -4,11 +4,11 @@
 
 Measured results, rendered from the JSON files in [results/](../../results/).
 Each section names the suite that records it; [verification](../verification.md)
-describes the suites. Dates are when the results were recorded.
+describes the suites. Each section names the versions its run recorded.
 
 ## Engine matrix
 
-`vp run test:matrix`, 2026-11-17. Plain functions, Hono JSX and SvelteKit fixtures, and the Web API probe suite as one item.
+`vp run test:matrix`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. Plain functions, Hono JSX and SvelteKit fixtures, and the Web API probe suite as one item.
 
 | Engine           | Functions | Hono  | SvelteKit | Web API probes |
 | ---------------- | --------- | ----- | --------- | -------------- |
@@ -21,16 +21,16 @@ describes the suites. Dates are when the results were recorded.
 
 `vp run test:matrix`. The behavior probes of [fixtures/probe](../../fixtures/probe/README.md).
 
-| Engine           | Passed  | Recorded   |
-| ---------------- | ------- | ---------- |
-| QuickJS          | 23 / 23 | 2026-11-17 |
-| Boa              | 23 / 23 | 2026-11-17 |
-| V8               | 23 / 23 | 2026-11-17 |
-| Node (reference) | 23 / 23 | 2026-11-17 |
+| Engine           | Passed  | Engine version    |
+| ---------------- | ------- | ----------------- |
+| QuickJS          | 23 / 23 | rquickjs 0.14.0   |
+| Boa              | 23 / 23 | boa_engine 0.22.0 |
+| V8               | 23 / 23 | v8 150.4.0        |
+| Node (reference) | 23 / 23 | v26.13.1          |
 
 ## Host services
 
-`vp run test:host`, 2026-11-17. JavaScript fetch through mock transports.
+`vp run test:host`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. JavaScript fetch through mock transports.
 
 | Engine  | Passed  |
 | ------- | ------- |
@@ -40,7 +40,7 @@ describes the suites. Dates are when the results were recorded.
 
 ## Conformance
 
-`vp run test:conformance`, 2026-11-17. Passed / failed, with recorded known failures; [conformance](../conformance.md) explains each category.
+`vp run test:conformance`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. Passed / failed, with recorded known failures; [conformance](../conformance.md) explains each category.
 WPT c43f14b481a9 (86 files), Test262 2e58f87d8350 (44 files).
 Unexpected results: 0.
 
@@ -53,7 +53,7 @@ Unexpected results: 0.
 
 ## URL
 
-`vp run test:url`, 2026-11-17. The WPT data bundled with the `url` crate; failures outside its expected list are unexpected.
+`vp run test:url`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. The WPT data bundled with the `url` crate; failures outside its expected list are unexpected.
 
 | Engine           | Passed      | Unexpected failures |
 | ---------------- | ----------- | ------------------- |
@@ -64,38 +64,38 @@ Unexpected results: 0.
 
 ## Polyfills
 
-`vp run test:polyfills`, 2026-11-17. 8 of 8 checks passed. Bundle sizes of the test builds:
+`vp run test:polyfills`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. 8 of 8 checks passed. Bundle sizes of the test builds:
 
 | Build   | Bytes     | Intl polyfills                                                                                  |
 | ------- | --------- | ----------------------------------------------------------------------------------------------- |
-| quickjs | 2,732,881 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
-| v8      | 400,124   | none                                                                                            |
-| plain   | 400,030   | none                                                                                            |
-| plural  | 1,050,481 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
+| quickjs | 2,732,938 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
+| v8      | 400,181   | none                                                                                            |
+| plain   | 400,087   | none                                                                                            |
+| plural  | 1,050,538 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
 
 ## Examples
 
 `vp run test:examples`. HTTP and browser checks of each example on QuickJS.
 
-| Example                      | Passed  | Browser       | Recorded   |
-| ---------------------------- | ------- | ------------- | ---------- |
-| sveltekit-axum               | 16 / 16 | 159.0.8154.6  | 2026-11-17 |
-| sveltekit-axum-tauri         | 15 / 15 | 159.0.8154.6  | 2026-11-17 |
-| sveltekit-axum-tauri-desktop | 5 / 5   | 157.0.4341.46 | 2026-11-17 |
-| astro-axum                   | 11 / 11 | 159.0.8154.6  | 2026-11-17 |
-| nuxt-axum                    | 11 / 11 | 159.0.8154.6  | 2026-11-17 |
-| react-router-axum            | 12 / 12 | 159.0.8154.6  | 2026-11-17 |
-| honox-axum                   | 10 / 10 | 159.0.8154.6  | 2026-11-17 |
-| honox-tauri                  | 10 / 10 | 157.0.4341.46 | 2026-11-17 |
-| tanstack-start-axum          | 10 / 10 | 159.0.8154.6  | 2026-11-17 |
-| solidstart-axum              | 10 / 10 | 159.0.8154.6  | 2026-11-17 |
-| qwik-city-axum               | 10 / 10 | 159.0.8154.6  | 2026-11-17 |
-| waku-axum                    | 10 / 10 | 159.0.8154.6  | 2026-11-17 |
-| vinext-axum                  | 10 / 10 | 159.0.8154.6  | 2026-11-17 |
+| Example                      | Passed  | Framework                     | Browser       |
+| ---------------------------- | ------- | ----------------------------- | ------------- |
+| sveltekit-axum               | 16 / 16 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
+| sveltekit-axum-tauri         | 15 / 15 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
+| sveltekit-axum-tauri-desktop | 5 / 5   | @sveltejs/kit 3.2.0           | 157.0.4341.46 |
+| astro-axum                   | 11 / 11 | astro 7.4.12                  | 159.0.8154.6  |
+| nuxt-axum                    | 11 / 11 | nuxt 4.6.4                    | 159.0.8154.6  |
+| react-router-axum            | 12 / 12 | react-router 8.5.1            | 159.0.8154.6  |
+| honox-axum                   | 10 / 10 | honox 0.1.62                  | 159.0.8154.6  |
+| honox-tauri                  | 10 / 10 | honox 0.1.62                  | 157.0.4341.46 |
+| tanstack-start-axum          | 10 / 10 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
+| solidstart-axum              | 10 / 10 | @solidjs/start 2.2.3          | 159.0.8154.6  |
+| qwik-city-axum               | 10 / 10 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
+| waku-axum                    | 10 / 10 | waku 1.0.0-rc.5               | 159.0.8154.6  |
+| vinext-axum                  | 10 / 10 | vinext 1.4.6                  | 159.0.8154.6  |
 
 ## Fuzzing
 
-`vp run test:fuzz`, 2026-11-17. AddressSanitizer, up to 1,000,000 runs or 30 s per target, rustc 1.102.0-nightly (8eb778d04 2026-11-12).
+`vp run test:fuzz`. The run predates version recording. AddressSanitizer, up to 1,000,000 runs or 30 s per target, rustc 1.102.0-nightly (8eb778d04 2026-11-12).
 
 | Target        | Status | Runs    |
 | ------------- | ------ | ------- |
@@ -104,7 +104,7 @@ Unexpected results: 0.
 
 ## Ahead-of-time compilation
 
-`vp run test:aot`, 2026-11-16. Experimental; [research](../research/native-aot.md) explains the failures.
+`vp run test:aot`. The run predates version recording. Experimental; [research](../research/native-aot.md) explains the failures.
 
 | Compiler       | Suite     | Input          | Status |
 | -------------- | --------- | -------------- | ------ |
@@ -119,7 +119,7 @@ Unexpected results: 0.
 | perry 0.5.1665 | hono      | bundled-es2019 | fail   |
 | perry 0.5.1665 | sveltekit | bundled-es2019 | fail   |
 
-`vp run test:aot-link`, 2026-11-15, target x86_64-pc-windows-msvc.
+`vp run test:aot-link`, target x86_64-pc-windows-msvc: Perry 0.5.1665, scriptc 0.4.14, Zig 0.15.2.
 
 | Compiler | Stage                               | Status |
 | -------- | ----------------------------------- | ------ |
@@ -133,4 +133,4 @@ Unexpected results: 0.
 
 ## Benchmarks
 
-`vp run bench`, 2026-11-17, on AMD Ryzen 7 9800X3D 8-Core Processor. Requests per second and latency per example and engine are in [results/bench.md](../../results/bench.md).
+`vp run bench` on AMD Ryzen 7 9800X3D 8-Core Processor. The run predates version recording. Requests per second and latency per example and engine are in [results/bench.md](../../results/bench.md).

@@ -13,15 +13,15 @@ vp run bench
 vp run bench -- --frameworks honox,waku --backends quickjs,v8 --endpoints ssr,context --duration-ms 5000
 ```
 
-| Argument                        | Default                        | Meaning                                                                                 |
-| ------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
-| `--frameworks`                  | `bare` and the ten examples    | Example names without `-axum`, such as `sveltekit` or `honox`, and `bare`               |
-| `--backends`                    | `quickjs,boa,v8,node`          | The artifact build and Rust `Backend`; `node` is the baseline below                     |
-| `--endpoints`                   | `ssr,context,echo,rust,static` | The table below                                                                         |
-| `--connections`                 | 8                              | Concurrent keep-alive connections                                                       |
-| `--warmup-ms` / `--duration-ms` | 2000 / 10000                   | Unmeasured and measured time per endpoint                                               |
-| `--skip-build`                  |                                | Reuse the previous release binaries and the artifacts in `.cache/bench`                 |
-| `--merge`                       |                                | Replace only the measured rows of the existing results (same connections and durations) |
+| Argument                        | Default                        | Meaning                                                                                           |
+| ------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `--frameworks`                  | `bare` and the ten examples    | Example names without `-axum`, such as `sveltekit` or `honox`, and `bare`                         |
+| `--backends`                    | `quickjs,boa,v8,node`          | The artifact build and Rust `Backend`; `node` is the baseline below                               |
+| `--endpoints`                   | `ssr,context,echo,rust,static` | The table below                                                                                   |
+| `--connections`                 | 8                              | Concurrent keep-alive connections                                                                 |
+| `--warmup-ms` / `--duration-ms` | 2000 / 10000                   | Unmeasured and measured time per endpoint                                                         |
+| `--skip-build`                  |                                | Reuse the previous release binaries and the artifacts in `.cache/bench`                           |
+| `--merge`                       |                                | Replace only the measured rows of the existing results (same connections, durations and versions) |
 
 ## Endpoints
 

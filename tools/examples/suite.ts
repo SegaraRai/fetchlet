@@ -9,7 +9,12 @@ import { createInterface } from "node:readline";
 import { after, before, test } from "node:test";
 
 import { exampleBinary, root } from "@fetchlet-internal/tools-workspace/paths";
-import { describe, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
+import {
+  describe,
+  environment,
+  summarize,
+  writeResult,
+} from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
 
 export interface ExampleSuite {
@@ -78,9 +83,9 @@ export function exampleSuite(name: string): ExampleSuite {
     }
     await writeFile(resolve(output, "server.log"), stderr);
     writeResult(`example-${name}.json`, {
-      checkedAt: new Date().toISOString(),
-      summary: summarize(results),
+      environment: environment({ packagesOf: example }),
       browser: browser?.version(),
+      summary: summarize(results),
       results,
     });
   });

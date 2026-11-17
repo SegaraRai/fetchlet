@@ -1,5 +1,14 @@
 {
-  "checkedAt": "2026-11-17T01:04:16.860Z",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    }
+  },
   "summary": {
     "passed": 8,
     "failed": 0
@@ -29,7 +38,7 @@
   },
   "artifacts": {
     "quickjs": {
-      "bytes": 2732881,
+      "bytes": 2732938,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",
@@ -91,17 +100,17 @@
       ]
     },
     "v8": {
-      "bytes": 400124,
+      "bytes": 400181,
       "polyfills": [],
       "formatjsModules": []
     },
     "plain": {
-      "bytes": 400030,
+      "bytes": 400087,
       "polyfills": [],
       "formatjsModules": []
     },
     "plural": {
-      "bytes": 1050481,
+      "bytes": 1050538,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",

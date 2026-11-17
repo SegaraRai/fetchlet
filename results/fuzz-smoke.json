@@ -1,5 +1,4 @@
 {
-  "checkedAt": "2026-11-17T01:03:01.3374284Z",
   "sanitizer": "address",
   "requestedRuns": 1000000,
   "timeBudgetSeconds": 30,

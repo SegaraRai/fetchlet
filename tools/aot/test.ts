@@ -7,7 +7,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { root } from "@fetchlet-internal/tools-workspace/paths";
-import { writeResult, writeText } from "@fetchlet-internal/tools-workspace/results";
+import { environment, writeResult, writeText } from "@fetchlet-internal/tools-workspace/results";
 
 import { compilerEnv, perry, releases, scriptc } from "./toolchain.ts";
 
@@ -137,7 +137,7 @@ await Promise.all(
       }
       results.push(row);
       console.log(`${backend}/${variant}: ${row.status}`);
-      writeResult("aot-matrix.json", { checkedAt: new Date().toISOString(), results });
+      writeResult("aot-matrix.json", { environment: environment(), results });
     }
   }),
 );

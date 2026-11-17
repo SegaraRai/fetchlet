@@ -478,6 +478,9 @@ importers:
         specifier: 'catalog:'
         version: 0.1.62(hono@4.13.19)(supports-color@10.2.2)
     devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../../tools/workspace
       '@hono/vite-build':
         specifier: 'catalog:'
         version: 1.11.1(hono@4.13.19)
@@ -685,6 +688,9 @@ importers:
         specifier: 'catalog:'
         version: 2.9.1
     devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../../tools/workspace
       '@hey-api/openapi-ts':
         specifier: 'catalog:'
         version: 0.99.0(magicast@0.5.5)(typescript@6.0.3)

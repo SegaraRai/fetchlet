@@ -1,10 +1,30 @@
 {
-  "checkedAt": "2026-11-17T12:26:07.398Z",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@astrojs/check": "0.9.12",
+      "@astrojs/svelte": "9.1.6",
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@types/node": "26.6.6",
+      "astro": "7.4.12",
+      "fetchlet": "0.0.0",
+      "svelte": "5.57.3",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0"
+    }
+  },
+  "browser": "159.0.8154.6",
   "summary": {
     "passed": 11,
     "failed": 0
   },
-  "browser": "159.0.8154.6",
   "results": [
     {
       "name": "Astro SSR, escaping and the Rust service binding",

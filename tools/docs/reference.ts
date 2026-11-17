@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { root } from "@fetchlet-internal/tools-workspace/paths";
+import type { Environment } from "@fetchlet-internal/tools-workspace/results";
 
 const output = resolve(root, "docs/reference/README.md");
 const engines = ["quickjs", "boa", "v8", "node-reference"];
@@ -39,7 +40,7 @@ const page = [
   "",
   "Measured results, rendered from the JSON files in [results/](../../results/).",
   "Each section names the suite that records it; [verification](../verification.md)",
-  "describes the suites. Dates are when the results were recorded.",
+  "describes the suites. Each section names the versions its run recorded.",
   "",
   ...sections.flatMap((section) => [...section, ""]),
 ]
@@ -78,7 +79,7 @@ function engineMatrix(): string[] {
   return [
     "## Engine matrix",
     "",
-    `\`vp run test:matrix\`, ${date(result.checkedAt)}. Plain functions, Hono JSX and SvelteKit fixtures, and the Web API probe suite as one item.`,
+    `\`vp run test:matrix\`. ${recorded(result)} Plain functions, Hono JSX and SvelteKit fixtures, and the Web API probe suite as one item.`,
     "",
     ...table(["Engine", "Functions", "Hono", "SvelteKit", "Web API probes"], rows),
   ];
@@ -90,7 +91,7 @@ function webApiProbes(): string[] {
     return [
       engineNames[engine] ?? engine,
       `${result.summary.passed} / ${result.summary.total}`,
-      date(result.checkedAt),
+      engineVersion(result, engine),
     ];
   });
   return [
@@ -98,7 +99,7 @@ function webApiProbes(): string[] {
     "",
     "`vp run test:matrix`. The behavior probes of [fixtures/probe](../../fixtures/probe/README.md).",
     "",
-    ...table(["Engine", "Passed", "Recorded"], rows),
+    ...table(["Engine", "Passed", "Engine version"], rows),
   ];
 }
 
@@ -111,7 +112,7 @@ function hostServices(): string[] {
   return [
     "## Host services",
     "",
-    `\`vp run test:host\`, ${date(result.checkedAt)}. JavaScript fetch through mock transports.`,
+    `\`vp run test:host\`. ${recorded(result)} JavaScript fetch through mock transports.`,
     "",
     ...table(["Engine", "Passed"], rows),
   ];
@@ -135,7 +136,7 @@ function conformance(): string[] {
   return [
     "## Conformance",
     "",
-    `\`vp run test:conformance\`, ${date(result.checkedAt)}. Passed / failed, with recorded known failures; [conformance](../conformance.md) explains each category.`,
+    `\`vp run test:conformance\`. ${recorded(result)} Passed / failed, with recorded known failures; [conformance](../conformance.md) explains each category.`,
     `WPT ${short(wpt.revision)} (${wpt.selectedFiles} files), Test262 ${short(test262.revision)} (${test262.selectedFiles} files).`,
     `Unexpected results: ${result.verdict.unexpected}.`,
     "",
@@ -156,7 +157,7 @@ function url(): string[] {
   return [
     "## URL",
     "",
-    `\`vp run test:url\`, ${date(result.checkedAt)}. The WPT data bundled with the \`url\` crate; failures outside its expected list are unexpected.`,
+    `\`vp run test:url\`. ${recorded(result)} The WPT data bundled with the \`url\` crate; failures outside its expected list are unexpected.`,
     "",
     ...table(["Engine", "Passed", "Unexpected failures"], rows),
   ];
@@ -174,7 +175,7 @@ function polyfills(): string[] {
   return [
     "## Polyfills",
     "",
-    `\`vp run test:polyfills\`, ${date(result.checkedAt)}. ${result.summary.passed} of ${result.summary.passed + result.summary.failed} checks passed. Bundle sizes of the test builds:`,
+    `\`vp run test:polyfills\`. ${recorded(result)} ${result.summary.passed} of ${result.summary.passed + result.summary.failed} checks passed. Bundle sizes of the test builds:`,
     "",
     ...table(["Build", "Bytes", "Intl polyfills"], rows),
   ];
@@ -201,8 +202,8 @@ function examples(): string[] {
     return [
       name,
       `${result.summary.passed} / ${result.summary.passed + result.summary.failed}`,
+      framework(result),
       result.browser ?? "—",
-      date(result.checkedAt),
     ];
   });
   return [
@@ -210,7 +211,7 @@ function examples(): string[] {
     "",
     "`vp run test:examples`. HTTP and browser checks of each example on QuickJS.",
     "",
-    ...table(["Example", "Passed", "Browser", "Recorded"], rows),
+    ...table(["Example", "Passed", "Framework", "Browser"], rows),
   ];
 }
 
@@ -222,7 +223,7 @@ function fuzzing(): string[] {
   return [
     "## Fuzzing",
     "",
-    `\`vp run test:fuzz\`, ${date(result.checkedAt)}. AddressSanitizer, up to ${result.requestedRuns.toLocaleString("en-US")} runs or ${result.timeBudgetSeconds} s per target, ${result.compiler}.`,
+    `\`vp run test:fuzz\`. ${recorded(result)} AddressSanitizer, up to ${result.requestedRuns.toLocaleString("en-US")} runs or ${result.timeBudgetSeconds} s per target, ${result.compiler}.`,
     "",
     ...table(["Target", "Status", "Runs"], rows),
   ];
@@ -251,11 +252,11 @@ function aot(): string[] {
   return [
     "## Ahead-of-time compilation",
     "",
-    `\`vp run test:aot\`, ${date(matrix.checkedAt)}. Experimental; [research](../research/native-aot.md) explains the failures.`,
+    `\`vp run test:aot\`. ${recorded(matrix)} Experimental; [research](../research/native-aot.md) explains the failures.`,
     "",
     ...table(["Compiler", "Suite", "Input", "Status"], matrixRows),
     "",
-    `\`vp run test:aot-link\`, ${date(link.checkedAt)}, target ${link.target}.`,
+    `\`vp run test:aot-link\`, target ${link.target}: Perry ${link.perry}, scriptc ${link.scriptc}, Zig ${link.zig}.`,
     "",
     ...table(["Compiler", "Stage", "Status"], linkRows),
   ];
@@ -266,7 +267,7 @@ function benchmarks(): string[] {
   return [
     "## Benchmarks",
     "",
-    `\`vp run bench\`, ${date(result.measuredAt)}, on ${result.machine.cpu}. Requests per second and latency per example and engine are in [results/bench.md](../../results/bench.md).`,
+    `\`vp run bench\` on ${result.machine.cpu}. ${recorded(result)} Requests per second and latency per example and engine are in [results/bench.md](../../results/bench.md).`,
   ];
 }
 
@@ -280,8 +281,37 @@ function ratio(entries: Outcome[]): string {
   return `${passed} / ${entries.length}`;
 }
 
-function date(value: string): string {
-  return value.slice(0, 10);
+/** The versions a result records, as a sentence. */
+function recorded(result: { environment?: Environment }): string {
+  const environment = result.environment;
+  if (!environment) return "The run predates version recording.";
+  const engineList = Object.values(environment.engines).join(", ");
+  return `Recorded with ${environment.rustc}, Node ${environment.node} on ${environment.platform}; ${engineList}.`;
+}
+
+function engineVersion(result: { environment?: Environment }, engine: string): string {
+  if (engine === "node-reference") return result.environment?.node ?? "—";
+  return result.environment?.engines[engine as keyof Environment["engines"]] ?? "—";
+}
+
+function framework(result: { environment?: Environment }): string {
+  // Packages that name an example's framework, in order of preference.
+  const frameworkPackages = [
+    "@sveltejs/kit",
+    "@solidjs/start",
+    "@tanstack/react-start",
+    "@builder.io/qwik-city",
+    "@qwik.dev/router",
+    "react-router",
+    "astro",
+    "honox",
+    "nuxt",
+    "vinext",
+    "waku",
+  ];
+  const packages = result.environment?.packages ?? {};
+  const name = frameworkPackages.find((candidate) => candidate in packages);
+  return name ? `${name} ${packages[name]}` : "—";
 }
 
 function short(revision: string): string {

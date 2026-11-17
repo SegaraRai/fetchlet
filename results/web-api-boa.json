@@ -1,7 +1,16 @@
 {
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    }
+  },
   "schemaVersion": 1,
   "runtimeLabel": "embedded portable profile",
-  "checkedAt": "2026-11-17T01:03:26.001Z",
   "globals": {
     "Request": "function",
     "Response": "function",

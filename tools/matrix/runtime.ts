@@ -6,7 +6,12 @@ import { resolve } from "node:path";
 
 import { hostBackends, startHost, type HostBackend } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
-import { describe, writeResult, writeText } from "@fetchlet-internal/tools-workspace/results";
+import {
+  describe,
+  environment,
+  writeResult,
+  writeText,
+} from "@fetchlet-internal/tools-workspace/results";
 
 interface Row {
   backend: HostBackend;
@@ -128,7 +133,7 @@ for (const backend of hostBackends) {
   );
   await check(backend, "web-api", "probe", async () => {
     const report = await app.call("probe");
-    writeResult(`web-api-${backend}.json`, report);
+    writeResult(`web-api-${backend}.json`, { environment: environment(), ...report });
     // A partial profile is recorded explicitly rather than reported as fully passing.
     assert.equal(
       report.summary.failed,
@@ -200,7 +205,7 @@ const summary = Object.fromEntries(
   }),
 );
 writeResult("runtime-matrix.json", {
-  checkedAt: new Date().toISOString(),
+  environment: environment(),
   profile: "portable experimental Web APIs in embedded engines; native globals in Node reference",
   summary,
   results,

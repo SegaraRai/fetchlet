@@ -68,7 +68,6 @@ writeFileSync(
   resolve(artifacts, "build-info.json"),
   JSON.stringify(
     {
-      builtAt: new Date().toISOString(),
       profile: "portable Web APIs; synchronous SSR rendering; Rust host fetch bindings",
     },
     null,

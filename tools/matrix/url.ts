@@ -11,7 +11,11 @@ import { dirname, resolve } from "node:path";
 import { buildArtifact } from "fetchlet/build";
 import { hostBackends, startHost, type HostBackend } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
-import { writeResult } from "@fetchlet-internal/tools-workspace/results";
+import {
+  environment,
+  writeResult,
+  type Environment,
+} from "@fetchlet-internal/tools-workspace/results";
 
 interface CargoPackage {
   id: string;
@@ -62,10 +66,14 @@ async function runSuite(backend: HostBackend): Promise<{ total: number; failures
 }
 
 const report: {
-  checkedAt: string;
+  environment: Environment;
   data: string;
   backends: Record<string, { total: number; failures: number; unexpected: string[] }>;
-} = { checkedAt: new Date().toISOString(), data: urlCrate.id, backends: {} };
+} = {
+  environment: environment(),
+  data: urlCrate.id,
+  backends: {},
+};
 let failed = false;
 for (const backend of hostBackends) {
   const { total, failures } = await runSuite(backend);

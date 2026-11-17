@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { run } from "@fetchlet-internal/tools-workspace/process";
-import { logPath, writeResult } from "@fetchlet-internal/tools-workspace/results";
+import { environment, logPath, writeResult } from "@fetchlet-internal/tools-workspace/results";
 
 import { compilerEnv, perry, perryDirectory, releases, scriptc, zig } from "./toolchain.ts";
 
@@ -157,7 +157,7 @@ if (
 }
 
 writeResult("native-link-matrix.json", {
-  checkedAt: new Date().toISOString(),
+  environment: environment(),
   target: "x86_64-pc-windows-msvc",
   perry: releases.perry.version,
   scriptc: releases.scriptc.version,

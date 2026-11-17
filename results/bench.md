@@ -1,6 +1,6 @@
 # fetchlet example benchmark
 
-2026-11-17T00:06:53.253Z / AMD Ryzen 7 9800X3D 8-Core Processor (16 threads) / win32 10.0.26300
+AMD Ryzen 7 9800X3D 8-Core Processor (16 threads) / win32 10.0.26300
 
 Release build, axum on a current_thread tokio runtime, one App instance on one worker thread; `node` rows serve the v8 artifact (bare: the handler itself) from node:http in one process. 8 keep-alive connections, 2000 ms warmup, 5000 ms measured per endpoint. Values are successful req/s (p50 latency ms); `-` marks a failure listed below.
 

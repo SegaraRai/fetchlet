@@ -8,7 +8,12 @@ import { after, before, test } from "node:test";
 
 import { backends, runLab, type Backend, type Reply } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
-import { describe, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
+import {
+  describe,
+  environment,
+  summarize,
+  writeResult,
+} from "@fetchlet-internal/tools-workspace/results";
 import { buildArtifact, type BuildArtifactOptions } from "fetchlet/build";
 
 // The planner is internal to fetchlet/build; this suite checks it directly.
@@ -115,7 +120,7 @@ before(async () => {
 
 after(() => {
   writeResult("polyfill-matrix.json", {
-    checkedAt: new Date().toISOString(),
+    environment: environment(),
     summary: summarize(results),
     nativeCapabilities,
     artifacts: Object.fromEntries(

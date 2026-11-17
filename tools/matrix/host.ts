@@ -8,6 +8,7 @@ import { backends, runLab, type Backend, type Reply } from "@fetchlet-internal/t
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import {
   describe,
+  environment,
   summarize,
   writeResult,
   writeText,
@@ -46,7 +47,10 @@ function check(backend: Backend, name: string, verify: () => void): void {
 }
 
 function command(name: string, ...args: unknown[]) {
-  return { export: name, args };
+  return {
+    export: name,
+    args,
+  };
 }
 
 /** The value of a successful reply. */
@@ -62,7 +66,10 @@ for (const backend of backends) {
       command("add", 20, 22),
     ]);
     check(backend, "outbound-denied-by-default", () => {
-      assert.deepEqual(denied[0], { ok: true, value: { error: "PERMISSION_DENIED" } });
+      assert.deepEqual(denied[0], {
+        ok: true,
+        value: { error: "PERMISSION_DENIED" },
+      });
       assert.deepEqual(denied[1], { ok: true, value: 42 });
     });
 
@@ -88,7 +95,10 @@ for (const backend of backends) {
     check(backend, "streamed-request-body-through-web-runtime", () => {
       const response = value(streamed[0]);
       assert.equal(response.status, 201);
-      assert.deepEqual(JSON.parse(response.body), { name: "こんにちは", items: [1, 2] });
+      assert.deepEqual(JSON.parse(response.body), {
+        name: "こんにちは",
+        items: [1, 2],
+      });
       assert.deepEqual(streamed[1], { ok: true, value: 42 });
     });
 
@@ -131,11 +141,17 @@ for (const backend of backends) {
     });
 
     check(backend, "denied-redirect", () => {
-      assert.deepEqual(replies[3], { ok: true, value: { error: "PERMISSION_DENIED" } });
+      assert.deepEqual(replies[3], {
+        ok: true,
+        value: { error: "PERMISSION_DENIED" },
+      });
     });
 
     check(backend, "denied-rewritten-destination", () => {
-      assert.deepEqual(replies[4], { ok: true, value: { error: "PERMISSION_DENIED" } });
+      assert.deepEqual(replies[4], {
+        ok: true,
+        value: { error: "PERMISSION_DENIED" },
+      });
     });
 
     check(backend, "named-rust-service", () => {
@@ -145,7 +161,10 @@ for (const backend of backends) {
     });
 
     check(backend, "abort-and-reuse", () => {
-      assert.deepEqual(replies[6], { ok: true, value: { aborted: true, message: "cancelled" } });
+      assert.deepEqual(replies[6], {
+        ok: true,
+        value: { aborted: true, message: "cancelled" },
+      });
       assert.deepEqual(replies[7], { ok: true, value: 42 });
     });
 
@@ -164,14 +183,25 @@ for (const backend of backends) {
       assert.deepEqual(replies[9], { ok: true, value: 42 });
     });
   } catch (error) {
-    results.push({ backend, name: "session", status: "fail", error: describe(error) });
+    results.push({
+      backend,
+      name: "session",
+      status: "fail",
+      error: describe(error),
+    });
   }
 }
 
 const summary = summarize(results);
-writeResult("host-matrix.json", { checkedAt: new Date().toISOString(), summary, results });
+writeResult("host-matrix.json", {
+  environment: environment(),
+  summary,
+  results,
+});
 console.log(JSON.stringify(summary, null, 2));
 for (const result of results.filter((result) => result.status === "fail")) {
   console.error(`${result.backend}/${result.name}: ${result.error}`);
 }
-if (summary.failed > 0) process.exitCode = 1;
+if (summary.failed > 0) {
+  process.exitCode = 1;
+}

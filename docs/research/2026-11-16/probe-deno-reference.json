@@ -1,7 +1,6 @@
 {
   "schemaVersion": 1,
   "runtimeLabel": "Deno CLI 2.9.8 (reference only; not embedded deno_core or rustyscript)",
-  "checkedAt": "2026-11-15T19:03:59.602Z",
   "globals": {
     "Request": "function",
     "Response": "function",

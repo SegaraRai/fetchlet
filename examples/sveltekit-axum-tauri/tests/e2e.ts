@@ -12,10 +12,11 @@ import { createInterface } from "node:readline";
 import { brotliDecompressSync } from "node:zlib";
 import { after, before, test } from "node:test";
 
+import { root } from "@fetchlet-internal/tools-workspace/paths";
+import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
 
 const name = "sveltekit-axum-tauri";
-const root = resolve(import.meta.dirname, "../../..");
 const example = resolve(root, "examples", name);
 const output = resolve(root, ".cache", name, "e2e");
 const notes = resolve(output, "notes");
@@ -76,24 +77,13 @@ after(async () => {
     child.kill();
     await exited;
   }
-  await mkdir(resolve(root, "results"), { recursive: true });
   await writeFile(resolve(output, "server.log"), stderr);
-  await writeFile(
-    resolve(root, "results/example-" + name + ".json"),
-    JSON.stringify(
-      {
-        checkedAt: new Date().toISOString(),
-        summary: {
-          passed: results.filter((result) => result.status === "pass").length,
-          failed: results.filter((result) => result.status === "fail").length,
-        },
-        browser: browser?.version(),
-        results,
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  writeResult(`example-${name}.json`, {
+    environment: environment({ packagesOf: example }),
+    browser: browser?.version(),
+    summary: summarize(results),
+    results,
+  });
 });
 
 function check(label: string, operation: () => Promise<void>): void {

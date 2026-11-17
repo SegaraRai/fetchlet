@@ -22,6 +22,7 @@ import { createInterface } from "node:readline";
 import { cargo } from "@fetchlet-internal/tools-workspace/cargo";
 import { exampleBinary, exe, root } from "@fetchlet-internal/tools-workspace/paths";
 import { run } from "@fetchlet-internal/tools-workspace/process";
+import { environment, type Environment } from "@fetchlet-internal/tools-workspace/results";
 
 interface Endpoint {
   path: string;
@@ -41,13 +42,12 @@ interface LoadResult {
 interface Run {
   framework: string;
   backend: string;
-  measuredAt: string;
   endpoints: Record<string, LoadResult | { error: string }>;
   error?: string;
 }
 
 interface Report {
-  measuredAt: string;
+  environment: Environment;
   machine: { cpu: string | undefined; threads: number; platform: string };
   connections: number;
   warmupMs: number;
@@ -310,7 +310,9 @@ function markdown(report: Report): string {
   const lines = [
     `# fetchlet example benchmark`,
     ``,
-    `${report.measuredAt} / ${report.machine.cpu} (${report.machine.threads} threads) / ${report.machine.platform}`,
+    `${report.machine.cpu} (${report.machine.threads} threads) / ${report.machine.platform}`,
+    ``,
+    `${report.environment.rustc} / Node ${report.environment.node} / ${Object.values(report.environment.engines).join(", ")}`,
     ``,
     `Release build, axum on a current_thread tokio runtime, one App instance on one worker thread; ` +
       `\`node\` rows serve the v8 artifact (bare: the handler itself) from node:http in one process. ` +
@@ -356,13 +358,16 @@ async function mergeInto(report: Report): Promise<void> {
       throw new Error(`--merge needs the same ${key} as results/bench.json (${previous[key]})`);
     }
   }
+  // Rows measured with other toolchain or engine versions would not compare.
+  if (JSON.stringify(previous.environment) !== JSON.stringify(report.environment)) {
+    throw new Error("--merge needs the same environment as results/bench.json; rerun every row");
+  }
   const key = (row: Run) => row.framework + "/" + row.backend;
   const fresh = new Map(report.runs.map((row) => [key(row), row]));
   const runs = previous.runs.map((row) => fresh.get(key(row)) ?? row);
   for (const row of report.runs) {
     if (!previous.runs.some((old) => key(old) === key(row))) runs.push(row);
   }
-  report.measuredAt = previous.measuredAt;
   report.endpoints = [...new Set([...previous.endpoints, ...report.endpoints])];
   const order = (row: Run) =>
     allFrameworks.indexOf(row.framework) * allBackends.length + allBackends.indexOf(row.backend);
@@ -390,7 +395,7 @@ async function main() {
   }
 
   const report: Report = {
-    measuredAt: new Date().toISOString(),
+    environment: environment(),
     machine: {
       cpu: os.cpus()[0]?.model.trim(),
       threads: os.cpus().length,
@@ -404,7 +409,7 @@ async function main() {
   };
   for (const framework of options.frameworks) {
     for (const backend of options.backends) {
-      const row: Run = { framework, backend, measuredAt: new Date().toISOString(), endpoints: {} };
+      const row: Run = { framework, backend, endpoints: {} };
       report.runs.push(row);
       let server;
       try {

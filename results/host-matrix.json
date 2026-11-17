@@ -1,5 +1,14 @@
 {
-  "checkedAt": "2026-11-17T01:03:33.721Z",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    }
+  },
   "summary": {
     "passed": 36,
     "failed": 0

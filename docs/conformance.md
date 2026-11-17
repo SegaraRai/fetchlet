@@ -48,7 +48,7 @@ the engines use fetchlet's profile. Test262 runs without the Web API bundle,
 on the engine and fetchlet's base host environment.
 
 Results go to [conformance.json](../results/conformance.json): source
-commits, lockfile and profile hashes, Node and platform, test names, actual
+commits, the toolchain and engine versions, the profile hash, test names, actual
 status, diagnostics and whether each matches its expectation.
 `fileDurationMs` is the time for the whole file.
 

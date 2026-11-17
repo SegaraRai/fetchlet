@@ -8,6 +8,7 @@
     "honox": "catalog:"
   },
   "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
     "@hono/vite-build": "catalog:",
     "@types/node": "catalog:",
     "fetchlet": "workspace:*",

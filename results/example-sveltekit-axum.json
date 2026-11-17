@@ -1,10 +1,30 @@
 {
-  "checkedAt": "2026-11-17T12:26:52.992Z",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@sveltejs/kit": "3.2.0",
+      "@sveltejs/vite-plugin-svelte": "7.3.1",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "svelte": "5.57.3",
+      "svelte-check": "4.7.8",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0"
+    }
+  },
+  "browser": "159.0.8154.6",
   "summary": {
     "passed": 16,
     "failed": 0
   },
-  "browser": "159.0.8154.6",
   "results": [
     {
       "name": "SSR, escaping and the Rust service binding",

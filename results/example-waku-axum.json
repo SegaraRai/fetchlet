@@ -1,10 +1,32 @@
 {
-  "checkedAt": "2026-11-17T12:27:20.354Z",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@types/node": "26.6.6",
+      "@types/react": "19.3.0",
+      "@types/react-dom": "19.3.0",
+      "fetchlet": "0.0.0",
+      "react": "19.3.1",
+      "react-dom": "19.3.1",
+      "react-server-dom-webpack": "19.3.1",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0",
+      "waku": "1.0.0-rc.5"
+    }
+  },
+  "browser": "159.0.8154.6",
   "summary": {
     "passed": 10,
     "failed": 0
   },
-  "browser": "159.0.8154.6",
   "results": [
     {
       "name": "Waku SSR, escaping and the Rust service binding",

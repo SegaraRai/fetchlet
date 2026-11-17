@@ -1,5 +1,4 @@
 {
-  "measuredAt": "2026-11-17T00:06:53.253Z",
   "machine": {
     "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor",
     "threads": 16,
@@ -13,7 +12,6 @@
     {
       "framework": "bare",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:06:53.254Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -95,7 +93,6 @@
     {
       "framework": "bare",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:07:28.490Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -177,7 +174,6 @@
     {
       "framework": "bare",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:08:03.824Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -259,7 +255,6 @@
     {
       "framework": "bare",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:08:39.042Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -341,7 +336,6 @@
     {
       "framework": "sveltekit",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:09:14.276Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -423,7 +417,6 @@
     {
       "framework": "sveltekit",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:09:49.775Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -505,7 +498,6 @@
     {
       "framework": "sveltekit",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:10:25.408Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -587,7 +579,6 @@
     {
       "framework": "sveltekit",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:11:00.725Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -669,7 +660,6 @@
     {
       "framework": "astro",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:11:36.054Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -751,7 +741,6 @@
     {
       "framework": "astro",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:12:11.989Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -833,7 +822,6 @@
     {
       "framework": "astro",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:12:49.659Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -915,7 +903,6 @@
     {
       "framework": "astro",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:13:24.973Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -997,7 +984,6 @@
     {
       "framework": "nuxt",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:14:00.337Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1079,7 +1065,6 @@
     {
       "framework": "nuxt",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:14:35.946Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1161,7 +1146,6 @@
     {
       "framework": "nuxt",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:15:12.097Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1243,7 +1227,6 @@
     {
       "framework": "nuxt",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:15:47.483Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1325,7 +1308,6 @@
     {
       "framework": "react-router",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:16:22.812Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1407,7 +1389,6 @@
     {
       "framework": "react-router",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:16:58.525Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1489,7 +1470,6 @@
     {
       "framework": "react-router",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:17:34.471Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1571,7 +1551,6 @@
     {
       "framework": "react-router",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:18:09.808Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1653,7 +1632,6 @@
     {
       "framework": "honox",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:18:45.145Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1735,7 +1713,6 @@
     {
       "framework": "honox",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:19:20.394Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1817,7 +1794,6 @@
     {
       "framework": "honox",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:19:55.884Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1899,7 +1875,6 @@
     {
       "framework": "honox",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:20:31.283Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -1981,7 +1956,6 @@
     {
       "framework": "tanstack-start",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:21:06.575Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2063,7 +2037,6 @@
     {
       "framework": "tanstack-start",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:21:42.240Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2145,7 +2118,6 @@
     {
       "framework": "tanstack-start",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:22:18.139Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2227,7 +2199,6 @@
     {
       "framework": "tanstack-start",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:22:53.574Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2309,7 +2280,6 @@
     {
       "framework": "solidstart",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:23:28.926Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2391,7 +2361,6 @@
     {
       "framework": "solidstart",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:24:04.449Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2473,7 +2442,6 @@
     {
       "framework": "solidstart",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:24:40.177Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2555,7 +2523,6 @@
     {
       "framework": "solidstart",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:25:15.458Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2637,7 +2604,6 @@
     {
       "framework": "qwik-city",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:25:50.800Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2719,7 +2685,6 @@
     {
       "framework": "qwik-city",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:26:26.415Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2801,7 +2766,6 @@
     {
       "framework": "qwik-city",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:27:02.565Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2883,7 +2847,6 @@
     {
       "framework": "qwik-city",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:27:37.939Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -2965,7 +2928,6 @@
     {
       "framework": "waku",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:28:13.251Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -3047,7 +3009,6 @@
     {
       "framework": "waku",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:28:49.011Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -3129,7 +3090,6 @@
     {
       "framework": "waku",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:29:25.049Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -3211,7 +3171,6 @@
     {
       "framework": "waku",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:30:00.531Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -3293,7 +3252,6 @@
     {
       "framework": "vinext",
       "backend": "quickjs",
-      "measuredAt": "2026-11-17T00:30:35.893Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -3375,7 +3333,6 @@
     {
       "framework": "vinext",
       "backend": "boa",
-      "measuredAt": "2026-11-17T00:31:11.682Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -3457,7 +3414,6 @@
     {
       "framework": "vinext",
       "backend": "v8",
-      "measuredAt": "2026-11-17T00:31:49.386Z",
       "endpoints": {
         "ssr": {
           "connections": 8,
@@ -3539,7 +3495,6 @@
     {
       "framework": "vinext",
       "backend": "node",
-      "measuredAt": "2026-11-17T00:32:24.916Z",
       "endpoints": {
         "ssr": {
           "connections": 8,

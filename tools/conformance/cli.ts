@@ -7,6 +7,7 @@ import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { root as workspaceRoot } from "@fetchlet-internal/tools-workspace/paths";
+import { environment } from "@fetchlet-internal/tools-workspace/results";
 import { build } from "vite-plus";
 
 import { runProcess } from "./process.ts";
@@ -211,7 +212,6 @@ for (const result of results) {
   else count.errors++;
 }
 const report = {
-  checkedAt: new Date().toISOString(),
   scope: "Pinned, selected upstream tests; WPT shell and Test262 script subsets",
   sources: Object.fromEntries(
     suites().map(([suite, source]) => [
@@ -224,12 +224,8 @@ const report = {
     ]),
   ),
   environment: {
-    node: process.version,
-    platform: process.platform,
-    architecture: process.arch,
+    ...environment(),
     profileSha256: createHash("sha256").update(prelude).digest("hex"),
-    cargoLockSha256: sha256(resolve(workspaceRoot, "Cargo.lock")),
-    pnpmLockSha256: sha256(resolve(workspaceRoot, "pnpm-lock.yaml")),
   },
   options: {
     suite: values.suite,
@@ -248,7 +244,3 @@ mkdirSync(dirname(output), { recursive: true });
 writeFileSync(output, JSON.stringify(report, null, 2) + "\n");
 console.log(JSON.stringify({ summary, verdict }, null, 2));
 process.exitCode = verdict.unexpected > 0 ? 1 : 0;
-
-function sha256(file: string): string {
-  return createHash("sha256").update(readFileSync(file)).digest("hex");
-}

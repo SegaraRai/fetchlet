@@ -276,7 +276,6 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
   return {
     schemaVersion: 1,
     runtimeLabel: options.runtimeLabel ?? "unspecified",
-    checkedAt: new Date().toISOString(),
     globals,
     checks,
     summary: {

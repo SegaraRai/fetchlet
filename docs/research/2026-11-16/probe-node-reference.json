@@ -1,7 +1,6 @@
 {
   "schemaVersion": 1,
   "runtimeLabel": "Node.js v26.13.1 (reference only; not an embedded backend)",
-  "checkedAt": "2026-11-15T19:03:59.760Z",
   "globals": {
     "Request": "function",
     "Response": "function",

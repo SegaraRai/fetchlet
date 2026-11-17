@@ -1,10 +1,30 @@
 {
-  "checkedAt": "2026-11-17T12:26:47.640Z",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@solidjs/meta": "0.29.8",
+      "@solidjs/router": "1.0.3",
+      "@solidjs/start": "2.2.3",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "solid-js": "1.9.19",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0"
+    }
+  },
+  "browser": "159.0.8154.6",
   "summary": {
     "passed": 10,
     "failed": 0
   },
-  "browser": "159.0.8154.6",
   "results": [
     {
       "name": "SolidStart SSR, escaping and the Rust service binding",

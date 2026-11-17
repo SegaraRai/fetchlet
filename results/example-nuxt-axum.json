@@ -1,10 +1,29 @@
 {
-  "checkedAt": "2026-11-17T12:26:31.470Z",
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "nuxt": "4.6.4",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0",
+      "vue": "3.5.45",
+      "vue-tsc": "3.3.14"
+    }
+  },
+  "browser": "159.0.8154.6",
   "summary": {
     "passed": 11,
     "failed": 0
   },
-  "browser": "159.0.8154.6",
   "results": [
     {
       "name": "Nuxt SSR, escaping, runtime config and the Rust service binding",

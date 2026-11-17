@@ -10,7 +10,7 @@ import { parseArgs } from "node:util";
 import { cargoEnv } from "@fetchlet-internal/tools-workspace/cargo";
 import { root, toolCache } from "@fetchlet-internal/tools-workspace/paths";
 import { prependPath, run } from "@fetchlet-internal/tools-workspace/process";
-import { writeResult } from "@fetchlet-internal/tools-workspace/results";
+import { environment, writeResult } from "@fetchlet-internal/tools-workspace/results";
 
 const { values } = parseArgs({
   options: {
@@ -54,7 +54,7 @@ const results = targets.map((target) => {
 });
 
 writeResult("fuzz-smoke.json", {
-  checkedAt: new Date().toISOString(),
+  environment: environment(),
   sanitizer: "address",
   requestedRuns: runs,
   timeBudgetSeconds: seconds,
