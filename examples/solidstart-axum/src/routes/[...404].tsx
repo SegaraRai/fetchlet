@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main>
       <HttpStatusCode code={404} />
-      <h1>ページが見つかりません</h1>
+      <h1>Page not found</h1>
     </main>
   );
 }

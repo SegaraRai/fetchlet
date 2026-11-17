@@ -18,7 +18,7 @@ const root = resolve(import.meta.dirname, "../../..");
 const example = resolve(root, "examples", name);
 const output = resolve(root, ".cache", name);
 const origin = "http://fetchlet.localhost";
-const message = "HonoXとTauriへようこそ。";
+const message = "Welcome to HonoX and Tauri.";
 // WebView2 exposes the DevTools protocol; WebKitGTK and WKWebView do not.
 const supported = process.platform === "win32";
 const results: { name: string; status: "pass" | "fail"; error?: string }[] = [];
@@ -191,9 +191,9 @@ check("the main window opens on the fetchlet scheme", async () => {
 check("HonoX SSR, escaping and the Rust service binding", async () => {
   const response = await request("/?name=" + encodeURIComponent("<Rust & JS>"));
   assert.equal(response.status, 200);
-  assert.match(response.text, /こんにちは、&lt;Rust &amp; JS&gt;/);
+  assert.match(response.text, /Hello, &lt;Rust &amp; JS&gt;/);
   assert.ok(response.text.includes(message), "MESSAGE binding");
-  assert.match(response.text, /Rustサービスからの挨拶です/);
+  assert.match(response.text, /Greetings from the Rust service/);
 });
 
 check("JavaScript, CSS and public files from the client build", async () => {
@@ -259,7 +259,7 @@ check("background work runs after the response and before the next request", asy
 check("concurrent requests keep their own values", async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
-      assert.match((await request("/?name=" + name)).text, new RegExp("こんにちは、" + name));
+      assert.match((await request("/?name=" + name)).text, new RegExp("Hello, " + name));
     }),
   );
 });
@@ -273,19 +273,19 @@ check("hydration, a Tauri command calling a JavaScript export, and navigation", 
     await page.waitForFunction(
       () => document.querySelector("[data-counter]")?.getAttribute("data-hydrated") === "true",
     );
-    await page.getByRole("button", { name: "クリック 0", exact: true }).click();
-    await page.getByRole("button", { name: "クリック 1", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
+    await page.getByRole("button", { name: "Clicks 1", exact: true }).waitFor();
 
-    await page.locator("[data-greeter] input").fill("フェッチレット");
-    await page.getByRole("button", { name: "commandで挨拶" }).click();
+    await page.locator("[data-greeter] input").fill("Zoë😀");
+    await page.getByRole("button", { name: "Greet with a command" }).click();
     await page
       .locator("[data-greeting]")
-      .filter({ hasText: "フェッチレットさん、JavaScriptの関数からこんにちは。（7文字）" })
+      .filter({ hasText: "Hello from a JavaScript function, Zoë😀. (4 characters)" })
       .waitFor();
 
-    await page.getByRole("link", { name: "このページについて" }).click();
+    await page.getByRole("link", { name: "About" }).click();
     await page.waitForURL(/\/about\/?$/);
-    await page.getByRole("heading", { name: "このページについて" }).waitFor();
+    await page.getByRole("heading", { name: "About" }).waitFor();
     assert.deepEqual(errors, []);
   } finally {
     page.off("pageerror", record);

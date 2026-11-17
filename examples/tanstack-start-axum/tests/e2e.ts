@@ -6,6 +6,6 @@ const suite = exampleSuite("tanstack-start-axum");
 commonChecks(suite, {
   framework: "TanStack Start",
   example: "tanstack-start-axum",
-  message: "TanStack StartとRustへようこそ。",
+  message: "Welcome to TanStack Start and Rust.",
   assetPrefix: "/",
 });

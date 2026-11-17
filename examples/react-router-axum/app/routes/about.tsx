@@ -1,8 +1,8 @@
 export default function About() {
   return (
     <main>
-      <h1>このページについて</h1>
-      <p>React RouterのSSRとhydrationを、axumの中のfetchletで実行しています。</p>
+      <h1>About</h1>
+      <p>fetchlet runs React Router's SSR and hydration inside axum.</p>
     </main>
   );
 }

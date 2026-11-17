@@ -8,6 +8,6 @@ onMounted(() => {
 
 <template>
   <button type="button" data-counter :data-hydrated="hydrated" @click="count += 1">
-    クリック {{ count }}
+    Clicks {{ count }}
   </button>
 </template>

@@ -1,16 +1,16 @@
 ---
-title: ようこそ
+title: Welcome
 tags: [mdw, fetchlet]
 ---
 
-# ようこそ
+# Welcome
 
-このフォルダーは **mdw**（Markdown Workspace）のサンプルです。左のツリーからノートを開き、「編集」で書き換えられます。
+This folder is a sample workspace for **mdw** (Markdown Workspace). Open a note from the tree on the left and change it with "Edit".
 
-- [はじめに](guide/getting-started.md)
-- [しくみ](guide/architecture.md#rendering)
-- [今日の日誌](journal/2026-11-17.md)
+- [Getting started](guide/getting-started.md)
+- [How it works](guide/architecture.md#rendering)
+- [Today's journal](journal/2026-11-17.md)
 
-> 別のエディターでファイルを保存すると、開いているページにすぐ反映されます。
+> Save a file in another editor and the open page updates at once.
 
-![構成図](images/flow.svg)
+![Diagram](images/flow.svg)

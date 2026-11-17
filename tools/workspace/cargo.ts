@@ -10,11 +10,13 @@ const clangCl = "C:\\Program Files\\LLVM\\bin\\clang-cl.exe";
 /**
  * The environment for Cargo. On Windows, native dependencies such as QuickJS
  * build with clang-cl when LLVM is installed, matching the MSVC flags the
- * local toolchain configuration uses.
+ * local toolchain configuration uses. `VSLANG=1033` keeps MSVC diagnostics in
+ * English, so recorded results read the same on every system locale.
  */
 export function cargoEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-  if (process.platform !== "win32" || !existsSync(clangCl)) return base;
-  return { ...base, CC: clangCl, CXX: clangCl };
+  if (process.platform !== "win32") return base;
+  const env = { ...base, VSLANG: base.VSLANG ?? "1033" };
+  return existsSync(clangCl) ? { ...env, CC: clangCl, CXX: clangCl } : env;
 }
 
 /** Runs Cargo and returns its exit code. */

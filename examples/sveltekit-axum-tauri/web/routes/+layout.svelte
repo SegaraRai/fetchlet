@@ -28,7 +28,7 @@
   <aside class="sidebar">
     <header>
       <a class="brand" href="/">{(await getWorkspace()).name}</a>
-      <a class="button" href="/new">新規</a>
+      <a class="button" href="/new">New</a>
     </header>
     <SearchBox />
     <NoteTree notes={await getNotes()} current={page.params.path} />

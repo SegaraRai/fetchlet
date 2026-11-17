@@ -15,7 +15,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const service = (await response.json()) as { message: string };
   const url = new URL(request.url);
   return {
-    name: url.searchParams.get("name") ?? visitor(request) ?? "ゲスト",
+    name: url.searchParams.get("name") ?? visitor(request) ?? "guest",
     message: env.MESSAGE,
     service: service.message,
   };
@@ -44,15 +44,15 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
   const name = actionData?.greeted ?? loaderData.name;
   return (
     <main>
-      <h1>こんにちは、{name}</h1>
+      <h1>Hello, {name}</h1>
       <p data-message>{loaderData.message}</p>
       <p data-service>{loaderData.service}</p>
       <Counter />
       <Form method="post">
         <label>
-          名前 <input name="name" required />
+          Name <input name="name" required />
         </label>
-        <button type="submit">挨拶する</button>
+        <button type="submit">Greet</button>
       </Form>
     </main>
   );

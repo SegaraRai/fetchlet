@@ -9,10 +9,10 @@ check("Nuxt SSR, escaping, runtime config and the Rust service binding", async (
   const response = await fetch(suite.base + "/?name=" + encodeURIComponent("<Rust & Nuxt>"));
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /こんにちは、&lt;Rust &amp; Nuxt&gt;/);
+  assert.match(html, /Hello, &lt;Rust &amp; Nuxt&gt;/);
   // useFetch reaches the server route through a nested Nitro fetch.
-  assert.match(html, /NuxtとRustへようこそ/);
-  assert.match(html, /Rustサービスからの挨拶です/);
+  assert.match(html, /Welcome to Nuxt and Rust/);
+  assert.match(html, /Greetings from the Rust service/);
 });
 
 check("Nuxt JavaScript, CSS and public files", async () => {
@@ -50,16 +50,16 @@ check("form post, Set-Cookie and redirect", async () => {
     method: "POST",
     redirect: "manual",
     headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ name: "田中" }),
+    body: new URLSearchParams({ name: "Zoë" }),
   });
   assert.equal(response.status, 303);
-  assert.equal(response.headers.get("location"), "/?name=" + encodeURIComponent("田中"));
+  assert.equal(response.headers.get("location"), "/?name=" + encodeURIComponent("Zoë"));
   const cookie = response.headers.get("set-cookie") ?? "";
   assert.match(cookie, /visitor=/);
   const page = await fetch(suite.base, {
     headers: { cookie: cookie.split(";")[0]! },
   });
-  assert.match(await page.text(), /こんにちは、田中/);
+  assert.match(await page.text(), /Hello, Zoë/);
 });
 
 check("Nitro client address and host bindings", async () => {
@@ -67,7 +67,7 @@ check("Nitro client address and host bindings", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     clientAddress: "127.0.0.1",
-    message: "NuxtとRustへようこそ。",
+    message: "Welcome to Nuxt and Rust.",
   });
 });
 
@@ -138,7 +138,7 @@ check("concurrent Nuxt requests keep their own values", async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
       const html = await (await fetch(suite.base + "/?name=" + name)).text();
-      assert.match(html, new RegExp("こんにちは、" + name));
+      assert.match(html, new RegExp("Hello, " + name));
     }),
   );
 });
@@ -151,12 +151,12 @@ check("hydration, form submission and Nuxt navigation", async () => {
   await page.waitForFunction(
     () => document.querySelector<HTMLElement>("[data-counter]")?.dataset.hydrated === "true",
   );
-  await page.getByRole("button", { name: "クリック 0", exact: true }).click();
-  assert.equal(await page.getByRole("button", { name: "クリック 1", exact: true }).count(), 1);
+  await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Clicks 1", exact: true }).count(), 1);
 
-  await page.getByLabel("名前").fill("ブラウザ");
-  await page.getByRole("button", { name: "挨拶する" }).click();
-  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("ブラウザ"));
+  await page.getByLabel("Name").fill("Browser");
+  await page.getByRole("button", { name: "Greet" }).click();
+  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("Browser"));
   await page.waitForFunction(
     () => document.querySelector<HTMLElement>("[data-counter]")?.dataset.hydrated === "true",
   );
@@ -164,9 +164,9 @@ check("hydration, form submission and Nuxt navigation", async () => {
   await page.evaluate(() => {
     (window as unknown as Record<string, unknown>).fetchletNavigationMarker = "retained";
   });
-  await page.getByRole("link", { name: "このページについて" }).click();
+  await page.getByRole("link", { name: "About" }).click();
   await page.waitForURL("**/about");
-  assert.equal(await page.getByRole("heading", { name: "このページについて" }).count(), 1);
+  assert.equal(await page.getByRole("heading", { name: "About" }).count(), 1);
   assert.equal(
     await page.evaluate(
       () => (window as unknown as Record<string, unknown>).fetchletNavigationMarker,

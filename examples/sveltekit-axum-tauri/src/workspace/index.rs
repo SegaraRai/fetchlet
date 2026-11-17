@@ -239,7 +239,7 @@ mod tests {
             title("a.md", "intro\n```\n# not this\n```\n# Heading\n"),
             "Heading"
         );
-        assert_eq!(title("dir/日誌.md", "no heading"), "日誌");
+        assert_eq!(title("dir/café.md", "no heading"), "café");
     }
 
     #[test]

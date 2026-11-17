@@ -23,7 +23,7 @@ const env = {
   MESSAGE: config.message,
   RUST: {
     async fetch() {
-      return Response.json({ message: "Rustサービスからの挨拶です。" });
+      return Response.json({ message: "Greetings from the Rust service." });
     },
   },
 };

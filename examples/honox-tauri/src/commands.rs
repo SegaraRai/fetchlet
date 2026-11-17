@@ -28,6 +28,6 @@ pub(crate) async fn greet(
         .await
         .map_err(|error| {
             eprintln!("greet failed: {error:#}");
-            "関数を呼び出せませんでした".to_owned()
+            "Could not call the function".to_owned()
         })
 }

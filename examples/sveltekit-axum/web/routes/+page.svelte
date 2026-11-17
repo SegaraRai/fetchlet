@@ -10,23 +10,23 @@
 </script>
 
 <svelte:head>
-  <title>fetchletの挨拶</title>
+  <title>fetchlet greeting</title>
 </svelte:head>
 
 <main data-hydrated={hydrated}>
-  <h1>こんにちは、{form?.name ?? data.name}</h1>
+  <h1>Hello, {form?.name ?? data.name}</h1>
   <p>{data.message}</p>
   <p>{data.greeting}</p>
 
   <form method="POST">
-    <label for="name">名前</label>
+    <label for="name">Name</label>
     <input id="name" name="name" value={form?.name ?? data.name} />
-    <button type="submit">挨拶する</button>
+    <button type="submit">Greet</button>
   </form>
 
-  <button type="button" onclick={() => clicks += 1}>クリック {clicks}</button>
-  <a href="/about">このページについて</a>
-  <a href="/projects">プロジェクト</a>
+  <button type="button" onclick={() => clicks += 1}>Clicks {clicks}</button>
+  <a href="/about">About</a>
+  <a href="/projects">Projects</a>
 </main>
 
 <style>

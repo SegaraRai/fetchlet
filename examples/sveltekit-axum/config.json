@@ -5,6 +5,6 @@
   "invocation_timeout_ms": 10000,
   "background_timeout_ms": 5000,
   "background_tasks": 8,
-  "message": "SvelteKitとRustへようこそ。",
+  "message": "Welcome to SvelteKit and Rust.",
   "build_directory": "build"
 }

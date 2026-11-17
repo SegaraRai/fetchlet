@@ -1,6 +1,6 @@
-<svelte:head><title>このページについて</title></svelte:head>
+<svelte:head><title>About</title></svelte:head>
 <main>
-  <h1>このページについて</h1>
-  <p>SvelteKitでページを生成し、Rustのサーバから配信しています。</p>
-  <a href="/">挨拶に戻る</a>
+  <h1>About</h1>
+  <p>SvelteKit renders this page and a Rust server serves it.</p>
+  <a href="/">Back to the greeting</a>
 </main>

@@ -157,7 +157,7 @@ function check(label: string, operation: () => Promise<void>): void {
 check("the window renders the workspace through the URI scheme protocol", async () => {
   await page.goto(origin + "/");
   await page.locator(".brand", { hasText: "notes" }).waitFor();
-  assert.match((await page.locator("main").textContent()) ?? "", /4 件のノート/);
+  assert.match((await page.locator("main").textContent()) ?? "", /4 notes/);
   // The page runs in the Tauri webview, not in a browser of `mdw serve`.
   assert.equal(await page.evaluate(() => "__TAURI_INTERNALS__" in window), true);
 });
@@ -193,9 +193,9 @@ check("the protocol keeps the workspace boundary", async () => {
 
 check("workspace changes arrive as Tauri events", async () => {
   await page.goto(origin + "/notes/index.md");
-  await page.locator("h1", { hasText: "ようこそ" }).waitFor();
-  await writeFile(resolve(notes, "index.md"), "# デスクトップで更新\n");
-  await page.locator("h1", { hasText: "デスクトップで更新" }).waitFor();
+  await page.locator("h1", { hasText: "Welcome" }).waitFor();
+  await writeFile(resolve(notes, "index.md"), "# Updated on the desktop\n");
+  await page.locator("h1", { hasText: "Updated on the desktop" }).waitFor();
   // The desktop window does not open the server-sent event stream.
   const streams = await page.evaluate(() =>
     performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/events")),
@@ -208,11 +208,11 @@ check("the editor saves through the protocol", async () => {
   const editor = page.getByRole("textbox", { name: "Markdown" });
   await editor.click();
   await page.keyboard.press("Control+End");
-  await page.keyboard.type("\n\nデスクトップから保存\n");
-  await page.locator(".preview", { hasText: "デスクトップから保存" }).waitFor();
+  await page.keyboard.type("\n\nSaved from the desktop\n");
+  await page.locator(".preview", { hasText: "Saved from the desktop" }).waitFor();
   await page.keyboard.press("Control+s");
   await page.waitForURL(/getting-started\.md$/);
-  await page.locator(".markdown", { hasText: "デスクトップから保存" }).waitFor();
+  await page.locator(".markdown", { hasText: "Saved from the desktop" }).waitFor();
   const saved = await readFile(resolve(notes, "guide/getting-started.md"), "utf8");
-  assert.match(saved, /デスクトップから保存/);
+  assert.match(saved, /Saved from the desktop/);
 });

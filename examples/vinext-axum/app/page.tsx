@@ -15,7 +15,7 @@ export default async function Home({
   const service = (await response.json()) as { message: string };
   return (
     <main>
-      <h1>こんにちは、{typeof name === "string" ? name : "ゲスト"}</h1>
+      <h1>Hello, {typeof name === "string" ? name : "guest"}</h1>
       <p data-message>{env.MESSAGE}</p>
       <p data-service>{service.message}</p>
       <Counter />

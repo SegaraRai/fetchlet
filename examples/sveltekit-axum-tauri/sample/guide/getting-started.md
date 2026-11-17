@@ -1,22 +1,22 @@
-# はじめに
+# Getting started
 
-## 起動
+## Start
 
-ブラウザーで使う場合:
+In a browser:
 
 ```bash
 mdw serve ~/notes --open
 ```
 
-デスクトップ ウィンドウで使う場合:
+In a desktop window:
 
 ```bash
 mdw desktop ~/notes
 ```
 
-## 設定
+## Configuration
 
-`config.json` で予算を決めます。
+`config.json` sets the budgets.
 
 ```json
 {
@@ -25,10 +25,10 @@ mdw desktop ~/notes
 }
 ```
 
-## タスク
+## Tasks
 
-- [x] ノートを開く
-- [ ] ノートを検索する
-- [ ] 新しいノートを作る
+- [x] Open a note
+- [ ] Search the notes
+- [ ] Create a note
 
-[ホームに戻る](../index.md)
+[Back to the start](../index.md)

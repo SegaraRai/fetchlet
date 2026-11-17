@@ -13,7 +13,7 @@ export function Counter() {
       data-hydrated={String(hydrated)}
       onClick={() => setCount(count + 1)}
     >
-      クリック {count}
+      Clicks {count}
     </button>
   );
 }

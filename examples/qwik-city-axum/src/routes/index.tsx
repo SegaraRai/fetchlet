@@ -10,11 +10,11 @@ export const useGreeting = routeLoader$(async ({ platform }) => {
 });
 
 export default component$(() => {
-  const name = useLocation().url.searchParams.get("name") ?? "ゲスト";
+  const name = useLocation().url.searchParams.get("name") ?? "guest";
   const greeting = useGreeting();
   return (
     <main>
-      <h1>{`こんにちは、${name}`}</h1>
+      <h1>{`Hello, ${name}`}</h1>
       <p data-message>{greeting.value.message}</p>
       <p data-service>{greeting.value.service}</p>
       <Counter />

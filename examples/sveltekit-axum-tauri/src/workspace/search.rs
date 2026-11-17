@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn snippets_mark_matches_in_the_original_text() {
-        let index = index(&[("j.md", "# 日誌\n今日はRustでMarkdownを描画した。")]);
+        let index = index(&[("j.md", "# Journal\nÉté: Rust rendered Markdown today.")]);
         let hits = search(&index, "markdown", 10);
         let matched: Vec<&SnippetPart> =
             hits[0].snippet.iter().filter(|part| part.matched).collect();
@@ -184,6 +184,6 @@ mod tests {
             .iter()
             .map(|part| part.text.as_str())
             .collect();
-        assert!(text.contains("今日はRustで"), "{text}");
+        assert!(text.contains("Été: Rust rendered"), "{text}");
     }
 }

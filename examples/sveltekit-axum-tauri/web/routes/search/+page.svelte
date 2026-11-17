@@ -8,11 +8,11 @@
   const hits = $derived(await searchNotes({ q: query }));
 </script>
 
-<svelte:head><title>「{query}」の検索結果 — mdw</title></svelte:head>
+<svelte:head><title>Results for “{query}” — mdw</title></svelte:head>
 
 <section class="narrow">
-  <h1>「{query}」の検索結果</h1>
-  <p class="muted">{hits.length} 件</p>
+  <h1>Results for “{query}”</h1>
+  <p class="muted">{hits.length} {hits.length === 1 ? "result" : "results"}</p>
   <ol class="results">
     {#each hits as hit (hit.path)}
       <li>

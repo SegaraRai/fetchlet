@@ -98,7 +98,7 @@ mod tests {
     fn accepts_ordinary_relative_paths() {
         for path in [
             "index.md",
-            "guide/日本語.md",
+            "guide/café.md",
             "a b/c-d_e.MD",
             "images/logo.png",
         ] {

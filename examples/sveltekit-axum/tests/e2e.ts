@@ -11,8 +11,8 @@ check("SSR, escaping and the Rust service binding", async () => {
   assert.match(response.headers.get("content-type") ?? "", /text\/html/);
   const html = await response.text();
   assert.match(html, /&lt;Rust &amp; Svelte>/);
-  assert.match(html, /SvelteKitとRustへようこそ/);
-  assert.match(html, /Rustサービスからの挨拶です/);
+  assert.match(html, /Welcome to SvelteKit and Rust/);
+  assert.match(html, /Greetings from the Rust service/);
 });
 
 check("client JavaScript, CSS and static files", async () => {
@@ -54,11 +54,11 @@ check("form action and Set-Cookie", async () => {
       accept: "application/json",
       "content-type": "application/x-www-form-urlencoded",
     },
-    body: new URLSearchParams({ name: "田中" }),
+    body: new URLSearchParams({ name: "Zoë" }),
   });
   assert.equal(response.status, 200);
   assert.match(response.headers.get("set-cookie") ?? "", /visitor=/);
-  assert.match(await response.text(), /田中/);
+  assert.match(await response.text(), /Zoë/);
 });
 
 check("request context and environment", async () => {
@@ -66,7 +66,7 @@ check("request context and environment", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     clientAddress: "127.0.0.1",
-    message: "SvelteKitとRustへようこそ。",
+    message: "Welcome to SvelteKit and Rust.",
   });
 });
 
@@ -101,17 +101,17 @@ check("in-process Rust API through event.fetch and the service binding", async (
   const created = await fetch(suite.base + "/projects", {
     method: "POST",
     headers: { origin: suite.base, "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ name: "検証" }),
+    body: new URLSearchParams({ name: "Review" }),
   });
   assert.equal(created.status, 200);
-  assert.match(await (await fetch(suite.base + "/projects")).text(), /\d+: 検証/);
+  assert.match(await (await fetch(suite.base + "/projects")).text(), /\d+: Review/);
 
   const found = await fetch(suite.base + "/api/projects/1");
   assert.equal(found.status, 200);
   assert.equal((await found.json()).id, 1);
   // Browsers reach the same Rust router and state over public HTTP.
   const listed = await (await fetch(suite.base + "/api/v1/projects")).json();
-  assert.ok(listed.some((project: { name: string }) => project.name === "検証"));
+  assert.ok(listed.some((project: { name: string }) => project.name === "Review"));
 
   const missing = await fetch(suite.base + "/api/projects/999");
   assert.equal(missing.status, 404);
@@ -155,7 +155,7 @@ check("same-origin event.fetch stays inside SvelteKit", async () => {
   const before = await stats();
   const outcome = await inProcess("internal");
   assert.equal(outcome.status, 200);
-  assert.equal(outcome.body.message, "SvelteKitとRustへようこそ。");
+  assert.equal(outcome.body.message, "Welcome to SvelteKit and Rust.");
   assert.equal((await stats()).calls, before.calls);
 });
 
@@ -178,7 +178,7 @@ check("concurrent requests keep their own values", async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
       const html = await (await fetch(suite.base + "/?name=" + name)).text();
-      assert.match(html, new RegExp("こんにちは、" + name));
+      assert.match(html, new RegExp("Hello, " + name));
     }),
   );
 });
@@ -191,12 +191,12 @@ check("browser hydration, form submission and client navigation", async () => {
   await page.waitForFunction(
     () => document.querySelector<HTMLElement>("main")?.dataset.hydrated === "true",
   );
-  await page.getByRole("button", { name: "クリック 0", exact: true }).click();
-  assert.equal(await page.getByRole("button", { name: "クリック 1", exact: true }).count(), 1);
+  await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Clicks 1", exact: true }).count(), 1);
 
-  await page.getByLabel("名前").fill("ブラウザ");
-  await page.getByRole("button", { name: "挨拶する" }).click();
-  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("ブラウザ"));
+  await page.getByLabel("Name").fill("Browser");
+  await page.getByRole("button", { name: "Greet" }).click();
+  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("Browser"));
   await page.waitForFunction(
     () => document.querySelector<HTMLElement>("main")?.dataset.hydrated === "true",
   );
@@ -204,9 +204,9 @@ check("browser hydration, form submission and client navigation", async () => {
   await page.evaluate(() => {
     (window as unknown as Record<string, unknown>).fetchletNavigationMarker = "retained";
   });
-  await page.getByRole("link", { name: "このページについて" }).click();
+  await page.getByRole("link", { name: "About" }).click();
   await page.waitForURL("**/about");
-  assert.equal(await page.getByRole("heading", { name: "このページについて" }).count(), 1);
+  assert.equal(await page.getByRole("heading", { name: "About" }).count(), 1);
   assert.equal(
     await page.evaluate(
       () => (window as unknown as Record<string, unknown>).fetchletNavigationMarker,

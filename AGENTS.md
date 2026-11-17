@@ -32,6 +32,10 @@ Use Vite+ with pnpm. Define tasks in `vite.config.ts`. Use `vp i` for dependenci
 
 Describe the supported behavior, configuration and next work affirmatively. State material compatibility and security limitations precisely, with their scope and evidence. Keep implementation notes, user documentation and research results appropriate to their audience.
 
+- Write documentation, comments, user-facing strings and sample content in English. Non-ASCII text belongs only in tests and fixtures that exercise Unicode handling.
+- Keep `docs/README.md` as the index. Track next work in `docs/TODO.md`, and put investigations under `docs/research/`.
+- `docs/reference/` is generated from `results/` by `vp run build:reference`; `check:generated` fails when it is stale. Do not edit it by hand.
+
 ## Workspace layout
 
 - Put Rust libraries in `crates/<crate>/`, shared JS packages in `packages/<package>/`, and runnable applications in `examples/<framework>-<rust-server>/`.

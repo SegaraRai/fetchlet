@@ -5,7 +5,7 @@
   "invocation_timeout_ms": 10000,
   "background_timeout_ms": 5000,
   "background_tasks": 8,
-  "message": "HonoXとTauriへようこそ。",
+  "message": "Welcome to HonoX and Tauri.",
   "build_directory": "build",
   "quickjs_stack_bytes": 4194304,
   "worker_stack_bytes": 8388608

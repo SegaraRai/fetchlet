@@ -1,8 +1,8 @@
 <template>
   <div class="page">
     <nav>
-      <NuxtLink to="/">ホーム</NuxtLink>
-      <NuxtLink to="/about">このページについて</NuxtLink>
+      <NuxtLink to="/">Home</NuxtLink>
+      <NuxtLink to="/about">About</NuxtLink>
     </nav>
     <NuxtPage />
   </div>

@@ -15,7 +15,7 @@ export const Counter = component$(() => {
       data-hydrated={String(hydrated.value)}
       onClick$={() => count.value++}
     >
-      {`クリック ${count.value}`}
+      {`Clicks ${count.value}`}
     </button>
   );
 });

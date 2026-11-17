@@ -14,9 +14,9 @@ check("React Router SSR, escaping and the Rust service binding", async () => {
   });
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /こんにちは、(?:<!-- -->)?&lt;Rust &amp; RR&gt;/);
-  assert.match(html, /React RouterとRustへようこそ/);
-  assert.match(html, /Rustサービスからの挨拶です/);
+  assert.match(html, /Hello, (?:<!-- -->)?&lt;Rust &amp; RR&gt;/);
+  assert.match(html, /Welcome to React Router and Rust/);
+  assert.match(html, /Greetings from the Rust service/);
   // Every hoisted link is complete; a renderer retry must not leave a partial tag.
   assert.doesNotMatch(html, /<link<|<link\/?>/);
   const preloads = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)"\/>/g)];
@@ -51,15 +51,15 @@ check("deferred loader data streams after the shell", async () => {
   const decoder = new TextDecoder();
   const { value } = await reader.read();
   const shell = decoder.decode(value, { stream: true });
-  assert.match(shell, /読み込み中/);
-  assert.doesNotMatch(shell, /遅れて届いた値/);
+  assert.match(shell, /Loading/);
+  assert.doesNotMatch(shell, /A value that arrived late/);
   let rest = "";
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
     rest += decoder.decode(value, { stream: true });
   }
-  assert.match(rest, /遅れて届いた値/);
+  assert.match(rest, /A value that arrived late/);
 });
 
 check("resource route JSON action", async () => {
@@ -81,11 +81,11 @@ check("document form action and Set-Cookie", async () => {
       origin: suite.base,
       "content-type": "application/x-www-form-urlencoded",
     },
-    body: new URLSearchParams({ name: "田中" }),
+    body: new URLSearchParams({ name: "Zoë" }),
   });
   assert.equal(response.status, 200);
   assert.match(response.headers.get("set-cookie") ?? "", /visitor=/);
-  assert.match(await response.text(), /こんにちは、(?:<!-- -->)?田中/);
+  assert.match(await response.text(), /Hello, (?:<!-- -->)?Zoë/);
 });
 
 check("client address and host bindings in the load context", async () => {
@@ -93,7 +93,7 @@ check("client address and host bindings in the load context", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     clientAddress: "127.0.0.1",
-    message: "React RouterとRustへようこそ。",
+    message: "Welcome to React Router and Rust.",
   });
 });
 
@@ -164,7 +164,7 @@ check("concurrent React Router requests keep their own values", async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
       const html = await (await fetch(suite.base + "/?name=" + name, { headers: browser })).text();
-      assert.match(html, new RegExp("こんにちは、(?:<!-- -->)?" + name));
+      assert.match(html, new RegExp("Hello, (?:<!-- -->)?" + name));
     }),
   );
 });
@@ -177,27 +177,27 @@ check("hydration, client actions and React Router navigation", async () => {
   await page.waitForFunction(
     () => document.querySelector<HTMLElement>("[data-counter]")?.dataset.hydrated === "true",
   );
-  await page.getByRole("button", { name: "クリック 0", exact: true }).click();
-  assert.equal(await page.getByRole("button", { name: "クリック 1", exact: true }).count(), 1);
+  await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Clicks 1", exact: true }).count(), 1);
 
   await page.evaluate(() => {
     (window as unknown as Record<string, unknown>).fetchletNavigationMarker = "retained";
   });
   // The hydrated Form submits with fetch and keeps the document.
-  await page.getByLabel("名前").fill("ブラウザ");
-  await page.getByRole("button", { name: "挨拶する" }).click();
-  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("ブラウザ"));
-  assert.equal(await page.getByRole("button", { name: "クリック 1", exact: true }).count(), 1);
+  await page.getByLabel("Name").fill("Browser");
+  await page.getByRole("button", { name: "Greet" }).click();
+  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("Browser"));
+  assert.equal(await page.getByRole("button", { name: "Clicks 1", exact: true }).count(), 1);
 
-  await page.getByRole("link", { name: "遅延データ" }).click();
+  await page.getByRole("link", { name: "Deferred data" }).click();
   await page.waitForURL("**/deferred");
   await page.waitForFunction(() => document.querySelector("[data-resolved]") !== null);
 
-  await page.getByRole("link", { name: "このページについて" }).click();
+  await page.getByRole("link", { name: "About" }).click();
   await page.waitForURL("**/about");
   // The URL changes before the route renders.
-  await page.getByRole("heading", { name: "このページについて" }).waitFor();
-  assert.equal(await page.getByRole("heading", { name: "このページについて" }).count(), 1);
+  await page.getByRole("heading", { name: "About" }).waitFor();
+  assert.equal(await page.getByRole("heading", { name: "About" }).count(), 1);
   assert.equal(
     await page.evaluate(
       () => (window as unknown as Record<string, unknown>).fetchletNavigationMarker,

@@ -3,8 +3,8 @@ import { createRoute } from "honox/factory";
 export default createRoute((c) =>
   c.render(
     <main>
-      <h1>このページについて</h1>
-      <p>HonoXのSSRとislandを、Tauriのプロセス内のfetchletで実行しています。</p>
+      <h1>About</h1>
+      <p>fetchlet runs HonoX's SSR and islands inside the Tauri process.</p>
     </main>,
   ),
 );

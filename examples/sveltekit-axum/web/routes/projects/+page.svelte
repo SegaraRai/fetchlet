@@ -3,11 +3,11 @@
 </script>
 
 <svelte:head>
-  <title>プロジェクト</title>
+  <title>Projects</title>
 </svelte:head>
 
 <main>
-  <h1>プロジェクト</h1>
+  <h1>Projects</h1>
   <ul>
     {#each data.projects as project (project.id)}
       <li>{project.id}: {project.name}</li>
@@ -17,9 +17,9 @@
     <p role="alert">{form.error}</p>
   {/if}
   <form method="POST">
-    <label for="name">名前</label>
+    <label for="name">Name</label>
     <input id="name" name="name" />
-    <button type="submit">追加する</button>
+    <button type="submit">Add</button>
   </form>
-  <a href="/">トップへ</a>
+  <a href="/">Back to the top</a>
 </main>

@@ -10,8 +10,8 @@ check("Astro SSR, escaping and the Rust service binding", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /&lt;Rust &amp; Astro(?:>|&gt;)/);
-  assert.match(html, /AstroとRustへようこそ/);
-  assert.match(html, /Rustサービスからの挨拶です/);
+  assert.match(html, /Welcome to Astro and Rust/);
+  assert.match(html, /Greetings from the Rust service/);
 });
 
 check("Astro JavaScript, CSS and static files", async () => {
@@ -51,11 +51,11 @@ check("Astro form and Set-Cookie", async () => {
       origin: suite.base,
       "content-type": "application/x-www-form-urlencoded",
     },
-    body: new URLSearchParams({ name: "田中" }),
+    body: new URLSearchParams({ name: "Zoë" }),
   });
   assert.equal(response.status, 200);
   assert.match(response.headers.get("set-cookie") ?? "", /visitor=/);
-  assert.match(await response.text(), /こんにちは、田中/);
+  assert.match(await response.text(), /Hello, Zoë/);
 });
 
 check("Astro client address and environment", async () => {
@@ -63,7 +63,7 @@ check("Astro client address and environment", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     clientAddress: "127.0.0.1",
-    message: "AstroとRustへようこそ。",
+    message: "Welcome to Astro and Rust.",
   });
 });
 
@@ -134,7 +134,7 @@ check("concurrent Astro requests keep their own values", async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
       const html = await (await fetch(suite.base + "/?name=" + name)).text();
-      assert.match(html, new RegExp("こんにちは、" + name));
+      assert.match(html, new RegExp("Hello, " + name));
     }),
   );
 });
@@ -147,12 +147,12 @@ check("island hydration, form submission and Astro navigation", async () => {
   await page.waitForFunction(
     () => document.querySelector<HTMLElement>("[data-counter]")?.dataset.hydrated === "true",
   );
-  await page.getByRole("button", { name: "クリック 0", exact: true }).click();
-  assert.equal(await page.getByRole("button", { name: "クリック 1", exact: true }).count(), 1);
+  await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Clicks 1", exact: true }).count(), 1);
 
-  await page.getByLabel("名前").fill("ブラウザ");
-  await page.getByRole("button", { name: "挨拶する" }).click();
-  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("ブラウザ"));
+  await page.getByLabel("Name").fill("Browser");
+  await page.getByRole("button", { name: "Greet" }).click();
+  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("Browser"));
   await page.waitForFunction(
     () => document.querySelector<HTMLElement>("[data-counter]")?.dataset.hydrated === "true",
   );
@@ -160,9 +160,9 @@ check("island hydration, form submission and Astro navigation", async () => {
   await page.evaluate(() => {
     (window as unknown as Record<string, unknown>).fetchletNavigationMarker = "retained";
   });
-  await page.getByRole("link", { name: "このページについて" }).click();
+  await page.getByRole("link", { name: "About" }).click();
   await page.waitForURL("**/about");
-  assert.equal(await page.getByRole("heading", { name: "このページについて" }).count(), 1);
+  assert.equal(await page.getByRole("heading", { name: "About" }).count(), 1);
   assert.equal(
     await page.evaluate(
       () => (window as unknown as Record<string, unknown>).fetchletNavigationMarker,

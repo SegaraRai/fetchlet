@@ -17,9 +17,9 @@ export default function Greeter() {
         event.preventDefault();
         try {
           const greeting = await invoke<Greeting>("greet", { name });
-          setResult(`${greeting.greeting}（${greeting.characters}文字）`);
+          setResult(`${greeting.greeting} (${greeting.characters} characters)`);
         } catch (error) {
-          setResult(`失敗しました: ${String(error)}`);
+          setResult(`Failed: ${String(error)}`);
         }
       }}
     >
@@ -28,7 +28,7 @@ export default function Greeter() {
         value={name}
         onInput={(event: Event) => setName((event.target as HTMLInputElement).value)}
       />
-      <button type="submit">commandで挨拶</button>
+      <button type="submit">Greet with a command</button>
       <output data-greeting>{result}</output>
     </form>
   );

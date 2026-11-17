@@ -7,9 +7,9 @@ export interface Greeting {
 }
 
 export function greet(input: { name: string }): Greeting {
-  const name = input.name.trim() || "ゲスト";
+  const name = input.name.trim() || "guest";
   return {
-    greeting: `${name}さん、JavaScriptの関数からこんにちは。`,
+    greeting: `Hello from a JavaScript function, ${name}.`,
     characters: [...name].length,
   };
 }

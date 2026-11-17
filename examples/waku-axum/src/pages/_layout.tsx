@@ -7,8 +7,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     <>
       <title>Waku + axum</title>
       <nav>
-        <Link to="/">ホーム</Link>
-        <Link to="/about">このページについて</Link>
+        <Link to="/">Home</Link>
+        <Link to="/about">About</Link>
       </nav>
       {children}
     </>

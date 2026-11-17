@@ -16,12 +16,12 @@
 <div class="note-layout">
   <article class="note">
     <header class="note-header">
-      <nav class="breadcrumbs" aria-label="場所">
+      <nav class="breadcrumbs" aria-label="Breadcrumbs">
         {#each folders as folder, index (index)}<span>{folder}</span>{/each}
       </nav>
       <div class="note-actions">
         <LocalTime millis={note.modified} />
-        <a class="button" href={noteHref(note.path) + "/edit"}>編集</a>
+        <a class="button" href={noteHref(note.path) + "/edit"}>Edit</a>
       </div>
     </header>
     {#if note.tags.length > 0}
@@ -35,8 +35,8 @@
     </div>
   </article>
   {#if outline.length > 0}
-    <nav class="outline" aria-label="目次">
-      <h2>目次</h2>
+    <nav class="outline" aria-label="Contents">
+      <h2>Contents</h2>
       <ul>
         {#each outline as heading (heading.id)}
           <li style:--depth={heading.depth - 2}><a href="#{heading.id}">{heading.text}</a></li>

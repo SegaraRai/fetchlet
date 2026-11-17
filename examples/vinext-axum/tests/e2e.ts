@@ -6,6 +6,6 @@ const suite = exampleSuite("vinext-axum");
 commonChecks(suite, {
   framework: "vinext",
   example: "vinext-axum",
-  message: "vinext から",
+  message: "From vinext",
   assetPrefix: "/",
 });

@@ -86,14 +86,14 @@ export const saveNote = form(
       // The editor offers to overwrite with the version that is on disk now.
       return { conflict: failure?.conflict?.current_version ?? null };
     }
-    if (!data) invalid(issue.content(failure?.error ?? "保存できませんでした"));
+    if (!data) invalid(issue.content(failure?.error ?? "Could not save the note"));
     // After a successful submission SvelteKit refreshes the queries on the page.
     redirect(303, noteHref(path));
   },
 );
 
 export const createNote = form(
-  v.object({ path: v.pipe(v.string(), v.trim(), v.minLength(1, "名前を入力してください")) }),
+  v.object({ path: v.pipe(v.string(), v.trim(), v.minLength(1, "Enter a name")) }),
   async (input, issue) => {
     const path = normalizeNewPath(input.path);
     const title = path.replace(/\.md$/i, "").split("/").pop()!;
@@ -104,8 +104,8 @@ export const createNote = form(
     } = await rust.saveNote({
       body: { path, content: `# ${title}\n\n`, base_version: null },
     });
-    if (response?.status === 409) invalid(issue.path("同じ名前のノートがあります"));
-    if (!data) invalid(issue.path(failure?.error ?? "作成できませんでした"));
+    if (response?.status === 409) invalid(issue.path("A note with this name already exists"));
+    if (!data) invalid(issue.path(failure?.error ?? "Could not create the note"));
     redirect(303, noteHref(path) + "/edit");
   },
 );
@@ -114,7 +114,7 @@ export const deleteNote = form(
   v.object({ path: notePath, version: v.string() }),
   async ({ path, version }) => {
     const { error: failure, response } = await rust.deleteNote({ query: { path, version } });
-    if (!response?.ok) invalid(failure?.error ?? "削除できませんでした");
+    if (!response?.ok) invalid(failure?.error ?? "Could not delete the note");
     redirect(303, "/");
   },
 );

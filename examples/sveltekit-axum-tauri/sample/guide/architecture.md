@@ -1,15 +1,15 @@
-# しくみ
+# How it works
 
 ## Rendering
 
-ページは SvelteKit が描画します。SvelteKit のサーバー側は Rust プロセスの中の QuickJS で動きます。
+SvelteKit renders the pages. Its server side runs on QuickJS inside the Rust process.
 
 ```ts
 // web/lib/server/render.ts
 const { data } = await rust.highlight({ body: { blocks } });
 ```
 
-コードのハイライトは Rust の syntect が担当します。
+Rust's syntect highlights the code.
 
 ```rust
 let html = highlighter.highlight(&block.code, &block.language);
@@ -17,11 +17,11 @@ let html = highlighter.highlight(&block.code, &block.language);
 
 ## API
 
-| 経路                           | 呼び出し元    | 通信       |
-| ------------------------------ | ------------- | ---------- |
-| `https://rust.fetchlet.test/*` | サーバー側 JS | プロセス内 |
-| `/api/v1/*`                    | ブラウザー    | HTTP       |
+| Route                          | Caller         | Transport  |
+| ------------------------------ | -------------- | ---------- |
+| `https://rust.fetchlet.test/*` | Server-side JS | In-process |
+| `/api/v1/*`                    | Browser        | HTTP       |
 
-## 権限
+## Authority
 
-ワークスペースの外のファイルは開けません。`..` やシンボリック リンクで外へ出るパスは拒否されます。
+Files outside the workspace cannot be opened. Paths that leave it through `..` or symbolic links are refused.

@@ -41,7 +41,7 @@
   );
 
   beforeNavigate((navigation) => {
-    if (dirty && !leaving && !confirm("保存していない変更を破棄しますか？")) navigation.cancel();
+    if (dirty && !leaving && !confirm("Discard unsaved changes?")) navigation.cancel();
   });
 
   function onkeydown(event: KeyboardEvent) {
@@ -52,7 +52,7 @@
   }
 </script>
 
-<svelte:head><title>{path} を編集 — mdw</title></svelte:head>
+<svelte:head><title>Edit {path} — mdw</title></svelte:head>
 <svelte:window {onkeydown} />
 
 <div class="editor">
@@ -70,22 +70,22 @@
     <header class="editor-toolbar">
       <a href={noteHref(path)} class="path">{path}</a>
       <span class="status" aria-live="polite">
-        {#if saveNote.pending}保存中…{:else if dirty}未保存の変更{:else}保存済み{/if}
+        {#if saveNote.pending}Saving…{:else if dirty}Unsaved changes{:else}Saved{/if}
       </span>
       <button type="submit" class="primary" disabled={!!saveNote.pending}
-        >保存 <kbd>Ctrl+S</kbd></button
+        >Save <kbd>Ctrl+S</kbd></button
       >
     </header>
 
     {#if conflict !== undefined}
       <div class="banner warning" role="alert">
-        <p>このノートは読み込んだ後に{conflict === null ? "削除" : "変更"}されています。</p>
-        <button {...saveNote.fields.overwrite.as("submit", conflict ?? "")}>この内容で上書き</button>
-        <a href={noteHref(path) + "/edit"} data-sveltekit-reload>破棄して読み込み直す</a>
+        <p>This note was {conflict === null ? "deleted" : "changed"} after it was loaded.</p>
+        <button {...saveNote.fields.overwrite.as("submit", conflict ?? "")}>Overwrite with this version</button>
+        <a href={noteHref(path) + "/edit"} data-sveltekit-reload>Discard and reload</a>
       </div>
     {:else if changedOnDisk}
       <div class="banner" role="status">
-        <p>このノートはエディターの外で変更されました。保存時に競合を確認します。</p>
+        <p>This note changed outside the editor. Saving checks for a conflict.</p>
       </div>
     {/if}
     {#each saveNote.fields.allIssues() ?? [] as issue (issue.message)}
@@ -100,20 +100,20 @@
         spellcheck="false"
         aria-label="Markdown"
       ></textarea>
-      <div class="preview markdown" aria-label="プレビュー">{@html preview}</div>
+      <div class="preview markdown" aria-label="Preview">{@html preview}</div>
     </div>
   </form>
 
   <form
     class="danger-zone"
     {...deleteNote.enhance(async ({ submit }) => {
-      if (!confirm(`${path} を削除しますか？`)) return;
+      if (!confirm(`Delete ${path}?`)) return;
       leaving = true;
       await submit();
     })}
   >
     <input {...deleteNote.fields.path.as("hidden", path)} />
     <input {...deleteNote.fields.version.as("hidden", baseVersion)} />
-    <button type="submit" class="danger">削除</button>
+    <button type="submit" class="danger">Delete</button>
   </form>
 </div>

@@ -14,11 +14,11 @@
 <section class="overview">
   <h1>{workspace.name}</h1>
   <p class="muted">
-    {workspace.notes} 件のノート{#if workspace.skipped > 0}（{workspace.skipped}
-      件はサイズ超過または UTF-8 以外のため除外）{/if}
+    {workspace.notes} {workspace.notes === 1 ? "note" : "notes"}{#if workspace.skipped > 0}
+      ({workspace.skipped} left out for size or non-UTF-8 content){/if}
   </p>
 
-  <h2>最近更新したノート</h2>
+  <h2>Recently updated</h2>
   <ul class="cards">
     {#each recent as note (note.path)}
       <li>
@@ -29,7 +29,7 @@
         </a>
       </li>
     {:else}
-      <li class="muted">まだノートがありません。<a href="/new">最初のノートを作る</a></li>
+      <li class="muted">No notes yet. <a href="/new">Create the first note</a></li>
     {/each}
   </ul>
 </section>

@@ -18,7 +18,7 @@ export async function app(
     };
     const html =
       "<!doctype html><html><head><meta charset=utf-8><title>bare</title></head><body>" +
-      `<h1>こんにちは、${escape(name)}</h1><p>${escape(env.MESSAGE)}</p>` +
+      `<h1>Hello, ${escape(name)}</h1><p>${escape(env.MESSAGE)}</p>` +
       `<p>${escape(greeting.message)}</p></body></html>`;
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   }

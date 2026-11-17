@@ -5,5 +5,5 @@
 <section class="narrow">
   <h1>{page.status}</h1>
   <p>{page.error?.message}</p>
-  <p><a href="/">ワークスペースに戻る</a></p>
+  <p><a href="/">Back to the workspace</a></p>
 </section>

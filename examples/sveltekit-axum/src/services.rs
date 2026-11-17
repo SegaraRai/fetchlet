@@ -85,7 +85,7 @@ async fn count_calls(State(api): Api, request: Request, next: Next) -> Response 
 }
 
 async fn greeting() -> Json<Value> {
-    Json(json!({ "message": "Rustサービスからの挨拶です。" }))
+    Json(json!({ "message": "Greetings from the Rust service." }))
 }
 
 async fn list_projects(State(api): Api) -> Json<Vec<Project>> {

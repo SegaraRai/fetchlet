@@ -16,10 +16,10 @@ export const route = { preload: () => greeting() };
 export default function Home() {
   const [search] = useSearchParams();
   const data = createAsync(() => greeting());
-  const name = () => (typeof search.name === "string" ? search.name : "ゲスト");
+  const name = () => (typeof search.name === "string" ? search.name : "guest");
   return (
     <main>
-      <h1>{`こんにちは、${name()}`}</h1>
+      <h1>{`Hello, ${name()}`}</h1>
       <p data-message>{data()?.message}</p>
       <p data-service>{data()?.service}</p>
       <Counter />

@@ -9,8 +9,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ja">
       <body>
         <nav>
-          <Link href="/">ホーム</Link>
-          <Link href="/about">このページについて</Link>
+          <Link href="/">Home</Link>
+          <Link href="/about">About</Link>
         </nav>
         {children}
       </body>

@@ -6,6 +6,6 @@ const suite = exampleSuite("waku-axum");
 commonChecks(suite, {
   framework: "Waku",
   example: "waku-axum",
-  message: "Waku から",
+  message: "From Waku",
   assetPrefix: "/",
 });

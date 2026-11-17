@@ -6,6 +6,6 @@ const suite = exampleSuite("solidstart-axum");
 commonChecks(suite, {
   framework: "SolidStart",
   example: "solidstart-axum",
-  message: "SolidStart から",
+  message: "From SolidStart",
   assetPrefix: "/",
 });

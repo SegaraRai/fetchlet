@@ -1,10 +1,10 @@
 // Checks shared by framework examples that implement the common app shape:
 //
-// - `/` renders `こんにちは、{name}` from `?name=`, the MESSAGE binding and
+// - `/` renders `Hello, {name}` from `?name=`, the MESSAGE binding and
 //   the greeting of the RUST service binding;
-// - `/about` is reachable through a client-side link named このページについて;
+// - `/about` is reachable through a client-side link named About;
 // - a button `[data-counter]` sets `data-hydrated="true"` after hydration and
-//   counts clicks as `クリック {n}`;
+//   counts clicks as `Clicks {n}`;
 // - `/api/echo` returns a posted JSON body with 201;
 // - `/api/context` returns `{ clientAddress, message }`;
 // - `/api/upload` counts a streamed upload as `{ chunks, bytes }`, or answers
@@ -53,9 +53,9 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     assert.equal(response.status, 200);
     const html = await response.text();
     // HTML text needs `<` and `&` escaped; Solid leaves `>` as it is.
-    assert.match(html, new RegExp("こんにちは、" + rendered("&lt;Rust &amp; JS(?:&gt;|>)")));
+    assert.match(html, new RegExp("Hello, " + rendered("&lt;Rust &amp; JS(?:&gt;|>)")));
     assert.ok(html.includes(options.message), "MESSAGE binding");
-    assert.match(html, /Rustサービスからの挨拶です/);
+    assert.match(html, /Greetings from the Rust service/);
   });
 
   check(
@@ -190,7 +190,7 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
         const html = await (
           await fetch(suite.base + "/?name=" + name, { headers: browserHeaders })
         ).text();
-        assert.match(html, new RegExp("こんにちは、" + rendered(name)));
+        assert.match(html, new RegExp("Hello, " + rendered(name)));
       }),
     );
   });
@@ -204,15 +204,15 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     await page.waitForFunction(
       () => document.querySelector("[data-counter]")?.getAttribute("data-hydrated") === "true",
     );
-    await page.getByRole("button", { name: "クリック 0", exact: true }).click();
-    await page.getByRole("button", { name: "クリック 1", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
+    await page.getByRole("button", { name: "Clicks 1", exact: true }).waitFor();
 
     await page.evaluate(() => {
       window.fetchletNavigationMarker = "retained";
     });
-    await page.getByRole("link", { name: "このページについて" }).click();
+    await page.getByRole("link", { name: "About" }).click();
     await page.waitForURL(/\/about\/?$/);
-    await page.getByRole("heading", { name: "このページについて" }).waitFor();
+    await page.getByRole("heading", { name: "About" }).waitFor();
     // A client-side router keeps the document; a document navigation replaces it.
     assert.equal(
       await page.evaluate(() => window.fetchletNavigationMarker),

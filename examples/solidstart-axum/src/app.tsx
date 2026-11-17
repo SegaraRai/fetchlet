@@ -11,8 +11,8 @@ export default function App() {
         <MetaProvider>
           <Title>SolidStart + axum</Title>
           <nav>
-            <A href="/">ホーム</A>
-            <A href="/about">このページについて</A>
+            <A href="/">Home</A>
+            <A href="/about">About</A>
           </nav>
           <Suspense>{props.children}</Suspense>
         </MetaProvider>

@@ -80,7 +80,7 @@ fn host_services() -> Result<HostServices> {
     let policy = FetchPolicy::deny_all().allow_origin("https://rust.fetchlet.test")?;
     let service = FetchService::new(
         transport_fn(|_request| async {
-            let body = json!({ "message": "Rustサービスからの挨拶です。" });
+            let body = json!({ "message": "Greetings from the Rust service." });
             let mut response = Response::new(Body::from(body.to_string()));
             response.headers_mut().insert(
                 "content-type",

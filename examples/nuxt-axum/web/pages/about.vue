@@ -1,6 +1,6 @@
 <template>
   <main>
-    <h1>このページについて</h1>
-    <p>NuxtのSSRとhydrationを、axumの中のfetchletで実行しています。</p>
+    <h1>About</h1>
+    <p>fetchlet runs Nuxt's SSR and hydration inside axum.</p>
   </main>
 </template>

@@ -41,9 +41,9 @@
   <input
     type="search"
     name="q"
-    placeholder="検索…"
+    placeholder="Search…"
     autocomplete="off"
-    aria-label="ノートを検索"
+    aria-label="Search notes"
     bind:value={query}
     onfocus={() => (open = true)}
     oninput={() => {
@@ -63,7 +63,7 @@
           </a>
         </li>
       {:else}
-        <li class="muted">見つかりません</li>
+        <li class="muted">No matches</li>
       {/each}
     </ul>
   {/if}

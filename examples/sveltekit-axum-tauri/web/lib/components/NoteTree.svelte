@@ -27,9 +27,9 @@
   </ul>
 {/snippet}
 
-<nav class="tree" aria-label="ノート">
+<nav class="tree" aria-label="Notes">
   {#if tree.length === 0}
-    <p class="muted">ノートがありません。</p>
+    <p class="muted">No notes.</p>
   {:else}
     {@render branch(tree)}
   {/if}

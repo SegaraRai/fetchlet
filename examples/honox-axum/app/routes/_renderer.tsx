@@ -19,8 +19,8 @@ export default jsxRenderer(({ children }) => (
     </head>
     <body>
       <nav>
-        <a href="/">ホーム</a>
-        <a href="/about">このページについて</a>
+        <a href="/">Home</a>
+        <a href="/about">About</a>
       </nav>
       {children}
     </body>

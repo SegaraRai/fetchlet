@@ -12,9 +12,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <nav>
-          <NavLink to="/">ホーム</NavLink>
-          <NavLink to="/about">このページについて</NavLink>
-          <NavLink to="/deferred">遅延データ</NavLink>
+          <NavLink to="/">Home</NavLink>
+          <NavLink to="/about">About</NavLink>
+          <NavLink to="/deferred">Deferred data</NavLink>
         </nav>
         {children}
         <ScrollRestoration />

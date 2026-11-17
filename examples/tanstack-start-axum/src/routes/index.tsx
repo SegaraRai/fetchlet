@@ -22,7 +22,7 @@ function Home() {
   const data = Route.useLoaderData();
   return (
     <main>
-      <h1>こんにちは、{name ?? "ゲスト"}</h1>
+      <h1>Hello, {name ?? "guest"}</h1>
       <p data-message>{data.message}</p>
       <p data-service>{data.service}</p>
       <Counter />

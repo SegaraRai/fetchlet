@@ -4,8 +4,8 @@ import { Link } from "@builder.io/qwik-city";
 export default component$(() => (
   <>
     <nav>
-      <Link href="/">ホーム</Link>
-      <Link href="/about/">このページについて</Link>
+      <Link href="/">Home</Link>
+      <Link href="/about/">About</Link>
     </nav>
     <Slot />
   </>

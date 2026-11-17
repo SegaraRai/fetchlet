@@ -214,13 +214,13 @@ check(
   async () => {
     const home = await fetch(base + "/").then((response) => response.text());
     assert.match(home, /<a class="brand" href="\/">notes<\/a>/);
-    assert.match(home, /4 件のノート/);
+    assert.match(home, /4 notes/);
     assert.match(home, /href="\/notes\/guide\/getting-started\.md"/);
 
     const response = await fetch(base + "/notes/index.md");
     assert.equal(response.status, 200);
     const html = await response.text();
-    assert.match(html, /<title>ようこそ — mdw<\/title>/);
+    assert.match(html, /<title>Welcome — mdw<\/title>/);
     // Relative links and images are rewritten to workspace routes.
     assert.match(html, /href="\/notes\/guide\/architecture\.md#rendering"/);
     assert.match(html, /src="\/files\/images\/flow\.svg"/);
@@ -241,7 +241,7 @@ check("code blocks are highlighted by syntect in Rust during SSR", async () => {
 check("raw HTML in a note is dropped from the rendered page", async () => {
   const html = await fetch(base + "/notes/journal/2026-11-17.md").then((r) => r.text());
   assert.doesNotMatch(html, /<script>alert/);
-  assert.match(html, /Raw HTML は描画時に取り除かれる。/);
+  assert.match(html, /Raw HTML is removed when rendering./);
 });
 
 check("the public API serves the same typed handlers as the in-process API", async () => {
@@ -260,7 +260,7 @@ check("the public API serves the same typed handlers as the in-process API", asy
     ["日本語"],
   );
   const note = await json("/api/v1/note?path=index.md");
-  assert.equal(note.body.title, "ようこそ");
+  assert.equal(note.body.title, "Welcome");
   assert.match(note.body.version, /^[0-9a-f]{64}$/);
 });
 
@@ -272,7 +272,7 @@ check("a save based on a stale version is a conflict that names the current vers
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ path: note.path, content, base_version }),
     });
-  const saved = await put(note.content + "\n追記\n", note.version);
+  const saved = await put(note.content + "\nAppended\n", note.version);
   assert.equal(saved.status, 200);
   const stale = await put("lost", note.version);
   assert.equal(stale.status, 409);
@@ -337,7 +337,7 @@ check("the page hydrates, searches with remote functions and navigates on the cl
   await browserPage.getByRole("searchbox").fill("syntect");
   const suggestion = browserPage.locator(".suggestions a").first();
   await suggestion.waitFor();
-  assert.match((await suggestion.textContent()) ?? "", /しくみ/);
+  assert.match((await suggestion.textContent()) ?? "", /How it works/);
   assert.equal(await browserPage.locator(".suggestions mark").first().textContent(), "syntect");
 
   await browserPage.getByRole("searchbox").press("Escape");
@@ -345,9 +345,9 @@ check("the page hydrates, searches with remote functions and navigates on the cl
   await browserPage.evaluate(
     () => ((window as unknown as Record<string, unknown>).__marker = true),
   );
-  await browserPage.locator(".tree").getByRole("link", { name: "はじめに" }).click();
+  await browserPage.locator(".tree").getByRole("link", { name: "Getting started" }).click();
   await browserPage.waitForURL(/getting-started\.md$/);
-  await browserPage.locator("h1", { hasText: "はじめに" }).waitFor();
+  await browserPage.locator("h1", { hasText: "Getting started" }).waitFor();
   // Client navigation keeps the same document.
   assert.equal(
     await browserPage.evaluate(() => (window as unknown as Record<string, unknown>).__marker),
@@ -363,28 +363,31 @@ check("the editor previews through the Rust process and saves with Ctrl+S", asyn
   await editor.waitFor();
   await editor.click();
   await browserPage.keyboard.press("Control+Home");
-  await browserPage.keyboard.type("## プレビュー見出し\n\n```rust\nfn preview() {}\n```\n\n");
+  await browserPage.keyboard.type("## Preview heading\n\n```rust\nfn preview() {}\n```\n\n");
   const preview = browserPage.locator(".preview");
-  await preview.locator("h2", { hasText: "プレビュー見出し" }).waitFor();
+  await preview.locator("h2", { hasText: "Preview heading" }).waitFor();
   await preview.locator("code.language-rust.highlighted").first().waitFor();
-  assert.equal(await browserPage.locator(".status").textContent(), "未保存の変更");
+  assert.equal(await browserPage.locator(".status").textContent(), "Unsaved changes");
 
   await browserPage.keyboard.press("Control+s");
   await browserPage.waitForURL(/\/notes\/guide\/architecture\.md$/);
-  await browserPage.locator(".markdown h2", { hasText: "プレビュー見出し" }).waitFor();
+  await browserPage.locator(".markdown h2", { hasText: "Preview heading" }).waitFor();
   const saved = await readFile(resolve(notes, "guide/architecture.md"), "utf8");
-  assert.ok(saved.startsWith("## プレビュー見出し\n"), saved.slice(0, 80));
+  assert.ok(saved.startsWith("## Preview heading\n"), saved.slice(0, 80));
   assert.deepEqual(browserPage.errors, []);
 });
 
 check("a change saved outside the browser reaches the open page", async () => {
   const browserPage = await page();
   await browserPage.goto(base + "/notes/index.md");
-  await browserPage.locator("h1", { hasText: "ようこそ" }).waitFor();
-  await writeFile(resolve(notes, "index.md"), "# 外部で更新\n\n別のエディターから保存した。\n");
-  await browserPage.locator("h1", { hasText: "外部で更新" }).waitFor({ timeout: 10000 });
+  await browserPage.locator("h1", { hasText: "Welcome" }).waitFor();
+  await writeFile(
+    resolve(notes, "index.md"),
+    "# Updated elsewhere\n\nSaved from another editor.\n",
+  );
+  await browserPage.locator("h1", { hasText: "Updated elsewhere" }).waitFor({ timeout: 10000 });
   // The tree shows the new title too.
-  await browserPage.locator(".tree a", { hasText: "外部で更新" }).waitFor();
+  await browserPage.locator(".tree a", { hasText: "Updated elsewhere" }).waitFor();
 });
 
 check("the editor reports a conflict and can overwrite the version on disk", async () => {
@@ -393,39 +396,44 @@ check("the editor reports a conflict and can overwrite the version on disk", asy
   const editor = browserPage.getByRole("textbox", { name: "Markdown" });
   await editor.click();
   await browserPage.keyboard.press("Control+End");
-  await browserPage.keyboard.type("\nブラウザーでの追記\n");
-  await writeFile(resolve(notes, "journal/2026-11-17.md"), "# 別の変更\n");
-  await browserPage.locator(".banner", { hasText: "エディターの外で変更" }).waitFor();
+  await browserPage.keyboard.type("\nAppended in the browser\n");
+  await writeFile(resolve(notes, "journal/2026-11-17.md"), "# Another change\n");
+  await browserPage.locator(".banner", { hasText: "changed outside the editor" }).waitFor();
   await browserPage.keyboard.press("Control+s");
   await browserPage.getByRole("alert").waitFor();
-  assert.match((await browserPage.getByRole("alert").textContent()) ?? "", /変更されています/);
-  await browserPage.getByRole("button", { name: "この内容で上書き" }).click();
+  assert.match(
+    (await browserPage.getByRole("alert").textContent()) ?? "",
+    /changed after it was loaded/,
+  );
+  await browserPage.getByRole("button", { name: "Overwrite with this version" }).click();
   await browserPage.waitForURL(/\/notes\/journal\/2026-11-17\.md$/);
   const saved = await readFile(resolve(notes, "journal/2026-11-17.md"), "utf8");
-  assert.match(saved, /ブラウザーでの追記/);
-  assert.doesNotMatch(saved, /別の変更/);
+  assert.match(saved, /Appended in the browser/);
+  assert.doesNotMatch(saved, /Another change/);
 });
 
 check("new notes are created through a validated remote form", async () => {
   const browserPage = await page();
   await browserPage.goto(base + "/new");
-  const input = browserPage.getByRole("textbox", { name: /名前/ });
+  const input = browserPage.getByRole("textbox", { name: /Name/ });
   await input.fill("guide/getting-started");
-  await browserPage.getByRole("button", { name: "作成して編集" }).click();
-  await browserPage.locator(".error", { hasText: "同じ名前のノートがあります" }).waitFor();
+  await browserPage.getByRole("button", { name: "Create and edit" }).click();
+  await browserPage
+    .locator(".error", { hasText: "A note with this name already exists" })
+    .waitFor();
 
-  await input.fill("projects/新しい計画");
-  await browserPage.getByRole("button", { name: "作成して編集" }).click();
-  await browserPage.waitForURL(/projects\/%E6%96%B0.*\.md\/edit$/);
-  const created = await readFile(resolve(notes, "projects/新しい計画.md"), "utf8");
-  assert.equal(created, "# 新しい計画\n\n");
-  await browserPage.locator(".tree a", { hasText: "新しい計画" }).waitFor();
+  await input.fill("projects/café-plan");
+  await browserPage.getByRole("button", { name: "Create and edit" }).click();
+  await browserPage.waitForURL(/projects\/caf%C3%A9-plan\.md\/edit$/);
+  const created = await readFile(resolve(notes, "projects/café-plan.md"), "utf8");
+  assert.equal(created, "# café-plan\n\n");
+  await browserPage.locator(".tree a", { hasText: "café-plan" }).waitFor();
 });
 
 check("search and notes work without JavaScript", async () => {
   const browserPage = await page({ javaScriptEnabled: false });
   await browserPage.goto(base + "/");
-  await browserPage.getByRole("searchbox").fill("ワークスペース");
+  await browserPage.getByRole("searchbox").fill("workspace");
   await browserPage.getByRole("searchbox").press("Enter");
   await browserPage.waitForURL(/\/search\?q=/);
   await browserPage.locator(".results a").first().click();
