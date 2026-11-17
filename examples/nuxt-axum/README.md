@@ -1,6 +1,6 @@
 # Nuxt + axum
 
-NuxtでHTMLとserver routeを作り、axumから配信する例です。NuxtのNitroを[@fetchlet/nitro-preset](../../packages/nitro-preset/README.md)でbuildします。Vue componentのhydration、フォーム、client navigationを操作できます。
+NuxtでHTMLとserver routeを作り、axumから配信する例です。NuxtのNitroを[fetchlet/nitro](../../packages/fetchlet/docs/nitro.md)でbuildします。Vue componentのhydration、フォーム、client navigationを操作できます。
 
 ## 起動
 

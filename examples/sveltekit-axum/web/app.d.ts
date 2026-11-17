@@ -1,4 +1,4 @@
-import type { ServiceBinding } from "@fetchlet/runtime/adapter";
+import type { ServiceBinding } from "fetchlet/runtime/adapter";
 
 declare global {
   namespace App {

@@ -68,7 +68,7 @@ await build({
     emptyOutDir: false,
     minify: false,
     lib: {
-      entry: resolve(workspaceRoot, "packages/runtime/src/index.ts"),
+      entry: resolve(workspaceRoot, "packages/fetchlet/src/runtime/index.ts"),
       formats: ["iife"],
       name: "fetchletProfile",
       fileName: () => "profile.js",

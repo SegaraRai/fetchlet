@@ -1,4 +1,4 @@
-import { getRequestContext } from "@fetchlet/vinext/context";
+import { getRequestContext } from "fetchlet/vinext/context";
 import { Counter } from "./components/counter";
 
 export const dynamic = "force-dynamic";

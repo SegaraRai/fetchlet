@@ -7,7 +7,7 @@ use serde::Deserialize;
 const FORMAT: &str = "fetchlet-iife";
 const FORMAT_VERSION: u32 = 1;
 
-/// A build output of `@fetchlet/build`: `fetchlet.json`, the server module
+/// A build output of `fetchlet/build`: `fetchlet.json`, the server module
 /// and the optional client assets, in one directory.
 ///
 /// The manifest names the files relative to the directory. Paths that leave

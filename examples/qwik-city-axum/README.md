@@ -1,6 +1,6 @@
 # Qwik City + axum
 
-Qwik Cityのresumable SSR、`routeLoader$`、endpointをaxumから配信する例です。[@fetchlet/qwik-city](../../packages/qwik-city/README.md)でserverをartifactにします。
+Qwik Cityのresumable SSR、`routeLoader$`、endpointをaxumから配信する例です。[fetchlet/qwik-city](../../packages/fetchlet/docs/qwik-city.md)でserverをartifactにします。
 
 ## 起動
 

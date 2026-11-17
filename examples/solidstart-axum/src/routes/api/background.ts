@@ -1,4 +1,4 @@
-import { getRequestContext } from "@fetchlet/solid-start/context";
+import { getRequestContext } from "fetchlet/solid-start/context";
 import type { APIEvent } from "@solidjs/start/server";
 import { completed } from "../../lib/completed";
 

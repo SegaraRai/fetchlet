@@ -47,7 +47,7 @@ vp run bench -- --frameworks honox,waku --backends quickjs,v8 --endpoints ssr,co
 
 `node` は[node-server.ts](node-server.ts)がnode:httpで同じendpointを1 processで配信します。
 
-- frameworkの行はv8向けartifactの `build/server.js` をNodeのmain contextで評価します。@fetchlet/runtimeは既存のglobalを保持するため、frameworkはNode自身のRequest、Response、Streams、timersで動きます。各frameworkの公式Node adapterではありません。
+- frameworkの行はv8向けartifactの `build/server.js` をNodeのmain contextで評価します。fetchlet/runtimeは既存のglobalを保持するため、frameworkはNode自身のRequest、Response、Streams、timersで動きます。各frameworkの公式Node adapterではありません。
 - `bare` の行はhandlerを直接importし、fetchletのbuildとruntimeを通しません。
 - RUST bindingはprocess内でJSONを返します。`/api/rust` と `/health.txt` はaxumの経路に合わせたNodeの実装です。
 

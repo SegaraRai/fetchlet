@@ -15,7 +15,7 @@ http://127.0.0.1:3100 を開きます。Rust側はQuickJSを使用します。As
 
 ## 構成と設定
 
-web/がAstroのページ、endpoint、Svelte component、assetsです。astro.config.mjsでbackendをquickjsへ合わせ、Intlのlocaleとタイムゾーンデータも構成できます。既定はenとUTCです。V8向けのbuildではbackend: "v8"を選ぶとFormatJSがbundleから外れ、Rust側もBackend::v8()とv8 featureへ揃えます。設定は[共通builder](../../packages/build/README.md)を参照してください。
+web/がAstroのページ、endpoint、Svelte component、assetsです。astro.config.mjsでbackendをquickjsへ合わせ、Intlのlocaleとタイムゾーンデータも構成できます。既定はenとUTCです。V8向けのbuildではbackend: "v8"を選ぶとFormatJSがbundleから外れ、Rust側もBackend::v8()とv8 featureへ揃えます。設定は[共通builder](../../packages/fetchlet/docs/build.md)を参照してください。
 
 astro.config.mjsがframework設定、vite.config.tsがVite+ taskを持ちます。src/はRustの起動・binding・routingだけを担当します。
 

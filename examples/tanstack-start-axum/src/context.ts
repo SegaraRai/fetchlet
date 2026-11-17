@@ -1,4 +1,4 @@
-import type { FetchletRequestContext } from "@fetchlet/tanstack-start";
+import type { FetchletRequestContext } from "fetchlet/tanstack-start";
 
 /** A host service binding: a fetch scoped by the Rust FetchPolicy. */
 interface ServiceBinding {

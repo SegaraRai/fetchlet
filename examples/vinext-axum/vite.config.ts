@@ -1,4 +1,4 @@
-import fetchletVinext from "@fetchlet/vinext";
+import fetchletVinext from "fetchlet/vinext";
 import vinext from "vinext";
 import { defineConfig } from "vite-plus";
 

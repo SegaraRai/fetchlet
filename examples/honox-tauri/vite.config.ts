@@ -1,4 +1,4 @@
-import fetchletBuild from "@fetchlet/hono/vite";
+import fetchletBuild from "fetchlet/hono/vite";
 import honox from "honox/vite";
 import { defineConfig } from "vite-plus";
 

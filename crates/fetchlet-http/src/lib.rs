@@ -2,7 +2,7 @@
 //!
 //! [`FetchletService`] is a Tower service over `http` 1 types and is always
 //! available. The `hyper`, `axum` and `actix` features add thin integrations
-//! for those servers. [`Artifact`] reads the output of `@fetchlet/build`.
+//! for those servers. [`Artifact`] reads the output of `fetchlet/build`.
 //! The JavaScript engine is chosen on the `fetchlet` crate.
 
 mod artifact;

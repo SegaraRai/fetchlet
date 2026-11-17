@@ -1,4 +1,4 @@
-import { getRequestContext } from "@fetchlet/waku/context";
+import { getRequestContext } from "fetchlet/waku/context";
 
 export function GET() {
   const { clientAddress, env } = getRequestContext();

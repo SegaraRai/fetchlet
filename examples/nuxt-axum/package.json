@@ -4,8 +4,8 @@
   "type": "module",
   "devDependencies": {
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@fetchlet/nitro-preset": "workspace:*",
     "@types/node": "^26.6.6",
+    "fetchlet": "workspace:*",
     "nuxt": "4.6.4",
     "typescript": "~6.0.3",
     "vite-plus": "^1.6.0",

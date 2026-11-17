@@ -1,7 +1,7 @@
 // Exports that isolate the stages of one fetch invocation, for
 // tools/bench/src/bin/invoke.rs. Built with the shared builder like bare/.
-import { wireRequest, wireResponse } from "@fetchlet/runtime";
-import { createFetchHandler, getBindings } from "@fetchlet/runtime/handler";
+import { wireRequest, wireResponse } from "fetchlet/runtime";
+import { createFetchHandler, getBindings } from "fetchlet/runtime/handler";
 import { app, type Bindings } from "../bare/app.ts";
 
 type Wire = Parameters<typeof wireRequest>[0];

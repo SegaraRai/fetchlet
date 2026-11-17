@@ -53,7 +53,7 @@ let hosts = HostServices::new()
 
 現在のmoduleはビルド済みIIFEで、`fetchletExports` に公開関数を置きます。任意関数には `App::call` / `call_json`、Fetchには既定名 `handle` のwire adapterを使います。入口名は `AppBuilder::fetch_handler` で選択します。
 
-Fetch adapterはURL、method、header pairs、本文バイト列をWeb Requestへ変換し、Web Responseを逆変換します。`fixtures/hono.tsx` と `fixtures/sveltekit/entry.ts` が例です。workspaceの `@fetchlet/runtime/adapter` は標準Fetchハンドラを接続し、`@fetchlet/sveltekit-adapter` はserver bundleとclient assetsを生成します。実行例は `examples/sveltekit-axum/` にあります。
+Fetch adapterはURL、method、header pairs、本文バイト列をWeb Requestへ変換し、Web Responseを逆変換します。`fixtures/hono.tsx` と `fixtures/sveltekit/entry.ts` が例です。workspaceの `fetchlet/runtime/adapter` は標準Fetchハンドラを接続し、`fetchlet/sveltekit` はserver bundleとclient assetsを生成します。実行例は `examples/sveltekit-axum/` にあります。
 
 ## プロセス内のRust関数を呼ぶ
 

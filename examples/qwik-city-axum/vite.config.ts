@@ -1,6 +1,6 @@
 import { qwikVite } from "@builder.io/qwik/optimizer";
 import { qwikCity } from "@builder.io/qwik-city/vite";
-import { fetchletAdapter } from "@fetchlet/qwik-city/vite";
+import { fetchletAdapter } from "fetchlet/qwik-city/vite";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({

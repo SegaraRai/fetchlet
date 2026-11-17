@@ -6,8 +6,7 @@
   "type": "module",
   "devDependencies": {
     "@fetchlet-internal/tools-workspace": "workspace:*",
-    "@fetchlet/build": "workspace:*",
-    "@fetchlet/runtime": "workspace:*",
-    "@types/node": "^26.6.6"
+    "@types/node": "^26.6.6",
+    "fetchlet": "workspace:*"
   }
 }

@@ -1,4 +1,4 @@
-import { getRequestContext } from "@fetchlet/waku/context";
+import { getRequestContext } from "fetchlet/waku/context";
 
 // Work recorded after responses, kept in this instance for the example.
 const completed: string[] = [];

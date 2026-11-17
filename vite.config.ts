@@ -23,7 +23,7 @@ export default defineConfig({
       // check
       "check:types": {
         command:
-          "tsc --noEmit && tsc --noEmit -p tools && tsc --noEmit -p packages/astro-adapter/tsconfig.json && tsc --noEmit -p packages/react-router-preset/tsconfig.json && tsc --noEmit -p packages/hono/tsconfig.json && vp run --filter @fetchlet-internal/example-* check:types",
+          "tsc --noEmit && tsc --noEmit -p tools && tsc --noEmit -p packages/fetchlet/tsconfig.json && vp run --filter @fetchlet-internal/example-* check:types",
         cache: false,
       },
       "check:format": {
@@ -39,7 +39,7 @@ export default defineConfig({
         command: "node --test tools/conformance/runner.test.ts",
         cache: false,
       },
-      "test:build": { command: "node --test packages/build/tests/*.test.mjs", cache: false },
+      "test:build": { command: "node --test packages/fetchlet/tests/*/*.test.mjs", cache: false },
       "test:matrix": {
         command: "node tools/matrix/runtime.ts",
         dependsOn: ["build:lab", "build:fixtures"],

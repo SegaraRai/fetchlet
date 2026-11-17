@@ -81,7 +81,7 @@ Perry / scriptcの固定版で実行ファイルと静的ライブラリを検�
 
 - [Rust配布物にWeb UIを組み込む](embedded-applications.md)
 - [プロセス内fetch](in-process-fetch.md)
-- [backendに応じたpolyfillの選択](../packages/build/README.md)
+- [backendに応じたpolyfillの選択](../packages/fetchlet/docs/build.md)
 
 ## 参照
 

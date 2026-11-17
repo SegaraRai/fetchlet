@@ -6,10 +6,9 @@
     "@astrojs/check": "0.9.12",
     "@astrojs/svelte": "9.1.6",
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@fetchlet/astro-adapter": "workspace:*",
-    "@fetchlet/runtime": "workspace:*",
     "@types/node": "^26.6.6",
     "astro": "7.4.12",
+    "fetchlet": "workspace:*",
     "svelte": "^5.57.3",
     "typescript": "~6.0.3",
     "vite-plus": "^1.6.0"

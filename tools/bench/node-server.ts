@@ -4,7 +4,7 @@
 //   node tools/bench/node-server.ts <config.json>
 //
 // The config is the example's config.json, plus `node`: "artifact" runs
-// build/server.js in the main context, where @fetchlet/runtime keeps Node's
+// build/server.js in the main context, where fetchlet/runtime keeps Node's
 // own Request, Response, streams and timers; "bare" imports the
 // framework-free handler directly. `/api/rust` and `/health.txt` mirror the
 // axum routes, and the RUST binding answers in process like the Rust service.

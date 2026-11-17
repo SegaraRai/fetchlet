@@ -1,6 +1,6 @@
 # React Router + axum
 
-React Router（framework mode）でHTMLとresource routeを作り、axumから配信する例です。[@fetchlet/react-router-preset](../../packages/react-router-preset/README.md)でserver buildをartifactにします。React componentのhydration、Form、遅延データ、client navigationを操作できます。
+React Router（framework mode）でHTMLとresource routeを作り、axumから配信する例です。[fetchlet/react-router](../../packages/fetchlet/docs/react-router.md)でserver buildをartifactにします。React componentのhydration、Form、遅延データ、client navigationを操作できます。
 
 ## 起動
 
@@ -40,7 +40,7 @@ http://127.0.0.1:3300 を開きます。taskはReact Routerをbuildしてから�
 
 ## stack
 
-config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB）はReactの再帰の深さに合わせた値です。QuickJSの既定の1 MiBでは、Rustのdebug buildでReactがstack overflowから描画をやり直し、head内に `<link` の断片が残りました（2 MiBで解消、release buildは1 MiBでも発生せず）。worker threadのstackはQuickJSの上限より大きくします。詳細は[preset](../../packages/react-router-preset/README.md)を参照してください。
+config.jsonの `quickjs_stack_bytes`（4 MiB）と `worker_stack_bytes`（8 MiB）はReactの再帰の深さに合わせた値です。QuickJSの既定の1 MiBでは、Rustのdebug buildでReactがstack overflowから描画をやり直し、head内に `<link` の断片が残りました（2 MiBで解消、release buildは1 MiBでも発生せず）。worker threadのstackはQuickJSの上限より大きくします。詳細は[preset](../../packages/fetchlet/docs/react-router.md)を参照してください。
 
 ## 検証
 

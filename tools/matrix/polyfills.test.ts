@@ -1,4 +1,4 @@
-// Builds Intl artifacts for each backend with @fetchlet/build and checks the
+// Builds Intl artifacts for each backend with fetchlet/build and checks the
 // selected polyfills, their locale data and the native capability catalog.
 // Records results/polyfill-matrix.json: `vp run test:polyfills`.
 import assert from "node:assert/strict";
@@ -6,9 +6,12 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { after, before, test } from "node:test";
 
-import { buildArtifact, type BuildArtifactOptions } from "@fetchlet/build";
-// The planner is internal to @fetchlet/build; this suite checks it directly.
-import { planPolyfills, type PlanOptions } from "../../packages/build/src/polyfills/plan.mjs";
+import { buildArtifact, type BuildArtifactOptions } from "fetchlet/build";
+// The planner is internal to fetchlet/build; this suite checks it directly.
+import {
+  planPolyfills,
+  type PlanOptions,
+} from "../../packages/fetchlet/src/build/polyfills/plan.mjs";
 import { backends, runLab, type Backend, type Reply } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { describe, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
@@ -22,7 +25,7 @@ interface Artifact {
 }
 
 const output = resolve(root, ".cache/polyfills");
-const entry = resolve(root, "packages/build/tests/fixtures/intl.mjs");
+const entry = resolve(root, "fixtures/intl.mjs");
 const artifacts = new Map<string, Artifact>();
 const results: { name: string; status: "pass" | "fail"; error?: string }[] = [];
 const nativeCapabilities: Record<string, Record<string, boolean>> = {};

@@ -17,7 +17,7 @@ fetchlet-http = { version = "...", features = ["axum"] }
 
 ## Serving a build artifact with axum
 
-`Artifact` reads the output of `@fetchlet/build` (`fetchlet.json`, `server.js` and `client/`). `artifact_router` serves the client files and passes every other request to the application.
+`Artifact` reads the output of `fetchlet/build` (`fetchlet.json`, `server.js` and `client/`). `artifact_router` serves the client files and passes every other request to the application.
 
 ```rust,ignore
 use fetchlet::{App, Backend, Module, WorkerOptions};

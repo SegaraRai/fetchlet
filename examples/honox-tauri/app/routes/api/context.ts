@@ -1,4 +1,4 @@
-import { getConnInfo } from "@fetchlet/hono/conninfo";
+import { getConnInfo } from "fetchlet/hono/conninfo";
 import { createRoute } from "honox/factory";
 
 export default createRoute((c) =>

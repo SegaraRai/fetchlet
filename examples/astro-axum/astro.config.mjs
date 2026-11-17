@@ -1,6 +1,6 @@
 import { defineConfig } from "astro/config";
 import svelte from "@astrojs/svelte";
-import fetchletAdapter from "@fetchlet/astro-adapter";
+import fetchletAdapter from "fetchlet/astro";
 
 export default defineConfig({
   srcDir: "./web",

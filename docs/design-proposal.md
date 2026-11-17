@@ -92,7 +92,7 @@ Rust Body（入力Request・上流Response）→ body source（Invocation所有�
 - `App::finish_background` が処理の完了を待ちます。期限は `Limits::background_timeout` で、結果または本文の終了時点から数えます。期限内に終わらない処理はInstanceを退役させ、`DeadlineExceeded` を返します。
 - `AppHandle` のworkerは応答を返した後、次のcommandの前に処理を完了します。そのworkerに並ぶ次の呼び出しは、この時間を待ちます。`App` を直接使う場合は次の呼び出しの前に完了し、明示的に `finish_background` も呼べます。
 - 処理のrejectionは応答を変えず、吸収します。完了後は通常の呼び出しと同じく、未完了のhost fetchが残ればInstanceを退役させます。
-- @fetchlet/runtimeは `waitUntil` を提供し、SvelteKitでは `platform.context.waitUntil`、Astroでは `Astro.locals.waitUntil` へ渡します。
+- fetchlet/runtimeは `waitUntil` を提供し、SvelteKitでは `platform.context.waitUntil`、Astroでは `Astro.locals.waitUntil` へ渡します。
 
 background処理のない呼び出しでは、timerを呼び出し終了時に回収します。
 
@@ -122,4 +122,4 @@ AOTはnative artifactのABI、compiler / runtime版、初期化・解放、値�
 
 Rust本体は `crates/fetchlet/`、共通JS支援とframework adapterは `packages/`、実アプリとE2Eは `examples/` に置きます。最初のSvelteKit + axum例から、frameworkとRust HTTPサーバを独立して追加する構成を育てます。[追加方針](../examples/README.md)を参照してください。
 
-共有実行はAppHandle、HTTP接続はfetchlet-http（Tower / `http` 1系のserviceと、featureで加えるhyper、axum、actix-web 4の層）へ実装し、共通の契約試験で揃えています。SvelteKitとAstroは@fetchlet/buildのartifact形式を共有し、同じRust integrationで動作します。Response本文はこの境界でstreamingし、`FetchletService::stream_request_bodies` でRequest本文もstreamingできます。次は追加のframeworkと能力を、この境界の上に拡張します。
+共有実行はAppHandle、HTTP接続はfetchlet-http（Tower / `http` 1系のserviceと、featureで加えるhyper、axum、actix-web 4の層）へ実装し、共通の契約試験で揃えています。SvelteKitとAstroはfetchlet/buildのartifact形式を共有し、同じRust integrationで動作します。Response本文はこの境界でstreamingし、`FetchletService::stream_request_bodies` でRequest本文もstreamingできます。次は追加のframeworkと能力を、この境界の上に拡張します。

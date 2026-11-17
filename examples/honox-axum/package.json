@@ -8,9 +8,9 @@
   },
   "devDependencies": {
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@fetchlet/hono": "workspace:*",
     "@hono/vite-build": "1.11.1",
     "@types/node": "^26.6.6",
+    "fetchlet": "workspace:*",
     "typescript": "~6.0.3",
     "vite-plus": "^1.6.0"
   }

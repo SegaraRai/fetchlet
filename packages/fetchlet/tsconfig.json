@@ -1,0 +1,10 @@
+{
+  // Strict checks for the adapters' TypeScript entries. The runtime is checked
+  // with the guest entries by the root tsconfig.json.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["src/astro/**/*.ts", "src/hono/**/*.ts", "src/react-router/**/*.ts"]
+}

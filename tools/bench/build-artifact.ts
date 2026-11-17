@@ -2,7 +2,7 @@
 //   node tools/bench/build-artifact.ts <bare|probe> <outDir> <backend>
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { buildArtifact, type BuildBackend } from "@fetchlet/build";
+import { buildArtifact, type BuildBackend } from "fetchlet/build";
 
 const [name, outDir, backend] = process.argv.slice(2);
 if ((name !== "bare" && name !== "probe") || !outDir || !backend) {

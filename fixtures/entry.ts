@@ -1,4 +1,4 @@
-import "@fetchlet/runtime";
+import "fetchlet/runtime";
 
 import "./probe/web-api.js";
 

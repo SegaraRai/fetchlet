@@ -36,7 +36,7 @@ taskはclient（`--mode client`）とserverの2回buildしてからTauriアプ�
 3. `Protocol` は `/api/rust` をRustで答え、`build/client` のファイルをtower-httpの `ServeDir` で返し、それ以外を[fetchlet-http](../../crates/fetchlet-http)の `FetchletService` でHonoXへ渡します。axumには依存しません。
 4. island `greeter` は `@tauri-apps/api` の `invoke("greet")` を呼び、commandが `AppHandle::call("greet", ...)` で `app/functions.ts` の `greet` を実行します。
 
-`functions` は[@fetchlet/hono](../../packages/hono/README.md)の設定で、指定したmoduleのnamed exportをFetch handler `handle` と並べてserver.jsへ出力します。commandは呼ぶexport名を固定しているため、webviewから `handle` や他のexportは呼べません。
+`functions` は[fetchlet/hono](../../packages/fetchlet/docs/hono.md)の設定で、指定したmoduleのnamed exportをFetch handler `handle` と並べてserver.jsへ出力します。commandは呼ぶexport名を固定しているため、webviewから `handle` や他のexportは呼べません。
 
 ## originとURL
 

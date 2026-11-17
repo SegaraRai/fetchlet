@@ -10,12 +10,12 @@
   },
   "devDependencies": {
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@fetchlet/vinext": "workspace:*",
     "@types/node": "^26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",
     "@vitejs/plugin-rsc": "0.5.37",
+    "fetchlet": "workspace:*",
     "typescript": "~6.0.3",
     "vite-plus": "^1.6.0"
   }

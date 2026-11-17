@@ -10,11 +10,11 @@
   },
   "devDependencies": {
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@fetchlet/react-router-preset": "workspace:*",
     "@react-router/dev": "7.18.5",
     "@types/node": "^26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "fetchlet": "workspace:*",
     "typescript": "~6.0.3",
     "vite-plus": "^1.6.0"
   }

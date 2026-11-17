@@ -1,4 +1,4 @@
-import type { FetchletLoadContext } from "@fetchlet/react-router-preset/context";
+import type { FetchletLoadContext } from "fetchlet/react-router/context";
 
 /** A host service binding: a fetch scoped by the Rust FetchPolicy. */
 interface ServiceBinding {

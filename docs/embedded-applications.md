@@ -51,4 +51,4 @@ TauriのfrontendDistはディレクトリやファイル群の埋め込み、ま
 
 単一バイナリ配布は統合目標です。現在の例はbuildディレクトリを利用します。配布を検証する際は、JS bundleとassetsに加え、engine、native library、OS側の実行条件を揃え、成果物全体のサイズを記録します。
 
-使いやすさは、初回build、起動、初回表示、通常処理、cancel、終了までを通して評価します。配布サイズ、RSS、起動時間、同じ負荷での処理時間を測り、backendとpolyfillの選択に反映します。[polyfillの選択](../packages/build/README.md)と[資源予算](resource-policy.md)も、この配布・運用単位で構成します。
+使いやすさは、初回build、起動、初回表示、通常処理、cancel、終了までを通して評価します。配布サイズ、RSS、起動時間、同じ負荷での処理時間を測り、backendとpolyfillの選択に反映します。[polyfillの選択](../packages/fetchlet/docs/build.md)と[資源予算](resource-policy.md)も、この配布・運用単位で構成します。

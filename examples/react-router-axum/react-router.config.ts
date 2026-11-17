@@ -1,5 +1,5 @@
 import type { Config } from "@react-router/dev/config";
-import { fetchletPreset } from "@fetchlet/react-router-preset";
+import { fetchletPreset } from "fetchlet/react-router";
 
 export default {
   appDirectory: "app",

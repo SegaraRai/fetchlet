@@ -1,6 +1,6 @@
 # Waku + axum
 
-WakuのReact Server Components、SSR、API routeをaxumから配信する例です。[@fetchlet/waku](../../packages/waku/README.md)でserverをartifactにします。
+WakuのReact Server Components、SSR、API routeをaxumから配信する例です。[fetchlet/waku](../../packages/fetchlet/docs/waku.md)でserverをartifactにします。
 
 ## 起動
 

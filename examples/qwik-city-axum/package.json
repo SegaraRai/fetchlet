@@ -6,8 +6,8 @@
     "@builder.io/qwik": "1.20.4",
     "@builder.io/qwik-city": "1.20.4",
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@fetchlet/qwik-city": "workspace:*",
     "@types/node": "^26.6.6",
+    "fetchlet": "workspace:*",
     "typescript": "~6.0.3",
     "vite-plus": "^1.6.0"
   }

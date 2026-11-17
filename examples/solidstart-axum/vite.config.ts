@@ -1,4 +1,4 @@
-import fetchletSolidStart from "@fetchlet/solid-start";
+import fetchletSolidStart from "fetchlet/solid-start";
 import { solidStart } from "@solidjs/start/config";
 import { defineConfig } from "vite-plus";
 

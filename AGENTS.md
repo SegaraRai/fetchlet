@@ -23,7 +23,7 @@ Use Vite+ with pnpm. Define tasks in `vite.config.ts`. Use `vp i` for dependenci
 - Write repository tooling in TypeScript that Node runs directly with type stripping: import files with their `.ts` extension and use erasable syntax only. Keep tools cross-platform; do not add shell or PowerShell scripts.
 - Put each tool group in `tools/<name>/` as a private package `@fetchlet-internal/tools-<name>`, with flat files and no `src/`. Shared paths, process, Cargo and host protocol helpers live in `tools/workspace`; import them by package name.
 - Resolve paths from the repository root exported by `tools/workspace/paths.ts`, not from the working directory. Run Cargo through `tools/workspace/cargo.ts` so the native compiler environment is consistent.
-- Name private workspace packages `@fetchlet-internal/*`; `@fetchlet/*` is reserved for publishable packages.
+- Publish JavaScript as the single npm package `fetchlet` (`packages/fetchlet`), with one subpath per framework. Name private workspace packages `@fetchlet-internal/*`; keep `@fetchlet/*` free for future publishable packages.
 
 ## Documentation
 

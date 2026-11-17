@@ -1,4 +1,4 @@
-import { createFetchHandler, getBindings } from "@fetchlet/runtime/handler";
+import { createFetchHandler, getBindings } from "fetchlet/runtime/handler";
 import { app, type Bindings } from "./app.ts";
 
 export const handle = createFetchHandler(

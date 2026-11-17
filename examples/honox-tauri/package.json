@@ -8,9 +8,9 @@
     "honox": "0.1.62"
   },
   "devDependencies": {
-    "@fetchlet/hono": "workspace:*",
     "@hono/vite-build": "1.11.1",
     "@types/node": "^26.6.6",
+    "fetchlet": "workspace:*",
     "playwright": "1.65.1",
     "typescript": "~6.0.3",
     "vite-plus": "^1.6.0"

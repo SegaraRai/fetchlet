@@ -15,7 +15,7 @@
   "include": [
     "fixtures/**/*.ts",
     "fixtures/**/*.tsx",
-    "packages/runtime/src/**/*.ts",
+    "packages/fetchlet/src/runtime/**/*.ts",
     "tools/bench/bare/entry.ts",
     "tools/bench/probe/entry.ts"
   ],

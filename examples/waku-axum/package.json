@@ -10,10 +10,10 @@
   },
   "devDependencies": {
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@fetchlet/waku": "workspace:*",
     "@types/node": "^26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "fetchlet": "workspace:*",
     "typescript": "~6.0.3",
     "vite-plus": "^1.6.0"
   }

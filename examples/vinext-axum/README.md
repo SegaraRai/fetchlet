@@ -1,6 +1,6 @@
 # vinext + axum
 
-vinext（Vite上のNext.js API実装）のApp Router、React Server Components、route handlerをaxumから配信する例です。[@fetchlet/vinext](../../packages/vinext/README.md)でserverをartifactにします。
+vinext（Vite上のNext.js API実装）のApp Router、React Server Components、route handlerをaxumから配信する例です。[fetchlet/vinext](../../packages/fetchlet/docs/vinext.md)でserverをartifactにします。
 
 ## 起動
 

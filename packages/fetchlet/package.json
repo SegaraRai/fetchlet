@@ -1,0 +1,157 @@
+{
+  "name": "fetchlet",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Build JavaScript web frameworks into artifacts that Rust serves through fetchlet",
+  "type": "module",
+  "exports": {
+    "./runtime": "./src/runtime/index.ts",
+    "./runtime/adapter": "./src/runtime/adapter.ts",
+    "./runtime/handler": "./src/runtime/handler.ts",
+    "./build": {
+      "types": "./src/build/index.d.mts",
+      "default": "./src/build/index.mjs"
+    },
+    "./astro": "./src/astro/index.mjs",
+    "./astro/server": "./src/astro/server.ts",
+    "./hono/vite": {
+      "types": "./src/hono/vite.d.ts",
+      "default": "./src/hono/vite.mjs"
+    },
+    "./hono/conninfo": "./src/hono/conninfo.ts",
+    "./nitro": "./src/nitro/preset.mjs",
+    "./nitro/types": {
+      "types": "./src/nitro/types.d.ts"
+    },
+    "./qwik-city/middleware": {
+      "types": "./src/qwik-city/middleware.d.ts",
+      "default": "./src/qwik-city/middleware.mjs"
+    },
+    "./qwik-city/vite": {
+      "types": "./src/qwik-city/vite.d.ts",
+      "default": "./src/qwik-city/vite.mjs"
+    },
+    "./react-router": {
+      "types": "./src/react-router/index.d.ts",
+      "default": "./src/react-router/index.mjs"
+    },
+    "./react-router/context": "./src/react-router/context.ts",
+    "./solid-start": {
+      "types": "./src/solid-start/index.d.ts",
+      "default": "./src/solid-start/index.mjs"
+    },
+    "./solid-start/context": {
+      "types": "./src/solid-start/context.d.ts",
+      "default": "./src/solid-start/context.mjs"
+    },
+    "./sveltekit": "./src/sveltekit/index.mjs",
+    "./tanstack-start": {
+      "types": "./src/tanstack-start/index.d.ts",
+      "default": "./src/tanstack-start/index.mjs"
+    },
+    "./vinext": {
+      "types": "./src/vinext/index.d.ts",
+      "default": "./src/vinext/index.mjs"
+    },
+    "./vinext/context": {
+      "types": "./src/vinext/context.d.ts",
+      "default": "./src/vinext/context.mjs"
+    },
+    "./waku": {
+      "types": "./src/waku/adapter.d.ts",
+      "default": "./src/waku/adapter.mjs"
+    },
+    "./waku/build-enhancer": "./src/waku/build-enhancer.mjs",
+    "./waku/context": {
+      "types": "./src/waku/context.d.ts",
+      "default": "./src/waku/context.mjs"
+    }
+  },
+  "dependencies": {
+    "@exodus/bytes": "1.16.0",
+    "@formatjs/intl-datetimeformat": "8.0.3",
+    "@formatjs/intl-getcanonicallocales": "3.3.1",
+    "@formatjs/intl-locale": "5.4.3",
+    "@formatjs/intl-numberformat": "10.0.4",
+    "@formatjs/intl-pluralrules": "7.0.4",
+    "@noble/hashes": "2.4.0",
+    "buffer": "6.0.3",
+    "core-js-pure": "^3.51.0",
+    "hono": "4.13.19",
+    "pathe": "2.0.3",
+    "web-streams-polyfill": "4.5.1"
+  },
+  "devDependencies": {
+    "@hono/vite-build": "1.11.1",
+    "@react-router/dev": "7.18.5",
+    "@sveltejs/kit": "^3.2.0",
+    "@types/node": "^26.6.6",
+    "astro": "7.4.12",
+    "h3": "1.15.11",
+    "hono": "4.13.19",
+    "nitropack": "2.13.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "7.18.5",
+    "svelte": "^5.57.3",
+    "typescript": "~6.0.3",
+    "vite-plus": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@builder.io/qwik": "^1.20.4",
+    "@builder.io/qwik-city": "^1.20.4",
+    "@hono/vite-build": "^1.11.1",
+    "@react-router/dev": "^7.18.5",
+    "@solidjs/start": "^2.2.3",
+    "@sveltejs/kit": "^3.2.0",
+    "@tanstack/react-start": "^1.169.5",
+    "astro": "^7.4.12",
+    "h3": "^1.15.11",
+    "nitropack": "^2.13.6",
+    "react-router": "^7.18.5",
+    "vinext": "^1.4.6",
+    "vite-plus": "^1.6.0",
+    "waku": "1.0.0-rc.5"
+  },
+  "peerDependenciesMeta": {
+    "@builder.io/qwik": {
+      "optional": true
+    },
+    "@builder.io/qwik-city": {
+      "optional": true
+    },
+    "@hono/vite-build": {
+      "optional": true
+    },
+    "@react-router/dev": {
+      "optional": true
+    },
+    "@solidjs/start": {
+      "optional": true
+    },
+    "@sveltejs/kit": {
+      "optional": true
+    },
+    "@tanstack/react-start": {
+      "optional": true
+    },
+    "astro": {
+      "optional": true
+    },
+    "h3": {
+      "optional": true
+    },
+    "nitropack": {
+      "optional": true
+    },
+    "react-router": {
+      "optional": true
+    },
+    "vinext": {
+      "optional": true
+    },
+    "waku": {
+      "optional": true
+    }
+  }
+}

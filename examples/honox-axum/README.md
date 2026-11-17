@@ -1,6 +1,6 @@
 # HonoX + axum
 
-HonoXのfile-based routingとislandをaxumから配信する例です。[@fetchlet/hono](../../packages/hono/README.md)でserverをartifactにします。
+HonoXのfile-based routingとislandをaxumから配信する例です。[fetchlet/hono](../../packages/fetchlet/docs/hono.md)でserverをartifactにします。
 
 ## 起動
 

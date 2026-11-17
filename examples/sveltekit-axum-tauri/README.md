@@ -88,7 +88,7 @@ web/lib/notes.remote.ts（remote functions） ─▶ コンポーネント
 
 ## SvelteKitの設定
 
-`compilerOptions.experimental.async` でコンポーネント内の `await` を、`experimental.remoteFunctions` でremote functionsを使います。adapterは `rendering: "async"` で、`node:async_hooks` の代わりにinvocation単位の `AsyncLocalStorage` を組み込みます（[SvelteKit adapter](../../packages/sveltekit-adapter/README.md)）。どちらもSvelteKit 3.2.0 / Svelte 5.57.3でexperimentalの機能です。
+`compilerOptions.experimental.async` でコンポーネント内の `await` を、`experimental.remoteFunctions` でremote functionsを使います。adapterは `rendering: "async"` で、`node:async_hooks` の代わりにinvocation単位の `AsyncLocalStorage` を組み込みます（[SvelteKit adapter](../../packages/fetchlet/docs/sveltekit.md)）。どちらもSvelteKit 3.2.0 / Svelte 5.57.3でexperimentalの機能です。
 
 ## ハイライトをRustで行う理由
 

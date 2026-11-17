@@ -1,6 +1,6 @@
 # TanStack Start + axum
 
-TanStack Start（React）のstreaming SSR、server function、server routeをaxumから配信する例です。[@fetchlet/tanstack-start](../../packages/tanstack-start/README.md)でserverをartifactにします。
+TanStack Start（React）のstreaming SSR、server function、server routeをaxumから配信する例です。[fetchlet/tanstack-start](../../packages/fetchlet/docs/tanstack-start.md)でserverをartifactにします。
 
 ## 起動
 

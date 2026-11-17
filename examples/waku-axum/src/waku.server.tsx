@@ -1,4 +1,4 @@
-import adapter from "@fetchlet/waku";
+import adapter from "fetchlet/waku";
 import { fsRouter } from "waku";
 
 const modules = Object.fromEntries(

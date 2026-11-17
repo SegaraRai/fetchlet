@@ -1,4 +1,4 @@
-/// <reference types="@fetchlet/nitro-preset/types" />
+/// <reference types="fetchlet/nitro/types" />
 
 export default defineNuxtConfig({
   compatibilityDate: "2026-11-01",
@@ -16,7 +16,7 @@ export default defineNuxtConfig({
     message: "",
   },
   nitro: {
-    preset: "@fetchlet/nitro-preset",
+    preset: "fetchlet/nitro",
     fetchlet: {
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
     },

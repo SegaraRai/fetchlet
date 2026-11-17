@@ -64,7 +64,7 @@ vp run @fetchlet-internal/example-sveltekit-axum#serve
 
 ブラウザで `http://127.0.0.1:3000` を開きます。HTTPサーバはRustが起動し、専用スレッドでJSを実行します。
 
-Astro＋axumの例も `vp run @fetchlet-internal/example-astro-axum#serve` で起動できます（http://127.0.0.1:3100、QuickJS＋FormatJS）。[Nuxt + axum](examples/nuxt-axum/README.md)（`vp run @fetchlet-internal/example-nuxt-axum#serve`、http://127.0.0.1:3200）はNitro presetで、[React Router + axum](examples/react-router-axum/README.md)（`vp run @fetchlet-internal/example-react-router-axum#serve`、http://127.0.0.1:3300）はReact Router presetでbuildします。HonoX（3400）、TanStack Start（3500）、SolidStart（3600）、Qwik City（3700）、Waku（3800）、vinext（3900）の例も `vp run @fetchlet-internal/example-<name>#serve` で起動できます（[一覧](examples/README.md)）。10の例は同じRustの公開APIを使います。adapterのbackend設定から不足するIntl APIを選び、localeとタイムゾーンデータを絞って組み込みます。[polyfillの選択](packages/build/README.md)を参照してください。
+Astro＋axumの例も `vp run @fetchlet-internal/example-astro-axum#serve` で起動できます（http://127.0.0.1:3100、QuickJS＋FormatJS）。[Nuxt + axum](examples/nuxt-axum/README.md)（`vp run @fetchlet-internal/example-nuxt-axum#serve`、http://127.0.0.1:3200）はNitro presetで、[React Router + axum](examples/react-router-axum/README.md)（`vp run @fetchlet-internal/example-react-router-axum#serve`、http://127.0.0.1:3300）はReact Router presetでbuildします。HonoX（3400）、TanStack Start（3500）、SolidStart（3600）、Qwik City（3700）、Waku（3800）、vinext（3900）の例も `vp run @fetchlet-internal/example-<name>#serve` で起動できます（[一覧](examples/README.md)）。10の例は同じRustの公開APIを使います。adapterのbackend設定から不足するIntl APIを選び、localeとタイムゾーンデータを絞って組み込みます。[polyfillの選択](packages/fetchlet/docs/build.md)を参照してください。
 
 [Markdown Workspace](examples/sveltekit-axum-tauri/README.md) は実用アプリの例です。1つのRustバイナリ `mdw` がCLIのWebサーバ（`vp run @fetchlet-internal/example-sveltekit-axum-tauri#serve`）とTauriのデスクトップアプリ（`vp run @fetchlet-internal/example-sveltekit-axum-tauri#desktop`）を兼ね、SvelteKitのserver JSがutoipaのOpenAPIから生成した型でRust APIをプロセス内fetchで呼びます。
 
@@ -74,18 +74,7 @@ Astro＋axumの例も `vp run @fetchlet-internal/example-astro-axum#serve` で�
 crates/fetchlet/              関数・Fetch実行、共有handle、host services
 crates/fetchlet-http/         Tower / hyper / axum / actix-webのHTTP統合、artifact配信
 tools/lab/                    toolsが使う行プロトコルのhost（fetchlet-lab）
-packages/runtime/            共通Web APIとFetch entryの接続
-packages/build/              共通artifact builder
-packages/sveltekit-adapter/   SvelteKit adapter
-packages/astro-adapter/       Astro adapter
-packages/nitro-preset/        Nitro / Nuxt向けNitro preset
-packages/react-router-preset/ React Router preset
-packages/hono/               Hono / HonoX向けVite plugin
-packages/tanstack-start/     TanStack Start向けVite plugin
-packages/solid-start/        SolidStart向けVite plugin
-packages/qwik-city/          Qwik City向けVite pluginとmiddleware
-packages/waku/               Waku向けserver entry adapter
-packages/vinext/             vinext向けVite plugin
+packages/fetchlet/            npmパッケージfetchlet：runtime、artifact builder、各framework adapter
 examples/sveltekit-axum/      QuickJSで動くSvelteKit例
 examples/astro-axum/          QuickJS＋Intl polyfillで動くAstro例
 examples/nuxt-axum/           QuickJSで動くNuxt例

@@ -1,6 +1,6 @@
 # SolidStart + axum
 
-SolidStart 2のstreaming SSR、`query` のserver function、API routeをaxumから配信する例です。[@fetchlet/solid-start](../../packages/solid-start/README.md)でserverをartifactにします。
+SolidStart 2のstreaming SSR、`query` のserver function、API routeをaxumから配信する例です。[fetchlet/solid-start](../../packages/fetchlet/docs/solid-start.md)でserverをartifactにします。
 
 ## 起動
 
