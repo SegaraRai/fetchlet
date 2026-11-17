@@ -6,8 +6,8 @@
   "type": "module",
   "devDependencies": {
     "@fetchlet-internal/tools-workspace": "workspace:*",
-    "@types/node": "^26.6.6",
-    "vite-plus": "^1.6.0",
-    "yaml": "2.9.1"
+    "@types/node": "catalog:",
+    "vite-plus": "catalog:",
+    "yaml": "catalog:"
   }
 }

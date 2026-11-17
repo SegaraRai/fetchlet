@@ -1,5 +1,6 @@
 import { Form, data } from "react-router";
 import { Counter } from "../components/Counter";
+import { fetchlet } from "../context";
 import type { Route } from "./+types/home";
 
 function visitor(request: Request) {
@@ -9,7 +10,7 @@ function visitor(request: Request) {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const env = context.env;
+  const { env } = fetchlet(context);
   const response = await env.RUST.fetch("https://rust.fetchlet.test/");
   const service = (await response.json()) as { message: string };
   const url = new URL(request.url);

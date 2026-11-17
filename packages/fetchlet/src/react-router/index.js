@@ -18,7 +18,12 @@ export function fetchletPreset({ backend = "portable", intl = {} } = {}) {
       ssr: true,
       serverModuleFormat: "esm",
       buildEnd: ({ buildManifest, reactRouterConfig }) =>
-        writeArtifact({ buildManifest, reactRouterConfig, backend, intl }),
+        writeArtifact({
+          buildManifest,
+          reactRouterConfig,
+          backend,
+          intl,
+        }),
     }),
     reactRouterConfigResolved({ reactRouterConfig }) {
       if (reactRouterConfig.serverBundles) {
@@ -47,12 +52,12 @@ async function writeArtifact({ reactRouterConfig, backend, intl }) {
     const env = getBindings();
 
     export const handle = createFetchHandler((request, context = {}) => {
-      const value = { clientAddress: context.clientAddress, env, waitUntil };
-      if (!build.future?.v8_middleware) {
-        return handler(request, value);
-      }
       const provider = new RouterContextProvider();
-      provider.set(fetchletContext, value);
+      provider.set(fetchletContext, {
+        clientAddress: context.clientAddress,
+        env,
+        waitUntil,
+      });
       return handler(request, provider);
     });
     `,

@@ -29,12 +29,12 @@ http://127.0.0.1:3300 を開きます。taskはReact Routerをbuildしてから�
 
 | route           | 内容                                                                             |
 | --------------- | -------------------------------------------------------------------------------- |
-| /               | loaderが `context.env.RUST` を呼ぶ。actionがCookieを設定する                     |
+| /               | loaderが `env.RUST` を呼ぶ。actionがCookieを設定する                             |
 | /deferred       | loaderのPromiseを `<Await>` で表示し、shellの後に同じResponseで値を送る          |
 | /api/echo       | JSONを201で返すresource route                                                    |
-| /api/context    | `context.clientAddress` と `context.env.MESSAGE` を返す                          |
+| /api/context    | `clientAddress` と `env.MESSAGE` を返す                                          |
 | /api/upload     | 受信中の本文を数える。宣言のある予算超過は413、宣言の無い超過は `LIMIT_EXCEEDED` |
-| /api/background | `context.waitUntil` で応答後の処理を登録する                                     |
+| /api/background | `waitUntil` で応答後の処理を登録する                                             |
 
 `app/entry.server.tsx` は `react-dom/server.edge` の `renderToReadableStream` で描画します。crawlerにはすべて描画してから返します。
 

@@ -3,14 +3,14 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@astrojs/check": "0.9.12",
-    "@astrojs/svelte": "9.1.6",
+    "@astrojs/check": "catalog:",
+    "@astrojs/svelte": "catalog:",
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@types/node": "^26.6.6",
-    "astro": "7.4.12",
+    "@types/node": "catalog:",
+    "astro": "catalog:",
     "fetchlet": "workspace:*",
-    "svelte": "^5.57.3",
-    "typescript": "~6.0.3",
-    "vite-plus": "^1.6.0"
+    "svelte": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

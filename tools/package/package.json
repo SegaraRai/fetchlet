@@ -6,6 +6,6 @@
   "type": "module",
   "devDependencies": {
     "@fetchlet-internal/tools-workspace": "workspace:*",
-    "@types/node": "^26.6.6"
+    "@types/node": "catalog:"
   }
 }

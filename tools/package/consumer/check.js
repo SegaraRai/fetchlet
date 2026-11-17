@@ -8,8 +8,9 @@ import { buildArtifact } from "fetchlet/build";
 
 const manifest = JSON.parse(readFileSync("./node_modules/fetchlet/package.json", "utf8"));
 
-// The published manifest names compiled files and no workspace protocol.
+// The published manifest names compiled files and no workspace or catalog protocol.
 assert.equal(JSON.stringify(manifest).includes("workspace:"), false);
+assert.equal(JSON.stringify(manifest).includes("catalog:"), false);
 for (const [subpath, target] of Object.entries(manifest.exports)) {
   // TypeScript finds each module's declarations beside it, so plain paths suffice.
   assert.equal(typeof target, "string", subpath);

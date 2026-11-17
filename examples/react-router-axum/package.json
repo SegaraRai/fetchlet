@@ -3,19 +3,19 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "isbot": "5.2.3",
-    "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "react-router": "7.18.5"
+    "isbot": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router": "catalog:"
   },
   "devDependencies": {
     "@fetchlet-internal/tools-examples": "workspace:*",
-    "@react-router/dev": "7.18.5",
-    "@types/node": "^26.6.6",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
+    "@react-router/dev": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "fetchlet": "workspace:*",
-    "typescript": "~6.0.3",
-    "vite-plus": "^1.6.0"
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

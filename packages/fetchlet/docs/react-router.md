@@ -1,6 +1,6 @@
 # fetchlet/react-router
 
-React Router（framework mode）のserver buildをfetchlet用IIFEへbundleするReact Router presetです。React Router 7.18.5 / React 19.3.1を検証しています。
+React Router（framework mode）のserver buildをfetchlet用IIFEへbundleするReact Router presetです。React Router 8.5.1 / React 19.3.1を検証しています。
 
 ```ts
 // react-router.config.ts
@@ -20,7 +20,7 @@ React Routerの `buildEnd` で、`build/server/` のserver buildを `createReque
 
 ## load context
 
-loader / actionのcontextは `FetchletLoadContext` です。
+loader / action / middlewareのcontextは `RouterContextProvider` です。fetchletの値は `FetchletLoadContext` で、`context.get(fetchletContext)`、またはbindingの型を指定する `getLoadContext<Bindings>(context)` で読みます。
 
 | 値              | 内容                                                       |
 | --------------- | ---------------------------------------------------------- |
@@ -29,14 +29,15 @@ loader / actionのcontextは `FetchletLoadContext` です。
 | `waitUntil`     | 応答後の処理の登録。Rustのbackground予算の範囲で完了を待つ |
 
 ```ts
-import type { FetchletLoadContext } from "fetchlet/react-router/context";
+import { getLoadContext } from "fetchlet/react-router/context";
 
-declare module "react-router" {
-  interface AppLoadContext extends FetchletLoadContext<Bindings> {}
+export async function loader({ context }: Route.LoaderArgs) {
+  const { env, waitUntil } = getLoadContext<Bindings>(context);
+  // ...
 }
 ```
 
-`future.v8_middleware` を有効にしたアプリでは、contextが `RouterContextProvider` になり、`context.get(fetchletContext)` で同じ値を読みます。Viteがserver buildへこのmoduleを別にbundleしても、keyはglobalのsymbol registryで共有します。
+Viteがserver buildへこのmoduleを別にbundleしても、keyはglobalのsymbol registryで共有します。
 
 ## 描画とQuickJSのstack
 
@@ -46,6 +47,6 @@ ReactのFizzはstackのoverflowを捕捉して要素の描画をやり直しま�
 
 ## 試験と次の対象
 
-[examples/react-router-axum](../../examples/react-router-axum/README.md)が12項目を確認します。対象はSSR、assets、遅延データのstreaming、resource route、document / client action、Cookie、load context、streaming upload、`waitUntil`、hydration、client navigationです。`future.v8_middleware` の経路は手動で確認しました。自動試験は次の対象です。
+[examples/react-router-axum](../../examples/react-router-axum/README.md)が12項目を確認します。対象はSSR、assets、遅延データのstreaming、resource route、document / client action、Cookie、load context、streaming upload、`waitUntil`、hydration、client navigationです。
 
-React Router 8系、server bundleの分割、prerender、RSC modeは個別の試験を追加して対応範囲に加えます。
+server bundleの分割、prerender、RSC modeは個別の試験を追加して対応範囲に加えます。

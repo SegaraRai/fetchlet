@@ -3,16 +3,16 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@tauri-apps/api": "2.12.4",
-    "hono": "4.13.19",
-    "honox": "0.1.62"
+    "@tauri-apps/api": "catalog:",
+    "hono": "catalog:",
+    "honox": "catalog:"
   },
   "devDependencies": {
-    "@hono/vite-build": "1.11.1",
-    "@types/node": "^26.6.6",
+    "@hono/vite-build": "catalog:",
+    "@types/node": "catalog:",
     "fetchlet": "workspace:*",
-    "playwright": "1.65.1",
-    "typescript": "~6.0.3",
-    "vite-plus": "^1.6.0"
+    "playwright": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

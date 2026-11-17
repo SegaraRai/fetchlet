@@ -20,7 +20,7 @@ jobs:
       - uses: voidzero-dev/setup-vp@v1.22.0
         with:
           node-version: "26"
-          version: "1.6.0"
+          version: "1.7.0"
           run-install: false
       - run: vp install --frozen-lockfile
       - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
