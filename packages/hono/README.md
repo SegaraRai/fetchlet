@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
 }));
 ```
 
-`entry` は `export default app` するmoduleです。`backend` / `intl` は共通builderの同名設定、`external` は `@hono/vite-build` に渡します。
+`entry` は `export default app` するmoduleです。`backend` / `intl` は共通builderの同名設定、`external` は `@hono/vite-build` に渡します。`functions` に指定したmoduleのnamed exportは、Fetch handlerと並んでRustの `App::call` / `AppHandle::call` から呼べる関数になります（`handle` は予約名）。[HonoX + Tauri](../../examples/honox-tauri/README.md)が使います。
 
 ## 出力
 

@@ -32,3 +32,4 @@
 /examples/*/.vinext/
 /examples/*/.next/
 /examples/*/next-env.d.ts
+/examples/*/gen/

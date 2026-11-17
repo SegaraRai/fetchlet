@@ -1,0 +1,28 @@
+[package]
+name = "example-honox-tauri"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "HonoX SSR and browser assets served in-process to a Tauri webview through fetchlet"
+
+[features]
+boa = ["fetchlet/boa", "fetchlet-tower/boa"]
+v8 = ["fetchlet/v8", "fetchlet-tower/v8"]
+
+[dependencies]
+fetchlet = { workspace = true, features = ["quickjs"] }
+fetchlet-tower = { workspace = true, features = ["quickjs"] }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tauri = "=2.12.5"
+tower.workspace = true
+tower-http.workspace = true
+bytes = "1"
+http-body-util = "0.1"
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", features = [] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread"] }

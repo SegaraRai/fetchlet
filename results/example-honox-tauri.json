@@ -1,0 +1,50 @@
+{
+  "checkedAt": "2026-11-17T04:40:02.115Z",
+  "summary": {
+    "passed": 10,
+    "failed": 0
+  },
+  "browser": "157.0.4341.46",
+  "results": [
+    {
+      "name": "the main window opens on the fetchlet scheme",
+      "status": "pass"
+    },
+    {
+      "name": "HonoX SSR, escaping and the Rust service binding",
+      "status": "pass"
+    },
+    {
+      "name": "JavaScript, CSS and public files from the client build",
+      "status": "pass"
+    },
+    {
+      "name": "JSON endpoint",
+      "status": "pass"
+    },
+    {
+      "name": "in-process requests carry no client address",
+      "status": "pass"
+    },
+    {
+      "name": "a Rust route of the protocol coexists with HonoX",
+      "status": "pass"
+    },
+    {
+      "name": "request body budget and the following request",
+      "status": "pass"
+    },
+    {
+      "name": "background work runs after the response and before the next request",
+      "status": "pass"
+    },
+    {
+      "name": "concurrent requests keep their own values",
+      "status": "pass"
+    },
+    {
+      "name": "hydration, a Tauri command calling a JavaScript export, and navigation",
+      "status": "pass"
+    }
+  ]
+}

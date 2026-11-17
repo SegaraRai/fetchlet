@@ -125,6 +125,14 @@ export default defineConfig({
         command: "pwsh -NoProfile -File tools/test-example.ps1 -Name vinext-axum",
         cache: false,
       },
+      "example:honox-tauri": {
+        command: "vp run --filter @fetchlet/example-honox-tauri app",
+        cache: false,
+      },
+      "test:example:honox-tauri": {
+        command: "pwsh -NoProfile -File tools/test-example.ps1 -Name honox-tauri",
+        cache: false,
+      },
       "test:examples": {
         command: "pwsh -NoProfile -File tools/test-examples.ps1",
         cache: false,

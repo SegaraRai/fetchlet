@@ -15,6 +15,11 @@ export interface FetchletBuildOptions {
   };
   /** Modules kept out of the server bundle. */
   external?: string[];
+  /**
+   * A module whose named exports Rust calls with `App::call` / `AppHandle::call`
+   * beside the Fetch handler. The export name `handle` is reserved.
+   */
+  functions?: string;
 }
 
 /** Build a Hono app into a fetchlet artifact. */
