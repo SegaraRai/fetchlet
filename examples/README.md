@@ -23,6 +23,22 @@ framework adapterはserver bundleとclient assetsを作ります。@fetchlet/bui
 
 artifactはserver.js、client/、fetchlet.jsonです。manifestは形式版、entry、profile、frameworkと要求する能力を記録します。backendは要求に合わせてアプリ側で選択します。
 
+## backendの切り替え
+
+各例の既定はQuickJSです。Boa / V8で動かすときは、artifactとサーバを同じbackendに揃えます。
+
+```bash
+FETCHLET_BACKEND=v8 vp run --filter @fetchlet/example-honox-axum build
+```
+
+```bash
+pwsh -NoProfile -File tools/cargo.ps1 run --release -p example-honox-axum --features v8
+```
+
+`FETCHLET_BACKEND`（`quickjs` / `boa` / `v8`）はframework設定のbackendをbuild時に上書きし、`config.json` の `"backend": "v8"` がRust側のBackendを選びます。featureを付けずにbuildしたサーバはBoa / V8の設定を起動時にerrorにします。V8の `worker_stack_bytes` はV8のworker threadにも使います。
+
+[tools/bench](../tools/bench/README.md)は10例 × 3 backend × endpointのreq/sを測ります。
+
 ## 追加するとき
 
 - 名前を<framework>-<rust-server>とし、起動できるアプリを置く。

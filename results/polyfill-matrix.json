@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-16T16:36:59.849Z",
+  "checkedAt": "2026-11-17T01:04:16.860Z",
   "summary": {
     "passed": 8,
     "failed": 0
@@ -29,7 +29,7 @@
   },
   "artifacts": {
     "quickjs": {
-      "bytes": 2725713,
+      "bytes": 2732881,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",
@@ -91,17 +91,17 @@
       ]
     },
     "v8": {
-      "bytes": 392956,
+      "bytes": 400124,
       "polyfills": [],
       "formatjsModules": []
     },
     "plain": {
-      "bytes": 392862,
+      "bytes": 400030,
       "polyfills": [],
       "formatjsModules": []
     },
     "plural": {
-      "bytes": 1043313,
+      "bytes": 1050481,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",

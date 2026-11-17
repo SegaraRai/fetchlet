@@ -10,7 +10,9 @@ export default defineConfig({
       client: { outDir: "build/client" },
       ssr: { outDir: "node_modules/.cache/fetchlet-qwik-city" },
     }),
-    fetchletAdapter({ backend: "quickjs" }),
+    fetchletAdapter({
+      backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+    }),
   ],
   run: {
     tasks: {

@@ -1,3 +1,4 @@
+import { BodyImpl } from "./body";
 import { runtime } from "./runtime";
 
 export interface WireRequest {
@@ -72,6 +73,15 @@ export async function wireResponse(response: Response): Promise<WireResponse> {
   }
 
   const registry = responseBodyRegistry();
+  // A body this profile still holds as bytes needs no stream or pull.
+  const buffered = BodyImpl.takeBytesOf(response);
+  if (buffered !== undefined) {
+    return {
+      status: response.status,
+      headers,
+      body: registry ? buffered : Array.from(buffered),
+    };
+  }
   if (registry && response.body !== null) {
     if (response.bodyUsed || response.body.locked) {
       throw new TypeError("Response body is already used");

@@ -13,7 +13,9 @@ function headerRecord(init: object): [string, string][] {
   const result: [string, string][] = [];
   for (const key of Reflect.ownKeys(init)) {
     const descriptor = Reflect.getOwnPropertyDescriptor(init, key);
-    if (descriptor === undefined || !descriptor.enumerable) continue;
+    if (!descriptor?.enumerable) {
+      continue;
+    }
     const name = byteString(key);
     result.push([name, byteString((init as any)[key])]);
   }

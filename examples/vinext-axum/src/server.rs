@@ -22,7 +22,7 @@ pub(crate) async fn run(config: Config) -> Result<()> {
         .public_origin
         .clone()
         .unwrap_or_else(|| format!("http://{address}"));
-    let app = App::builder(config.backend())
+    let app = App::builder(config.backend()?)
         .module(Module::new(source))
         .host_services(host_services(&config.message)?)
         .limits(config.limits())

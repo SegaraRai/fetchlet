@@ -16,9 +16,11 @@ import * as streams from "web-streams-polyfill";
 
 import { runtime } from "./runtime";
 import { conformAsyncIteratorPrototype } from "./stream-state";
+import { URLImpl as HostURLImpl, hostHasUrlParser } from "./url";
 
-runtime.URL ??= URLImpl;
 runtime.URLSearchParams ??= URLSearchParamsImpl;
+// The fetchlet host parses URLs in Rust; other hosts use core-js's parser.
+runtime.URL ??= hostHasUrlParser() ? HostURLImpl : URLImpl;
 runtime.btoa ??= btoaImpl;
 runtime.atob ??= atobImpl;
 runtime.structuredClone ??= cloneImpl;

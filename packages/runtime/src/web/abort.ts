@@ -11,11 +11,25 @@ type Listener = {
 };
 
 function flattenOptions(options: any) {
-  if (typeof options === "boolean") return { capture: options, once: false, signal: undefined };
-  if (options === null || typeof options !== "object") {
-    return { capture: false, once: false, signal: undefined };
+  if (typeof options === "boolean") {
+    return {
+      capture: options,
+      once: false,
+      signal: undefined,
+    };
   }
-  return { capture: !!options.capture, once: !!options.once, signal: options.signal };
+  if (options === null || typeof options !== "object") {
+    return {
+      capture: false,
+      once: false,
+      signal: undefined,
+    };
+  }
+  return {
+    capture: !!options.capture,
+    once: !!options.once,
+    signal: options.signal,
+  };
 }
 
 function abortError() {
@@ -24,7 +38,9 @@ function abortError() {
 
 /** Minimal event object for the abort event when the host provides no Event constructor. */
 function abortEvent(target: object) {
-  if (typeof runtime.Event === "function") return new runtime.Event("abort");
+  if (typeof runtime.Event === "function") {
+    return new runtime.Event("abort");
+  }
   return {
     type: "abort",
     target,
@@ -55,7 +71,9 @@ class AbortSignalImpl {
   #dependents = new Set<AbortSignalImpl>();
 
   constructor(token?: symbol) {
-    if (token !== internal) throw new TypeError("Illegal constructor");
+    if (token !== internal) {
+      throw new TypeError("Illegal constructor");
+    }
   }
 
   get aborted() {
@@ -94,24 +112,36 @@ class AbortSignalImpl {
   }
 
   addEventListener(type: any, callback: any, options?: any) {
-    if (arguments.length < 2) throw new TypeError("addEventListener requires two arguments");
+    if (arguments.length < 2) {
+      throw new TypeError("addEventListener requires two arguments");
+    }
     const { capture, once, signal } = flattenOptions(options);
-    if (String(type) !== "abort" || callback === null || callback === undefined) return;
-    if (signal?.aborted) return;
+    if (String(type) !== "abort" || callback === null || callback === undefined) {
+      return;
+    }
+    if (signal?.aborted) {
+      return;
+    }
     const exists = this.#listeners.some(
       (listener) =>
         !listener.handler && listener.callback === callback && listener.capture === capture,
     );
-    if (exists) return;
+    if (exists) {
+      return;
+    }
     const listener: Listener = { callback, capture, once, removed: false };
     this.#listeners.push(listener);
     signal?.addEventListener?.("abort", () => this.removeEventListener(type, callback, options));
   }
 
   removeEventListener(type: any, callback: any, options?: any) {
-    if (arguments.length < 2) throw new TypeError("removeEventListener requires two arguments");
+    if (arguments.length < 2) {
+      throw new TypeError("removeEventListener requires two arguments");
+    }
     const { capture } = flattenOptions(options);
-    if (String(type) !== "abort") return;
+    if (String(type) !== "abort") {
+      return;
+    }
     const index = this.#listeners.findIndex(
       (listener) =>
         !listener.handler && listener.callback === callback && listener.capture === capture,
@@ -123,22 +153,33 @@ class AbortSignalImpl {
   }
 
   dispatchEvent(event: any) {
-    if (event?.type === "abort") this.#fire(event);
+    if (event?.type === "abort") {
+      this.#fire(event);
+    }
     return true;
   }
 
   throwIfAborted() {
-    if (this.#aborted) throw this.#reason;
+    if (this.#aborted) {
+      throw this.#reason;
+    }
   }
 
   #fire(event: any) {
     for (const listener of this.#listeners.slice()) {
-      if (listener.removed) continue;
-      if (listener.once) this.removeEventListener("abort", listener.callback, listener);
+      if (listener.removed) {
+        continue;
+      }
+      if (listener.once) {
+        this.removeEventListener("abort", listener.callback, listener);
+      }
       const callback = listener.handler ? this.#handler : listener.callback;
       try {
-        if (typeof callback === "function") callback.call(this, event);
-        else if (typeof callback?.handleEvent === "function") callback.handleEvent(event);
+        if (typeof callback === "function") {
+          callback.call(this, event);
+        } else if (typeof callback?.handleEvent === "function") {
+          callback.handleEvent(event);
+        }
       } catch (error) {
         // Listener exceptions are reported, not propagated to the aborting caller.
         reportError(error);
@@ -148,18 +189,24 @@ class AbortSignalImpl {
 
   /** DOM "signal abort": mark this signal and its dependents, then fire events in order. */
   static [internal](signal: AbortSignalImpl, reason: any) {
-    if (signal.#aborted) return;
+    if (signal.#aborted) {
+      return;
+    }
     signal.#aborted = true;
     signal.#reason = reason === undefined ? abortError() : reason;
     const dependents: AbortSignalImpl[] = [];
     for (const dependent of signal.#dependents) {
-      if (dependent.#aborted) continue;
+      if (dependent.#aborted) {
+        continue;
+      }
       dependent.#aborted = true;
       dependent.#reason = signal.#reason;
       dependents.push(dependent);
     }
     signal.#fire(abortEvent(signal));
-    for (const dependent of dependents) dependent.#fire(abortEvent(dependent));
+    for (const dependent of dependents) {
+      dependent.#fire(abortEvent(dependent));
+    }
   }
 
   static abort(reason?: any) {
@@ -191,7 +238,9 @@ class AbortSignalImpl {
     }
     const list = Array.from(signals as Iterable<any>);
     for (const signal of list) {
-      if (!(signal instanceof AbortSignalImpl)) throw new TypeError("Expected AbortSignal");
+      if (!(signal instanceof AbortSignalImpl)) {
+        throw new TypeError("Expected AbortSignal");
+      }
     }
     const result = new AbortSignalImpl(internal);
     for (const signal of list) {
@@ -218,8 +267,11 @@ class AbortSignalImpl {
 }
 
 function reportError(error: unknown) {
-  if (typeof runtime.reportError === "function") runtime.reportError(error);
-  else runtime.console?.error?.(error);
+  if (typeof runtime.reportError === "function") {
+    runtime.reportError(error);
+  } else {
+    runtime.console?.error?.(error);
+  }
 }
 
 class AbortControllerImpl {
@@ -238,8 +290,12 @@ class AbortControllerImpl {
   }
 }
 
-Object.defineProperty(AbortSignalImpl, "name", { value: "AbortSignal" });
-Object.defineProperty(AbortControllerImpl, "name", { value: "AbortController" });
+Object.defineProperty(AbortSignalImpl, "name", {
+  value: "AbortSignal",
+});
+Object.defineProperty(AbortControllerImpl, "name", {
+  value: "AbortController",
+});
 
 runtime.AbortController ??= AbortControllerImpl;
 runtime.AbortSignal ??= AbortSignalImpl;

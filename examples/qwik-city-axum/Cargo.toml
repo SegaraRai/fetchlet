@@ -5,6 +5,10 @@ edition.workspace = true
 publish.workspace = true
 description = "Qwik City SSR and browser assets served by axum through fetchlet"
 
+[features]
+boa = ["fetchlet/boa", "fetchlet-axum/boa"]
+v8 = ["fetchlet/v8", "fetchlet-axum/v8"]
+
 [dependencies]
 fetchlet = { workspace = true, features = ["quickjs"] }
 fetchlet-axum = { workspace = true, features = ["quickjs"] }

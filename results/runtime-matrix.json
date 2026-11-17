@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-16T17:17:28.931Z",
+  "checkedAt": "2026-11-17T01:03:27.821Z",
   "profile": "portable experimental Web APIs in embedded engines; native globals in Node reference",
   "summary": {
     "node-reference": {
@@ -25,91 +25,91 @@
       "suite": "functions",
       "id": "sync-add",
       "status": "pass",
-      "durationMs": 62.4733
+      "durationMs": 71.27369999999999
     },
     {
       "backend": "node-reference",
       "suite": "functions",
       "id": "object-unicode",
       "status": "pass",
-      "durationMs": 0.6284000000000134
+      "durationMs": 0.5959000000000003
     },
     {
       "backend": "node-reference",
       "suite": "functions",
       "id": "promise",
       "status": "pass",
-      "durationMs": 0.24620000000000175
+      "durationMs": 0.27129999999999654
     },
     {
       "backend": "node-reference",
       "suite": "functions",
       "id": "state-reuse",
       "status": "pass",
-      "durationMs": 0.44640000000001123
+      "durationMs": 0.36299999999999955
     },
     {
       "backend": "node-reference",
       "suite": "functions",
       "id": "exception",
       "status": "pass",
-      "durationMs": 0.2499000000000109
+      "durationMs": 0.19289999999999452
     },
     {
       "backend": "node-reference",
       "suite": "functions",
       "id": "rejection",
       "status": "pass",
-      "durationMs": 0.2085999999999899
+      "durationMs": 0.16400000000000148
     },
     {
       "backend": "node-reference",
       "suite": "functions",
       "id": "usable-after-errors",
       "status": "pass",
-      "durationMs": 0.18359999999999843
+      "durationMs": 0.16450000000000387
     },
     {
       "backend": "node-reference",
       "suite": "hono",
       "id": "jsx-escaping",
       "status": "pass",
-      "durationMs": 3.8641000000000076
+      "durationMs": 3.987099999999998
     },
     {
       "backend": "node-reference",
       "suite": "hono",
       "id": "json-post",
       "status": "pass",
-      "durationMs": 0.6407999999999987
+      "durationMs": 0.6760000000000019
     },
     {
       "backend": "node-reference",
       "suite": "hono",
       "id": "set-cookie",
       "status": "pass",
-      "durationMs": 0.4435000000000002
+      "durationMs": 0.4344999999999999
     },
     {
       "backend": "node-reference",
       "suite": "hono",
       "id": "stream-body",
       "status": "pass",
-      "durationMs": 0.5242000000000075
+      "durationMs": 0.49450000000000216
     },
     {
       "backend": "node-reference",
       "suite": "hono",
       "id": "not-found",
       "status": "pass",
-      "durationMs": 0.665300000000002
+      "durationMs": 0.4825999999999908
     },
     {
       "backend": "node-reference",
       "suite": "web-api",
       "id": "probe",
       "status": "pass",
-      "durationMs": 15.177599999999998,
+      "durationMs": 23.23530000000001,
       "details": {
         "total": 23,
         "passed": 23,
@@ -121,119 +121,119 @@
       "suite": "sveltekit",
       "id": "ssr-page",
       "status": "pass",
-      "durationMs": 85.63520000000001
+      "durationMs": 94.8209
     },
     {
       "backend": "node-reference",
       "suite": "sveltekit",
       "id": "escaped-query",
       "status": "pass",
-      "durationMs": 1.0993999999999744
+      "durationMs": 1.1180999999999983
     },
     {
       "backend": "node-reference",
       "suite": "sveltekit",
       "id": "json-endpoint",
       "status": "pass",
-      "durationMs": 0.6474000000000046
+      "durationMs": 0.6995000000000005
     },
     {
       "backend": "node-reference",
       "suite": "sveltekit",
       "id": "form-action",
       "status": "pass",
-      "durationMs": 1.2819999999999823
+      "durationMs": 1.4728999999999814
     },
     {
       "backend": "quickjs",
       "suite": "functions",
       "id": "sync-add",
       "status": "pass",
-      "durationMs": 52.86089999999999
+      "durationMs": 61.98410000000001
     },
     {
       "backend": "quickjs",
       "suite": "functions",
       "id": "object-unicode",
       "status": "pass",
-      "durationMs": 0.5104000000000042
+      "durationMs": 1.384800000000041
     },
     {
       "backend": "quickjs",
       "suite": "functions",
       "id": "promise",
       "status": "pass",
-      "durationMs": 0.3896000000000299
+      "durationMs": 0.29290000000003147
     },
     {
       "backend": "quickjs",
       "suite": "functions",
       "id": "state-reuse",
       "status": "pass",
-      "durationMs": 0.45150000000001
+      "durationMs": 0.46709999999995944
     },
     {
       "backend": "quickjs",
       "suite": "functions",
       "id": "exception",
       "status": "pass",
-      "durationMs": 0.22110000000003538
+      "durationMs": 0.318300000000022
     },
     {
       "backend": "quickjs",
       "suite": "functions",
       "id": "rejection",
       "status": "pass",
-      "durationMs": 0.17470000000002983
+      "durationMs": 0.5645000000000664
     },
     {
       "backend": "quickjs",
       "suite": "functions",
       "id": "usable-after-errors",
       "status": "pass",
-      "durationMs": 0.22289999999998145
+      "durationMs": 1.0319999999999254
     },
     {
       "backend": "quickjs",
       "suite": "hono",
       "id": "jsx-escaping",
       "status": "pass",
-      "durationMs": 1.8123999999999683
+      "durationMs": 4.9816999999999325
     },
     {
       "backend": "quickjs",
       "suite": "hono",
       "id": "json-post",
       "status": "pass",
-      "durationMs": 1.278599999999983
+      "durationMs": 2.722599999999943
     },
     {
       "backend": "quickjs",
       "suite": "hono",
       "id": "set-cookie",
       "status": "pass",
-      "durationMs": 1.1685000000000514
+      "durationMs": 2.7438000000000784
     },
     {
       "backend": "quickjs",
       "suite": "hono",
       "id": "stream-body",
       "status": "pass",
-      "durationMs": 0.7179999999999609
+      "durationMs": 2.894200000000069
     },
     {
       "backend": "quickjs",
       "suite": "hono",
       "id": "not-found",
       "status": "pass",
-      "durationMs": 0.8120000000000118
+      "durationMs": 3.3315999999999804
     },
     {
       "backend": "quickjs",
       "suite": "web-api",
       "id": "probe",
       "status": "pass",
-      "durationMs": 8.759399999999971,
+      "durationMs": 17.661599999999908,
       "details": {
         "total": 23,
         "passed": 23,
@@ -245,119 +245,119 @@
       "suite": "sveltekit",
       "id": "ssr-page",
       "status": "pass",
-      "durationMs": 66.66610000000003
+      "durationMs": 92.06910000000005
     },
     {
       "backend": "quickjs",
       "suite": "sveltekit",
       "id": "escaped-query",
       "status": "pass",
-      "durationMs": 4.68610000000001
+      "durationMs": 3.739400000000046
     },
     {
       "backend": "quickjs",
       "suite": "sveltekit",
       "id": "json-endpoint",
       "status": "pass",
-      "durationMs": 1.7615000000000123
+      "durationMs": 1.0901000000000067
     },
     {
       "backend": "quickjs",
       "suite": "sveltekit",
       "id": "form-action",
       "status": "pass",
-      "durationMs": 2.263300000000015
+      "durationMs": 4.09089999999992
     },
     {
       "backend": "boa",
       "suite": "functions",
       "id": "sync-add",
       "status": "pass",
-      "durationMs": 781.0397
+      "durationMs": 891.5064000000001
     },
     {
       "backend": "boa",
       "suite": "functions",
       "id": "object-unicode",
       "status": "pass",
-      "durationMs": 2.451999999999998
+      "durationMs": 3.1407999999998992
     },
     {
       "backend": "boa",
       "suite": "functions",
       "id": "promise",
       "status": "pass",
-      "durationMs": 2.185600000000022
+      "durationMs": 2.3432000000000244
     },
     {
       "backend": "boa",
       "suite": "functions",
       "id": "state-reuse",
       "status": "pass",
-      "durationMs": 4.186800000000176
+      "durationMs": 5.032600000000002
     },
     {
       "backend": "boa",
       "suite": "functions",
       "id": "exception",
       "status": "pass",
-      "durationMs": 3.038699999999835
+      "durationMs": 2.234000000000151
     },
     {
       "backend": "boa",
       "suite": "functions",
       "id": "rejection",
       "status": "pass",
-      "durationMs": 2.1445000000001073
+      "durationMs": 2.0942000000000007
     },
     {
       "backend": "boa",
       "suite": "functions",
       "id": "usable-after-errors",
       "status": "pass",
-      "durationMs": 2.240000000000009
+      "durationMs": 2.4376000000002023
     },
     {
       "backend": "boa",
       "suite": "hono",
       "id": "jsx-escaping",
       "status": "pass",
-      "durationMs": 31.775100000000066
+      "durationMs": 27.208499999999958
     },
     {
       "backend": "boa",
       "suite": "hono",
       "id": "json-post",
       "status": "pass",
-      "durationMs": 17.676799999999957
+      "durationMs": 13.81639999999993
     },
     {
       "backend": "boa",
       "suite": "hono",
       "id": "set-cookie",
       "status": "pass",
-      "durationMs": 28.25649999999996
+      "durationMs": 25.42470000000003
     },
     {
       "backend": "boa",
       "suite": "hono",
       "id": "stream-body",
       "status": "pass",
-      "durationMs": 11.550300000000107
+      "durationMs": 8.142100000000028
     },
     {
       "backend": "boa",
       "suite": "hono",
       "id": "not-found",
       "status": "pass",
-      "durationMs": 14.906400000000076
+      "durationMs": 10.83199999999988
     },
     {
       "backend": "boa",
       "suite": "web-api",
       "id": "probe",
       "status": "pass",
-      "durationMs": 186.8148000000001,
+      "durationMs": 110.22869999999989,
       "details": {
         "total": 23,
         "passed": 23,
@@ -369,119 +369,119 @@
       "suite": "sveltekit",
       "id": "ssr-page",
       "status": "pass",
-      "durationMs": 1217.6689000000001
+      "durationMs": 1448.4493000000002
     },
     {
       "backend": "boa",
       "suite": "sveltekit",
       "id": "escaped-query",
       "status": "pass",
-      "durationMs": 96.49969999999985
+      "durationMs": 60.74530000000004
     },
     {
       "backend": "boa",
       "suite": "sveltekit",
       "id": "json-endpoint",
       "status": "pass",
-      "durationMs": 26.984399999999823
+      "durationMs": 11.877199999999903
     },
     {
       "backend": "boa",
       "suite": "sveltekit",
       "id": "form-action",
       "status": "pass",
-      "durationMs": 44.98779999999988
+      "durationMs": 46.409400000000005
     },
     {
       "backend": "v8",
       "suite": "functions",
       "id": "sync-add",
       "status": "pass",
-      "durationMs": 53.67870000000039
+      "durationMs": 81.97180000000026
     },
     {
       "backend": "v8",
       "suite": "functions",
       "id": "object-unicode",
       "status": "pass",
-      "durationMs": 0.37649999999985084
+      "durationMs": 1.9452000000001135
     },
     {
       "backend": "v8",
       "suite": "functions",
       "id": "promise",
       "status": "pass",
-      "durationMs": 0.32560000000012224
+      "durationMs": 0.3604000000000269
     },
     {
       "backend": "v8",
       "suite": "functions",
       "id": "state-reuse",
       "status": "pass",
-      "durationMs": 0.4673999999999978
+      "durationMs": 0.2586999999998625
     },
     {
       "backend": "v8",
       "suite": "functions",
       "id": "exception",
       "status": "pass",
-      "durationMs": 0.3516999999997097
+      "durationMs": 0.9983999999999469
     },
     {
       "backend": "v8",
       "suite": "functions",
       "id": "rejection",
       "status": "pass",
-      "durationMs": 0.33750000000009095
+      "durationMs": 0.9052000000001499
     },
     {
       "backend": "v8",
       "suite": "functions",
       "id": "usable-after-errors",
       "status": "pass",
-      "durationMs": 0.28330000000005384
+      "durationMs": 0.48480000000017753
     },
     {
       "backend": "v8",
       "suite": "hono",
       "id": "jsx-escaping",
       "status": "pass",
-      "durationMs": 5.7280000000000655
+      "durationMs": 5.903200000000197
     },
     {
       "backend": "v8",
       "suite": "hono",
       "id": "json-post",
       "status": "pass",
-      "durationMs": 1.478399999999965
+      "durationMs": 1.3805999999999585
     },
     {
       "backend": "v8",
       "suite": "hono",
       "id": "set-cookie",
       "status": "pass",
-      "durationMs": 0.6140999999997803
+      "durationMs": 1.1462000000001353
     },
     {
       "backend": "v8",
       "suite": "hono",
       "id": "stream-body",
       "status": "pass",
-      "durationMs": 0.7580000000002656
+      "durationMs": 2.4191000000000713
     },
     {
       "backend": "v8",
       "suite": "hono",
       "id": "not-found",
       "status": "pass",
-      "durationMs": 0.6201000000000931
+      "durationMs": 2.1743000000001302
     },
     {
       "backend": "v8",
       "suite": "web-api",
       "id": "probe",
       "status": "pass",
-      "durationMs": 8.164899999999761,
+      "durationMs": 16.521099999999933,
       "details": {
         "total": 23,
         "passed": 23,
@@ -493,28 +493,28 @@
       "suite": "sveltekit",
       "id": "ssr-page",
       "status": "pass",
-      "durationMs": 71.44370000000026
+      "durationMs": 100.00999999999976
     },
     {
       "backend": "v8",
       "suite": "sveltekit",
       "id": "escaped-query",
       "status": "pass",
-      "durationMs": 2.119000000000142
+      "durationMs": 1.8748999999997977
     },
     {
       "backend": "v8",
       "suite": "sveltekit",
       "id": "json-endpoint",
       "status": "pass",
-      "durationMs": 1.348700000000008
+      "durationMs": 4.929299999999785
     },
     {
       "backend": "v8",
       "suite": "sveltekit",
       "id": "form-action",
       "status": "pass",
-      "durationMs": 1.6311000000000604
+      "durationMs": 1.4458000000004176
     }
   ]
 }

@@ -16,7 +16,9 @@ function isByteStream(stream: any): boolean {
  * ReadableStreamDefaultTee with cloneForBranch2 = true, which the public tee() does not expose.
  */
 export function teeBody(stream: any): [any, any] {
-  if (isByteStream(stream)) return stream.tee();
+  if (isByteStream(stream)) {
+    return stream.tee();
+  }
 
   const reader = stream.getReader();
   let reading = false;
@@ -37,7 +39,9 @@ export function teeBody(stream: any): [any, any] {
       controller1.error(error);
       controller2.error(error);
     }
-    if (!canceled1 || !canceled2) resolveCancel(undefined);
+    if (!canceled1 || !canceled2) {
+      resolveCancel(undefined);
+    }
   }
 
   function pull(): Promise<void> {
@@ -50,8 +54,12 @@ export function teeBody(stream: any): [any, any] {
       (result: any) => {
         reading = false;
         if (result.done) {
-          if (!canceled1) controller1.close();
-          if (!canceled2) controller2.close();
+          if (!canceled1) {
+            controller1.close();
+          }
+          if (!canceled2) {
+            controller2.close();
+          }
           settle();
           return;
         }
@@ -67,8 +75,12 @@ export function teeBody(stream: any): [any, any] {
             return;
           }
         }
-        if (!canceled1) controller1.enqueue(chunk);
-        if (!canceled2) controller2.enqueue(clone);
+        if (!canceled1) {
+          controller1.enqueue(chunk);
+        }
+        if (!canceled2) {
+          controller2.enqueue(clone);
+        }
         if (readAgain) {
           readAgain = false;
           void pull();
@@ -90,7 +102,9 @@ export function teeBody(stream: any): [any, any] {
     cancel(reason: unknown) {
       canceled1 = true;
       reason1 = reason;
-      if (canceled2) resolveCancel(reader.cancel([reason1, reason2]));
+      if (canceled2) {
+        resolveCancel(reader.cancel([reason1, reason2]));
+      }
       return cancelled;
     },
   });
@@ -102,7 +116,9 @@ export function teeBody(stream: any): [any, any] {
     cancel(reason: unknown) {
       canceled2 = true;
       reason2 = reason;
-      if (canceled1) resolveCancel(reader.cancel([reason1, reason2]));
+      if (canceled1) {
+        resolveCancel(reader.cancel([reason1, reason2]));
+      }
       return cancelled;
     },
   });

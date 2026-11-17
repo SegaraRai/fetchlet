@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-16T16:38:49.2342903Z",
+  "checkedAt": "2026-11-17T01:03:01.3374284Z",
   "sanitizer": "address",
   "requestedRuns": 1000000,
   "timeBudgetSeconds": 30,
@@ -9,12 +9,12 @@
     {
       "target": "fetch_service",
       "status": "pass",
-      "completedRuns": 249850
+      "completedRuns": 213347
     },
     {
       "target": "bridge_bodies",
       "status": "pass",
-      "completedRuns": 53866
+      "completedRuns": 42097
     }
   ]
 }

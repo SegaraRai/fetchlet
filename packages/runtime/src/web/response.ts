@@ -102,6 +102,8 @@ class ResponseImpl extends BodyImpl {
   }
 }
 
-Object.defineProperty(ResponseImpl, "name", { value: "Response" });
+Object.defineProperty(ResponseImpl, "name", {
+  value: "Response",
+});
 
 runtime.Response ??= ResponseImpl;

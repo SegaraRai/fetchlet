@@ -8,4 +8,8 @@ const modules = Object.fromEntries(
   ]),
 );
 
-export default adapter(fsRouter(modules), { backend: "quickjs" });
+export default adapter(fsRouter(modules), {
+  backend:
+    // The entry also runs inside the artifact, where process is absent.
+    (globalThis.process?.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+});

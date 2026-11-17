@@ -99,6 +99,19 @@ WPTは86ファイル、各構成1451 subtestです。失敗はすべて[expectat
 - multipart/form-dataをbyte単位で解析。行頭の区切りのみ認識し、preamble / epilogue、大小文字を区別しないMIME型と引数、quoted boundary、UTF-8と%0D / %0A / %22のescapeを扱い、不正な区切り・header・未終端をTypeErrorにする
 - Requestの属性（mode、credentials、cache、referrer、referrerPolicy、integrity、keepalive、duplex等）を読み取り専用のprototype accessorとして公開し、RequestInitのenumerationとonly-if-cachedの制約を検証
 
+### URL
+
+fetchlet hostのURLは `url` crate 2.5.8で解析します。`vp run test:url` は、そのcrateが同梱するWPTのurltestdata.json（constructor）とsetters_tests.json（setter）を各backendで実行し、失敗がcrateのtests/expected_failures.txtの範囲内であることを判定します。結果は[url-wpt.json](../results/url-wpt.json)に記録します。
+
+| 構成     | 成功 / 全体 | expected_failures.txt外の失敗 |
+| -------- | ----------- | ----------------------------- |
+| QuickJS  | 1027 / 1073 | 0                             |
+| Boa      | 1027 / 1073 | 0                             |
+| V8       | 1027 / 1073 | 0                             |
+| Node参照 | 1052 / 1073 | 参考値（Nodeのparser）        |
+
+残る46件は `url` crateの既知差分で、file URLのhost・空のpath segment・Windows drive letterの扱いと、特殊でないschemeで `/.//` のようなpathを伴うparse / setterです。以前のcore-js URLは同じデータで1007 / 1073でした。blob: URLのoriginはcrateの `quirks::origin` が現行仕様より前の動作のため、内側のURLがhttp(s)の場合だけそのoriginを返すようhostで補います。URLのIDL accessor、`searchParams` の双方向連動、lone surrogateの置換は独自回帰で検証し、`url.parse` / `url.set` はbridge_bodies fuzz targetが任意の入力で呼び出します。
+
 CIにWindows / Linuxのrunner自己試験と適合性行列を組み込んでいます。remote CIの実行結果は、今後その環境で確認します。
 
 ## 実行環境の範囲

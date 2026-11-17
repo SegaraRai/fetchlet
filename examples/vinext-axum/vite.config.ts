@@ -3,7 +3,12 @@ import vinext from "vinext";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  plugins: [vinext(), fetchletVinext({ backend: "quickjs" })],
+  plugins: [
+    vinext(),
+    fetchletVinext({
+      backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+    }),
+  ],
   run: {
     tasks: {
       build: {

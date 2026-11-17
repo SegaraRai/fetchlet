@@ -9,7 +9,7 @@ use axum::routing::get;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
-use fetchlet::{App, Backend, Module, WorkerOptions};
+use fetchlet::{App, Module};
 use fetchlet_axum::FetchletService;
 
 use crate::config::Config;
@@ -25,11 +25,11 @@ pub(crate) async fn run(config: Config) -> Result<()> {
         .clone()
         .unwrap_or_else(|| format!("http://{address}"));
     let api = Arc::new(ProjectsApi::default());
-    let app = App::builder(Backend::quickjs())
+    let app = App::builder(config.backend()?)
         .module(Module::new(source))
         .host_services(host_services(&config.message, api.clone())?)
         .limits(config.limits())
-        .spawn(WorkerOptions::new(config.queue_capacity))
+        .spawn(config.worker_options())
         .await?;
     let rendering = FetchletService::new(app.clone(), &origin)?
         // Rust decides the caller; in-process API routes receive it.

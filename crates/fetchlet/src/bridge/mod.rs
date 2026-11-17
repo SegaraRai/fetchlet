@@ -7,6 +7,14 @@ mod reentry;
 mod crypto;
 #[cfg(feature = "fuzzing")]
 mod harness;
+#[cfg(any(
+    feature = "boa",
+    feature = "quickjs",
+    feature = "v8",
+    feature = "fuzzing",
+    test
+))]
+mod url_api;
 
 pub(crate) use dispatcher::HostBridge;
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]

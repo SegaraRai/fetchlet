@@ -1274,6 +1274,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "fetchlet-bench"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "fetchlet",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "fetchlet-fuzz"
 version = "0.0.0"
 dependencies = [

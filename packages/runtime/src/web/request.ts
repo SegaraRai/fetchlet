@@ -160,7 +160,7 @@ class RequestImpl extends BodyImpl {
       init.headers ?? (old ? (input as RequestImpl).headers : undefined),
     );
 
-    if (["GET", "HEAD"].includes(method) && this.body) {
+    if (["GET", "HEAD"].includes(method) && this.hasBody()) {
       throw new TypeError("GET/HEAD body");
     }
 

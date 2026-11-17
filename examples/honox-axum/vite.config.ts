@@ -9,7 +9,10 @@ export default defineConfig({
   },
   plugins: [
     honox({ client: { input: ["/app/client.ts", "/app/style.css"] } }),
-    fetchletBuild({ entry: "./app/server.ts", backend: "quickjs" }),
+    fetchletBuild({
+      entry: "./app/server.ts",
+      backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+    }),
   ],
   run: {
     tasks: {

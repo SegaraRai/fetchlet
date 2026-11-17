@@ -132,6 +132,7 @@ function parseHeaders(block: Uint8Array) {
       case "content-disposition":
         disposition = value;
         break;
+
       case "content-type":
         contentType = value;
         break;
@@ -148,7 +149,9 @@ function parseHeaders(block: Uint8Array) {
   let filename: string | undefined;
   for (const parameter of parameters) {
     const separator = parameter.indexOf("=");
-    if (separator < 0) continue;
+    if (separator < 0) {
+      continue;
+    }
     const key = parameter.slice(0, separator).trim().toLowerCase();
     const value = unescapeFieldName(unquote(parameter.slice(separator + 1).trim()));
     if (key === "name") {
@@ -192,16 +195,28 @@ export function parseMultipart(bytes: Uint8Array, boundary: string): MultipartEn
   // content, so other text after the boundary at a line start is an error.
   function nextDelimiter(from: number): Delimiter {
     const at = indexOf(bytes, delimiter, from);
-    if (at < 0) invalid("no closing boundary");
+    if (at < 0) {
+      invalid("no closing boundary");
+    }
     let position = at + delimiter.length;
     if (bytes[position] === HYPHEN && bytes[position + 1] === HYPHEN) {
-      return { at, end: position + 2, close: true };
+      return {
+        at,
+        end: position + 2,
+        close: true,
+      };
     }
-    while (bytes[position] === SPACE || bytes[position] === TAB) position += 1;
+    while (bytes[position] === SPACE || bytes[position] === TAB) {
+      position += 1;
+    }
     if (bytes[position] !== CR || bytes[position + 1] !== LF) {
       invalid("malformed delimiter line");
     }
-    return { at, end: position + 2, close: false };
+    return {
+      at,
+      end: position + 2,
+      close: false,
+    };
   }
 
   // The first delimiter may start the body or follow a preamble line. Treat

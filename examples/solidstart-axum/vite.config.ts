@@ -3,7 +3,12 @@ import { solidStart } from "@solidjs/start/config";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  plugins: [solidStart(), fetchletSolidStart({ backend: "quickjs" })],
+  plugins: [
+    solidStart(),
+    fetchletSolidStart({
+      backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+    }),
+  ],
   run: {
     tasks: {
       build: {

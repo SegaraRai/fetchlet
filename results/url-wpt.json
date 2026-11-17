@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-11-17T01:05:44.680Z",
+  "data": "registry+https://github.com/rust-lang/crates.io-index#url@2.5.8",
+  "backends": {
+    "node-reference": {
+      "total": 1073,
+      "failures": 21,
+      "unexpected": [
+        "<http://a.b.c.xn--pokxncvks>",
+        "<http://10.0.0.xn--pokxncvks>",
+        "<http://a.b.c.XN--pokxncvks>",
+        "<http://a.b.c.Xn--pokxncvks>",
+        "<http://10.0.0.XN--pokxncvks>",
+        "<http://10.0.0.xN--pokxncvks>",
+        "<file://xn--/p>",
+        "<foo://host/ !\\\"$%&\\'()*+,-./:;<=>@[\\\\]^_`{|}~>",
+        "<wss://host/ !\\\"$%&\\'()*+,-./:;<=>@[\\\\]^_`{|}~>",
+        "<https://xn--/>",
+        "<https://example.com/> set host to <xn-->",
+        "<https://example.com/> set hostname to <xn-->",
+        "<a:/> set pathname to <\\u{0}\\u{1}\\t\\n\\r\\u{1f} !\\\"#$%&\\'()*+,-./09:;<=>?@AZ[\\\\]^_`az{|}~\\u{7f}\\u{80}\\u{81}\\u{c9}\\u{e9}>",
+        "<data:space ?query> set search to <>",
+        "<sc:space ?query> set search to <>",
+        "<data:space  ?query#fragment> set search to <>",
+        "<sc:space  ?query#fragment> set search to <>",
+        "<data:space                                                                                                                                  #fragment> set hash to <>",
+        "<sc:space    #fragment> set hash to <>",
+        "<data:space  ?query#fragment> set hash to <>",
+        "<sc:space  ?query#fragment> set hash to <>"
+      ]
+    },
+    "quickjs": {
+      "total": 1073,
+      "failures": 46,
+      "unexpected": []
+    },
+    "boa": {
+      "total": 1073,
+      "failures": 46,
+      "unexpected": []
+    },
+    "v8": {
+      "total": 1073,
+      "failures": 46,
+      "unexpected": []
+    }
+  }
+}

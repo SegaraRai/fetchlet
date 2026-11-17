@@ -4,7 +4,13 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  plugins: [tanstackStart(), react(), fetchletStart({ backend: "quickjs" })],
+  plugins: [
+    tanstackStart(),
+    react(),
+    fetchletStart({
+      backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
+    }),
+  ],
   run: {
     tasks: {
       build: {

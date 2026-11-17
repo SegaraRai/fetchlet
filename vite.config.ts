@@ -28,6 +28,12 @@ export default defineConfig({
       "test:fuzz": { command: "pwsh -NoProfile -File tools/test-fuzz.ps1", cache: false },
       "test:rust": { command: "pwsh -NoProfile -File tools/test-rust.ps1", cache: false },
       "test:aot": { command: "node tools/test-aot.mjs", cache: false },
+      bench: { command: "node tools/bench/run.mjs", cache: false },
+      "test:url": {
+        command:
+          "pwsh -NoProfile -File tools/cargo.ps1 build --locked -p fetchlet --bin fetchlet-lab --all-features && node tools/test-url.mjs",
+        cache: false,
+      },
       "test:native": { command: "pwsh -NoProfile -File tools/test-native-link.ps1", cache: false },
       "check:types": {
         command:

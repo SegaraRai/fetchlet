@@ -6,7 +6,7 @@ export default {
   buildDirectory: "build",
   presets: [
     fetchletPreset({
-      backend: "quickjs",
+      backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
     }),
   ],
 } satisfies Config;

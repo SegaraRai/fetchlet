@@ -290,3 +290,131 @@ test(() => {
   assert_throws_js(TypeError, () => new Request(url, { cache: "only-if-cached" }));
   assert_equals(new Request(url, { priority: "high" }).url, url);
 }, "Request validates RequestInit enumerations and mode constraints");
+
+promise_test(async (t) => {
+  const response = new Response("abc");
+  assert_equals(await response.text(), "abc");
+  assert_true(response.bodyUsed);
+  const stream = response.body;
+  assert_not_equals(stream, null);
+  assert_true(stream.locked, "a fully read body stays locked");
+  assert_equals(response.body, stream);
+  await promise_rejects_js(t, TypeError, response.text());
+  assert_throws_js(TypeError, () => response.clone());
+}, "Reading a byte body without its stream leaves the Body used and its stream locked");
+
+promise_test(async (t) => {
+  const response = new Response("abc");
+  const stream = response.body;
+  assert_equals(response.body, stream, "body returns one stream");
+  assert_false(response.bodyUsed);
+  assert_equals(await response.text(), "abc");
+  assert_true(response.bodyUsed);
+  assert_equals(response.body, stream);
+  await promise_rejects_js(t, TypeError, response.text());
+}, "A byte body read after exposing its stream uses that stream");
+
+promise_test(async (t) => {
+  const response = new Response(new Uint8Array([1, 2, 3]));
+  const copy = response.clone();
+  const first = new Uint8Array(await response.arrayBuffer());
+  first[0] = 9;
+  assert_array_equals(new Uint8Array(await copy.arrayBuffer()), [1, 2, 3]);
+  assert_true(copy.bodyUsed);
+}, "Clones of a byte body read independent buffers");
+
+promise_test(async (t) => {
+  const response = new Response("");
+  assert_not_equals(response.body, null);
+  const empty = new Response("");
+  assert_equals(await empty.text(), "");
+  assert_true(empty.bodyUsed);
+  await promise_rejects_js(t, TypeError, empty.arrayBuffer());
+}, "An empty byte body is a non-null body that can be read once");
+
+promise_test(async (t) => {
+  assert_throws_js(TypeError, () => new Request("https://example.test/", { body: "x" }));
+  const request = new Request("https://example.test/", { method: "POST", body: "payload" });
+  assert_equals(request.headers.get("content-type"), "text/plain;charset=UTF-8");
+  const copy = request.clone();
+  assert_equals(await request.text(), "payload");
+  assert_equals(await copy.text(), "payload");
+  const reader = new Request("https://example.test/", {
+    method: "POST",
+    body: "chunk",
+  }).body.getReader();
+  const { value } = await reader.read();
+  assert_equals(new TextDecoder().decode(value), "chunk");
+  assert_true((await reader.read()).done);
+}, "Request byte bodies keep GET/HEAD checks, clone and stream reads");
+
+test(() => {
+  const url = new URL("https://example.test/path?a=1&b=2#frag");
+  const params = url.searchParams;
+  assert_equals(url.searchParams, params, "searchParams is the same object");
+  assert_true(params instanceof URLSearchParams);
+  params.append("c", "3 4");
+  assert_equals(url.search, "?a=1&b=2&c=3+4");
+  params.delete("a");
+  params.set("b", "x");
+  assert_equals(url.href, "https://example.test/path?b=x&c=3+4#frag");
+  params.delete("b");
+  params.delete("c");
+  assert_equals(url.search, "");
+  assert_equals(url.href, "https://example.test/path#frag", "an empty list removes the query");
+}, "URL searchParams changes update the URL's query");
+
+test(() => {
+  const url = new URL("https://example.test/?a=1");
+  const params = url.searchParams;
+  url.search = "?x=1&x=2";
+  assert_array_equals(params.getAll("x"), ["1", "2"]);
+  assert_false(params.has("a"));
+  url.href = "https://example.test/?y=3";
+  assert_equals(params.get("y"), "3");
+  assert_false(params.has("x"));
+  params.sort();
+  assert_equals(url.search, "?y=3");
+}, "URL query changes replace the searchParams list");
+
+test(() => {
+  assert_true(URL.canParse("/a", "https://example.test/"));
+  assert_false(URL.canParse("/a"));
+  assert_equals(URL.parse("/a"), null);
+  const parsed = URL.parse("b?c", "https://example.test/a/");
+  assert_true(parsed instanceof URL);
+  assert_equals(parsed.href, "https://example.test/a/b?c");
+  assert_throws_js(TypeError, () => URL.parse(Symbol("url")));
+  assert_throws_js(TypeError, () => new URL("/relative"));
+  assert_throws_js(TypeError, () => URL.canParse());
+}, "URL.parse and URL.canParse return failure without throwing, after argument conversion");
+
+test(() => {
+  const url = new URL("https://user:pass@example.test:8080/p?q#h");
+  assert_equals(JSON.stringify({ url }), '{"url":"https://user:pass@example.test:8080/p?q#h"}');
+  assert_equals(String(url), url.href);
+  assert_equals(Object.prototype.toString.call(url), "[object URL]");
+  for (const name of ["href", "origin", "protocol", "host", "port", "search", "searchParams"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, name);
+    assert_true(descriptor.enumerable, name + " is enumerable");
+    assert_equals(typeof descriptor.get, "function", name + " getter");
+    assert_false(Object.hasOwn(url, name), name + " is not an own property");
+  }
+  assert_throws_js(TypeError, () =>
+    Object.getOwnPropertyDescriptor(URL.prototype, "href").get.call({}),
+  );
+  url.port = "not a port";
+  assert_equals(url.port, "8080", "an invalid port is ignored");
+  assert_throws_js(TypeError, () => {
+    url.href = "not a url";
+  });
+  assert_equals(url.href, "https://user:pass@example.test:8080/p?q#h");
+}, "URL attributes are Web IDL accessors with the standard setter failure modes");
+
+test(() => {
+  const url = new URL("https://example.test/\uD800?\uDC00");
+  assert_equals(url.pathname, "/%EF%BF%BD");
+  assert_equals(url.search, "?%EF%BF%BD");
+  assert_equals(new URL("blob:https://example.test:8443/id").origin, "https://example.test:8443");
+  assert_equals(new URL("blob:ws://example.test/").origin, "null");
+}, "URL converts lone surrogates and derives blob: origins from http(s) paths");

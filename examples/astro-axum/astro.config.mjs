@@ -8,7 +8,7 @@ export default defineConfig({
   cacheDir: "./.astro",
   output: "server",
   build: { inlineStylesheets: "never" },
-  adapter: fetchletAdapter({ backend: "quickjs" }),
+  adapter: fetchletAdapter({ backend: process.env.FETCHLET_BACKEND ?? "quickjs" }),
   integrations: [svelte({ compilerOptions: { experimental: { async: false } } })],
   image: { service: { entrypoint: "astro/assets/services/noop" } },
 });

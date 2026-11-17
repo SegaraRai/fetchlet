@@ -193,6 +193,8 @@ check("hydration, client actions and React Router navigation", async () => {
 
   await page.getByRole("link", { name: "このページについて" }).click();
   await page.waitForURL("**/about");
+  // The URL changes before the route renders.
+  await page.getByRole("heading", { name: "このページについて" }).waitFor();
   assert.equal(await page.getByRole("heading", { name: "このページについて" }).count(), 1);
   assert.equal(await page.evaluate(() => window.fetchletNavigationMarker), "retained");
   assert.deepEqual(errors, []);

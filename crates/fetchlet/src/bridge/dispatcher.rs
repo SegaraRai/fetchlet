@@ -17,6 +17,13 @@ use crate::{Body, Context, Error, HostServices, Limits, Response, Result};
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 use super::crypto;
+#[cfg(any(
+    feature = "boa",
+    feature = "quickjs",
+    feature = "v8",
+    feature = "fuzzing"
+))]
+use super::url_api;
 
 struct PendingFetch {
     future: TransportFuture,
@@ -297,6 +304,13 @@ impl HostBridge {
             "background.settle" => self.settle_background(),
             #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
             "random" | "sha256" => crypto::dispatch(operation, input, &limits),
+            #[cfg(any(
+                feature = "boa",
+                feature = "quickjs",
+                feature = "v8",
+                feature = "fuzzing"
+            ))]
+            "url.parse" | "url.set" => url_api::dispatch(operation, input),
             _ => Err(Error::PermissionDenied),
         }
     }

@@ -101,6 +101,54 @@ fn ok(reply: &Value) -> bool {
     }
 }
 
+const URL_SETTERS: [&str; 10] = [
+    "href", "protocol", "username", "password", "host", "hostname", "port", "pathname", "search",
+    "hash",
+];
+
+/// Parse or set a URL from arbitrary text. A parsed URL has every
+/// component, and its href parses back to itself; only `href` can fail.
+fn url_operation(input: &mut Input, harness: &BridgeHarness) {
+    let selector = input.byte().unwrap_or(0);
+    let length = usize::from(input.byte().unwrap_or(0));
+    let text = String::from_utf8_lossy(input.bytes(length)).into_owned();
+    let (first, second) = text.split_once('\n').unwrap_or((&text, ""));
+    let (operation, message) = if selector & 1 == 0 {
+        let base = (selector & 2 == 2).then_some(second);
+        ("url.parse", serde_json::json!([first, base]))
+    } else {
+        let setter = URL_SETTERS[usize::from(selector >> 1) % URL_SETTERS.len()];
+        let href =
+            url::Url::parse(first).map_or_else(|_| "https://fetchlet.test/".into(), String::from);
+        ("url.set", serde_json::json!([href, setter, second]))
+    };
+    let reply = harness.dispatch(operation, &message.to_string());
+    if !ok(&reply) {
+        return;
+    }
+    let value = &reply["value"];
+    if value.is_null() {
+        assert!(
+            operation == "url.parse" || message[1] == "href",
+            "{message} -> null"
+        );
+        return;
+    }
+    let parts = value.as_array().expect("URL components");
+    assert_eq!(parts.len(), 11, "{value}");
+    assert!(parts.iter().all(Value::is_string), "{value}");
+    let again = harness.dispatch(
+        "url.parse",
+        &serde_json::json!([parts[0], null]).to_string(),
+    );
+    if ok(&again) {
+        assert_eq!(
+            again["value"][0], parts[0],
+            "href does not parse back to itself"
+        );
+    }
+}
+
 fn pick(values: &[u64], selector: u8) -> Option<u64> {
     (!values.is_empty()).then(|| values[usize::from(selector) % values.len()])
 }
@@ -156,7 +204,7 @@ fuzz_target!(|data: &[u8]| {
     let mut model = Model::default();
 
     while let Some(operation) = input.byte() {
-        match operation % 11 {
+        match operation % 12 {
             0 => {
                 let budget = input.byte().unwrap_or(0);
                 let limits = Limits {
@@ -297,6 +345,7 @@ fuzz_target!(|data: &[u8]| {
                 }
             }
             9 => poll(&harness, &mut model),
+            10 => url_operation(&mut input, &harness),
             _ => {
                 let length = usize::from(input.byte().unwrap_or(0) % 64);
                 let raw = String::from_utf8_lossy(input.bytes(length)).into_owned();

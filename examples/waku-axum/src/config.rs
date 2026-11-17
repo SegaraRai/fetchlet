@@ -8,6 +8,17 @@ use serde::Deserialize;
 
 use fetchlet::{Backend, Limits, QuickJsOptions, WorkerOptions};
 
+/// The JavaScript engine. Boa and V8 need the example's cargo feature of the
+/// same name, and an artifact built for that backend.
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Engine {
+    #[default]
+    Quickjs,
+    Boa,
+    V8,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Config {
@@ -20,6 +31,8 @@ pub(crate) struct Config {
     pub message: String,
     pub build_directory: PathBuf,
     pub public_origin: Option<String>,
+    #[serde(default)]
+    pub backend: Engine,
     /// The QuickJS stack limit. React's server renderer recurses deeply; on
     /// overflow it retries the element and can leave a partial tag behind.
     pub quickjs_stack_bytes: Option<usize>,
@@ -41,11 +54,21 @@ impl Config {
         Ok(config)
     }
 
-    pub fn backend(&self) -> Backend {
-        Backend::QuickJs(QuickJsOptions {
-            stack_limit_bytes: self.quickjs_stack_bytes,
-            ..QuickJsOptions::default()
-        })
+    pub fn backend(&self) -> Result<Backend> {
+        match self.backend {
+            Engine::Quickjs => Ok(Backend::QuickJs(QuickJsOptions {
+                stack_limit_bytes: self.quickjs_stack_bytes,
+                ..QuickJsOptions::default()
+            })),
+            #[cfg(feature = "boa")]
+            Engine::Boa => Ok(Backend::Boa),
+            #[cfg(feature = "v8")]
+            Engine::V8 => Ok(Backend::V8(fetchlet::V8Options {
+                worker_stack_bytes: self.worker_stack_bytes.map(NonZeroUsize::get),
+            })),
+            #[allow(unreachable_patterns)]
+            engine => anyhow::bail!("build the server with the {engine:?} feature to use it"),
+        }
     }
 
     pub fn worker_options(&self) -> WorkerOptions {

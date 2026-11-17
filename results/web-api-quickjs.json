@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "runtimeLabel": "embedded portable profile",
-  "checkedAt": "2026-11-16T17:17:26.193Z",
+  "checkedAt": "2026-11-17T01:03:24.783Z",
   "globals": {
     "Request": "function",
     "Response": "function",
