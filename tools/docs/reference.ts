@@ -29,8 +29,6 @@ const sections = [
   polyfills(),
   examples(),
   fuzzing(),
-  aot(),
-  benchmarks(),
 ];
 
 const page = [
@@ -226,48 +224,6 @@ function fuzzing(): string[] {
     `\`vp run test:fuzz\`. ${recorded(result)} AddressSanitizer, up to ${result.requestedRuns.toLocaleString("en-US")} runs or ${result.timeBudgetSeconds} s per target, ${result.compiler}.`,
     "",
     ...table(["Target", "Status", "Runs"], rows),
-  ];
-}
-
-function aot(): string[] {
-  const matrix = read("aot-matrix.json");
-  const link = read("native-link-matrix.json");
-  const matrixRows = (
-    matrix.results as {
-      backend: string;
-      compiler: string;
-      suite: string;
-      inputMode: string;
-      status: string;
-    }[]
-  ).map((entry) => [
-    `${entry.backend} ${entry.compiler}`,
-    entry.suite,
-    entry.inputMode,
-    entry.status,
-  ]);
-  const linkRows = (link.results as { backend: string; stage: string; status: string }[]).map(
-    (entry) => [entry.backend, entry.stage, entry.status],
-  );
-  return [
-    "## Ahead-of-time compilation",
-    "",
-    `\`vp run test:aot\`. ${recorded(matrix)} Experimental; [research](../research/native-aot.md) explains the failures.`,
-    "",
-    ...table(["Compiler", "Suite", "Input", "Status"], matrixRows),
-    "",
-    `\`vp run test:aot-link\`, target ${link.target}: Perry ${link.perry}, scriptc ${link.scriptc}, Zig ${link.zig}.`,
-    "",
-    ...table(["Compiler", "Stage", "Status"], linkRows),
-  ];
-}
-
-function benchmarks(): string[] {
-  const result = read("bench.json");
-  return [
-    "## Benchmarks",
-    "",
-    `\`vp run bench\` on ${result.machine.cpu}. ${recorded(result)} Requests per second and latency per example and engine are in [results/bench.md](../../results/bench.md).`,
   ];
 }
 

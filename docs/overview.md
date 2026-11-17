@@ -62,8 +62,8 @@ state is reused only within one application, tenant and authority boundary.
 Today fetchlet runs trusted application code in-process. Deadlines are
 cooperative, and request and response bodies stream in both directions.
 Hard CPU and heap enforcement, process isolation and instance pools are
-planned work, listed in [open work](TODO.md). Experimental ahead-of-time
-compilation with Perry and scriptc is tracked separately in
+planned work, listed in [open work](TODO.md). An investigation of
+ahead-of-time compilation with Perry and scriptc is in
 [research](research/native-aot.md).
 
 ## Where to go next

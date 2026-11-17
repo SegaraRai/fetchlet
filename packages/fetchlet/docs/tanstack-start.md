@@ -1,8 +1,8 @@
 # fetchlet/tanstack-start
 
 A Vite plugin that bundles TanStack Start's server environment into a
-fetchlet artifact. Verified with `@tanstack/react-start` 1.169.5,
-`@tanstack/react-router` 1.170.46 and React 19.3.1.
+fetchlet artifact. Supports `@tanstack/react-start` 1;
+[examples/tanstack-start-axum](../../../examples/tanstack-start-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts

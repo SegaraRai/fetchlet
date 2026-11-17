@@ -35,6 +35,7 @@ jobs:
       - run: vp run test:package
       - run: vp run test:matrix
       - run: vp run test:host
+      - run: vp run test:url
       - run: vp run setup:browser
       - run: vp run test:examples
       - uses: actions/upload-artifact@v7.0.2

@@ -54,8 +54,10 @@ sending the next request on that connection, with a two-thread tokio
 client. Requests per second count the 2xx responses completed in the
 measured time; latency runs from sending to the end of the body.
 
-Results go to `results/bench.json` (every number) and `results/bench.md`
-(tables); server stderr stays in `.cache/bench/<framework>/<backend>/server.log`.
+Results go to `.cache/bench/bench.json` (every number) and
+`.cache/bench/bench.md` (tables), with the toolchain and engine versions;
+server stderr stays in `.cache/bench/<framework>/<backend>/server.log`.
+Numbers depend on the machine, so they are not committed.
 
 ## Baselines
 
@@ -113,21 +115,3 @@ node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin invoke -- .c
 | `host_us.worker_*`                                   | The same calls on a worker thread, the HTTP server's path                           |
 
 Single runs can include outliers even on one machine; compare several runs.
-
-## Effect of the host URL parser
-
-Moving URL parsing from core-js to the host's `url` crate, measured on one
-machine: `invoke` averaged two runs of 2000 iterations; HTTP swapped the
-artifact and alternated old and new twice for five seconds each.
-
-| `invoke` (µs)           | QuickJS old → new | V8 old → new      |
-| ----------------------- | ----------------- | ----------------- |
-| `js_us.url`             | 53–63 → 6–7       | 16–25 → 4.4–4.6   |
-| `js_us.request`         | 72–81 → 15        | 18–21 → 5.2       |
-| `host_us.fetch_context` | 296–370 → 131–142 | 122–149 → 55–59   |
-| `host_us.fetch_ssr`     | 507–646 → 266–272 | 243–246 → 124–129 |
-
-HTTP throughput for `ssr`, `context` and `echo` on bare, HonoX, SvelteKit and
-React Router rose 23–138% on QuickJS and 20–50% on V8. The largest gain was
-React Router's `context`, which builds several URLs (QuickJS 618 → 1468
-req/s). The full matrix in `results/bench.json` predates this change.

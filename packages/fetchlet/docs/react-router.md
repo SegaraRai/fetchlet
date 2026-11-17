@@ -1,7 +1,8 @@
 # fetchlet/react-router
 
 A React Router preset that bundles a framework-mode server build into a
-fetchlet artifact. Verified with React Router 8.5.1 and React 19.3.1.
+fetchlet artifact. Supports React Router 8;
+[examples/react-router-axum](../../../examples/react-router-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
 // react-router.config.ts

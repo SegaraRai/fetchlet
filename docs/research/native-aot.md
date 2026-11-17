@@ -1,17 +1,16 @@
 # Research: ahead-of-time compilation
 
-fetchlet keeps an experimental track that compiles TypeScript and JavaScript
-to native code with Perry and scriptc and links it into Rust. It shares the
-usage model — exported functions first, then the Fetch adapter — and treats
-loading, linking and the ABI as its own problem. It is not part of `App`.
+This investigation compiled TypeScript and JavaScript to native code with
+Perry and scriptc and linked it into Rust, with the same usage model as
+`App`: exported functions first, then the Fetch adapter. It is not part of
+fetchlet and has no maintained test suite. The compiler and link matrices
+and their tools (`tools/aot/`, `fixtures/aot/`) were removed after commit
+609d5f8, where they can be restored to resume the work.
 
-## Status
+## Findings
 
 Pinned official Windows builds of Perry 0.5.1665 and scriptc 0.4.14 were
-installed with their SHA-256 verified; scriptc links with Zig 0.15.2.
-`vp run setup:aot` installs them into `.cache/tools`; `vp run test:aot` runs
-the compiler matrix and `vp run test:aot-link` the static link matrix. The
-AOT matrix records failing rows and exits with code 1.
+installed with their SHA-256 verified; scriptc linked with Zig 0.15.2.
 
 | Compiler and input      | Plain functions            | Hono JSX                     | SvelteKit                    |
 | ----------------------- | -------------------------- | ---------------------------- | ---------------------------- |
@@ -23,8 +22,6 @@ AOT matrix records failing rows and exits with code 1.
 These are smoke tests of generated executables: functions must return
 numbers, objects and Promises; frameworks must answer a synthetic GET with
 the expected status and body.
-[aot-matrix.json](../../results/aot-matrix.json) records input hashes, exit
-codes, output and failure reasons.
 
 Perry ran Hono JSX with an earlier profile. Since the Encoding provider
 moved to `@exodus/bytes`, Perry fails earlier, when its native
@@ -46,8 +43,7 @@ initialization order per AOT compiler is the next compatibility step.
 Both compilers produce static libraries. scriptc's native-link-info names
 the MSVC target while its driver used the Windows GNU target, so the last
 row is a minimal ABI check with matching CRTs. It is the foundation for a
-synchronous ABI. [native-link-matrix.json](../../results/native-link-matrix.json)
-has the results and `tools/aot/native-link.ts` the reproduction.
+synchronous ABI.
 
 ## Library output
 
@@ -103,7 +99,7 @@ Perry Buffers, and a sidecar identifies the handler convention
 Shared providers and static linking into one executable suit different
 distributions; Coop's ABI is a reference candidate.
 
-## Next
+## Resuming
 
 1. Link with an ordinary Rust host; pass strings and binary data; handle
    errors and release.

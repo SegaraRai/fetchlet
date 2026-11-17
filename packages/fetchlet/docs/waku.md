@@ -1,7 +1,8 @@
 # fetchlet/waku
 
 A Waku server entry adapter that bundles Waku's RSC server into a fetchlet
-artifact. Verified with waku 1.0.0-rc.5 and React 19.3.1.
+artifact. Supports Waku 1 from 1.0.0-rc.5;
+[examples/waku-axum](../../../examples/waku-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```tsx
 // src/waku.server.tsx

@@ -1,8 +1,9 @@
 # fetchlet/solid-start
 
 A Vite plugin that bundles SolidStart 2's server environment into a
-fetchlet artifact. Verified with `@solidjs/start` 2.2.3, solid-js 1.9.19 and
-`@solidjs/router` 1.0.3.
+fetchlet artifact. Supports `@solidjs/start` 2 with Solid 1
+([Solid 2](../../../docs/TODO.md#solid-2) is open work);
+[examples/solidstart-axum](../../../examples/solidstart-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts

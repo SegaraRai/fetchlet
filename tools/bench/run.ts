@@ -10,8 +10,9 @@
 // handler without a framework, served by the HonoX example's binary. The
 // `node` backend serves the v8 artifact (bare: the handler itself) from
 // node:http without fetchlet's Rust host; see node-server.ts. Results go
-// to results/bench.json and results/bench.md. With --merge, the measured
-// pairs replace their rows in the existing results and the others stay.
+// to .cache/bench/bench.json and bench.md, which are not committed. With
+// --merge, the measured pairs replace their rows in the existing results and
+// the others stay.
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -350,17 +351,19 @@ function markdown(report: Report): string {
 
 /** Replace the measured rows in the existing report, keeping its order and settings. */
 async function mergeInto(report: Report): Promise<void> {
-  const previous = JSON.parse(
-    await readFile(resolve(root, "results/bench.json"), "utf8"),
-  ) as Report;
+  const previous = JSON.parse(await readFile(resolve(cache, "bench.json"), "utf8")) as Report;
   for (const key of ["connections", "warmupMs", "durationMs"] as const) {
     if (previous[key] !== report[key]) {
-      throw new Error(`--merge needs the same ${key} as results/bench.json (${previous[key]})`);
+      throw new Error(
+        `--merge needs the same ${key} as .cache/bench/bench.json (${previous[key]})`,
+      );
     }
   }
   // Rows measured with other toolchain or engine versions would not compare.
   if (JSON.stringify(previous.environment) !== JSON.stringify(report.environment)) {
-    throw new Error("--merge needs the same environment as results/bench.json; rerun every row");
+    throw new Error(
+      "--merge needs the same environment as .cache/bench/bench.json; rerun every row",
+    );
   }
   const key = (row: Run) => row.framework + "/" + row.backend;
   const fresh = new Map(report.runs.map((row) => [key(row), row]));
@@ -446,11 +449,11 @@ async function main() {
     }
   }
 
-  await mkdir(resolve(root, "results"), { recursive: true });
+  await mkdir(cache, { recursive: true });
   if (options.merge) await mergeInto(report);
-  await writeFile(resolve(root, "results/bench.json"), JSON.stringify(report, null, 2) + "\n");
-  await writeFile(resolve(root, "results/bench.md"), markdown(report));
-  console.log("[bench] wrote results/bench.json and results/bench.md");
+  await writeFile(resolve(cache, "bench.json"), JSON.stringify(report, null, 2) + "\n");
+  await writeFile(resolve(cache, "bench.md"), markdown(report));
+  console.log("[bench] wrote .cache/bench/bench.json and bench.md");
 }
 
 await main();

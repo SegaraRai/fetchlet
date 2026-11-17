@@ -2,8 +2,8 @@
 
 A Vite plugin that bundles the App Router server of
 [vinext](https://github.com/cloudflare/vinext), an implementation of the
-Next.js API on Vite, into a fetchlet artifact. Verified with vinext 1.4.6
-and React 19.3.1.
+Next.js API on Vite, into a fetchlet artifact. Supports vinext 1;
+[examples/vinext-axum](../../../examples/vinext-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts

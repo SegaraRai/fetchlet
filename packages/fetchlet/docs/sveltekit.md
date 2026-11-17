@@ -1,9 +1,11 @@
 # fetchlet/sveltekit
 
 A SvelteKit adapter. It bundles the SvelteKit server into a fetchlet
-artifact and writes the client assets and manifest. Verified with SvelteKit
-3.2.0 and Svelte 5.57.3 in both the synchronous (default) and asynchronous
-rendering profiles.
+artifact and writes the client assets and manifest. Supports SvelteKit 3 in
+both the synchronous (default) and asynchronous rendering profiles;
+[examples/sveltekit-axum](../../../examples/sveltekit-axum/README.md) and
+[examples/sveltekit-axum-tauri](../../../examples/sveltekit-axum-tauri/README.md)
+check them, and [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
 import { defineConfig } from "vite";

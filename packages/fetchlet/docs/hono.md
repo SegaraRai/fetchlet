@@ -2,7 +2,10 @@
 
 A Vite plugin that bundles a Hono or HonoX app into a fetchlet artifact. It
 builds the app with `@hono/vite-build` and then runs [`fetchlet/build`](build.md).
-Verified with hono 4.13.19, honox 0.1.62 and `@hono/vite-build` 1.11.1.
+Supports `@hono/vite-build` 1;
+[examples/honox-axum](../../../examples/honox-axum/README.md) and
+[examples/honox-tauri](../../../examples/honox-tauri/README.md) check it, and
+[reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts

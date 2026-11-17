@@ -48,4 +48,7 @@
   resolve them.
 - [Web API implementations](research/web-api-implementations.md): a survey
   of LLRT, Deno and Boa runtimes.
-- [Ahead-of-time compilation](research/native-aot.md): Perry and scriptc.
+- [URL parsing in the host](research/host-url-parser.md): the measurement
+  behind moving URL parsing to Rust.
+- [Ahead-of-time compilation](research/native-aot.md): a concluded
+  investigation of Perry and scriptc.

@@ -101,36 +101,3 @@ Unexpected results: 0.
 | ------------- | ------ | ------- |
 | fetch_service | pass   | 213,347 |
 | bridge_bodies | pass   | 42,097  |
-
-## Ahead-of-time compilation
-
-`vp run test:aot`. The run predates version recording. Experimental; [research](../research/native-aot.md) explains the failures.
-
-| Compiler       | Suite     | Input          | Status |
-| -------------- | --------- | -------------- | ------ |
-| scriptc 0.4.14 | plain     | module-source  | pass   |
-| perry 0.5.1665 | plain     | module-source  | pass   |
-| scriptc 0.4.14 | hono      | module-source  | fail   |
-| perry 0.5.1665 | hono      | module-source  | fail   |
-| scriptc 0.4.14 | sveltekit | module-source  | fail   |
-| perry 0.5.1665 | sveltekit | module-source  | fail   |
-| scriptc 0.4.14 | hono      | bundled-es2019 | fail   |
-| scriptc 0.4.14 | sveltekit | bundled-es2019 | fail   |
-| perry 0.5.1665 | hono      | bundled-es2019 | fail   |
-| perry 0.5.1665 | sveltekit | bundled-es2019 | fail   |
-
-`vp run test:aot-link`, target x86_64-pc-windows-msvc: Perry 0.5.1665, scriptc 0.4.14, Zig 0.15.2.
-
-| Compiler | Stage                               | Status |
-| -------- | ----------------------------------- | ------ |
-| perry    | static-library                      | pass   |
-| perry    | rust-msvc-link                      | fail   |
-| scriptc  | static-library                      | pass   |
-| scriptc  | rust-msvc-link                      | fail   |
-| scriptc  | rust-object                         | pass   |
-| scriptc  | rust-with-c-gnu-bootstrap-link      | pass   |
-| scriptc  | rust-with-c-gnu-bootstrap-execution | pass   |
-
-## Benchmarks
-
-`vp run bench` on AMD Ryzen 7 9800X3D 8-Core Processor. The run predates version recording. Requests per second and latency per example and engine are in [results/bench.md](../../results/bench.md).

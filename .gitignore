@@ -7,8 +7,6 @@
 /fixtures/sveltekit/dist/
 /artifacts/
 /results/logs/
-/.perry-trace/
-/fixtures/aot/.scriptc/
 /build/
 /fuzz/target/
 /fuzz/artifacts/

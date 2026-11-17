@@ -1,7 +1,7 @@
 // Bundles the compatibility fixtures into artifacts/: `vp run build:fixtures`.
 //
 // functions-hono.js and sveltekit.js serve the runtime and host matrices and
-// the embed example; aot-*.js are the ES2019 inputs of the AOT matrix.
+// the embed example.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -60,9 +60,6 @@ const kitBuilder = await createBuilder({
 await kitBuilder.buildApp();
 process.chdir(root);
 await bundle("sveltekit", "fixtures/sveltekit/entry.ts");
-
-await bundle("aot-hono", "fixtures/aot/hono.ts", "es2019");
-await bundle("aot-sveltekit", "fixtures/aot/sveltekit.ts", "es2019");
 
 writeFileSync(
   resolve(artifacts, "build-info.json"),

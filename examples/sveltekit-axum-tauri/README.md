@@ -119,15 +119,13 @@ only `https://rust.fetchlet.test`.
 `rendering: "async"`, which replaces `node:async_hooks` with a
 per-invocation `AsyncLocalStorage` ([SvelteKit
 adapter](../../packages/fetchlet/docs/sveltekit.md)). Both features are
-experimental in SvelteKit 3.2.0 and Svelte 5.57.3.
+experimental in SvelteKit and Svelte.
 
 ## Why Rust highlights code
 
 Running Shiki's JavaScript regex engine on QuickJS failed with
 `too many captures`: after conversion, its grammars' regular expressions
-exceed QuickJS's limit of 255 captures. The same bundle runs on V8 (264 ms
-for the first note, then 3–8 ms, measured on a development machine on
-2026-11-17). This example defaults to QuickJS and leaves highlighting to
+exceed QuickJS's limit of 255 captures. The same bundle runs on V8. This example defaults to QuickJS and leaves highlighting to
 Rust's syntect (two-face, with bat's grammars), called from rendering
 JavaScript through a typed in-process fetch. It also shows JavaScript
 Markdown processing and native Rust processing combined in one render.

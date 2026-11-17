@@ -100,14 +100,6 @@ export default defineConfig({
         command: "node tools/rust/fuzz.ts",
         cache: false,
       },
-      "test:aot": {
-        command: "node tools/aot/test.ts",
-        cache: false,
-      },
-      "test:aot-link": {
-        command: "node tools/aot/native-link.ts",
-        cache: false,
-      },
       verify: {
         command: "",
         dependsOn: [
@@ -135,10 +127,6 @@ export default defineConfig({
       },
       "refresh:conformance": {
         command: "node tools/conformance/update-sources.ts",
-        cache: false,
-      },
-      "setup:aot": {
-        command: "node tools/aot/install.ts",
         cache: false,
       },
       "setup:browser": {

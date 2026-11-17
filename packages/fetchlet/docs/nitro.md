@@ -2,7 +2,8 @@
 
 A Nitro preset that bundles a Nitro server into a fetchlet artifact.
 Frameworks built on Nitro, such as Nuxt, produce the same artifact with
-`nitro.preset`. Verified with Nuxt 4.6.4, nitropack 2.13.6 and h3 1.15.11.
+`nitro.preset`. Supports nitropack 2 with h3 1;
+[examples/nuxt-axum](../../../examples/nuxt-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
 /// <reference types="fetchlet/nitro/types" />

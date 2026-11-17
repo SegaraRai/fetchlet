@@ -2,7 +2,8 @@
 
 An Astro adapter. It connects Request and Response through Astro's official
 server entrypoint API and builds the artifact with
-[`fetchlet/build`](build.md). Verified with Astro 7.4.12 server output.
+[`fetchlet/build`](build.md). Supports Astro 7 server output;
+[examples/astro-axum](../../../examples/astro-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```js
 import { defineConfig } from "astro/config";

@@ -1,8 +1,8 @@
 # fetchlet/qwik-city
 
 A Vite plugin and middleware that bundle a Qwik City 1 SSR build into a
-fetchlet artifact. Verified with `@builder.io/qwik` and
-`@builder.io/qwik-city` 1.20.4.
+fetchlet artifact. Supports `@builder.io/qwik-city` 1;
+[examples/qwik-city-axum](../../../examples/qwik-city-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts

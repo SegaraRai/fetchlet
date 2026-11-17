@@ -14,5 +14,5 @@ export function exampleBinary(name: string, profile: "debug" | "release" = "debu
   return resolve(root, `target/${profile}/example-${name}${exe}`);
 }
 
-/** Tool downloads such as AOT compilers, kept out of the repository. */
+/** Tool downloads and scratch installs, kept out of the repository. */
 export const toolCache = resolve(root, ".cache/tools");
