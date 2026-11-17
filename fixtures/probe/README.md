@@ -1,8 +1,9 @@
 # Web API probes
 
-`web-api.js` checks 23 local behaviors: binary bodies, Body consumption,
+`web-api.js` checks 27 local behaviors: binary bodies, Body consumption,
 repeated cookies, FormData, Streams, cancellation, Encoding, Abort,
-microtasks and timers, clone, Crypto and a synthetic handler.
+microtasks, timeouts and intervals, EventTarget and events, navigator
+and reportError, clone, Crypto and a synthetic handler.
 
 ## Reference runs
 
@@ -32,6 +33,6 @@ evaluate the script, and drive the promise of
 `globalThis.fetchletProbe({ runtimeLabel })` from the host.
 
 Each check uses a two-second test timeout where the environment allows; the
-host's deadline guards the whole run. The probes cover these 23 behaviors
+host's deadline guards the whole run. The probes cover these 27 behaviors
 only. Real HTTP, Rust body backpressure and full specification conformance
 have their own tests.

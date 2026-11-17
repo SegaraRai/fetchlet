@@ -65,8 +65,12 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
     "DOMException",
     "Event",
     "EventTarget",
+    "CustomEvent",
     "fetch",
     "setTimeout",
+    "setInterval",
+    "reportError",
+    "navigator",
     "queueMicrotask",
     "structuredClone",
     "crypto",
@@ -247,6 +251,45 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
       }, 0);
     });
     equal(order, ["microtask", "timer"]);
+  });
+  await check("interval-repeats-until-cleared", async () => {
+    let count = 0;
+    await new Promise((resolve) => {
+      const id = setInterval(() => {
+        count += 1;
+        if (count === 3) {
+          clearInterval(id);
+          setTimeout(resolve, 20);
+        }
+      }, 1);
+    });
+    equal(count, 3);
+  });
+  await check("event-target-dispatch", () => {
+    const target = new EventTarget();
+    const seen = [];
+    const listener = (event) => seen.push([event.type, event.detail, event.target === target]);
+    target.addEventListener("ping", listener, { once: true });
+    target.addEventListener("ping", { handleEvent: () => seen.push("object") });
+    target.addEventListener("ping", (event) => event.preventDefault());
+    const event = new CustomEvent("ping", { cancelable: true, detail: 42 });
+    equal(target.dispatchEvent(event), false);
+    target.dispatchEvent(new CustomEvent("ping", { detail: 7 }));
+    equal(seen, [["ping", 42, true], "object", "object"]);
+    equal([event.defaultPrevented, event.eventPhase, event.currentTarget], [true, 0, null]);
+  });
+  await check("abort-signal-is-event-target", () => {
+    const controller = new AbortController();
+    const order = [];
+    controller.signal.onabort = (event) => order.push(["handler", event.type, event.isTrusted]);
+    controller.signal.addEventListener("abort", () => order.push("listener"));
+    controller.abort();
+    equal(controller.signal instanceof EventTarget, true);
+    equal(order, [["handler", "abort", true], "listener"]);
+  });
+  await check("navigator-user-agent-and-report-error", () => {
+    equal(typeof navigator.userAgent, "string");
+    equal(typeof reportError, "function");
   });
   await check("structured-clone-cycle-and-bytes", () => {
     const original = { bytes: new Uint8Array([0, 255]) };

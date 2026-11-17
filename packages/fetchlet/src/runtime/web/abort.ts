@@ -1,70 +1,24 @@
+import { defineEventHandler, dispatchTrusted, EventTargetImpl } from "./events";
 import { runtime } from "./runtime";
 
 const internal = Symbol("fetchlet.abort");
-
-type Listener = {
-  callback: any;
-  capture: boolean;
-  once: boolean;
-  removed: boolean;
-  handler?: true;
-};
-
-function flattenOptions(options: any) {
-  if (typeof options === "boolean") {
-    return {
-      capture: options,
-      once: false,
-      signal: undefined,
-    };
-  }
-  if (options === null || typeof options !== "object") {
-    return {
-      capture: false,
-      once: false,
-      signal: undefined,
-    };
-  }
-  return {
-    capture: !!options.capture,
-    once: !!options.once,
-    signal: options.signal,
-  };
-}
 
 function abortError() {
   return new runtime.DOMException("signal is aborted without reason", "AbortError");
 }
 
-/** Minimal event object for the abort event when the host provides no Event constructor. */
-function abortEvent(target: object) {
-  if (typeof runtime.Event === "function") {
-    return new runtime.Event("abort");
-  }
-  return {
-    type: "abort",
-    target,
-    currentTarget: target,
-    srcElement: target,
-    eventPhase: 2,
-    bubbles: false,
-    cancelable: false,
-    composed: false,
-    defaultPrevented: false,
-    isTrusted: true,
-    timeStamp: runtime.performance?.now?.() ?? 0,
-    preventDefault() {},
-    stopPropagation() {},
-    stopImmediatePropagation() {},
-    composedPath: () => [target],
-  };
+// A host EventTarget, when present, stays the base so `instanceof` holds.
+const Base: typeof EventTargetImpl = runtime.EventTarget;
+
+function fireAbort(signal: AbortSignalImpl) {
+  const event = new runtime.Event("abort");
+  if (Base === EventTargetImpl) dispatchTrusted(signal, event);
+  else signal.dispatchEvent(event);
 }
 
-class AbortSignalImpl {
+class AbortSignalImpl extends Base {
   #aborted = false;
   #reason: any = undefined;
-  #listeners: Listener[] = [];
-  #handler: any = null;
   // DOM "dependent signal" bookkeeping for AbortSignal.any().
   #dependent = false;
   #sources = new Set<AbortSignalImpl>();
@@ -74,6 +28,7 @@ class AbortSignalImpl {
     if (token !== internal) {
       throw new TypeError("Illegal constructor");
     }
+    super();
   }
 
   get aborted() {
@@ -84,106 +39,9 @@ class AbortSignalImpl {
     return this.#reason;
   }
 
-  get onabort() {
-    return this.#handler;
-  }
-
-  set onabort(value: any) {
-    const callback =
-      typeof value === "function" || (value && typeof value === "object") ? value : null;
-    if (callback !== null && this.#handler === null) {
-      // An event handler occupies the listener position where it was first set.
-      this.#listeners.push({
-        callback: null,
-        capture: false,
-        once: false,
-        removed: false,
-        handler: true,
-      });
-    }
-    if (callback === null) {
-      const slot = this.#listeners.find((listener) => listener.handler);
-      if (slot) {
-        slot.removed = true;
-        this.#listeners = this.#listeners.filter((listener) => listener !== slot);
-      }
-    }
-    this.#handler = callback;
-  }
-
-  addEventListener(type: any, callback: any, options?: any) {
-    if (arguments.length < 2) {
-      throw new TypeError("addEventListener requires two arguments");
-    }
-    const { capture, once, signal } = flattenOptions(options);
-    if (String(type) !== "abort" || callback === null || callback === undefined) {
-      return;
-    }
-    if (signal?.aborted) {
-      return;
-    }
-    const exists = this.#listeners.some(
-      (listener) =>
-        !listener.handler && listener.callback === callback && listener.capture === capture,
-    );
-    if (exists) {
-      return;
-    }
-    const listener: Listener = { callback, capture, once, removed: false };
-    this.#listeners.push(listener);
-    signal?.addEventListener?.("abort", () => this.removeEventListener(type, callback, options));
-  }
-
-  removeEventListener(type: any, callback: any, options?: any) {
-    if (arguments.length < 2) {
-      throw new TypeError("removeEventListener requires two arguments");
-    }
-    const { capture } = flattenOptions(options);
-    if (String(type) !== "abort") {
-      return;
-    }
-    const index = this.#listeners.findIndex(
-      (listener) =>
-        !listener.handler && listener.callback === callback && listener.capture === capture,
-    );
-    if (index >= 0) {
-      this.#listeners[index].removed = true;
-      this.#listeners.splice(index, 1);
-    }
-  }
-
-  dispatchEvent(event: any) {
-    if (event?.type === "abort") {
-      this.#fire(event);
-    }
-    return true;
-  }
-
   throwIfAborted() {
     if (this.#aborted) {
       throw this.#reason;
-    }
-  }
-
-  #fire(event: any) {
-    for (const listener of this.#listeners.slice()) {
-      if (listener.removed) {
-        continue;
-      }
-      if (listener.once) {
-        this.removeEventListener("abort", listener.callback, listener);
-      }
-      const callback = listener.handler ? this.#handler : listener.callback;
-      try {
-        if (typeof callback === "function") {
-          callback.call(this, event);
-        } else if (typeof callback?.handleEvent === "function") {
-          callback.handleEvent(event);
-        }
-      } catch (error) {
-        // Listener exceptions are reported, not propagated to the aborting caller.
-        reportError(error);
-      }
     }
   }
 
@@ -203,9 +61,9 @@ class AbortSignalImpl {
       dependent.#reason = signal.#reason;
       dependents.push(dependent);
     }
-    signal.#fire(abortEvent(signal));
+    fireAbort(signal);
     for (const dependent of dependents) {
-      dependent.#fire(abortEvent(dependent));
+      fireAbort(dependent);
     }
   }
 
@@ -266,13 +124,7 @@ class AbortSignalImpl {
   }
 }
 
-function reportError(error: unknown) {
-  if (typeof runtime.reportError === "function") {
-    runtime.reportError(error);
-  } else {
-    runtime.console?.error?.(error);
-  }
-}
+defineEventHandler(AbortSignalImpl.prototype, "abort");
 
 class AbortControllerImpl {
   #signal = new AbortSignalImpl(internal);

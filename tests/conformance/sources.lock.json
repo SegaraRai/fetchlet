@@ -21,6 +21,15 @@
         "dom/abort/abort-signal-any.any.js",
         "dom/abort/event.any.js",
         "dom/abort/timeout.any.js",
+        "dom/events/AddEventListenerOptions-once.any.js",
+        "dom/events/AddEventListenerOptions-passive.any.js",
+        "dom/events/AddEventListenerOptions-signal.any.js",
+        "dom/events/Event-constructors.any.js",
+        "dom/events/Event-isTrusted.any.js",
+        "dom/events/EventTarget-add-remove-listener.any.js",
+        "dom/events/EventTarget-addEventListener.any.js",
+        "dom/events/EventTarget-constructible.any.js",
+        "dom/events/EventTarget-removeEventListener.any.js",
         "encoding/api-basics.any.js",
         "encoding/api-surrogates-utf8.any.js",
         "encoding/encodeInto.any.js",
@@ -120,6 +129,42 @@
         {
           "path": "dom/abort/timeout.any.js",
           "sha256": "c0388b0d5c0bab8785ab1421124706d4b70a16c981b5bb5c6d8477398f336911"
+        },
+        {
+          "path": "dom/events/AddEventListenerOptions-once.any.js",
+          "sha256": "9446ac20ed90dba10bb2cad56ae9fb67e57677b8930ce1703218564e172cd302"
+        },
+        {
+          "path": "dom/events/AddEventListenerOptions-passive.any.js",
+          "sha256": "521c3c08a44b4aaab640dc5fdd0140afed0b9d3f5c290327aeed8824f4482e3c"
+        },
+        {
+          "path": "dom/events/AddEventListenerOptions-signal.any.js",
+          "sha256": "26d439086c069f05f930ee3a3fda181e0034b489a89a7031696106cbdd97bc4c"
+        },
+        {
+          "path": "dom/events/Event-constructors.any.js",
+          "sha256": "860c64f2813cc3e31547aeb49f0a56ec9dde1e1bdfe0a4be7d94155bfbc1028b"
+        },
+        {
+          "path": "dom/events/Event-isTrusted.any.js",
+          "sha256": "73925cca5b100206b4070406e0666fa8516373af4a0285132af1fc40d5880084"
+        },
+        {
+          "path": "dom/events/EventTarget-add-remove-listener.any.js",
+          "sha256": "f1c1c806afb2a3fa88e8fc8e8c1fbbe2c1c9d3d5b7a5cc0df96680717f46f830"
+        },
+        {
+          "path": "dom/events/EventTarget-addEventListener.any.js",
+          "sha256": "7045782f35952ce90ee537a23a8e19b8623c03c2e42714c2097102b2a029783e"
+        },
+        {
+          "path": "dom/events/EventTarget-constructible.any.js",
+          "sha256": "f345e70db0bfcfe8a6a5e0ba4251ad55c79ce6955998991243d6e3277b80ae0e"
+        },
+        {
+          "path": "dom/events/EventTarget-removeEventListener.any.js",
+          "sha256": "5575deb3d90c09224a002a78fa398c0b16ca3ec856348467b642bb45bcefd384"
         },
         {
           "path": "encoding/api-basics.any.js",

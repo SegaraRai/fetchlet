@@ -6,12 +6,12 @@ describe that pinned selection, not a whole API or upstream suite.
 
 ## Layers
 
-| Suite             | Covers                                                               | Selection                                                                        |
-| ----------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| WPT               | Fetch, Headers, Blob, FormData, Encoding, Abort and Streams behavior | 86 files                                                                         |
-| Test262           | The engine's ECMAScript behavior                                     | `Array.prototype.at`, `Promise.resolve` and `throw`: 44 files, strict and sloppy |
-| Regressions       | Reproductions of fixed bugs                                          | Body, ownership, validation, Blob, FormData, Encoding, URL                       |
-| Runner self-tests | The runner itself                                                    | Assertion failures, async completion, modes, global code, expectations, timeouts |
+| Suite             | Covers                                                                       | Selection                                                                        |
+| ----------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| WPT               | Fetch, Headers, Blob, FormData, Encoding, Events, Abort and Streams behavior | 95 files                                                                         |
+| Test262           | The engine's ECMAScript behavior                                             | `Array.prototype.at`, `Promise.resolve` and `throw`: 44 files, strict and sloppy |
+| Regressions       | Reproductions of fixed bugs                                                  | Body, ownership, validation, Blob, FormData, Encoding, URL                       |
+| Runner self-tests | The runner itself                                                            | Assertion failures, async completion, modes, global code, expectations, timeouts |
 
 Framework end-to-end tests, Rust HTTP conversion, permissions, streaming
 backpressure and host fuzzing are separate suites ([security](security.md)).
@@ -109,8 +109,9 @@ Test262 and the regression tests pass everywhere. Counts per engine are in
 ### Selection
 
 The WPT files cover Fetch (Headers, Request, Response, Body), FileAPI (Blob,
-File), FormData, Encoding, DOM Abort and Streams (constructors, tee, cancel,
-async iteration, the default reader, byte stream tee). Files that need the
+File), FormData, Encoding, DOM Events (Event, EventTarget and listener
+options), DOM Abort and Streams (constructors, tee, cancel, async iteration,
+the default reader, byte stream tee). Files that need the
 WPT server (`header-values`, `json`, `response-cancel-stream`,
 `response-headers-guard`) are not selected. `request-disturbed`,
 `request-structure` and `request-keepalive` create relative-URL requests at
