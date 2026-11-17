@@ -10,7 +10,10 @@ if (runtime.navigator === undefined) {
       return "Navigator";
     },
   });
-  Object.defineProperty(navigator, "userAgent", { value: "fetchlet", enumerable: true });
+  Object.defineProperty(navigator, "userAgent", {
+    value: "fetchlet",
+    enumerable: true,
+  });
   runtime.navigator = navigator;
 }
 

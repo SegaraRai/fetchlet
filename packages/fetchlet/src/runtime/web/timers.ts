@@ -57,7 +57,10 @@ if (!runtime.setTimeout) {
       timers.delete(id);
       if (timer.repeat !== undefined) {
         // Rescheduled before the callback runs, so the callback can clear it.
-        timers.set(id, { ...timer, due: Date.now() + timer.repeat });
+        timers.set(id, {
+          ...timer,
+          due: Date.now() + timer.repeat,
+        });
       }
       timer.callback(...timer.args);
       return true;

@@ -12,8 +12,11 @@ const Base: typeof EventTargetImpl = runtime.EventTarget;
 
 function fireAbort(signal: AbortSignalImpl) {
   const event = new runtime.Event("abort");
-  if (Base === EventTargetImpl) dispatchTrusted(signal, event);
-  else signal.dispatchEvent(event);
+  if (Base === EventTargetImpl) {
+    dispatchTrusted(signal, event);
+  } else {
+    signal.dispatchEvent(event);
+  }
 }
 
 class AbortSignalImpl extends Base {
