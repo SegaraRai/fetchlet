@@ -15,7 +15,8 @@ import {
 import { backends, runLab, type Backend, type Reply } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { describe, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
-import type { Plugin } from "vite-plus";
+
+type Plugin = NonNullable<BuildArtifactOptions["plugins"]>[number];
 
 interface Artifact {
   server: string;

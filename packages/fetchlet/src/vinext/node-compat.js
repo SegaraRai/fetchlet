@@ -2,7 +2,9 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
+
 const shim = (name) => fileURLToPath(new URL("./node/" + name + ".js", import.meta.url));
+
 // Bare "buffer" stays the npm package that node/buffer.js builds on.
 const shims = {
   "node:fs": shim("fs"),
@@ -13,6 +15,12 @@ const shims = {
 };
 
 const moduleModule = "\0fetchlet:vinext-module";
+
+/** `process.env` is empty and `process.platform` is "linux" at build time. */
+export const vinextNodeDefines = {
+  "process.env": "{}",
+  "process.platform": JSON.stringify("linux"),
+};
 
 /**
  * The Node APIs the vinext server build reaches while it loads and renders,
@@ -27,22 +35,12 @@ const moduleModule = "\0fetchlet:vinext-module";
  * - `node:module` creates a `require` for the React entries, which vinext
  *   keeps external in its SSR build and requires from CommonJS modules. Other
  *   specifiers throw.
- * - `process.env` is empty and `process.platform` is "linux" at build time.
  *
- * @returns {import("vite").Plugin}
+ * @returns {import("rolldown").Plugin}
  */
 export function vinextNodeCompat() {
   return {
     name: "fetchlet/vinext:node-compat",
-    enforce: "pre",
-    config() {
-      return {
-        define: {
-          "process.env": "{}",
-          "process.platform": JSON.stringify("linux"),
-        },
-      };
-    },
     resolveId(source) {
       if (source === "node:path" || source === "path") {
         return require.resolve("pathe");

@@ -6,7 +6,6 @@ function synchronousRendering() {
   const virtualId = "\0fetchlet:async-hooks";
   return {
     name: "fetchlet-synchronous-rendering",
-    enforce: "pre",
     resolveId(id) {
       if (id === "node:async_hooks") {
         return virtualId;

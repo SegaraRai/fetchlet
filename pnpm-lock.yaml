@@ -320,6 +320,9 @@ catalogs:
     remark-rehype:
       specifier: 11.1.2
       version: 11.1.2
+    rolldown:
+      specifier: 1.2.19
+      version: 1.2.19
     solid-js:
       specifier: 1.9.19
       version: 1.9.19
@@ -907,6 +910,9 @@ importers:
       pathe:
         specifier: 'catalog:'
         version: 2.0.3
+      rolldown:
+        specifier: 'catalog:'
+        version: 1.2.19
       vinext:
         specifier: ^1.0.0
         version: 1.4.6(2276154d1f28c072af0e7c828967a4ef)

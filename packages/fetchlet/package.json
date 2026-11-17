@@ -72,6 +72,7 @@
     "core-js-pure": "catalog:",
     "hono": "catalog:",
     "pathe": "catalog:",
+    "rolldown": "catalog:",
     "web-streams-polyfill": "catalog:"
   },
   "devDependencies": {
@@ -142,6 +143,9 @@
       "optional": true
     },
     "vinext": {
+      "optional": true
+    },
+    "vite": {
       "optional": true
     },
     "waku": {

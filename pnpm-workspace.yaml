@@ -133,6 +133,7 @@ catalog:
   remark-gfm: 4.0.1
   remark-parse: 11.0.0
   remark-rehype: 11.1.2
+  rolldown: 1.2.19
   # @solidjs/start 2 requires solid-js 1 and @solidjs/router below 2.
   solid-js: 1.9.19
   svelte: ^5.57.3

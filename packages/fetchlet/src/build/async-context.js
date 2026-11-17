@@ -11,7 +11,6 @@ export function serializedAsyncContext() {
   const virtualId = "\0fetchlet:async-hooks";
   return {
     name: "fetchlet-serialized-async-context",
-    enforce: "pre",
     resolveId(id) {
       if (id === "node:async_hooks" || id === "async_hooks") {
         return virtualId;

@@ -2,7 +2,7 @@ import { cpSync, existsSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildArtifact } from "../build/index.js";
-import { vinextNodeCompat } from "./node-compat.js";
+import { vinextNodeCompat, vinextNodeDefines } from "./node-compat.js";
 
 const modulePath = (file) => file.replaceAll("\\", "/");
 const contextModule = modulePath(fileURLToPath(new URL("./context.js", import.meta.url)));
@@ -25,7 +25,12 @@ export default function fetchletVinext({ outDir = "build", backend = "portable",
     apply: "build",
     configEnvironment(name) {
       if (name === "rsc" || name === "ssr") {
-        return { resolve: { conditions: serverConditions, noExternal: true } };
+        return {
+          resolve: {
+            conditions: serverConditions,
+            noExternal: true,
+          },
+        };
       }
     },
     configResolved(config) {
@@ -68,6 +73,7 @@ export default function fetchletVinext({ outDir = "build", backend = "portable",
           // vinext keeps React external in its SSR build.
           conditions: serverConditions,
           plugins: [vinextNodeCompat()],
+          define: vinextNodeDefines,
           backend,
           intl,
         });

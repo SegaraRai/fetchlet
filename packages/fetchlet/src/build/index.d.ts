@@ -1,4 +1,4 @@
-import type { Plugin } from "vite";
+import type { Plugin } from "rolldown";
 
 import type { BuildBackend, IntlOptions } from "./polyfills/plan.js";
 
@@ -9,6 +9,7 @@ export interface BuildArtifactOptions {
   entry: string;
   /** The artifact directory; `server.js` and `fetchlet.json` are written here. */
   outDir: string;
+  /** Rolldown plugins, after fetchlet's own. */
   plugins?: Plugin[];
   /** Recorded in fetchlet.json. */
   framework?: string;
@@ -22,6 +23,8 @@ export interface BuildArtifactOptions {
   asyncContext?: "serialized";
   /** Extra resolve conditions for dependencies a framework left external. */
   conditions?: string[];
+  /** Global replacements, in addition to `process.env.NODE_ENV`. */
+  define?: Record<string, string>;
 }
 
 /** Initialize the Web API profile before evaluating framework modules. */
