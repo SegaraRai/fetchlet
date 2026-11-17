@@ -1,0 +1,29 @@
+// node:crypto for the vinext server: the synchronous SHA-256 hash it uses for
+// cache keys, from @noble/hashes.
+
+import { sha256 } from "@noble/hashes/sha2.js";
+
+import { Buffer } from "./buffer.ts";
+
+type Encoding = "hex" | "base64" | "base64url" | "latin1" | "utf8";
+
+export function createHash(algorithm: string) {
+  if (String(algorithm).toLowerCase() !== "sha256") {
+    throw new Error("createHash(" + JSON.stringify(algorithm) + ") is not available in fetchlet");
+  }
+  const hash = sha256.create();
+  return {
+    update(data: string | Uint8Array, encoding?: Encoding) {
+      hash.update(typeof data === "string" ? Buffer.from(data, encoding) : data);
+      return this;
+    },
+    digest(encoding?: Encoding) {
+      const bytes = Buffer.from(hash.digest());
+      return encoding ? bytes.toString(encoding) : bytes;
+    },
+  };
+}
+
+export default {
+  createHash,
+};

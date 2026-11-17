@@ -6,15 +6,16 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { after, before, test } from "node:test";
 
+import { backends, runLab, type Backend, type Reply } from "@fetchlet-internal/tools-workspace/lab";
+import { root } from "@fetchlet-internal/tools-workspace/paths";
+import { describe, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { buildArtifact, type BuildArtifactOptions } from "fetchlet/build";
+
 // The planner is internal to fetchlet/build; this suite checks it directly.
 import {
   planPolyfills,
   type PlanOptions,
-} from "../../packages/fetchlet/src/build/polyfills/plan.js";
-import { backends, runLab, type Backend, type Reply } from "@fetchlet-internal/tools-workspace/lab";
-import { root } from "@fetchlet-internal/tools-workspace/paths";
-import { describe, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
+} from "../../packages/fetchlet/src/build/polyfills/plan.ts";
 
 type Plugin = NonNullable<BuildArtifactOptions["plugins"]>[number];
 
@@ -26,7 +27,7 @@ interface Artifact {
 }
 
 const output = resolve(root, ".cache/polyfills");
-const entry = resolve(root, "fixtures/intl.js");
+const entry = resolve(root, "fixtures/intl.ts");
 const artifacts = new Map<string, Artifact>();
 const results: { name: string; status: "pass" | "fail"; error?: string }[] = [];
 const nativeCapabilities: Record<string, Record<string, boolean>> = {};
@@ -98,7 +99,11 @@ before(async () => {
     locales: ["en", "ja"],
     timeZoneData: "golden",
   } as const satisfies PlanOptions["intl"];
-  await buildIntlArtifact("quickjs", { backend: "quickjs", requirements, intl });
+  await buildIntlArtifact("quickjs", {
+    backend: "quickjs",
+    requirements,
+    intl,
+  });
   await buildIntlArtifact("v8", { backend: "v8", requirements, intl });
   await buildIntlArtifact("plain", { backend: "quickjs" });
   await buildIntlArtifact("plural", {
@@ -145,7 +150,10 @@ check("default backend Intl capabilities match the build catalog", () => {
     assert.ok(reply.ok);
     const capabilities = reply.value as Record<string, boolean>;
     nativeCapabilities[backend] = capabilities;
-    const plan = planPolyfills({ backend, requirements: Object.keys(capabilities) });
+    const plan = planPolyfills({
+      backend,
+      requirements: Object.keys(capabilities),
+    });
     assert.deepEqual(
       new Set(plan.nativeRequirements),
       new Set(
@@ -197,7 +205,9 @@ check("plural-only artifacts contain their dependencies and selected locale", ()
 });
 
 check("native requirements fail clearly on an incompatible runtime", () => {
-  const session = runLab(["quickjs", artifactNamed("v8").server], [], { timeoutMs: 30_000 });
+  const session = runLab(["quickjs", artifactNamed("v8").server], [], {
+    timeoutMs: 30_000,
+  });
   assert.notEqual(session.status, 0);
   assert.ok(session.stderr.includes("requires native Intl."), session.stderr);
 });
@@ -212,7 +222,10 @@ check("invalid APIs, backend names and locale data fail at build planning", () =
   assert.throws(plan({ intl: { locales: [] } }), /at least one locale/);
   assert.throws(plan({ intl: { timeZoneData: "unknown" } }), /timeZoneData/);
   assert.throws(
-    plan({ requirements: ["Intl.DateTimeFormat"], intl: { locales: ["zz"] } }),
+    plan({
+      requirements: ["Intl.DateTimeFormat"],
+      intl: { locales: ["zz"] },
+    }),
     /locale data is unavailable/,
   );
 });

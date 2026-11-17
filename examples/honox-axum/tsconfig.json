@@ -10,6 +10,8 @@
     "jsxImportSource": "hono/jsx",
     "strict": true,
     "noEmit": true,
+    // fetchlet resolves to its TypeScript sources in the workspace.
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true
   }
 }

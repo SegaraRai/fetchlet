@@ -16,7 +16,12 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["**/*.ts", "../fixtures/probe/run.ts"],
+  "include": [
+    "**/*.ts",
+    "../fixtures/probe/run.ts",
+    "../examples/*/tests/*.ts",
+    "../examples/*/scripts/*.ts"
+  ],
   // Guest entries bundled with fetchlet/runtime are checked with the runtime's
   // own configuration in the root tsconfig.json.
   "exclude": ["bench/bare/entry.ts", "bench/probe/**", "package/consumer/**"]

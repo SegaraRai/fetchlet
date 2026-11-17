@@ -3,6 +3,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite-plus";
 
 const cargo = "node ../../tools/workspace/cargo.ts";
+
 // Demo notes are copied here so that editing them leaves sample/ unchanged.
 const demo = "../../.cache/sveltekit-axum-tauri/notes";
 
@@ -44,7 +45,7 @@ export default defineConfig({
         cache: false,
       },
       "prepare:demo": {
-        command: `node scripts/prepare-demo.js sample ${demo}`,
+        command: `node scripts/prepare-demo.ts sample ${demo}`,
         cache: false,
       },
       serve: {

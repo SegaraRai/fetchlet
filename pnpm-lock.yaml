@@ -865,12 +865,6 @@ importers:
 
   packages/fetchlet:
     dependencies:
-      '@builder.io/qwik':
-        specifier: ^1.0.0
-        version: 1.20.4(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1))
-      '@builder.io/qwik-city':
-        specifier: ^1.0.0
-        version: 1.20.4(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(rollup@4.68.3)(supports-color@10.2.2)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))
       '@exodus/bytes':
         specifier: 'catalog:'
         version: 1.16.0(@noble/hashes@2.4.0)
@@ -892,12 +886,6 @@ importers:
       '@noble/hashes':
         specifier: 'catalog:'
         version: 2.4.0
-      '@solidjs/start':
-        specifier: ^2.0.0
-        version: 2.2.3(@solidjs/router@1.0.3(solid-js@1.9.19))(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1))(crossws@0.4.17(srvx@1.0.8))(solid-js@1.9.19)(supports-color@10.2.2)
-      '@tanstack/react-start':
-        specifier: ^1.0.0
-        version: 1.169.5(6e645a30944db7e297a0917af0b5b487)
       buffer:
         specifier: 'catalog:'
         version: 6.0.3
@@ -913,25 +901,31 @@ importers:
       rolldown:
         specifier: 'catalog:'
         version: 1.2.19
-      vinext:
-        specifier: ^1.0.0
-        version: 1.4.6(2276154d1f28c072af0e7c828967a4ef)
-      waku:
-        specifier: ^1.0.0-rc.5
-        version: 1.0.0-rc.5(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.1(react@19.3.1))(react-server-dom-webpack@19.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(webpack@5.112.2(cssnano@9.9.0(postcss@8.5.33))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.33)(sharp@0.35.5(@types/node@26.6.6))(svgo@4.1.0)))(react@19.3.1)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
       web-streams-polyfill:
         specifier: 'catalog:'
         version: 4.5.1
     devDependencies:
+      '@builder.io/qwik':
+        specifier: 'catalog:'
+        version: 1.20.4(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1))
+      '@builder.io/qwik-city':
+        specifier: 'catalog:'
+        version: 1.20.4(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(rollup@4.68.3)(supports-color@10.2.2)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))
       '@hono/vite-build':
         specifier: 'catalog:'
         version: 1.11.1(hono@4.13.19)
       '@react-router/dev':
         specifier: 'catalog:'
         version: 8.5.1(0b6ad5486b9365ae9e320314be29d78b)
+      '@solidjs/start':
+        specifier: 'catalog:'
+        version: 2.2.3(@solidjs/router@1.0.3(solid-js@1.9.19))(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1))(crossws@0.4.17(srvx@1.0.8))(solid-js@1.9.19)(supports-color@10.2.2)
       '@sveltejs/kit':
         specifier: 'catalog:'
         version: 3.2.0(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1))(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1))(svelte@5.57.3(@typescript-eslint/types@8.72.2))(typescript@6.0.3)
+      '@tanstack/react-start':
+        specifier: 'catalog:'
+        version: 1.169.5(6e645a30944db7e297a0917af0b5b487)
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
@@ -953,18 +947,27 @@ importers:
       react-router:
         specifier: 'catalog:'
         version: 8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      solid-js:
+        specifier: 'catalog:'
+        version: 1.9.19
       svelte:
         specifier: 'catalog:'
         version: 5.57.3(@typescript-eslint/types@8.72.2)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vinext:
+        specifier: 'catalog:'
+        version: 1.4.6(2276154d1f28c072af0e7c828967a4ef)
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@8.3.8000
         version: '@voidzero-dev/vite-plus-core@8.3.8000(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)'
       vite-plus:
         specifier: 'catalog:'
         version: 1.7.0(@astrojs/compiler-rs@0.5.3)(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.1)(svelte@5.57.3(@typescript-eslint/types@8.72.2))(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
+      waku:
+        specifier: 'catalog:'
+        version: 1.0.0-rc.5(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.1(react@19.3.1))(react-server-dom-webpack@19.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(webpack@5.112.2(cssnano@9.9.0(postcss@8.5.33))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.33)(sharp@0.35.5(@types/node@26.6.6))(svgo@4.1.0)))(react@19.3.1)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
 
   tools/aot:
     devDependencies:

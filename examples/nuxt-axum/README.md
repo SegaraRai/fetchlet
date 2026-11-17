@@ -22,7 +22,7 @@ http://127.0.0.1:3200 を開きます。taskはNuxtをbuildしてからRustサ�
 | vite.config.ts | Vite+のtask                                              |
 | src/           | axumの起動・binding・routing                             |
 | config.json    | 待受、キュー、本文予算、期限、background予算、メッセージ |
-| tests/e2e.js   | 実HTTPと実ブラウザによる検証                             |
+| tests/e2e.ts   | 実HTTPと実ブラウザによる検証                             |
 | build/         | server.js、client/、fetchlet.jsonの生成先                |
 
 axumは `build/client` の静的ファイルと `/api/rust` を先に扱い、残りをFetchletServiceでNuxtへ渡します。

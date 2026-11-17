@@ -1,17 +1,12 @@
-import { cpSync, rmSync } from "node:fs";
+import { cpSync, readFileSync, rmSync } from "node:fs";
 
 import { defineConfig } from "vite-plus";
 
-// The JavaScript modules and their hand-written declarations are published as
-// they are; only the TypeScript entries are compiled, next to them in dist/.
-const typescriptEntries = [
-  "src/runtime/index.ts",
-  "src/runtime/adapter.ts",
-  "src/runtime/handler.ts",
-  "src/astro/server.ts",
-  "src/hono/conninfo.ts",
-  "src/react-router/context.ts",
-];
+const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+
+// Every module an export names; unbundled, the modules they import compile
+// next to them in dist/.
+const entries = Object.values<string>(manifest.exports).filter((file) => !file.endsWith(".d.ts"));
 
 export default defineConfig({
   run: {
@@ -23,7 +18,7 @@ export default defineConfig({
     },
   },
   pack: {
-    entry: typescriptEntries,
+    entry: entries,
     unbundle: true,
     root: "src",
     outDir: "dist",
@@ -41,6 +36,7 @@ export default defineConfig({
         rmSync("dist", { recursive: true, force: true });
       },
     },
+    // Declaration-only modules, such as fetchlet/nitro/types, are published as written.
     onSuccess() {
       cpSync("src", "dist", {
         recursive: true,

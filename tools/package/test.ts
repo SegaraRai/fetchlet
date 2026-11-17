@@ -3,6 +3,7 @@
 // installs the tarball from the local pnpm store, resolves every export and
 // its declarations, type-checks an import of each typed entry, builds an
 // artifact with fetchlet/build and runs it on QuickJS through fetchlet-lab.
+
 import assert from "node:assert/strict";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
@@ -53,7 +54,7 @@ writeFileSync(
 );
 
 step("install", run("vp", ["install", "--offline"], { cwd: consumer }));
-step("exports and build", run(process.execPath, ["check.js"], { cwd: consumer }));
+step("exports and build", run(process.execPath, ["check.ts"], { cwd: consumer }));
 step(
   "types",
   run(process.execPath, [resolve(consumer, "node_modules/typescript/bin/tsc"), "-p", "."], {

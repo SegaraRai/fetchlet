@@ -1,10 +1,12 @@
 {
-  // Strict checks for the adapters' TypeScript entries. The runtime is checked
-  // with the guest entries by the root tsconfig.json.
+  // Strict checks for the build modules and framework adapters. The runtime is
+  // checked with the guest entries by the root tsconfig.json.
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node"]
   },
-  "include": ["src/astro/**/*.ts", "src/hono/**/*.ts", "src/react-router/**/*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["src/runtime/**"]
 }

@@ -40,4 +40,4 @@ Every adapter calls `fetchlet/build`, which initializes `fetchlet/runtime` and t
 
 ## Development
 
-The workspace uses the sources in `src/` directly. `vp run fetchlet#build` compiles the TypeScript entries into `dist/` next to the JavaScript modules, and the published manifest (`publishConfig.exports`) points at `dist/`. `vp run test:package` packs the package, installs the tarball in a separate project, type-checks its declarations, and builds and runs an artifact on QuickJS.
+The workspace uses the sources in `src/` directly. The sources are TypeScript; `vp run fetchlet#build` compiles every exported module and its declarations into `dist/`, and the published manifest (`publishConfig.exports`) points at `dist/`. `vp run test:package` packs the package, installs the tarball in a separate project, type-checks its declarations, and builds and runs an artifact on QuickJS.

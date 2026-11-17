@@ -22,7 +22,7 @@ http://127.0.0.1:3300 を開きます。taskはReact Routerをbuildしてから�
 | vite.config.ts         | React RouterのVite pluginとVite+のtask                 |
 | src/                   | axumの起動・binding・routing                           |
 | config.json            | 待受、キュー、本文予算、期限、background予算、stack    |
-| tests/e2e.js           | 実HTTPと実ブラウザによる検証                           |
+| tests/e2e.ts           | 実HTTPと実ブラウザによる検証                           |
 | build/                 | server.js、client/、fetchlet.json（server/は中間出力） |
 
 ## routeとcontext

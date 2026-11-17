@@ -83,8 +83,8 @@ web/lib/notes.remote.ts（remote functions） ─▶ コンポーネント
 | openapi.json            | Rust APIのOpenAPI文書（生成物、checked-in）                                       |
 | config.json             | 待受、キュー、本文、ノート、ファイル、索引の予算と監視の待ち時間                  |
 | sample/                 | デモ用のノート                                                                    |
-| tests/e2e.js            | `mdw serve` を実HTTPとChromiumで検証                                              |
-| tests/desktop.js        | `mdw desktop` をWebView2のDevTools protocolで検証                                 |
+| tests/e2e.ts            | `mdw serve` を実HTTPとChromiumで検証                                              |
+| tests/desktop.ts        | `mdw desktop` をWebView2のDevTools protocolで検証                                 |
 
 ## SvelteKitの設定
 
@@ -139,10 +139,10 @@ vp run browser:install
 vp run test:examples -- sveltekit-axum-tauri
 ```
 
-frontendとRustをbuildし、`tests/e2e.js` と `tests/desktop.js` を実行します。
+frontendとRustをbuildし、`tests/e2e.ts` と `tests/desktop.ts` を実行します。
 
-- e2e.js（14項目）：SSR、Rustでのハイライト、生のHTMLの除去、公開API、競合の409、ワークスペース外のpathの拒否、`/files` のsandbox、Hostヘッダー、hydrationと検索候補とクライアント遷移、エディターのプレビューとCtrl+Sでの保存、外部での変更の反映、エディターでの競合と上書き、remote formでの新規作成と検証、JavaScriptなしの検索と閲覧。結果は `results/example-sveltekit-axum-tauri.json` です。
-- desktop.js（5項目、Windowsのみ）：URI schemeでの描画、プロセス内のハイライト、ワークスペースの境界、Tauri eventでの変更通知、protocol経由の保存。結果は `results/example-sveltekit-axum-tauri-desktop.json` です。
+- e2e.ts（14項目）：SSR、Rustでのハイライト、生のHTMLの除去、公開API、競合の409、ワークスペース外のpathの拒否、`/files` のsandbox、Hostヘッダー、hydrationと検索候補とクライアント遷移、エディターのプレビューとCtrl+Sでの保存、外部での変更の反映、エディターでの競合と上書き、remote formでの新規作成と検証、JavaScriptなしの検索と閲覧。結果は `results/example-sveltekit-axum-tauri.json` です。
+- desktop.ts（5項目、Windowsのみ）：URI schemeでの描画、プロセス内のハイライト、ワークスペースの境界、Tauri eventでの変更通知、protocol経由の保存。結果は `results/example-sveltekit-axum-tauri-desktop.json` です。
 
 `cargo test -p example-sveltekit-axum-tauri` はpathの検証、検索と抜粋、索引、保存の並行制御、予算、シンボリックリンク、syntect、OpenAPI文書の一致を確認します。
 
