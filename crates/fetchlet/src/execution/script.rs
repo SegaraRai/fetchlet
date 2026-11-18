@@ -52,6 +52,23 @@ pub(crate) const HOST_BOOTSTRAP: &str = include_str!("../../js/host-bridge.js");
 
 pub(crate) const LOOP_STEP: &str = include_str!("../../js/event-loop.js");
 
+/// Notify rejections that stayed unhandled through the last microtask
+/// checkpoint. Engines run it when an invocation settles; the loop step runs
+/// it before each step.
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) const FLUSH_REJECTIONS: &str = "globalThis.__fetchletFlushRejections?.()";
+
+/// An invocation expression whose Promise the host observes, so its own
+/// rejection, which the host reports as the call's error, is not also an
+/// unhandled rejection in JavaScript.
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) fn observed(expression: &str) -> String {
+    let expression = expression.trim_end().trim_end_matches(';');
+    format!(
+        "((promise) => {{ promise.then(undefined, () => {{}}); return promise; }})({expression})"
+    )
+}
+
 /// Settle the background work of the open invocation.
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) const BACKGROUND_SETTLE: &str = include_str!("../../js/background.js");

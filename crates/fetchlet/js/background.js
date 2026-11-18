@@ -5,6 +5,7 @@
   } finally {
     globalThis.__fetchletResponseBodies?.closeAll();
     globalThis.__fetchletClearTimers?.();
+    globalThis.__fetchletClearPerformanceEntries?.();
   }
   return "null";
 })();

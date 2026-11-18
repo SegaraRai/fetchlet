@@ -1,5 +1,10 @@
+use std::rc::Rc;
+
 use anyhow::{Result, anyhow};
-use boa_engine::builtins::promise::PromiseState;
+use boa_engine::builtins::promise::{OperationType, Promise, PromiseState};
+use boa_engine::context::HostHooks;
+use boa_engine::object::JsObject;
+use boa_engine::object::builtins::JsPromise;
 use boa_engine::object::builtins::{JsArrayBuffer, JsUint8Array};
 use boa_engine::{
     Context, JsArgs, JsError, JsNativeError, JsResult, JsString, JsValue, NativeFunction, Source,
@@ -10,7 +15,10 @@ use serde_json::Value;
 use super::{BoaOptions, array_buffer};
 use crate::Instance;
 use crate::bridge::HostBridge;
-use crate::execution::{HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation};
+use crate::execution::{
+    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation,
+    observed,
+};
 
 pub struct Boa {
     context: Context,
@@ -25,7 +33,10 @@ impl Boa {
     }
 
     pub(crate) fn with_host(source: &str, host: HostBridge, options: BoaOptions) -> Result<Self> {
-        let mut context = Context::default();
+        let mut context = Context::builder()
+            .host_hooks(Rc::new(RejectionTracker))
+            .build()
+            .map_err(|error| anyhow!("{error}"))?;
         options.apply(&mut context);
         // Host-defined data contains no JS values and stays with its Context.
         let wake = host.wake_signal();
@@ -100,7 +111,7 @@ impl Boa {
         self.poisoned = true;
         let result = self
             .context
-            .eval(Source::from_bytes(&expression))
+            .eval(Source::from_bytes(&observed(&expression)))
             .map_err(|error| anyhow!("{error}"))?;
         let promise = result
             .as_promise()
@@ -109,7 +120,11 @@ impl Boa {
             self.context
                 .run_jobs()
                 .map_err(|error| anyhow!("{error}"))?;
-            match promise.state() {
+            let state = promise.state();
+            if !matches!(state, PromiseState::Pending) {
+                self.flush_rejections();
+            }
+            match state {
                 PromiseState::Fulfilled(value) => {
                     self.poisoned = false;
                     let json = value
@@ -146,6 +161,47 @@ impl Boa {
                 self.wake.wait(state.timer_delay()).await;
             }
         }
+    }
+}
+
+impl Boa {
+    /// Notify unhandled rejections once an invocation settles, and run the
+    /// jobs their listeners queue.
+    fn flush_rejections(&mut self) {
+        let _ = self.context.eval(Source::from_bytes(FLUSH_REJECTIONS));
+        let _ = self.context.run_jobs();
+    }
+}
+
+/// HostPromiseRejectionTracker: hands each rejection without a handler, and
+/// each handler added after one, to the profile's tracking hook.
+struct RejectionTracker;
+
+impl HostHooks for RejectionTracker {
+    fn promise_rejection_tracker(
+        &self,
+        promise: &JsObject<Promise>,
+        operation: OperationType,
+        context: &mut Context,
+    ) {
+        let global = context.global_object();
+        let Ok(hook) = global.get(js_string!("__fetchletPromiseRejection"), context) else {
+            return;
+        };
+        let Some(hook) = hook.as_callable() else {
+            return;
+        };
+        let promise = promise.clone().upcast();
+        let reason = match JsPromise::from_object(promise.clone()).map(|promise| promise.state()) {
+            Ok(PromiseState::Rejected(reason)) => reason,
+            _ => JsValue::undefined(),
+        };
+        let handled = JsValue::from(operation == OperationType::Handle);
+        let _ = hook.call(
+            &JsValue::undefined(),
+            &[promise.into(), reason, handled],
+            context,
+        );
     }
 }
 

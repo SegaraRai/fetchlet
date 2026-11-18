@@ -10,11 +10,14 @@ use serde_json::Value;
 use super::QuickJsOptions;
 use crate::Instance;
 use crate::bridge::HostBridge;
-use crate::execution::{HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation};
+use crate::execution::{
+    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation,
+    observed,
+};
 
 pub struct QuickJs {
     context: Context,
-    _runtime: Runtime,
+    runtime: Runtime,
     wake: WakeSignal,
     poisoned: bool,
 }
@@ -42,6 +45,8 @@ impl QuickJs {
         if let Some(limit) = options.stack_limit_bytes {
             runtime.set_max_stack_size(limit);
         }
+
+        runtime.set_host_promise_rejection_tracker(Some(Box::new(track_rejection)));
 
         let wake = host.wake_signal();
         let context = Context::full(&runtime)?;
@@ -86,7 +91,7 @@ impl QuickJs {
 
         Ok(Self {
             context,
-            _runtime: runtime,
+            runtime,
             wake,
             poisoned: false,
         })
@@ -113,12 +118,12 @@ impl QuickJs {
 
         self.poisoned = true;
         let promise = self.context.with(|context| -> Result<_> {
-            let promise: Promise = context.eval(expression)?;
+            let promise: Promise = context.eval(observed(&expression))?;
             Ok(Persistent::save(&context, promise))
         })?;
 
         loop {
-            let (result, state) = self.context.with(|context| -> Result<_> {
+            let step = self.context.with(|context| -> Result<_> {
                 let promise = promise.clone().restore(&context)?;
                 match promise.finish::<String>() {
                     Ok(json) => {
@@ -136,9 +141,19 @@ impl QuickJs {
                         Err(anyhow!("{error}: {exception:?}"))
                     }
                 }
-            })?;
+            });
+            let (result, state) = match step {
+                Ok(step) => step,
+                Err(error) => {
+                    if !self.poisoned {
+                        self.flush_rejections();
+                    }
+                    return Err(error);
+                }
+            };
 
             if let Some(json) = result {
+                self.flush_rejections();
                 return Ok(serde_json::from_str(&json)?);
             }
 
@@ -150,6 +165,33 @@ impl QuickJs {
                 }
             }
         }
+    }
+}
+
+impl QuickJs {
+    /// Notify unhandled rejections once an invocation settles, and run the
+    /// jobs their listeners queue.
+    fn flush_rejections(&mut self) {
+        self.context.with(|context| {
+            if context.eval::<(), _>(FLUSH_REJECTIONS).is_err() {
+                let _ = context.catch();
+            }
+        });
+        while !matches!(self.runtime.execute_pending_job(), Ok(false)) {}
+    }
+}
+
+/// HostPromiseRejectionTracker: hands each rejection without a handler, and
+/// each handler added after one, to the profile's tracking hook.
+fn track_rejection<'js>(ctx: Ctx<'js>, promise: JsValue<'js>, reason: JsValue<'js>, handled: bool) {
+    let Ok(Some(hook)) = ctx
+        .globals()
+        .get::<_, Option<rquickjs::Function<'js>>>("__fetchletPromiseRejection")
+    else {
+        return;
+    };
+    if hook.call::<_, ()>((promise, reason, handled)).is_err() {
+        let _ = ctx.catch();
     }
 }
 

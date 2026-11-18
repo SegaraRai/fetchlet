@@ -8,7 +8,10 @@ use serde_json::Value;
 
 use crate::Instance;
 use crate::bridge::HostBridge;
-use crate::execution::{HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation};
+use crate::execution::{
+    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation,
+    observed,
+};
 
 pub(super) struct V8Runtime {
     runtime: JsRuntime,
@@ -67,6 +70,11 @@ impl V8Runtime {
             extensions: vec![fetchlet_host::init()],
             ..Default::default()
         });
+        // fetchlet drives microtasks itself rather than through deno_core's
+        // event loop, so the profile, not deno_core, tracks rejections.
+        runtime
+            .v8_isolate()
+            .set_promise_reject_callback(track_rejection);
         let wake = host.wake_signal();
         runtime.op_state().borrow_mut().put(host);
         runtime
@@ -112,7 +120,7 @@ impl V8Runtime {
         self.reusable = false;
         let promise = self
             .runtime
-            .execute_script("fetchlet:call", expression)
+            .execute_script("fetchlet:call", observed(&expression))
             .map_err(|error| anyhow!("{error}"))?;
         loop {
             if self.cancelled.load(Ordering::Relaxed) {
@@ -136,6 +144,7 @@ impl V8Runtime {
                 }
             };
             if let Some(json) = result {
+                self.flush_rejections();
                 self.reusable = true;
                 return Ok(serde_json::from_str(&json?)?);
             }
@@ -156,4 +165,49 @@ impl V8Runtime {
             }
         }
     }
+}
+
+impl V8Runtime {
+    /// Notify unhandled rejections once an invocation settles, and run the
+    /// microtasks their listeners queue.
+    fn flush_rejections(&mut self) {
+        let _ = self
+            .runtime
+            .execute_script("fetchlet:rejections", FLUSH_REJECTIONS);
+        self.runtime.v8_isolate().perform_microtask_checkpoint();
+    }
+}
+
+/// HostPromiseRejectionTracker: hands each rejection without a handler, and
+/// each handler added after one, to the profile's tracking hook.
+extern "C" fn track_rejection(message: v8::PromiseRejectMessage) {
+    let handled = match message.get_event() {
+        v8::PromiseRejectEvent::PromiseRejectWithNoHandler => false,
+        v8::PromiseRejectEvent::PromiseHandlerAddedAfterReject => true,
+        _ => return,
+    };
+    // SAFETY: the message is valid for the duration of the callback.
+    v8::callback_scope!(unsafe scope, &message);
+    let context = scope.get_current_context();
+    let global = context.global(scope);
+    let Some(name) = v8::String::new(scope, "__fetchletPromiseRejection") else {
+        return;
+    };
+    let Some(hook) = global
+        .get(scope, name.into())
+        .and_then(|hook| v8::Local::<v8::Function>::try_from(hook).ok())
+    else {
+        return;
+    };
+    let promise = message.get_promise();
+    // V8 passes no value with a handler added after the rejection; the
+    // rejected promise still holds its reason.
+    let reason = message.get_value().unwrap_or_else(|| promise.result(scope));
+    let handled = v8::Boolean::new(scope, handled);
+    v8::tc_scope!(let scope, scope);
+    hook.call(
+        scope,
+        global.into(),
+        &[promise.into(), reason, handled.into()],
+    );
 }

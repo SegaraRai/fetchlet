@@ -24,6 +24,7 @@ async function invokeResponseBody(operation, bodyId) {
       // Background work keeps its timers until Rust settles it.
       if ((globalThis.__fetchletBackground?.pending() ?? 0) <= 0) {
         globalThis.__fetchletClearTimers?.();
+        globalThis.__fetchletClearPerformanceEntries?.();
       }
     }
   }
