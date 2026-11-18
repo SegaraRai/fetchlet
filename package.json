@@ -15,7 +15,6 @@
     "svelte": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:",
-    "vitest": "catalog:",
     "web-streams-polyfill": "catalog:"
   },
   "packageManager": "pnpm@12.21.0"

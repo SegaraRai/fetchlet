@@ -3,23 +3,18 @@ packages:
   - packages/*
   - examples/*
   - tools/*
+
 overrides:
   # Every package that asks for vite or vitest gets the versions Vite+ ships.
   vite@*: "catalog:"
-  vitest@*: "catalog:"
-peerDependencyRules:
-  allowAny:
-    - vite
-    - vitest
-  allowedVersions:
-    vite: "*"
-    vitest: "*"
+
 allowBuilds:
   core-js-pure: true
   # The platform binary comes from an optional dependency; the script only verifies it.
   esbuild: false
   # Qwik City lists it for optional image optimization, which the examples do not use.
   sharp: false
+
 minimumReleaseAgeExclude:
   - hono@4.13.19
   - "@solidjs/start@2.2.3"
@@ -87,6 +82,7 @@ minimumReleaseAgeExclude:
   - oxlint@1.94.0
   - tsrs@7.1.0-beta.tsrs2
   - vite-plus@1.7.0
+
 # One version of each external dependency for every workspace package. Peer
 # ranges in packages/fetchlet stay major ranges and are written there.
 catalog:
@@ -153,8 +149,6 @@ catalog:
   vinext: 1.4.6
   vite: npm:@voidzero-dev/vite-plus-core@8.3.8000
   vite-plus: 1.7.0
-  # The Vitest that vite-plus 1.7.0 runs as `vp test`.
-  vitest: 5.1.0
   vue: 3.5.45
   vue-tsc: 3.3.14
   waku: 1.0.0-rc.5

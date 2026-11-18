@@ -33,3 +33,5 @@
 /examples/*/.next/
 /examples/*/next-env.d.ts
 /examples/*/gen/
+
+.vitest/
