@@ -5,7 +5,7 @@ promise_test(async () => {
   assert_array_equals(await response.bytes(), [1, 2]);
 }, "Response snapshots a typed-array body");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const response = new Response("abc");
   const reader = response.body.getReader();
   assert_false(response.bodyUsed);
@@ -93,7 +93,7 @@ test(() => {
   assert_array_equals(data.getAll("a"), ["replacement"]);
 }, "FormData.set preserves the first entry position");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const response = new Response("not multipart", {
     headers: { "content-type": "multipart/form-data; boundary=example" },
   });
@@ -169,7 +169,7 @@ promise_test(async () => {
   assert_equals(file.type, "text/plain");
 }, "multipart parses quoted boundaries case-insensitively and defaults file types");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const part = '--b0\r\nContent-Disposition: form-data; name="a"\r\n\r\nv\r\n';
   for (const body of [
     part,
@@ -295,7 +295,7 @@ test(() => {
   assert_equals(new Request(url, { priority: "high" }).url, url);
 }, "Request validates RequestInit enumerations and mode constraints");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const response = new Response("abc");
   assert_equals(await response.text(), "abc");
   assert_true(response.bodyUsed);
@@ -307,7 +307,7 @@ promise_test(async () => {
   assert_throws_js(TypeError, () => response.clone());
 }, "Reading a byte body without its stream leaves the Body used and its stream locked");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const response = new Response("abc");
   const stream = response.body;
   assert_equals(response.body, stream, "body returns one stream");
@@ -327,7 +327,7 @@ promise_test(async () => {
   assert_true(copy.bodyUsed);
 }, "Clones of a byte body read independent buffers");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const response = new Response("");
   assert_not_equals(response.body, null);
   const empty = new Response("");
