@@ -2,8 +2,10 @@
 //
 //   node tools/workspace/cargo.ts <cargo arguments>
 
-import { existsSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
+import { root } from "./paths.ts";
 import { run, type RunOptions } from "./process.ts";
 
 const clangCl = "C:\\Program Files\\LLVM\\bin\\clang-cl.exe";
@@ -20,8 +22,54 @@ export function cargoEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessE
   return existsSync(clangCl) ? { ...env, CC: clangCl, CXX: clangCl } : env;
 }
 
+/**
+ * The size `target/` may reach before Cargo runs again from a clean state.
+ * Cargo keeps the artifacts of every feature, profile and dependency
+ * combination it has built and never removes them, so the directory only
+ * grows. The budget is caller policy: `FETCHLET_TARGET_BUDGET_GIB` sets it,
+ * and 0 turns the check off.
+ */
+const defaultTargetBudgetGib = 64;
+
+/** How often to measure `target/`; measuring reads every file's size. */
+const targetCheckInterval = 60 * 60 * 1000;
+
+/** Total bytes of the files under `directory`. */
+function directoryBytes(directory: string): number {
+  let bytes = 0;
+  for (const entry of readdirSync(directory, { recursive: true, withFileTypes: true })) {
+    if (entry.isFile()) {
+      bytes += lstatSync(join(entry.parentPath, entry.name)).size;
+    }
+  }
+  return bytes;
+}
+
+/**
+ * Clean `target/` when it exceeds the budget. Runs at most once an hour,
+ * recorded by the modification time of a stamp file in `target/`.
+ */
+export function enforceTargetBudget(env: NodeJS.ProcessEnv = process.env): void {
+  const budgetGib = Number(env.FETCHLET_TARGET_BUDGET_GIB ?? defaultTargetBudgetGib);
+  if (!Number.isFinite(budgetGib) || budgetGib <= 0) return;
+  const target = resolve(root, "target");
+  const stamp = join(target, ".fetchlet-budget-check");
+  if (!existsSync(target)) return;
+  if (existsSync(stamp) && Date.now() - statSync(stamp).mtimeMs < targetCheckInterval) return;
+  const gib = directoryBytes(target) / 2 ** 30;
+  if (gib > budgetGib) {
+    console.log(
+      `target/ holds ${gib.toFixed(1)} GiB, over the ${budgetGib} GiB budget; running cargo clean`,
+    );
+    run("cargo", ["clean"], { cwd: root, env: cargoEnv(env) });
+    mkdirSync(target, { recursive: true });
+  }
+  writeFileSync(stamp, "");
+}
+
 /** Runs Cargo and returns its exit code. */
 export function cargo(args: readonly string[], options: RunOptions = {}): number {
+  enforceTargetBudget(options.env);
   return run("cargo", args, { ...options, env: cargoEnv(options.env) });
 }
 

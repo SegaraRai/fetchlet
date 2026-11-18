@@ -61,9 +61,11 @@ node tools/conformance/cli.ts --strict --output results/conformance-strict.json
 ```
 
 `--suite` is `wpt`, `test262`, `regressions` or `all`; `--filter` matches
-part of the file path. `--timeout` is milliseconds per process (default 30000) and `--jobs` the concurrency (default 2). Each run uses its own
-output directory, so concurrent runs are independent, and a different
-`--output` keeps narrowed results beside the full ones.
+part of the file path. `--timeout` is milliseconds per process (default 30000) and `--jobs` the concurrency (default 2). Each run bundles its cases
+in its own directory under `.cache/conformance/runs`, so concurrent runs are
+independent, and removes it when it ends; `--keep-run` keeps it for rerunning a
+case by hand. A different `--output` keeps narrowed results beside the full
+ones.
 
 ## Results and regressions
 

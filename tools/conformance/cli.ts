@@ -1,9 +1,11 @@
 // Runs the pinned WPT, Test262 and regression cases on Node and each backend
 // and judges them against tests/conformance/expectations.json:
 // `vp run test:conformance [-- --suite wpt --backend quickjs --filter Blob]`.
+// Each run bundles its cases into a directory under .cache/conformance/runs,
+// removed when the run ends; `--keep-run` keeps it to rerun a case by hand.
 
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -37,6 +39,7 @@ const { values } = parseArgs({
     timeout: { type: "string", default: "30000" },
     jobs: { type: "string", default: "2" },
     strict: { type: "boolean", default: false },
+    "keep-run": { type: "boolean", default: false },
     "record-baseline": { type: "string" },
   },
 });
@@ -202,7 +205,17 @@ async function worker(): Promise<void> {
       });
   }
 }
-await Promise.all(Array.from({ length: Math.min(jobs, work.length) }, worker));
+try {
+  await Promise.all(Array.from({ length: Math.min(jobs, work.length) }, worker));
+} finally {
+  // Every case bundle repeats the whole Web API profile, so runs add up
+  // quickly; the results record what the bundles produced.
+  if (values["keep-run"]) {
+    console.log("Kept the run directory " + directory);
+  } else {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
 results.sort((a, b) =>
   JSON.stringify([a.suite, a.backend, a.file, a.mode, a.name]).localeCompare(
     JSON.stringify([b.suite, b.backend, b.file, b.mode, b.name]),

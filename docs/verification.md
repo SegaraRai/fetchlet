@@ -84,6 +84,13 @@ vp run example:embed
 
 Browser checks need Chromium: `vp run setup:browser`.
 
+Cargo keeps the artifacts of every engine, feature and example combination
+it builds, so `target/` only grows. Debug builds therefore keep line tables
+only, and dependencies no debug info. Before running Cargo, the repository
+tools measure `target/` at most once an hour and run `cargo clean` when it
+exceeds 64 GiB; `FETCHLET_TARGET_BUDGET_GIB` sets another budget, and `0`
+turns the check off.
+
 ## Known build warnings
 
 - On Windows, Rust builds set `CC` and `CXX` to clang-cl in-process;
