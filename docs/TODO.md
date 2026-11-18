@@ -142,3 +142,20 @@ Test262 host features, negative and module tests, writable, transform and
 piping Streams, the no-cors header guard, legacy multi-byte encodings, and
 fuzzing of JavaScript multipart and Body parsing are next
 ([conformance](conformance.md#next)).
+
+## Unit tests
+
+Integration, conformance and example end-to-end suites cover whole artifacts.
+Code that runs on the user's side also needs unit tests that pin its own
+decisions. `fetchlet/build` (polyfill planning, asset entries and options), the
+runtime Fetch handler and every framework integration's options, generated
+entry and context helpers are covered with Vitest. Next:
+
+- `fetchlet/build` `buildArtifact`: option validation, the generated entry and
+  the empty Node builtin modules, with the bundler mocked.
+- `fetchlet/qwik-city/middleware` with mocked host bindings, and the Waku
+  server entry adapter.
+- `@fetchlet/web` logic in Node with a fake `__fetchletHost`: wire conversion,
+  the response body registry, `Set-Cookie` splitting and the host protocol.
+- Rust: archive and artifact manifest parsing in `fetchlet-http`, and limit and
+  error mapping in `fetchlet`, as module tests beside the code.
