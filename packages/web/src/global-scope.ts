@@ -16,12 +16,3 @@ if (runtime.navigator === undefined) {
   });
   runtime.navigator = navigator;
 }
-
-// The global scope is not an EventTarget here, so a reported exception has
-// no error event to reach; it goes to the console, which the host captures.
-runtime.reportError ??= function reportError(error: unknown) {
-  if (arguments.length < 1) {
-    throw new TypeError("reportError requires an argument");
-  }
-  runtime.console?.error?.("Uncaught", error);
-};

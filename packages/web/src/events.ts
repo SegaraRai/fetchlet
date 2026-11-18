@@ -408,6 +408,17 @@ function dispatch(target: EventTargetImpl, event: EventImpl): boolean {
   return !current.canceled;
 }
 
+/**
+ * Gives an object that is not an EventTarget instance its own listener list,
+ * so the EventTarget methods accept it as their receiver. The global scope
+ * uses it.
+ */
+export function adoptEventTarget(target: object) {
+  if (!listeners.has(target)) {
+    listeners.set(target, []);
+  }
+}
+
 /** Dispatches an event the platform creates, which reports `isTrusted`. */
 export function dispatchTrusted(target: EventTargetImpl, event: EventImpl): boolean {
   state(event).trusted = true;
@@ -418,7 +429,11 @@ export function dispatchTrusted(target: EventTargetImpl, event: EventImpl): bool
  * Defines an event handler attribute such as `onabort`. Like the DOM's, the
  * handler runs at the position where it was first set among the listeners.
  */
-export function defineEventHandler(prototype: object, type: string) {
+export function defineEventHandler(
+  prototype: object,
+  type: string,
+  invoke: (handler: Function, target: object, event: EventImpl) => void = invokeHandler,
+) {
   const handlers = new WeakMap<
     object,
     {
@@ -451,9 +466,8 @@ export function defineEventHandler(prototype: object, type: string) {
         value: callback,
         listener: (event: EventImpl) => {
           const handler = handlers.get(this)?.value;
-          // A handler that returns false cancels the event.
-          if (typeof handler === "function" && handler.call(this, event) === false) {
-            event.preventDefault();
+          if (typeof handler === "function") {
+            invoke(handler, this, event);
           }
         },
       };
@@ -461,6 +475,13 @@ export function defineEventHandler(prototype: object, type: string) {
       this.addEventListener(type, entry.listener);
     },
   });
+}
+
+/** A handler that returns false cancels the event. */
+function invokeHandler(handler: Function, target: object, event: EventImpl) {
+  if (handler.call(target, event) === false) {
+    event.preventDefault();
+  }
 }
 
 for (const [constructor, name] of [

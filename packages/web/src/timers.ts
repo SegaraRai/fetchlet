@@ -1,5 +1,14 @@
 import { runtime } from "./runtime";
 
+/** Reports an exception that a task threw, through reportError where installed. */
+export function reportTaskException(error: unknown) {
+  if (typeof runtime.reportError === "function") {
+    runtime.reportError(error);
+  } else {
+    runtime.console?.error?.("Uncaught", error);
+  }
+}
+
 if (!runtime.setTimeout) {
   let nextId = 1;
   // Timeouts and intervals share one list of identifiers, as in HTML, so
@@ -14,7 +23,10 @@ if (!runtime.setTimeout) {
       repeat?: number;
     }
   >();
-  function schedule(callback: Function, delay: unknown, args: any[], repeat: boolean): number {
+  // Arrow functions, not declarations: a bundle evaluated as a classic
+  // script would hoist a function declared in this block over other modules'
+  // functions of the same name.
+  const schedule = (callback: Function, delay: unknown, args: any[], repeat: boolean): number => {
     if (typeof callback !== "function") {
       throw new TypeError("Expected callback");
     }
@@ -27,10 +39,10 @@ if (!runtime.setTimeout) {
       repeat: repeat ? milliseconds : undefined,
     });
     return id;
-  }
-  function clear(id: number): void {
+  };
+  const clear = (id: number): void => {
     timers.delete(id);
-  }
+  };
   runtime.setTimeout = (callback: Function, delay = 0, ...args: any[]): number =>
     schedule(callback, delay, args, false);
   runtime.setInterval = (callback: Function, delay = 0, ...args: any[]): number =>
@@ -62,7 +74,12 @@ if (!runtime.setTimeout) {
           due: Date.now() + timer.repeat,
         });
       }
-      timer.callback(...timer.args);
+      try {
+        timer.callback(...timer.args);
+      } catch (error) {
+        // An exception ends this task only (HTML "report an exception").
+        reportTaskException(error);
+      }
       return true;
     }
     return false;
