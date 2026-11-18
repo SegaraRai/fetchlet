@@ -1,6 +1,10 @@
 // Rust calls this declaration as an expression (execution/script.rs).
+
 // eslint-disable-next-line no-unused-vars
 async function invokeResponseBody(operation, bodyId) {
+  // Body pulls start in the empty async context; the stream's own promise
+  // reactions keep theirs.
+  globalThis.__fetchletAsyncContext?.set(undefined);
   const bodies = globalThis.__fetchletResponseBodies;
   // The invocation ends with the body: on its last chunk, a cancel or an error.
   let invocationEnds = true;

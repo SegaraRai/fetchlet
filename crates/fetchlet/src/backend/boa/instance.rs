@@ -3,13 +3,16 @@ use std::rc::Rc;
 use anyhow::{Result, anyhow};
 use boa_engine::builtins::promise::{OperationType, Promise, PromiseState};
 use boa_engine::context::HostHooks;
+use boa_engine::job::JobCallback;
 use boa_engine::object::JsObject;
+use boa_engine::object::builtins::JsFunction;
 use boa_engine::object::builtins::JsPromise;
 use boa_engine::object::builtins::{JsArrayBuffer, JsUint8Array};
 use boa_engine::{
-    Context, JsArgs, JsError, JsNativeError, JsResult, JsString, JsValue, NativeFunction, Source,
-    js_string,
+    Context, JsArgs, JsData, JsError, JsNativeError, JsResult, JsString, JsValue, NativeFunction,
+    Source, js_string,
 };
+use boa_gc::{Finalize, Trace};
 use serde_json::Value;
 
 use super::{BoaOptions, array_buffer};
@@ -34,7 +37,7 @@ impl Boa {
 
     pub(crate) fn with_host(source: &str, host: HostBridge, options: BoaOptions) -> Result<Self> {
         let mut context = Context::builder()
-            .host_hooks(Rc::new(RejectionTracker))
+            .host_hooks(Rc::new(EngineHooks))
             .build()
             .map_err(|error| anyhow!("{error}"))?;
         options.apply(&mut context);
@@ -73,6 +76,9 @@ impl Boa {
                 1,
                 NativeFunction::from_fn_ptr(put_bytes),
             )
+            .map_err(|error| anyhow!("{error}"))?;
+        context
+            .eval(Source::from_bytes(ASYNC_CONTEXT_SLOT))
             .map_err(|error| anyhow!("{error}"))?;
         context
             .eval(Source::from_bytes(PRELUDE))
@@ -173,11 +179,77 @@ impl Boa {
     }
 }
 
-/// HostPromiseRejectionTracker: hands each rejection without a handler, and
-/// each handler added after one, to the profile's tracking hook.
-struct RejectionTracker;
+/// The host hooks: rejection tracking for the profile's global events, and
+/// the async context slot carried through promise jobs.
+struct EngineHooks;
 
-impl HostHooks for RejectionTracker {
+/// The async context slot. The current mapping lives on an object that the
+/// global object holds, where the garbage collector traces it; the hooks
+/// read and write it there.
+const ASYNC_CONTEXT_SLOT: &str = r#"(() => {
+  const slot = {
+    mapping: undefined,
+  };
+  Object.defineProperty(globalThis, "__fetchletAsyncContextSlot", {
+    value: slot,
+  });
+  globalThis.__fetchletAsyncContext = {
+    get: () => slot.mapping,
+    set: (mapping) => {
+      slot.mapping = mapping;
+    },
+  };
+})();"#;
+
+/// The mapping current when a promise reaction was registered.
+#[derive(Trace, Finalize, JsData)]
+struct CapturedContext(JsValue);
+
+fn async_context_slot(context: &mut Context) -> Option<JsObject> {
+    context
+        .global_object()
+        .get(js_string!("__fetchletAsyncContextSlot"), context)
+        .ok()?
+        .as_object()
+}
+
+impl HostHooks for EngineHooks {
+    /// HostMakeJobCallback: Boa calls it whenever a promise reaction is
+    /// registered (`then`, `await` and thenable jobs), so the reaction
+    /// captures the current mapping, as V8 does with its embedder data.
+    fn make_job_callback(&self, callback: JsFunction, context: &mut Context) -> JobCallback {
+        let mapping = async_context_slot(context)
+            .and_then(|slot| slot.get(js_string!("mapping"), context).ok())
+            .unwrap_or_default();
+        JobCallback::new(callback, CapturedContext(mapping))
+    }
+
+    /// HostCallJobCallback: runs the reaction with its captured mapping
+    /// current and restores the previous one afterwards.
+    fn call_job_callback(
+        &self,
+        job: &JobCallback,
+        this: &JsValue,
+        args: &[JsValue],
+        context: &mut Context,
+    ) -> JsResult<JsValue> {
+        let Some(slot) = async_context_slot(context) else {
+            return job.callback().call(this, args, context);
+        };
+        let captured = job
+            .host_defined()
+            .downcast_ref::<CapturedContext>()
+            .map(|captured| captured.0.clone())
+            .unwrap_or_default();
+        let previous = slot.get(js_string!("mapping"), context)?;
+        slot.set(js_string!("mapping"), captured, false, context)?;
+        let result = job.callback().call(this, args, context);
+        slot.set(js_string!("mapping"), previous, false, context)?;
+        result
+    }
+
+    /// HostPromiseRejectionTracker: hands each rejection without a handler,
+    /// and each handler added after one, to the profile's tracking hook.
     fn promise_rejection_tracker(
         &self,
         promise: &JsObject<Promise>,

@@ -1,6 +1,10 @@
 // Rust calls this declaration as an expression (execution/script.rs).
+
 // eslint-disable-next-line no-unused-vars
 async function invokeExport(exportName, argumentsList, streamResponseBody) {
+  // Each invocation starts in the empty async context, whatever the previous
+  // one left current.
+  globalThis.__fetchletAsyncContext?.set(undefined);
   const exports = globalThis.fetchletExports;
   const bodies = globalThis.__fetchletResponseBodies;
   // A Fetch call may leave its response body open; the invocation then stays

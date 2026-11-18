@@ -8,7 +8,7 @@ description = "Rust-hosted JavaScript functions and Fetch handlers with explicit
 [features]
 default = ["quickjs", "web-apis"]
 quickjs = ["dep:rquickjs", "web"]
-boa = ["dep:boa_engine", "web"]
+boa = ["dep:boa_engine", "dep:boa_gc", "web"]
 v8 = ["dep:deno_core", "dep:deno_error", "web"]
 # Exposes a hidden harness over the private host bridge for cargo-fuzz targets.
 fuzzing = ["web"]
@@ -34,6 +34,8 @@ url = "2"
 thiserror = "2"
 rquickjs = { version = "=0.14.0", optional = true }
 boa_engine = { version = "=0.22.0", optional = true, features = ["annex-b"] }
+# The derives of boa_engine's garbage-collected types name boa_gc directly.
+boa_gc = { version = "=0.22.0", optional = true }
 deno_core = { version = "=0.413.0", optional = true }
 deno_error = { version = "=0.7.1", optional = true }
 

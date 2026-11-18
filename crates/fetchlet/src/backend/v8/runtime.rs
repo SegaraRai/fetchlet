@@ -77,12 +77,16 @@ impl V8Runtime {
             .set_promise_reject_callback(track_rejection);
         let wake = host.wake_signal();
         runtime.op_state().borrow_mut().put(host);
+        // The async context slot is V8's continuation-preserved embedder
+        // data, which V8 captures with each promise reaction and restores
+        // when the reaction runs.
         runtime
             .execute_script(
                 "fetchlet:host",
                 "globalThis.__fetchletHost=Deno.core.ops.op_fetchlet_host;\
                  globalThis.__fetchletTakeBytes=Deno.core.ops.op_fetchlet_take_bytes;\
-                 globalThis.__fetchletPutBytes=Deno.core.ops.op_fetchlet_put_bytes;",
+                 globalThis.__fetchletPutBytes=Deno.core.ops.op_fetchlet_put_bytes;\
+                 globalThis.__fetchletAsyncContext={get:Deno.core.getAsyncContext,set:Deno.core.setAsyncContext};",
             )
             .map_err(|error| anyhow!("{error}"))?;
         runtime
