@@ -60,7 +60,9 @@ const types: Record<string, string> = {
 
 async function staticFile(pathname: string): Promise<Response | undefined> {
   const file = resolve(client, "." + decodeURIComponent(pathname));
-  if (!file.startsWith(client + sep)) return undefined;
+  if (!file.startsWith(client + sep)) {
+    return undefined;
+  }
   try {
     return new Response(await readFile(file), {
       headers: { "content-type": types[extname(file)] ?? "application/octet-stream" },
@@ -102,7 +104,9 @@ async function respond(incoming: IncomingMessage, outgoing: ServerResponse): Pro
 const server = createServer((incoming, outgoing) => {
   respond(incoming, outgoing).catch((error) => {
     process.stderr.write(String(error?.stack ?? error) + "\n");
-    if (!outgoing.headersSent) outgoing.writeHead(500);
+    if (!outgoing.headersSent) {
+      outgoing.writeHead(500);
+    }
     outgoing.end();
   });
 });

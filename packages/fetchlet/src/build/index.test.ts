@@ -214,6 +214,8 @@ describe("buildArtifact", () => {
 
 describe("nativeCapabilityCheck", () => {
   const check = (backend: "v8" | "portable", locales: string[], intl: object) => () =>
+    // The generated check is source text that the engine evaluates.
+    // eslint-disable-next-line typescript/no-implied-eval
     new Function(
       "globalThis",
       nativeCapabilityCheck(

@@ -66,7 +66,7 @@ export async function jsLoop(stage: string, count: number): Promise<number> {
     abortController: () => new AbortController(),
     stream: async () => {
       const reader = new Response("x").body!.getReader();
-      while (!(await reader.read()).done);
+      while (!(await reader.read()).done) {}
     },
     arrayBuffer: () => new Response("x").arrayBuffer(),
     jsonStringify: () => JSON.stringify({ clientAddress: "127.0.0.1", message: "m" }),
@@ -80,9 +80,15 @@ export async function jsLoop(stage: string, count: number): Promise<number> {
     echo: () => handle(echo, { clientAddress: "127.0.0.1" }),
   };
   const run = stages[stage];
-  if (!run) throw new Error("unknown stage " + stage);
-  for (let index = 0; index < Math.min(count, 200); index++) await run();
+  if (!run) {
+    throw new Error("unknown stage " + stage);
+  }
+  for (let index = 0; index < Math.min(count, 200); index++) {
+    await run();
+  }
   const start = performance.now();
-  for (let index = 0; index < count; index++) await run();
+  for (let index = 0; index < count; index++) {
+    await run();
+  }
   return ((performance.now() - start) * 1000) / count;
 }

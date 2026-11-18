@@ -267,7 +267,9 @@ export async function assertStreams(response: Response): Promise<void> {
   );
   for (;;) {
     const { done, value } = await reader.read();
-    if (done) break;
+    if (done) {
+      break;
+    }
     received += decoder.decode(value, { stream: true });
   }
   expect(received).toMatch(/A value that arrived late/);

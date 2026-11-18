@@ -35,7 +35,9 @@ const metadata = JSON.parse(
 const urlCrate = metadata.packages.find(
   (pkg) => pkg.name === "url" && pkg.source?.startsWith("registry+"),
 );
-if (!urlCrate) throw new Error("the url crate is not in the dependency graph");
+if (!urlCrate) {
+  throw new Error("the url crate is not in the dependency graph");
+}
 const data = resolve(dirname(urlCrate.manifest_path), "tests");
 const constructorTests: unknown = JSON.parse(
   readFileSync(resolve(data, "urltestdata.json"), "utf8"),
@@ -82,13 +84,17 @@ for (const backend of hostBackends) {
   report.backends[backend] = { total, failures: failures.length, unexpected };
   // Node's parser is not the url crate, so its list only informs.
   const gated = backend !== "node-reference";
-  if (gated && unexpected.length) failed = true;
+  if (gated && unexpected.length) {
+    failed = true;
+  }
   console.log(
     `${backend}: ${total - failures.length}/${total} pass, ` +
       `${unexpected.length} outside the url crate's expected failures` +
       (gated ? "" : " (informational)"),
   );
-  for (const name of unexpected.slice(0, 20)) console.log("  " + name);
+  for (const name of unexpected.slice(0, 20)) {
+    console.log("  " + name);
+  }
 }
 writeResult("url-wpt.json", report);
 process.exitCode = failed ? 1 : 0;

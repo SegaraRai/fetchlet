@@ -43,8 +43,9 @@ const { values } = parseArgs({
     "record-baseline": { type: "string" },
   },
 });
-if (!["all", "wpt", "test262", "regressions"].includes(values.suite))
+if (!["all", "wpt", "test262", "regressions"].includes(values.suite)) {
   throw new Error("Unknown suite");
+}
 const backends = values.backend
   ? values.backend.split(",")
   : ["node-reference", "quickjs", "boa", "v8"];
@@ -85,9 +86,13 @@ await build({
 const prelude = readFileSync(profile, "utf8");
 const cases: Case[] = [];
 for (const suite of ["wpt", "test262"] as const) {
-  if (values.suite !== "all" && values.suite !== suite) continue;
+  if (values.suite !== "all" && values.suite !== suite) {
+    continue;
+  }
   for (const file of lock.suites[suite].tests) {
-    if (!file.includes(values.filter)) continue;
+    if (!file.includes(values.filter)) {
+      continue;
+    }
     if (suite === "wpt") {
       const text = source("wpt", file);
       // Each `variant` runs as its own test file, as the WPT runner does;
@@ -109,7 +114,7 @@ for (const suite of ["wpt", "test262"] as const) {
           long: /^\/\/ META: timeout=long$/m.test(text),
         });
       }
-    } else
+    } else {
       for (const variant of test262Variants(file)) {
         cases.push({
           suite,
@@ -119,33 +124,41 @@ for (const suite of ["wpt", "test262"] as const) {
           program: variant.unsupported ? null : test262Program(variant),
         });
       }
+    }
   }
 }
 if (values.suite === "all" || values.suite === "regressions") {
   const file = "regressions/web-api.any.js";
-  if (file.includes(values.filter))
+  if (file.includes(values.filter)) {
     cases.push({
       suite: "regressions",
       file,
       mode: "shell",
       program: prelude + "\n" + wptScript([readFileSync(resolve(root, file), "utf8")]),
     });
+  }
 }
-if (cases.length === 0) throw new Error("No selected cases");
+if (cases.length === 0) {
+  throw new Error("No selected cases");
+}
 const work: (Case & { backend: string })[] = [];
 for (const [index, test] of cases.entries()) {
   if (test.program) {
     test.bundle = resolve(directory, index + ".js");
     writeFileSync(test.bundle, test.program);
   }
-  for (const backend of backends) work.push({ ...test, backend });
+  for (const backend of backends) {
+    work.push({ ...test, backend });
+  }
 }
 const results: Result[] = [];
 let cursor = 0;
 async function worker(): Promise<void> {
   for (;;) {
     const task = work[cursor++];
-    if (!task) return;
+    if (!task) {
+      return;
+    }
     const identity = { suite: task.suite, file: task.file, mode: task.mode, backend: task.backend };
     if (task.unsupported) {
       results.push({
@@ -189,7 +202,7 @@ async function worker(): Promise<void> {
       });
       continue;
     }
-    for (const test of report.tests)
+    for (const test of report.tests) {
       results.push({
         ...identity,
         name: test.name,
@@ -203,6 +216,7 @@ async function worker(): Promise<void> {
                 : "harness-error",
         message: test.message,
       });
+    }
   }
 }
 try {
@@ -242,17 +256,25 @@ for (const result of results) {
   const group = result.suite + "/" + result.backend;
   summary[group] ??= { pass: 0, fail: 0, expectedFailures: 0, unsupported: 0, errors: 0 };
   const count = summary[group];
-  if (result.status === "pass") count.pass++;
-  else if (result.status === "fail") {
+  if (result.status === "pass") {
+    count.pass++;
+  } else if (result.status === "fail") {
     count.fail++;
-    if (result.expected) count.expectedFailures++;
-  } else if (result.status === "unsupported") count.unsupported++;
-  else count.errors++;
+    if (result.expected) {
+      count.expectedFailures++;
+    }
+  } else if (result.status === "unsupported") {
+    count.unsupported++;
+  } else {
+    count.errors++;
+  }
 }
 function passedPerFile(results: Result[]): Record<string, Record<string, number>> {
   const passed: Record<string, Record<string, number>> = {};
   for (const result of results) {
-    if (result.status !== "pass") continue;
+    if (result.status !== "pass") {
+      continue;
+    }
     const group = (passed[result.suite + "/" + result.backend] ??= {});
     const file = result.file + (result.mode === "shell" ? "" : ` (${result.mode})`);
     group[file] = (group[file] ?? 0) + 1;

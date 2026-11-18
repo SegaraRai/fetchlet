@@ -16,10 +16,11 @@ export const load: PageServerLoad = async ({ fetch }) => {
 export const actions: Actions = {
   default: async ({ request, platform }) => {
     const form = await request.formData();
+    const name = form.get("name");
     const response = await platform!.env.RUST.fetch(API + "/projects", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: String(form.get("name") ?? "") }),
+      body: JSON.stringify({ name: typeof name === "string" ? name : "" }),
     });
     // HTTP errors from Rust are ordinary Responses.
     if (!response.ok) {

@@ -1,11 +1,11 @@
-promise_test(async (t) => {
+promise_test(async () => {
   const data = new Uint8Array([1, 2]);
   const response = new Response(data);
   data[0] = 9;
   assert_array_equals(await response.bytes(), [1, 2]);
 }, "Response snapshots a typed-array body");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response("abc");
   const reader = response.body.getReader();
   assert_false(response.bodyUsed);
@@ -17,7 +17,7 @@ promise_test(async (t) => {
   assert_throws_js(TypeError, () => response.clone());
 }, "Direct reader consumption disturbs Body and prevents later consumption");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response(null);
   assert_equals(await response.text(), "");
   assert_false(response.bodyUsed);
@@ -25,14 +25,14 @@ promise_test(async (t) => {
   assert_equals(await response.clone().text(), "");
 }, "A null body remains usable after consumption");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response("text");
   await response.body.cancel();
   assert_true(response.bodyUsed);
   assert_throws_js(TypeError, () => response.clone());
 }, "Cancelling the exposed stream disturbs Body");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response("text");
   const copy = response.clone();
   assert_false(response.bodyUsed);
@@ -75,7 +75,7 @@ test(() => {
   assert_equals(Response.error().status, 0);
 }, "Response status conversion and static methods");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const blob = new Blob([new Uint8Array([1, 2])], { type: "text/日" });
   assert_equals(blob.type, "");
   const first = await blob.bytes();
@@ -93,7 +93,7 @@ test(() => {
   assert_array_equals(data.getAll("a"), ["replacement"]);
 }, "FormData.set preserves the first entry position");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response("not multipart", {
     headers: { "content-type": "multipart/form-data; boundary=example" },
   });
@@ -124,7 +124,9 @@ promise_test(async () => {
   let text = "";
   for (;;) {
     const { done, value } = await reader.read();
-    if (done) break;
+    if (done) {
+      break;
+    }
     text += value;
   }
   assert_equals(text, "あ");
@@ -167,7 +169,7 @@ promise_test(async () => {
   assert_equals(file.type, "text/plain");
 }, "multipart parses quoted boundaries case-insensitively and defaults file types");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const part = '--b0\r\nContent-Disposition: form-data; name="a"\r\n\r\nv\r\n';
   for (const body of [
     part,
@@ -223,6 +225,8 @@ test(() => {
       prototype = Object.getPrototypeOf(prototype);
     }
     assert_equals(typeof descriptor?.get, "function", name + " getter");
+    // Reading the setter off the descriptor is the check, not a method call.
+    // eslint-disable-next-line typescript/unbound-method
     assert_equals(descriptor.set, undefined, name + " is read-only");
     assert_true(descriptor.enumerable, name + " is enumerable");
     assert_throws_js(TypeError, () => descriptor.get.call({}), name + " brand check");
@@ -291,7 +295,7 @@ test(() => {
   assert_equals(new Request(url, { priority: "high" }).url, url);
 }, "Request validates RequestInit enumerations and mode constraints");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response("abc");
   assert_equals(await response.text(), "abc");
   assert_true(response.bodyUsed);
@@ -303,7 +307,7 @@ promise_test(async (t) => {
   assert_throws_js(TypeError, () => response.clone());
 }, "Reading a byte body without its stream leaves the Body used and its stream locked");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response("abc");
   const stream = response.body;
   assert_equals(response.body, stream, "body returns one stream");
@@ -314,7 +318,7 @@ promise_test(async (t) => {
   await promise_rejects_js(t, TypeError, response.text());
 }, "A byte body read after exposing its stream uses that stream");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response(new Uint8Array([1, 2, 3]));
   const copy = response.clone();
   const first = new Uint8Array(await response.arrayBuffer());
@@ -323,7 +327,7 @@ promise_test(async (t) => {
   assert_true(copy.bodyUsed);
 }, "Clones of a byte body read independent buffers");
 
-promise_test(async (t) => {
+promise_test(async () => {
   const response = new Response("");
   assert_not_equals(response.body, null);
   const empty = new Response("");
@@ -332,7 +336,8 @@ promise_test(async (t) => {
   await promise_rejects_js(t, TypeError, empty.arrayBuffer());
 }, "An empty byte body is a non-null body that can be read once");
 
-promise_test(async (t) => {
+promise_test(async () => {
+  // eslint-disable-next-line unicorn/no-invalid-fetch-options -- the invalid body is the case
   assert_throws_js(TypeError, () => new Request("https://example.test/", { body: "x" }));
   const request = new Request("https://example.test/", { method: "POST", body: "payload" });
   assert_equals(request.headers.get("content-type"), "text/plain;charset=UTF-8");

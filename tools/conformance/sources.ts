@@ -25,11 +25,15 @@ export function suites(): [Suite, SuiteLock][] {
 
 export function source(suite: Suite, file: string): string {
   const record = lock.suites[suite].files.find((entry) => entry.path === file);
-  if (!record) throw new Error("Unpinned upstream dependency: " + suite + "/" + file);
+  if (!record) {
+    throw new Error("Unpinned upstream dependency: " + suite + "/" + file);
+  }
   const directory = resolve(root, "upstream", suite);
   const location = resolve(directory, file);
   const local = relative(directory, location);
-  if (local.startsWith("..") || isAbsolute(local)) throw new Error("Unsafe source path");
+  if (local.startsWith("..") || isAbsolute(local)) {
+    throw new Error("Unsafe source path");
+  }
   const bytes = readFileSync(location);
   if (createHash("sha256").update(bytes).digest("hex") !== record.sha256) {
     throw new Error("Upstream checksum mismatch: " + suite + "/" + file);
@@ -39,6 +43,8 @@ export function source(suite: Suite, file: string): string {
 
 export function verifySources(): void {
   for (const [suite, configuration] of suites()) {
-    for (const file of configuration.files) source(suite, file.path);
+    for (const file of configuration.files) {
+      source(suite, file.path);
+    }
   }
 }

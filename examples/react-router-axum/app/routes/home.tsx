@@ -24,7 +24,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   const form = await request.formData();
-  const name = String(form.get("name") ?? "").slice(0, 40);
+  const value = form.get("name");
+  const name = (typeof value === "string" ? value : "").slice(0, 40);
   return data(
     {
       greeted: name,

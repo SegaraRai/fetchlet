@@ -15,7 +15,9 @@ class BlobImpl {
       throw new TypeError("Blob parts must be an iterable object");
     }
     const iterator = parts[Symbol.iterator];
-    if (typeof iterator !== "function") throw new TypeError("Blob parts must be iterable");
+    if (typeof iterator !== "function") {
+      throw new TypeError("Blob parts must be iterable");
+    }
     const iterable = { [Symbol.iterator]: () => iterator.call(parts) };
     this.data = concatBytes(
       Array.from(iterable, (part) => {
@@ -38,7 +40,9 @@ class BlobImpl {
     );
     const endings = domString(options.endings === undefined ? "transparent" : options.endings);
     const type = domString(options.type === undefined ? "" : options.type);
-    if (!["transparent", "native"].includes(endings)) throw new TypeError("Invalid Blob endings");
+    if (!["transparent", "native"].includes(endings)) {
+      throw new TypeError("Invalid Blob endings");
+    }
     this.type = /[^\x20-\x7e]/.test(type) ? "" : type.toLowerCase();
   }
 
@@ -69,7 +73,9 @@ class BlobImpl {
     return new runtime.ReadableStream({
       ...(supportsByteStreams() ? { type: "bytes" } : {}),
       start(controller: any) {
-        if (data.byteLength > 0) controller.enqueue(data);
+        if (data.byteLength > 0) {
+          controller.enqueue(data);
+        }
         controller.close();
       },
     });

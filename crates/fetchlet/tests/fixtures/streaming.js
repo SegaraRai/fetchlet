@@ -16,7 +16,9 @@ globalThis.clearTimeout = (id) => {
 globalThis.__fetchletClearTimers = () => timers.clear();
 globalThis.__fetchletTimerDelay = () => {
   let due = Infinity;
-  for (const timer of timers.values()) due = Math.min(due, timer.due);
+  for (const timer of timers.values()) {
+    due = Math.min(due, timer.due);
+  }
   return Number.isFinite(due) ? Math.max(0, due - Date.now()) : -1;
 };
 globalThis.__fetchletRunNextTimer = () => {
@@ -55,10 +57,14 @@ globalThis.ReadableStream = class {
     return {
       read: async () => {
         while (this.#queue.length === 0 && !this.#closed) {
-          if (this.#error) throw this.#error.error;
+          if (this.#error) {
+            throw this.#error.error;
+          }
           await this.#source.pull(this.#controller);
         }
-        if (this.#error) throw this.#error.error;
+        if (this.#error) {
+          throw this.#error.error;
+        }
         return this.#queue.length > 0
           ? { done: false, value: this.#queue.shift() }
           : { done: true, value: undefined };
@@ -80,7 +86,9 @@ class Signal {
   reason = undefined;
 
   throwIfAborted() {
-    if (this.aborted) throw this.reason;
+    if (this.aborted) {
+      throw this.reason;
+    }
   }
 
   addEventListener(_type, listener) {
@@ -92,10 +100,14 @@ class Signal {
   }
 
   abort(reason) {
-    if (this.aborted) return;
+    if (this.aborted) {
+      return;
+    }
     this.aborted = true;
     this.reason = reason;
-    for (const listener of [...this.#listeners]) listener();
+    for (const listener of Array.from(this.#listeners)) {
+      listener();
+    }
   }
 }
 
@@ -168,7 +180,9 @@ function routes(url) {
   switch (path) {
     case "/ticks":
       return source(async () => {
-        if (index >= count) return { done: true, value: undefined };
+        if (index >= count) {
+          return { done: true, value: undefined };
+        }
         await delay(wait);
         return { done: false, value: bytes(`tick-${index++};`) };
       });
@@ -196,7 +210,9 @@ function routes(url) {
       }));
     case "/error":
       return source(async () => {
-        if (index++ === 0) return { done: false, value: bytes("ok;") };
+        if (index++ === 0) {
+          return { done: false, value: bytes("ok;") };
+        }
         await delay(wait);
         throw new Error("stream failure");
       });
@@ -252,7 +268,9 @@ globalThis.fetchletExports = {
       try {
         for (;;) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
           chunks += 1;
           length += value.byteLength;
         }
@@ -325,7 +343,9 @@ globalThis.fetchletExports = {
                 const reader = upstream.body.getReader();
                 for (;;) {
                   const { done, value } = await reader.read();
-                  if (done) break;
+                  if (done) {
+                    break;
+                  }
                   backgroundBytes += value.byteLength;
                 }
                 finish();

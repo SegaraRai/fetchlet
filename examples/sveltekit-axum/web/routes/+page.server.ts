@@ -13,7 +13,8 @@ export const load: PageServerLoad = async ({ url, platform }) => {
 export const actions: Actions = {
   default: async ({ request, cookies }) => {
     const form = await request.formData();
-    const name = String(form.get("name") ?? "").trim() || "fetchlet";
+    const value = form.get("name");
+    const name = (typeof value === "string" ? value.trim() : "") || "fetchlet";
     cookies.set("visitor", name, { path: "/", sameSite: "lax", secure: false });
     return { name };
   },

@@ -28,7 +28,9 @@ globalThis.ReadableStream = class {
         while (this.#queue.length === 0 && !this.#closed && !this.#error) {
           await this.#source.pull(this.#controller);
         }
-        if (this.#error) throw this.#error;
+        if (this.#error) {
+          throw this.#error;
+        }
         return this.#queue.length > 0
           ? { done: false, value: this.#queue.shift() }
           : { done: true, value: undefined };
@@ -76,7 +78,9 @@ async function count(body) {
   try {
     for (;;) {
       const { done, value } = await reader.read();
-      if (done) return { status: 200, headers: [], body: text(chunks + ":" + length) };
+      if (done) {
+        return { status: 200, headers: [], body: text(chunks + ":" + length) };
+      }
       chunks += 1;
       length += value.byteLength;
     }

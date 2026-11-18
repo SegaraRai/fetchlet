@@ -25,14 +25,18 @@ export const getNotes = query(async () => {
 /** A note's source and version, for the editor. */
 export const getNote = query(notePath, async (path) => {
   const { data, error: failure, response } = await rust.getNote({ query: { path } });
-  if (!data) error(response?.status === 400 ? 400 : 404, failure?.error ?? "not found");
+  if (!data) {
+    error(response?.status === 400 ? 400 : 404, failure?.error ?? "not found");
+  }
   return data;
 });
 
 /** A note rendered to HTML on the server, with its outline and tags. */
 export const getRenderedNote = query(notePath, async (path) => {
   const { data: note, error: failure, response } = await rust.getNote({ query: { path } });
-  if (!note) error(response?.status === 400 ? 400 : 404, failure?.error ?? "not found");
+  if (!note) {
+    error(response?.status === 400 ? 400 : 404, failure?.error ?? "not found");
+  }
   const rendered = await render(path, note.content);
   return {
     path: note.path,
@@ -48,7 +52,9 @@ export const getRenderedNote = query(notePath, async (path) => {
 export const searchNotes = query(
   v.object({ q: v.pipe(v.string(), v.maxLength(200)), limit: v.optional(v.number()) }),
   async ({ q, limit }) => {
-    if (!q.trim()) return [];
+    if (!q.trim()) {
+      return [];
+    }
     const { data } = await rust.search({ query: { q, limit }, throwOnError: true });
     return data;
   },
@@ -87,7 +93,9 @@ export const saveNote = form(
       // The editor offers to overwrite with the version that is on disk now.
       return { conflict: failure?.conflict?.current_version ?? null };
     }
-    if (!data) invalid(issue.content(failure?.error ?? "Could not save the note"));
+    if (!data) {
+      invalid(issue.content(failure?.error ?? "Could not save the note"));
+    }
     // After a successful submission SvelteKit refreshes the queries on the page.
     redirect(303, noteHref(path));
   },
@@ -105,8 +113,12 @@ export const createNote = form(
     } = await rust.saveNote({
       body: { path, content: `# ${title}\n\n`, base_version: null },
     });
-    if (response?.status === 409) invalid(issue.path("A note with this name already exists"));
-    if (!data) invalid(issue.path(failure?.error ?? "Could not create the note"));
+    if (response?.status === 409) {
+      invalid(issue.path("A note with this name already exists"));
+    }
+    if (!data) {
+      invalid(issue.path(failure?.error ?? "Could not create the note"));
+    }
     redirect(303, noteHref(path) + "/edit");
   },
 );
@@ -115,7 +127,9 @@ export const deleteNote = form(
   v.object({ path: notePath, version: v.string() }),
   async ({ path, version }) => {
     const { error: failure, response } = await rust.deleteNote({ query: { path, version } });
-    if (!response?.ok) invalid(failure?.error ?? "Could not delete the note");
+    if (!response?.ok) {
+      invalid(failure?.error ?? "Could not delete the note");
+    }
     redirect(303, "/");
   },
 );

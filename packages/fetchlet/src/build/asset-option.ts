@@ -21,7 +21,7 @@ export interface AssetContext {
    * The entries `true` would archive: `directoryAssets` over `directory`
    * with the framework's defaults, and `options` on top of them.
    */
-  defaults(options?: DirectoryAssetOptions): Promise<AssetEntry[]>;
+  defaults: (options?: DirectoryAssetOptions) => Promise<AssetEntry[]>;
 }
 
 /** Return every entry of the archive. */

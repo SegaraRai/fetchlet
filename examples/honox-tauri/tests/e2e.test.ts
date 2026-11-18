@@ -54,17 +54,25 @@ async function waitFor<T>(
   for (;;) {
     try {
       const value = await operation();
-      if (value) return value as NonNullable<T>;
+      if (value) {
+        return value as NonNullable<T>;
+      }
     } catch (error) {
-      if ((error as { fatal?: boolean } | undefined)?.fatal) throw error;
+      if ((error as { fatal?: boolean } | undefined)?.fatal) {
+        throw error;
+      }
     }
-    if (Date.now() > deadline) throw new Error(label + " deadline: " + stderr);
+    if (Date.now() > deadline) {
+      throw new Error(label + " deadline: " + stderr);
+    }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
   }
 }
 
 beforeAll(async () => {
-  if (!supported) return;
+  if (!supported) {
+    return;
+  }
   await mkdir(output, { recursive: true });
   const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
   config.build_directory = resolve(example, "build");
@@ -93,10 +101,14 @@ beforeAll(async () => {
   });
   let ready = false;
   createInterface({ input: app.stdout }).on("line", (line) => {
-    if (line.startsWith("FETCHLET_TAURI_READY ")) ready = true;
+    if (line.startsWith("FETCHLET_TAURI_READY ")) {
+      ready = true;
+    }
   });
   await waitFor(() => {
-    if (exited) throw Object.assign(new Error("App exited: " + stderr), { fatal: true });
+    if (exited) {
+      throw Object.assign(new Error("App exited: " + stderr), { fatal: true });
+    }
     return ready;
   }, "App startup");
   await waitFor(
@@ -124,7 +136,9 @@ afterAll(async () => {
     child.kill();
     await exited;
   }
-  if (!supported) return;
+  if (!supported) {
+    return;
+  }
   await writeFile(resolve(output, "app.log"), stderr);
   writeResult(resultFile(name), {
     backend,

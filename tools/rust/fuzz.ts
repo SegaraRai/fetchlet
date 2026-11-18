@@ -64,14 +64,20 @@ writeResult("fuzz-smoke.json", {
   maxInputBytes,
   targets: results,
 });
-if (results.some((result) => result.status !== "pass")) process.exitCode = 1;
+if (results.some((result) => result.status !== "pass")) {
+  process.exitCode = 1;
+}
 
 /** cargo-fuzz from the tool cache, and on Windows the MSVC AddressSanitizer runtime. */
 function fuzzEnv(): NodeJS.ProcessEnv {
   const directories: string[] = [];
-  if (process.platform === "win32") directories.push(msvcCompilerBin());
+  if (process.platform === "win32") {
+    directories.push(msvcCompilerBin());
+  }
   const localTools = join(toolCache, "cargo-fuzz", "bin");
-  if (existsSync(localTools)) directories.push(localTools);
+  if (existsSync(localTools)) {
+    directories.push(localTools);
+  }
   return cargoEnv(prependPath(directories));
 }
 
@@ -95,11 +101,14 @@ function msvcCompilerBin(): string {
         { encoding: "utf8" },
       ).trim()
     : "";
-  if (!installation)
+  if (!installation) {
     throw new Error("MSVC tools and C++ AddressSanitizer are required for Windows fuzzing.");
+  }
   const toolchains = join(installation, "VC\\Tools\\MSVC");
   const latest = readdirSync(toolchains).sort().at(-1);
-  if (!latest) throw new Error("No MSVC toolchain is installed.");
+  if (!latest) {
+    throw new Error("No MSVC toolchain is installed.");
+  }
   const bin = join(toolchains, latest, "bin\\Hostx64\\x64");
   if (!existsSync(join(bin, "clang_rt.asan_dynamic-x86_64.dll"))) {
     throw new Error("Install the Visual Studio C++ AddressSanitizer component to run fuzzing.");

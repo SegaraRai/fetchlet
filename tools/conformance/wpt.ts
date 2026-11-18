@@ -9,7 +9,9 @@ function dependencies(file: string, seen = new Set<string>()): string[] {
     const dependency = name.startsWith("/")
       ? name.slice(1)
       : posix.normalize(posix.join(posix.dirname(file), name));
-    if (seen.has(dependency)) continue;
+    if (seen.has(dependency)) {
+      continue;
+    }
     seen.add(dependency);
     result.push(...dependencies(dependency, seen), dependency);
   }

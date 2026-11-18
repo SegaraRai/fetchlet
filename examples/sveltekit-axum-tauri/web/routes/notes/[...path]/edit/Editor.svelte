@@ -34,7 +34,9 @@
   // Render the preview in the Rust process once typing pauses.
   $effect(() => {
     const text = content;
-    if (text === saved && preview === initialPreview) {return;}
+    if (text === saved && preview === initialPreview) {
+      return;
+    }
     const timer = setTimeout(async () => {
       preview = await renderPreview({ path, content: text });
     }, 250);
@@ -43,7 +45,9 @@
 
   $effect(() =>
     subscribeToChanges((change) => {
-      if (change.paths.includes(path)) {changedOnDisk = true;}
+      if (change.paths.includes(path)) {
+        changedOnDisk = true;
+      }
     }),
   );
 
@@ -53,7 +57,9 @@
     const saved =
       navigation.type === "goto" &&
       navigation.to?.url.pathname === new URL(noteHref(path), location.href).pathname;
-    if (dirty && !leaving && !saved && !confirm("Discard unsaved changes?")) {navigation.cancel();}
+    if (dirty && !leaving && !saved && !confirm("Discard unsaved changes?")) {
+      navigation.cancel();
+    }
   });
 
   function onkeydown(event: KeyboardEvent) {

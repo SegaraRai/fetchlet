@@ -3,7 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 // Count an upload as the server receives it, without buffering it first.
 async function count(request: Request) {
   if (request.body === null) {
-    return Response.json({ chunks: 0, bytes: 0 });
+    return Response.json({
+      chunks: 0,
+      bytes: 0,
+    });
   }
   const reader = request.body.getReader();
   let chunks = 0;
@@ -11,7 +14,9 @@ async function count(request: Request) {
   try {
     for (;;) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        break;
+      }
       chunks += 1;
       bytes += value.byteLength;
     }
@@ -22,9 +27,16 @@ async function count(request: Request) {
       { status: code === "LIMIT_EXCEEDED" ? 413 : 400 },
     );
   }
-  return Response.json({ chunks, bytes });
+  return Response.json({
+    chunks,
+    bytes,
+  });
 }
 
 export const Route = createFileRoute("/api/upload")({
-  server: { handlers: { POST: ({ request }) => count(request) } },
+  server: {
+    handlers: {
+      POST: ({ request }) => count(request),
+    },
+  },
 });

@@ -10,5 +10,5 @@ globalThis.console ??= {
 };
 
 globalThis.queueMicrotask ??= (callback) => {
-  Promise.resolve().then(callback);
+  void Promise.resolve().then(callback);
 };

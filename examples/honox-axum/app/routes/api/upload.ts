@@ -4,7 +4,10 @@ import { createRoute } from "honox/factory";
 export const POST = createRoute(async (c) => {
   const body = c.req.raw.body;
   if (body === null) {
-    return c.json({ chunks: 0, bytes: 0 });
+    return c.json({
+      chunks: 0,
+      bytes: 0,
+    });
   }
   const reader = body.getReader();
   let chunks = 0;
@@ -12,16 +15,23 @@ export const POST = createRoute(async (c) => {
   try {
     for (;;) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        break;
+      }
       chunks += 1;
       bytes += value.byteLength;
     }
   } catch (error) {
     const code = (error as { code?: unknown }).code;
     return c.json(
-      { error: typeof code === "string" ? code : "READ_FAILED" },
+      {
+        error: typeof code === "string" ? code : "READ_FAILED",
+      },
       code === "LIMIT_EXCEEDED" ? 413 : 400,
     );
   }
-  return c.json({ chunks, bytes });
+  return c.json({
+    chunks,
+    bytes,
+  });
 });

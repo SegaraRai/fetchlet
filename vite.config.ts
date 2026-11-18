@@ -13,8 +13,44 @@ export default defineConfig({
     useTabs: false,
     sortImports: true,
     sortPackageJson: true,
+    astro: true,
+    svelte: true,
     // Pinned upstream sources are verified byte-for-byte against sources.lock.json.
     ignorePatterns: ["tests/conformance/upstream/**"],
+  },
+  lint: {
+    categories: {
+      correctness: "error",
+    },
+    // Upstream sources and generated API clients are not edited by hand.
+    ignorePatterns: ["tests/conformance/upstream/**", "**/*.gen.ts"],
+    options: {
+      denyWarnings: true,
+      reportUnusedDisableDirectives: "error",
+      typeAware: true,
+    },
+    rules: {
+      curly: "error",
+      eqeqeq: [
+        "error",
+        "always",
+        {
+          null: "ignore",
+        },
+      ],
+      "no-unused-vars": [
+        "error",
+        {
+          args: "all",
+          argsIgnorePattern: "^_",
+          caughtErrors: "all",
+          ignoreRestSiblings: true,
+          vars: "all",
+        },
+      ],
+      "no-var": "error",
+      "prefer-const": "error",
+    },
   },
   test: {
     projects: [

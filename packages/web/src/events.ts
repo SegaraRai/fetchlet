@@ -140,7 +140,9 @@ class EventImpl {
   }
 
   set returnValue(value: boolean) {
-    if (!value) this.preventDefault();
+    if (!value) {
+      this.preventDefault();
+    }
   }
 
   get cancelBubble() {
@@ -148,7 +150,9 @@ class EventImpl {
   }
 
   set cancelBubble(value: boolean) {
-    if (value) state(this).stopPropagation = true;
+    if (value) {
+      state(this).stopPropagation = true;
+    }
   }
 
   composedPath(): EventTargetImpl[] {

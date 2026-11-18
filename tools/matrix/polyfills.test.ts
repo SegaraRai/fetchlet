@@ -80,9 +80,13 @@ async function buildIntlArtifact(
     name: "record-polyfill-modules",
     generateBundle(_options, bundle) {
       for (const chunk of Object.values(bundle)) {
-        if (chunk.type !== "chunk") continue;
+        if (chunk.type !== "chunk") {
+          continue;
+        }
         for (const module of Object.keys(chunk.modules)) {
-          if (module.includes("@formatjs")) modules.add(module.replaceAll("\\", "/"));
+          if (module.includes("@formatjs")) {
+            modules.add(module.replaceAll("\\", "/"));
+          }
         }
       }
     },
@@ -179,7 +183,9 @@ for (const backend of backends) {
   check(backend + " executes selected Intl APIs with Japanese and Tokyo data", () => {
     const artifact = artifactNamed(backend === "v8" ? "v8" : "quickjs");
     const reply = execute(backend, artifact.server, "format");
-    if (!reply.ok) expect.fail(reply.error);
+    if (!reply.ok) {
+      expect.fail(reply.error);
+    }
     const { frenchSupported, usesFormatJS, ...formatted } = reply.value;
     expect(formatted).toStrictEqual({
       canonical: ["en-US"],

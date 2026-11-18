@@ -81,8 +81,9 @@ export function startHost(backend: HostBackend, bundle: string, timeoutMs = 15_0
   });
   return {
     raw(name, invocationArgs = []) {
-      if (ended)
+      if (ended) {
         return Promise.reject(new Error("Host is no longer running: " + stderr.slice(-1000)));
+      }
       return new Promise<Reply>((resolveReply, reject) => {
         const timer = setTimeout(() => {
           child.kill();
@@ -103,12 +104,16 @@ export function startHost(backend: HostBackend, bundle: string, timeoutMs = 15_0
     },
     async call(name, invocationArgs = []) {
       const reply = await this.raw(name, invocationArgs);
-      if (!reply.ok) throw new Error(reply.error);
+      if (!reply.ok) {
+        throw new Error(reply.error);
+      }
       return reply.value;
     },
     close() {
       child.stdin.end();
-      if (!ended) child.kill();
+      if (!ended) {
+        child.kill();
+      }
       return stderr;
     },
   };
@@ -135,7 +140,9 @@ export function runLab(
     timeout: timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
   });
-  if (execution.error) throw execution.error;
+  if (execution.error) {
+    throw execution.error;
+  }
   return {
     status: execution.status,
     stdout: execution.stdout,

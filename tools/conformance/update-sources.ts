@@ -26,7 +26,9 @@ const repository = suite === "wpt" ? "web-platform-tests/wpt" : "tc39/test262";
 const tests = [...new Set([...lock.suites[suite].tests, ...values.add])]
   .filter((file) => !values.remove.includes(file))
   .sort();
-if (tests.length === 0) throw new Error("Select at least one test");
+if (tests.length === 0) {
+  throw new Error("Select at least one test");
+}
 for (const file of tests) {
   if (
     !(suite === "wpt" ? file.endsWith(".any.js") : file.startsWith("test/") && file.endsWith(".js"))
@@ -48,10 +50,14 @@ function destination(file: string): string {
 /** `test` is the WPT test whose directory resolves the data its scripts fetch. */
 async function download(file: string, test = file): Promise<void> {
   destination(file);
-  if (files.has(file)) return;
+  if (files.has(file)) {
+    return;
+  }
   const url = "https://raw.githubusercontent.com/" + repository + "/" + revision + "/" + file;
   const response = await fetch(url);
-  if (!response.ok) throw new Error(url + ": " + response.status);
+  if (!response.ok) {
+    throw new Error(url + ": " + response.status);
+  }
   const bytes = Buffer.from(await response.arrayBuffer());
   files.set(file, bytes);
   const text = bytes.toString("utf8");
@@ -86,7 +92,9 @@ const support =
         "harness/sta.js",
         "harness/doneprintHandle.js",
       ];
-for (const file of [...support, ...tests]) await download(file);
+for (const file of [...support, ...tests]) {
+  await download(file);
+}
 // No upstream code executes here. Review these changes before running updated tests.
 for (const [file, bytes] of files) {
   const target = destination(file);

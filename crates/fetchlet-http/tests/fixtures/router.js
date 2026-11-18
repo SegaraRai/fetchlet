@@ -25,7 +25,9 @@ globalThis.ReadableStream = class {
         while (this.#queue.length === 0 && !this.#closed && !this.#error) {
           await this.#source.pull(this.#controller);
         }
-        if (this.#error) throw this.#error;
+        if (this.#error) {
+          throw this.#error;
+        }
         return this.#queue.length > 0
           ? { done: false, value: this.#queue.shift() }
           : { done: true, value: undefined };
@@ -60,12 +62,16 @@ globalThis.Response = class {
 };
 
 async function bytes(body) {
-  if (body === null || body instanceof Uint8Array) return body ?? [];
+  if (body === null || body instanceof Uint8Array) {
+    return body ?? [];
+  }
   const reader = body.getReader();
   const chunks = [];
   for (;;) {
     const { done, value } = await reader.read();
-    if (done) return chunks.flatMap((chunk) => Array.from(chunk));
+    if (done) {
+      return chunks.flatMap((chunk) => Array.from(chunk));
+    }
     chunks.push(value);
   }
 }

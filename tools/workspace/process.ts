@@ -26,10 +26,14 @@ export function run(command: string, args: readonly string[], options: RunOption
       shell: needsShell(command),
     };
     const result = spawnSync(command, needsShell(command) ? args.map(quote) : args, spawnOptions);
-    if (result.error) throw result.error;
+    if (result.error) {
+      throw result.error;
+    }
     return result.status ?? 1;
   } finally {
-    if (log !== undefined) closeSync(log);
+    if (log !== undefined) {
+      closeSync(log);
+    }
   }
 }
 
@@ -40,7 +44,9 @@ export function runAll(
 ): void {
   for (const [command, args] of commands) {
     const code = run(command, args, options);
-    if (code !== 0) process.exit(code);
+    if (code !== 0) {
+      process.exit(code);
+    }
   }
 }
 

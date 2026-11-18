@@ -10,6 +10,6 @@ export function greet(input: { name: string }): Greeting {
   const name = input.name.trim() || "guest";
   return {
     greeting: `Hello from a JavaScript function, ${name}.`,
-    characters: [...name].length,
+    characters: Array.from(name).length,
   };
 }

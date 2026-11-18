@@ -153,6 +153,7 @@ describe("Body", () => {
   });
 
   test("attribute getters check their receiver", () => {
+    // eslint-disable-next-line typescript/unbound-method -- the call supplies a foreign receiver
     const getter = Object.getOwnPropertyDescriptor(BodyImpl.prototype, "bodyUsed")!.get!;
     expect(() => getter.call({})).toThrow("Illegal invocation");
   });
@@ -246,7 +247,9 @@ describe("Request", () => {
     expect(() => new Request("https://user:pass@app.test/")).toThrow(
       "Request URL contains credentials",
     );
+    // eslint-disable-next-line unicorn/no-invalid-fetch-options -- the invalid body is the case
     expect(() => new Request("https://app.test/", { body: "x" })).toThrow("GET/HEAD body");
+    // eslint-disable-next-line unicorn/no-invalid-fetch-options -- the invalid body is the case
     expect(() => new Request("https://app.test/", { method: "HEAD", body: "x" })).toThrow(
       "GET/HEAD body",
     );

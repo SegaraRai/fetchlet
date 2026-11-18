@@ -50,17 +50,25 @@ async function waitFor<T>(
   for (;;) {
     try {
       const value = await operation();
-      if (value) return value as NonNullable<T>;
+      if (value) {
+        return value as NonNullable<T>;
+      }
     } catch (error) {
-      if ((error as { fatal?: boolean } | undefined)?.fatal) throw error;
+      if ((error as { fatal?: boolean } | undefined)?.fatal) {
+        throw error;
+      }
     }
-    if (Date.now() > deadline) throw new Error(label + " deadline: " + stderr);
+    if (Date.now() > deadline) {
+      throw new Error(label + " deadline: " + stderr);
+    }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
   }
 }
 
 beforeAll(async () => {
-  if (!supported) return;
+  if (!supported) {
+    return;
+  }
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
   await cp(resolve(example, "sample"), notes, { recursive: true });
@@ -89,10 +97,14 @@ beforeAll(async () => {
   app.once("exit", () => (exited = true));
   let ready = false;
   createInterface({ input: app.stdout }).on("line", (line) => {
-    if (line.startsWith("MDW_DESKTOP_READY ")) ready = true;
+    if (line.startsWith("MDW_DESKTOP_READY ")) {
+      ready = true;
+    }
   });
   await waitFor(() => {
-    if (exited) throw Object.assign(new Error("mdw exited: " + stderr), { fatal: true });
+    if (exited) {
+      throw Object.assign(new Error("mdw exited: " + stderr), { fatal: true });
+    }
     return ready;
   }, "app startup");
   await waitFor(
@@ -120,7 +132,9 @@ afterAll(async () => {
     child.kill();
     await exited;
   }
-  if (!supported) return;
+  if (!supported) {
+    return;
+  }
   await writeFile(resolve(output, "app.log"), stderr);
   writeResult(resultFile(`${name}-desktop`), {
     backend,

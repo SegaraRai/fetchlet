@@ -1,3 +1,5 @@
+// Ambient module declarations, not a module, so they cannot be imported.
+// eslint-disable-next-line typescript/triple-slash-reference
 /// <reference path="./polyfills.d.ts" />
 
 import {

@@ -55,15 +55,15 @@ function linkedSearchParams(query: string, update: () => void): Linked {
     }
   };
   class URLSearchParams extends Base {
-    append(name: string, value: string) {
+    append(_name: string, _value: string) {
       super.append(...arguments);
       changed();
     }
-    delete(name: string) {
+    delete(_name: string) {
       super.delete(...arguments);
       changed();
     }
-    set(name: string, value: string) {
+    set(_name: string, _value: string) {
       super.set(...arguments);
       changed();
     }

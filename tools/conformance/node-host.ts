@@ -23,7 +23,9 @@ try {
   const value = await exports.run().finally(() => clearInterval(keepAlive));
   if (process.argv[3] === "wpt") {
     await new Promise((resolve) => setImmediate(resolve));
-    if (unhandled.length) value.harness = { status: 1, message: unhandled.join("\n") };
+    if (unhandled.length) {
+      value.harness = { status: 1, message: unhandled.join("\n") };
+    }
   }
   reply({ ok: true, value });
 } catch (error) {

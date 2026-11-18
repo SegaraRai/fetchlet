@@ -27,7 +27,9 @@ export class BodyImpl {
 
   /** Web IDL brand check for the Body attribute getters. */
   static #check(value: BodyImpl) {
-    if (!(#headers in value)) throw new TypeError("Illegal invocation");
+    if (!(#headers in value)) {
+      throw new TypeError("Illegal invocation");
+    }
   }
 
   constructor(body: any = null, headers?: any) {
@@ -78,7 +80,9 @@ export class BodyImpl {
 
   get bodyUsed() {
     BodyImpl.#check(this);
-    if (this.#bytes !== null) return this.consumed;
+    if (this.#bytes !== null) {
+      return this.consumed;
+    }
     return this.#stream !== null && (this.consumed || isDisturbed(this.#stream));
   }
 

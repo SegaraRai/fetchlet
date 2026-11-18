@@ -46,7 +46,9 @@ export function runProcess(
         } catch (error) {
           stderr += String(error);
         }
-      } else stderr += line + "\n";
+      } else {
+        stderr += line + "\n";
+      }
     });
     child.on("error", (error) => {
       stderr += String(error);
@@ -56,8 +58,9 @@ export function runProcess(
     });
     child.on("close", (code, signal) => {
       clearTimeout(deadline);
-      if (timedOut) resolveResult({ status: "timeout", message: stderr });
-      else if (
+      if (timedOut) {
+        resolveResult({ status: "timeout", message: stderr });
+      } else if (
         suite === "test262" &&
         (reply?.ok === false || (!finished && code === 1 && stderr.startsWith("Error:")))
       ) {
@@ -65,12 +68,14 @@ export function runProcess(
           status: "complete",
           value: { tests: [{ name: "script", status: 1, message: reply?.error ?? stderr }] },
         });
-      } else if ((!finished && code !== 0) || !reply?.ok)
+      } else if ((!finished && code !== 0) || !reply?.ok) {
         resolveResult({
           status: "runner-error",
           message: reply?.error ?? "process " + code + "/" + signal + ": " + stderr,
         });
-      else resolveResult({ status: "complete", value: reply!.value, stderr });
+      } else {
+        resolveResult({ status: "complete", value: reply!.value, stderr });
+      }
     });
     child.stdin.end(JSON.stringify({ export: "run", args: [] }) + "\n");
   });

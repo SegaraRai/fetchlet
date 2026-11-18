@@ -176,7 +176,9 @@ function rewriteLinks(tree: HastRoot, path: string) {
         return;
       }
       const resolved = resolveWorkspacePath(path, decodeSafely(src));
-      if (resolved !== null) node.properties.src = "/files/" + encodePath(resolved);
+      if (resolved !== null) {
+        node.properties.src = "/files/" + encodePath(resolved);
+      }
       node.properties.loading = "lazy";
     }
   });
@@ -198,22 +200,32 @@ function decodeSafely(value: string): string {
 async function highlightCode(tree: HastRoot, highlight: Highlight) {
   const targets: { code: Element; block: CodeBlock }[] = [];
   visit(tree, "element", (node: Element) => {
-    if (node.tagName !== "pre") return;
+    if (node.tagName !== "pre") {
+      return;
+    }
     const code = node.children[0];
-    if (code?.type !== "element" || code.tagName !== "code") return;
+    if (code?.type !== "element" || code.tagName !== "code") {
+      return;
+    }
     const classes = Array.isArray(code.properties.className) ? code.properties.className : [];
     const language = classes
       .map(String)
       .find((name) => name.startsWith("language-"))
       ?.slice("language-".length);
-    if (!language) return;
+    if (!language) {
+      return;
+    }
     targets.push({ code, block: { code: code.children.map(textOf).join(""), language } });
   });
-  if (targets.length === 0) return;
+  if (targets.length === 0) {
+    return;
+  }
   const highlighted = await highlight(targets.map((target) => target.block));
   targets.forEach(({ code }, index) => {
     const html = highlighted[index];
-    if (html == null) return;
+    if (html == null) {
+      return;
+    }
     code.children = [{ type: "raw", value: html } as unknown as ElementContent];
     code.properties.className = [...(code.properties.className as string[]), "highlighted"];
   });

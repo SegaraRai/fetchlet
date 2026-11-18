@@ -44,7 +44,9 @@ function runWith<Args extends unknown[], Result>(
     for (const [storage, entry] of entries) {
       const list = pending(storage);
       const index = list.indexOf(entry);
-      if (index >= 0) list.splice(index, 1);
+      if (index >= 0) {
+        list.splice(index, 1);
+      }
     }
   };
   let result: Result;
@@ -92,8 +94,11 @@ export class AsyncLocalStorage<Store> {
   }
   enterWith(store: Store): void {
     const list = runs.get(this);
-    if (list?.length) list[list.length - 1].store = store;
-    else outside.set(this, store);
+    if (list?.length) {
+      list[list.length - 1].store = store;
+    } else {
+      outside.set(this, store);
+    }
   }
   exit<Args extends unknown[], Result>(callback: Callback<Args, Result>, ...args: Args): Result {
     return runWith(new Map([[this, undefined]]), callback, args);

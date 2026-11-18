@@ -15,7 +15,9 @@ mkdirSync(artifacts, { recursive: true });
 const noAsyncHooks: Plugin = {
   name: "fetchlet-no-async-hooks",
   resolveId(id) {
-    if (id === "node:async_hooks") return "\0fetchlet-no-async-hooks";
+    if (id === "node:async_hooks") {
+      return "\0fetchlet-no-async-hooks";
+    }
   },
   load(id) {
     if (id === "\0fetchlet-no-async-hooks") {

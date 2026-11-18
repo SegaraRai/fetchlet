@@ -17,7 +17,9 @@ const clangCl = "C:\\Program Files\\LLVM\\bin\\clang-cl.exe";
  * English, so recorded results read the same on every system locale.
  */
 export function cargoEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-  if (process.platform !== "win32") return base;
+  if (process.platform !== "win32") {
+    return base;
+  }
   const env = { ...base, VSLANG: base.VSLANG ?? "1033" };
   return existsSync(clangCl) ? { ...env, CC: clangCl, CXX: clangCl } : env;
 }
@@ -51,11 +53,17 @@ function directoryBytes(directory: string): number {
  */
 export function enforceTargetBudget(env: NodeJS.ProcessEnv = process.env): void {
   const budgetGib = Number(env.FETCHLET_TARGET_BUDGET_GIB ?? defaultTargetBudgetGib);
-  if (!Number.isFinite(budgetGib) || budgetGib <= 0) return;
+  if (!Number.isFinite(budgetGib) || budgetGib <= 0) {
+    return;
+  }
   const target = resolve(root, "target");
   const stamp = join(target, ".fetchlet-budget-check");
-  if (!existsSync(target)) return;
-  if (existsSync(stamp) && Date.now() - statSync(stamp).mtimeMs < targetCheckInterval) return;
+  if (!existsSync(target)) {
+    return;
+  }
+  if (existsSync(stamp) && Date.now() - statSync(stamp).mtimeMs < targetCheckInterval) {
+    return;
+  }
   const gib = directoryBytes(target) / 2 ** 30;
   if (gib > budgetGib) {
     console.log(
@@ -77,7 +85,9 @@ export function cargo(args: readonly string[], options: RunOptions = {}): number
 export function cargoAll(invocations: ReadonlyArray<readonly string[]>): void {
   for (const args of invocations) {
     const code = cargo(args);
-    if (code !== 0) process.exit(code);
+    if (code !== 0) {
+      process.exit(code);
+    }
   }
 }
 

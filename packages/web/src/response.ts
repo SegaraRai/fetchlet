@@ -17,6 +17,8 @@ class ResponseImpl extends BodyImpl {
     if (status < 200 || status > 599) {
       throw new RangeError("Invalid status");
     }
+    // Fetch's reason-phrase excludes control characters other than tab.
+    // eslint-disable-next-line no-control-regex
     if (/[^\x09\x20-\x7e\x80-\xff]/.test(statusText)) {
       throw new TypeError("Invalid status text");
     }

@@ -14,12 +14,15 @@ const runtimeLabel = deno
   : `Node.js ${process.version} (reference only; not an embedded backend)`;
 const probe = (
   globalThis as unknown as {
-    fetchletProbe(options: { runtimeLabel: string }): Promise<ProbeReport>;
+    fetchletProbe: (options: { runtimeLabel: string }) => Promise<ProbeReport>;
   }
 ).fetchletProbe;
 const report = await probe({ runtimeLabel });
 console.log(JSON.stringify(report, null, 2));
 if (report.summary.failed) {
-  if (deno) deno.exitCode = 1;
-  else process.exitCode = 1;
+  if (deno) {
+    deno.exitCode = 1;
+  } else {
+    process.exitCode = 1;
+  }
 }

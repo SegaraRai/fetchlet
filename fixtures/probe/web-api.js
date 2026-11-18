@@ -8,7 +8,9 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
     }
   };
   const assert = (value, message) => {
-    if (!value) throw new Error(message);
+    if (!value) {
+      throw new Error(message);
+    }
   };
   const rejects = async (operation) => {
     let rejected = false;
@@ -40,7 +42,9 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
     } catch (error) {
       checks.push({ id, status: "fail", error: String(error?.stack ?? error) });
     } finally {
-      if (timer !== undefined) clearTimeout(timer);
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
     }
   };
   const globals = {};
@@ -88,8 +92,9 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
     "crypto",
     "CompressionStream",
     "DecompressionStream",
-  ])
+  ]) {
     globals[name] = typeof globalThis[name];
+  }
 
   await check("request-properties", () => {
     const req = new Request("https://fetchlet.invalid/path?a=1", {
@@ -328,7 +333,7 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
         }
       };
       globalThis.addEventListener("unhandledrejection", listener);
-      Promise.reject(reason);
+      void Promise.reject(reason);
     });
     equal([event instanceof PromiseRejectionEvent, event.cancelable], [true, true]);
   });

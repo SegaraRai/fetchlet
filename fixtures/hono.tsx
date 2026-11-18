@@ -9,13 +9,11 @@ app.use("*", async (c, next) => {
 });
 app.get("/hello/:name", (c) =>
   c.html(
-    (
-      <html>
-        <body>
-          <h1>Hello, {c.req.param("name")}</h1>
-        </body>
-      </html>
-    ).toString(),
+    <html>
+      <body>
+        <h1>Hello, {c.req.param("name")}</h1>
+      </body>
+    </html>,
   ),
 );
 app.post("/echo", async (c) => c.json(await c.req.json(), 201));
@@ -26,7 +24,7 @@ app.get("/cookies", (c) => {
 });
 app.get(
   "/stream",
-  (c) =>
+  () =>
     new Response(
       new ReadableStream({
         start(controller) {

@@ -103,7 +103,9 @@ test("Brotli entries vary on Accept-Encoding, merged into a stored Vary", async 
   const { entries } = await archiveOf(
     { "a.txt": text, "b.txt": text + "!", "tiny.txt": "x" },
     ({ path, headers }) => {
-      if (path === "/b.txt") headers.set("vary", "origin");
+      if (path === "/b.txt") {
+        headers.set("vary", "origin");
+      }
       return headers;
     },
   );
@@ -186,7 +188,9 @@ async function routesOf(
       readArchive(bytes).map((entry, index) => {
         const location = entry.headers.find(([name]) => name === "location")?.[1];
         const keepsQuery = (bytes.readUInt16LE(entryOffset + index * 64 + 38) & 2) === 2;
-        if (location) expect(keepsQuery, `${entry.path} keeps the query`).toBeTruthy();
+        if (location) {
+          expect(keepsQuery, `${entry.path} keeps the query`).toBeTruthy();
+        }
         return [entry.path, location ? `${entry.status} ${location}` : entry.body.toString()];
       }),
     );

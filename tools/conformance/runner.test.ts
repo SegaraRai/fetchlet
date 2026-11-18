@@ -51,10 +51,11 @@ test("unsupported module and negative phases are explicit", () => {
     "/*---\nflags: [raw]\n---*/",
     "/*---\nnegative:\n  phase: parse\n  type: SyntaxError\n---*/",
     "/*---\nnegative:\n  phase: runtime\n  type: TypeError\n---*/",
-  ])
+  ]) {
     expect(
       variantsForSource("unsupported", text).every((variant) => variant.unsupported),
     ).toBeTruthy();
+  }
 });
 
 test("Test262 sources retain global script semantics and harness lexical bindings", async () => {

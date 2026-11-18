@@ -39,7 +39,9 @@ export function environment(options: { packagesOf?: string } = {}): Environment 
       v8: "v8 " + crateVersion("v8"),
     },
   };
-  if (options.packagesOf) result.packages = installedPackages(options.packagesOf);
+  if (options.packagesOf) {
+    result.packages = installedPackages(options.packagesOf);
+  }
   return result;
 }
 
@@ -48,7 +50,9 @@ function crateVersion(name: string): string {
   const match = new RegExp(
     `\\[\\[package\\]\\]\\r?\\nname = "${name}"\\r?\\nversion = "([^"]+)"`,
   ).exec(lock);
-  if (!match?.[1]) throw new Error(`${name} is not in Cargo.lock`);
+  if (!match?.[1]) {
+    throw new Error(`${name} is not in Cargo.lock`);
+  }
   return match[1];
 }
 
@@ -59,7 +63,9 @@ export function installedPackages(directory: string): Record<string, string> {
   const versions: Record<string, string> = {};
   for (const name of names) {
     const file = join(directory, "node_modules", name, "package.json");
-    if (existsSync(file)) versions[name] = JSON.parse(readFileSync(file, "utf8")).version;
+    if (existsSync(file)) {
+      versions[name] = JSON.parse(readFileSync(file, "utf8")).version;
+    }
   }
   return versions;
 }

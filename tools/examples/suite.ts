@@ -32,7 +32,7 @@ export interface ExampleSuite {
   /** The server origin, available once the suite's `before` hook ran. */
   readonly base: string;
   /** Registers a check that records its outcome in the result file. */
-  check(name: string, features: Feature[], operation: () => Promise<void>): void;
+  check: (name: string, features: Feature[], operation: () => Promise<void>) => void;
   /** Opens a Chromium page; the suite closes the browser at the end. */
   page(): Promise<Page>;
 }
@@ -106,7 +106,9 @@ export function exampleSuite(name: string): ExampleSuite {
 
   return {
     get base() {
-      if (base === undefined) throw new Error("The example server has not started");
+      if (base === undefined) {
+        throw new Error("The example server has not started");
+      }
       return base;
     },
     check(checkName, features, operation) {

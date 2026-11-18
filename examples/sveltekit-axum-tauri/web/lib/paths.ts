@@ -32,10 +32,16 @@ export function buildTree(notes: { path: string; title: string }[]): TreeNode[] 
       const path = segments.slice(0, index + 1).join("/");
       let child = node.children.find((candidate) => candidate.path === path);
       if (!child) {
-        child = { name: segment, path, children: [] };
+        child = {
+          name: segment,
+          path,
+          children: [],
+        };
         node.children.push(child);
       }
-      if (index === segments.length - 1) child.title = note.title;
+      if (index === segments.length - 1) {
+        child.title = note.title;
+      }
       node = child;
     });
   }

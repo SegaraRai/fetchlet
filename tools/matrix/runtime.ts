@@ -213,7 +213,9 @@ for (const row of results.filter((x) => x.status === "fail")) {
     `${row.backend}/${row.suite}/${row.id}: ${row.error?.split("\n").slice(0, 3).join(" ")}`,
   );
 }
-if (results.some((x) => x.status === "fail")) process.exitCode = 1;
+if (results.some((x) => x.status === "fail")) {
+  process.exitCode = 1;
+}
 
 function writeLog(backend: HostBackend, bundle: string, stderr: string): void {
   writeText(`logs/${backend}-${bundle}.stderr.log`, stderr);

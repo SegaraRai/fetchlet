@@ -19,7 +19,9 @@ export interface Variant {
 
 export function metadata(text: string): Metadata {
   const match = /\/\*---([\s\S]*?)---\*\//.exec(text);
-  if (!match) throw new Error("Test262 metadata is required");
+  if (!match) {
+    throw new Error("Test262 metadata is required");
+  }
   return parse(match[1]!) as Metadata;
 }
 

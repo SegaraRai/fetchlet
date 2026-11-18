@@ -16,8 +16,11 @@ export function subscribeToChanges(onChange: (change: Change) => void): () => vo
     let unlisten: (() => void) | undefined;
     void import("@tauri-apps/api/event").then(async ({ listen }) => {
       const stop = await listen<Change>("workspace-changed", (event) => onChange(event.payload));
-      if (stopped) stop();
-      else unlisten = stop;
+      if (stopped) {
+        stop();
+      } else {
+        unlisten = stop;
+      }
     });
     return () => {
       stopped = true;

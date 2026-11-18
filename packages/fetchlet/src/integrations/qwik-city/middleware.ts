@@ -56,7 +56,7 @@ const qwikSerializer = {
  */
 export function createQwikCity(options: QwikCityFetchletOptions): QwikCityFetchletHandler {
   if (options.manifest) {
-    setServerPlatform(options.manifest);
+    void setServerPlatform(options.manifest);
   }
   const env = getBindings<Record<string, unknown>>();
   return async function handle(request, context = {}) {
@@ -93,7 +93,7 @@ export function createQwikCity(options: QwikCityFetchletOptions): QwikCityFetchl
     };
     const handled = await requestHandler(serverRequestEv, options, qwikSerializer);
     if (handled) {
-      handled.completion.then((error) => {
+      void handled.completion.then((error) => {
         if (error) {
           console.error(error);
         }

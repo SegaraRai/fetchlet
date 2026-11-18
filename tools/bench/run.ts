@@ -113,29 +113,47 @@ function parseArgs(args: string[]) {
   for (let index = 0; index < args.length; index++) {
     const flag = args[index];
     // `vp run bench -- <flags>` forwards the separator.
-    if (flag === "--") continue;
+    if (flag === "--") {
+      continue;
+    }
     if (flag === "--skip-build" || flag === "--merge") {
       parsed[flag === "--merge" ? "merge" : "skipBuild"] = true;
       continue;
     }
     const value = args[++index];
-    if (value === undefined) throw new Error(flag + " needs a value");
-    if (flag === "--frameworks") parsed.frameworks = value.split(",");
-    else if (flag === "--backends") parsed.backends = value.split(",");
-    else if (flag === "--endpoints") parsed.endpoints = value.split(",");
-    else if (flag === "--connections") parsed.connections = Number(value);
-    else if (flag === "--warmup-ms") parsed.warmupMs = Number(value);
-    else if (flag === "--duration-ms") parsed.durationMs = Number(value);
-    else throw new Error("unknown flag " + flag);
+    if (value === undefined) {
+      throw new Error(flag + " needs a value");
+    }
+    if (flag === "--frameworks") {
+      parsed.frameworks = value.split(",");
+    } else if (flag === "--backends") {
+      parsed.backends = value.split(",");
+    } else if (flag === "--endpoints") {
+      parsed.endpoints = value.split(",");
+    } else if (flag === "--connections") {
+      parsed.connections = Number(value);
+    } else if (flag === "--warmup-ms") {
+      parsed.warmupMs = Number(value);
+    } else if (flag === "--duration-ms") {
+      parsed.durationMs = Number(value);
+    } else {
+      throw new Error("unknown flag " + flag);
+    }
   }
   for (const name of parsed.frameworks) {
-    if (!allFrameworks.includes(name)) throw new Error("unknown framework " + name);
+    if (!allFrameworks.includes(name)) {
+      throw new Error("unknown framework " + name);
+    }
   }
   for (const name of parsed.backends) {
-    if (!allBackends.includes(name)) throw new Error("unknown backend " + name);
+    if (!allBackends.includes(name)) {
+      throw new Error("unknown backend " + name);
+    }
   }
   for (const name of parsed.endpoints) {
-    if (!endpoints[name]) throw new Error("unknown endpoint " + name);
+    if (!endpoints[name]) {
+      throw new Error("unknown endpoint " + name);
+    }
   }
   return parsed;
 }
@@ -209,8 +227,11 @@ async function startServer(framework: string, backend: string) {
   config.build_directory = resolve(cache, framework, artifactBackend(backend), "build");
   // The queue must hold every connection's request so overload is not measured.
   config.queue_capacity = Math.max(config.queue_capacity, options.connections);
-  if (backend === "node") config.node = framework === "bare" ? "bare" : "artifact";
-  else config.backend = backend;
+  if (backend === "node") {
+    config.node = framework === "bare" ? "bare" : "artifact";
+  } else {
+    config.backend = backend;
+  }
   const directory = resolve(cache, framework, backend);
   await mkdir(directory, { recursive: true });
   const configPath = resolve(directory, "config.json");
@@ -256,10 +277,18 @@ async function startServer(framework: string, backend: string) {
 
 function endpointArgs(base: string, endpoint: Endpoint): string[] {
   const args = ["--url", base + endpoint.path];
-  if (endpoint.method) args.push("--method", endpoint.method);
-  if (endpoint.body) args.push("--body", endpoint.body);
-  for (const header of endpoint.headers ?? []) args.push("--header", header);
-  if (endpoint.origin) args.push("--header", "origin: " + base);
+  if (endpoint.method) {
+    args.push("--method", endpoint.method);
+  }
+  if (endpoint.body) {
+    args.push("--body", endpoint.body);
+  }
+  for (const header of endpoint.headers ?? []) {
+    args.push("--header", header);
+  }
+  if (endpoint.origin) {
+    args.push("--header", "origin: " + base);
+  }
   return args;
 }
 
@@ -277,7 +306,9 @@ async function smoke(base: string, endpoint: Endpoint): Promise<void> {
     ),
   });
   const text = await response.text();
-  if (!response.ok) throw new Error(`smoke ${response.status}: ${text.slice(0, 300)}`);
+  if (!response.ok) {
+    throw new Error(`smoke ${response.status}: ${text.slice(0, 300)}`);
+  }
 }
 
 async function load(base: string, endpoint: Endpoint): Promise<LoadResult> {
@@ -343,7 +374,7 @@ function markdown(report: Report): string {
   }
   if (failures.length) {
     lines.push(``, `## Failures`, ``);
-    for (const failure of [...new Set(failures)]) {
+    for (const failure of new Set(failures)) {
       lines.push(`- ${failure.replace(/\s+/g, " ").slice(0, 400)}`);
     }
   }
@@ -370,7 +401,9 @@ async function mergeInto(report: Report): Promise<void> {
   const fresh = new Map(report.runs.map((row) => [key(row), row]));
   const runs = previous.runs.map((row) => fresh.get(key(row)) ?? row);
   for (const row of report.runs) {
-    if (!previous.runs.some((old) => key(old) === key(row))) runs.push(row);
+    if (!previous.runs.some((old) => key(old) === key(row))) {
+      runs.push(row);
+    }
   }
   report.endpoints = [...new Set([...previous.endpoints, ...report.endpoints])];
   const order = (row: Run) =>
@@ -394,7 +427,9 @@ async function main() {
       ...packages,
       ...(features.length ? ["--features", features.join(",")] : []),
     ]);
-    if (code !== 0) throw new Error(`cargo build exited ${code}`);
+    if (code !== 0) {
+      throw new Error(`cargo build exited ${code}`);
+    }
     await buildArtifacts();
   }
 
@@ -451,7 +486,9 @@ async function main() {
   }
 
   await mkdir(cache, { recursive: true });
-  if (options.merge) await mergeInto(report);
+  if (options.merge) {
+    await mergeInto(report);
+  }
   await writeFile(resolve(cache, "bench.json"), JSON.stringify(report, null, 2) + "\n");
   await writeFile(resolve(cache, "bench.md"), markdown(report));
   console.log("[bench] wrote .cache/bench/bench.json and bench.md");

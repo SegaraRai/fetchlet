@@ -15,7 +15,9 @@
 
   // Cross-fade between pages where the browser supports view transitions.
   onNavigate((navigation) => {
-    if (!document.startViewTransition) {return;}
+    if (!document.startViewTransition) {
+      return;
+    }
     return new Promise((resolve) => {
       document.startViewTransition(async () => {
         resolve();

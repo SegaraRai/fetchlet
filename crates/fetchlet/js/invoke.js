@@ -1,3 +1,5 @@
+// Rust calls this declaration as an expression (execution/script.rs).
+// eslint-disable-next-line no-unused-vars
 async function invokeExport(exportName, argumentsList, streamResponseBody) {
   const exports = globalThis.fetchletExports;
   const bodies = globalThis.__fetchletResponseBodies;

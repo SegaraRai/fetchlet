@@ -40,7 +40,9 @@ for await (const line of readline.createInterface({ input: process.stdin })) {
   try {
     const { export: name, args = [] } = JSON.parse(line) as { export: string; args?: unknown[] };
     const exported = exports[name];
-    if (typeof exported !== "function") throw new TypeError(`No exported function ${name}`);
+    if (typeof exported !== "function") {
+      throw new TypeError(`No exported function ${name}`);
+    }
     const value = await exported(...args);
     console.log("FETCHLET_REPLY " + JSON.stringify({ ok: true, value }));
   } catch (error) {

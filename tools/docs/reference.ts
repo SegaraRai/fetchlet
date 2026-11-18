@@ -123,7 +123,9 @@ function conformance(): string[] {
   const result = read("conformance.json");
   const cell = (suite: string, engine: string) => {
     const counts = result.summary[`${suite}/${engine}`];
-    if (!counts) return "—";
+    if (!counts) {
+      return "—";
+    }
     const known = counts.expectedFailures ? ` (${counts.expectedFailures} known)` : "";
     return `${counts.pass} / ${counts.fail}${known}`;
   };
@@ -217,12 +219,17 @@ function frameworkFeatures(): string[] {
       const covering = (results[index] ?? []).filter((row) => row.features?.includes(feature));
       const reason = unsupported[name]?.[feature];
       if (reason) {
-        if (covering.length)
+        if (covering.length) {
           throw new Error(`${name} declares ${feature} unsupported but checks it`);
-        if (!notes.includes(reason)) notes.push(reason);
+        }
+        if (!notes.includes(reason)) {
+          notes.push(reason);
+        }
         return `n/a (${notes.indexOf(reason) + 1})`;
       }
-      if (!covering.length) return "—";
+      if (!covering.length) {
+        return "—";
+      }
       return covering.every((row) => row.status === "pass") ? "✓" : "✗";
     }),
   ]);
@@ -295,13 +302,17 @@ function ratio(entries: Outcome[]): string {
 /** The versions a result records, as a sentence. */
 function recorded(result: { environment?: Environment }): string {
   const environment = result.environment;
-  if (!environment) return "The run predates version recording.";
+  if (!environment) {
+    return "The run predates version recording.";
+  }
   const engineList = Object.values(environment.engines).join(", ");
   return `Recorded with ${environment.rustc}, Node ${environment.node} on ${environment.platform}; ${engineList}.`;
 }
 
 function engineVersion(result: { environment?: Environment }, engine: string): string {
-  if (engine === "node-reference") return result.environment?.node ?? "—";
+  if (engine === "node-reference") {
+    return result.environment?.node ?? "—";
+  }
   return result.environment?.engines[engine as keyof Environment["engines"]] ?? "—";
 }
 

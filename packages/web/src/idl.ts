@@ -8,7 +8,7 @@ export function domString(value: unknown): string {
 
 export function byteString(value: unknown): string {
   const text = domString(value);
-  if (/[^\x00-\xff]/.test(text)) {
+  if (/[\u0100-\uffff]/.test(text)) {
     throw new TypeError("Expected a ByteString");
   }
   return text;

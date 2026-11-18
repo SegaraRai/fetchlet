@@ -50,8 +50,9 @@ export function assess(
 ): Verdict {
   const expected = new Map<string, Expectation>();
   for (const expectation of expectations) {
-    if (!expectation.reason || expected.has(expectation.key))
+    if (!expectation.reason || expected.has(expectation.key)) {
       throw new Error("Invalid expectations");
+    }
     expected.set(expectation.key, expectation);
   }
   const observed = new Set();
@@ -60,7 +61,9 @@ export function assess(
     const expectation = expected.get(key(result));
     observed.add(key(result));
     result.expected = result.status === "fail" && !!expectation;
-    if (expectation && result.expected) result.reason = expectation.reason;
+    if (expectation && result.expected) {
+      result.reason = expectation.reason;
+    }
     if (result.status === "pass" && expectation) {
       result.unexpectedPass = true;
       unexpected++;
