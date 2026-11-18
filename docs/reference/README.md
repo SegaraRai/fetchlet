@@ -81,7 +81,7 @@ Unexpected results: 0.
 | ---------------------------- | ------- | ------- | ------- | ----------------------------- | ------------- |
 | sveltekit-axum               | 17 / 17 | 17 / 17 | 17 / 17 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
 | sveltekit-axum-tauri         | 15 / 15 | 15 / 15 | 15 / 15 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
-| sveltekit-axum-tauri-desktop | 5 / 5   | 5 / 5   | 5 / 5   | @sveltejs/kit 3.2.0           | 157.0.4341.46 |
+| sveltekit-axum-tauri-desktop | 5 / 5   | 5 / 5   | 5 / 5   | @sveltejs/kit 3.2.0           | 157.0.4341.60 |
 | astro-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | astro 7.4.12                  | 159.0.8154.6  |
 | nuxt-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | nuxt 4.6.4                    | 159.0.8154.6  |
 | react-router-axum            | 12 / 12 | 12 / 12 | 12 / 12 | react-router 8.5.1            | 159.0.8154.6  |
