@@ -62,22 +62,26 @@ documented refusal, and a check in a framework example:
   `run` calls on V8 and Boa ([async context design](research/async-context.md)),
   but every framework adapter still builds with `"serialized"`, which shares
   the last started store (see
-  [Asynchronous SvelteKit SSR](#asynchronous-sveltekit-ssr)). Remaining:
-  - Let each adapter build with `"propagated"` and verify it in the
-    asynchronous SvelteKit example on V8 and Boa, with an end-to-end check
-    that two concurrent `getRequestEvent` readers each see their own
-    request.
-  - Measure `run`, `getStore` and an `await` loop per engine against the
-    serialized implementation.
-  - QuickJS has no async context slot and stays on `"serialized"` until
-    quickjs-ng merges and releases a way to carry a value through promise
-    jobs ([issue #1919](https://github.com/quickjs-ng/quickjs/issues/1919),
+  [Asynchronous SvelteKit SSR](#asynchronous-sveltekit-ssr)). QuickJS has
+  no async context slot, so `"serialized"` stays as the mode every engine
+  runs until QuickJS gains one.
+  - Wait for quickjs-ng to merge and release a way to carry a value through
+    promise jobs ([issue #1919](https://github.com/quickjs-ng/quickjs/issues/1919),
     [pull request #1920](https://github.com/quickjs-ng/quickjs/pull/1920))
-    and rquickjs ships that release. Then implement the QuickJS slot over
-    it.
-  - Make `"propagated"` the default on engines with a slot once
-    [capability negotiation](#capability-negotiation) refuses propagated
-    artifacts on engines without one.
+    and for an rquickjs release that includes it.
+  - Once that rquickjs release is out, in one change: update rquickjs,
+    implement the QuickJS slot over the new API with the engine tests and
+    matrix check passing on QuickJS, switch every adapter to
+    `"propagated"`, and remove `"serialized"`: the option value,
+    `src/build/async-hooks.ts`, its `fetchlet/build/async-hooks` export,
+    its tests and the documentation that describes it. Propagation then
+    applies to every artifact, so the `asyncContext` option and its
+    `fetchlet.json` field go too.
+  - In the same change, verify the asynchronous SvelteKit example on every
+    engine with an end-to-end check that two concurrent `getRequestEvent`
+    readers each see their own request.
+  - Before that change, measure `run`, `getStore` and an `await` loop per
+    engine against the serialized implementation.
 - A shared Node compatibility layer in `fetchlet/build`: `Buffer`,
   `process.env`, `process.nextTick`, `setImmediate` and `node:events`. Only
   the vinext adapter replaces Node modules today, inside its own
@@ -117,10 +121,8 @@ multi-byte encodings are tracked under
 `fetchlet.json` records the target backend, required APIs and chosen
 polyfills, but `Module` takes only source, so Rust does not compare them with
 the engine it runs. Add a check at build time of the `App` that refuses an
-artifact whose requirements the backend lacks, including an
-`asyncContext: "propagated"` artifact on an engine without an async context
-slot, and extend the capability table beyond Intl as each polyfill gains
-conformance tests.
+artifact whose requirements the backend lacks, and extend the capability
+table beyond Intl as each polyfill gains conformance tests.
 
 ### Enforcement and isolation
 

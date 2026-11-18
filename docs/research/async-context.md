@@ -102,8 +102,8 @@ artifacts use `"serialized"`.
 **Fallback.** An engine without a slot uses `asyncContext: "serialized"`.
 `fetchlet.json` records the mode an artifact was built with. The propagated
 `node:async_hooks` module throws when it is evaluated without a slot, so a
-propagated artifact fails to load on QuickJS; refusing it before loading
-belongs to [capability negotiation](../TODO.md#capability-negotiation).
+propagated artifact fails to load on QuickJS. The fallback lasts only until
+QuickJS has a slot (see [rollout](#rollout)).
 
 ## Host task sources
 
@@ -194,18 +194,12 @@ then.
 ## Rollout
 
 The profile module and its task sources, the V8 and Boa slots, and
-`asyncContext: "propagated"` are implemented. The remaining steps are
-tracked in [TODO](../TODO.md#framework-runtime-needs-beyond-wintertc):
-
-1. Let the framework adapters build with `"propagated"`. They pass
-   `"serialized"` today because an artifact may run on any engine.
-2. The asynchronous SvelteKit example (`rendering: "async"`) renders two
-   concurrent `getRequestEvent` readers on V8 and Boa, and its end-to-end
-   check asserts each sees its own request.
-3. Measure `run`, `getStore` and an `await` loop per engine with the bench
-   tools, against the serialized implementation.
-4. The QuickJS slot, once a quickjs-ng release with
-   [#1920](https://github.com/quickjs-ng/quickjs/pull/1920) reaches rquickjs.
-5. Make `"propagated"` the default where the engine has a slot, with the App
-   refusing propagated artifacts on engines without one through capability
-   negotiation.
+`asyncContext: "propagated"` are implemented. `"serialized"` stays until
+QuickJS has a slot, because the framework adapters build artifacts that may
+run on any engine. When an rquickjs release includes quickjs-ng's
+continuation data API ([#1920](https://github.com/quickjs-ng/quickjs/pull/1920)),
+one change implements the QuickJS slot, switches every adapter to
+propagation, and removes `"serialized"` together with the `asyncContext`
+option. [TODO](../TODO.md#framework-runtime-needs-beyond-wintertc) tracks
+the steps, the end-to-end check in the asynchronous SvelteKit example and
+the measurements against the serialized implementation.
