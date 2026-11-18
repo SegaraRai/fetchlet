@@ -5,6 +5,7 @@
 
 import { Buffer } from "../buffer/buffer.ts";
 import { nodeError } from "../errors/errors.ts";
+import { format } from "../util/inspect.ts";
 
 type NodeBuffer = InstanceType<typeof Buffer>;
 
@@ -27,9 +28,9 @@ function normalize(encoding: unknown): string {
   if (encoding === undefined || encoding === null || encoding === "") {
     return "utf8";
   }
-  const name = encodings[String(encoding).toLowerCase()];
+  const name = typeof encoding === "string" ? encodings[encoding.toLowerCase()] : undefined;
   if (!name) {
-    throw nodeError(TypeError, "ERR_UNKNOWN_ENCODING", `Unknown encoding: ${String(encoding)}`);
+    throw nodeError(TypeError, "ERR_UNKNOWN_ENCODING", format("Unknown encoding: %s", encoding));
   }
   return name;
 }

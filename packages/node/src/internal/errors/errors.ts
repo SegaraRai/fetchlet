@@ -1,6 +1,8 @@
 // Node's errors carry a `code` such as ERR_INVALID_ARG_TYPE, which callers
 // test instead of the message.
 
+import { inspect } from "../util/inspect.ts";
+
 type ErrorClass = new (message?: string) => Error;
 
 export type NodeError = Error & { code: string };
@@ -25,12 +27,7 @@ function describe(value: unknown): string {
     const name = (value as { constructor?: { name?: string } }).constructor?.name;
     return name ? `an instance of ${name}` : "an object";
   }
-  let shown =
-    typeof value === "string"
-      ? `'${value}'`
-      : typeof value === "bigint"
-        ? `${value}n`
-        : String(value);
+  let shown = inspect(value);
   if (shown.length > 28) {
     shown = `${shown.slice(0, 25)}...`;
   }

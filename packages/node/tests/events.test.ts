@@ -91,7 +91,10 @@ describe("EventEmitter", () => {
       const unhandled = codeOf(() => emitter.emit("error", "text"));
       emitter.on("error", (error: Error) => seen.push(`handled:${error.message}`));
       emitter.emit("error", new Error("caught"));
-      return { thrown, unhandled: (unhandled as unknown[]).slice(0, 2), seen };
+      const messages = ["text", { a: 1 }, 1].map((value) =>
+        codeOf(() => new EventEmitter().emit("error", value)),
+      );
+      return { thrown, unhandled: (unhandled as unknown[]).slice(0, 2), seen, messages };
     }));
 
   test("max listeners", () =>
@@ -106,12 +109,12 @@ describe("EventEmitter", () => {
     compare(({ EventEmitter }) => {
       class Custom extends EventEmitter {}
       const emitter = new Custom();
-      let self: unknown;
+      const receivers: unknown[] = [];
       emitter.on("x", function (this: unknown) {
-        self = this;
+        receivers.push(this);
       });
       emitter.emit("x");
-      return [self === emitter, emitter instanceof EventEmitter];
+      return [receivers[0] === emitter, emitter instanceof EventEmitter];
     }));
 
   test("validates listeners like Node", () =>

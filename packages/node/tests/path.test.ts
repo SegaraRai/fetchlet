@@ -103,8 +103,18 @@ test("separators and the posix namespace", () => {
   expect(path.posix).toBe(path);
 });
 
-test("rejects non-string arguments with Node's error code", () => {
+test("rejects non-string arguments with Node's error code and message", () => {
   expect(() => path.join("a", 1 as unknown as string)).toThrow(
     expect.objectContaining({ code: "ERR_INVALID_ARG_TYPE", name: "TypeError" }),
   );
+  const message = (join: (...paths: string[]) => string, value: unknown) => {
+    try {
+      join("a", value as string);
+    } catch (error) {
+      return (error as Error).message;
+    }
+  };
+  for (const value of [1, -0, 10n, true, Symbol("s"), undefined, null, {}, [], () => {}]) {
+    expect(message(path.join, value)).toBe(message(node.join, value));
+  }
 });

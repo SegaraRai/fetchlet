@@ -5,6 +5,7 @@
 
 import { invalidArgType, nodeError, validateFunction, validateInteger } from "../errors/errors.ts";
 import { emitWarning } from "../process/warnings.ts";
+import { inspect } from "../util/inspect.ts";
 
 type Listener = (...args: any[]) => unknown;
 type EventName = string | symbol;
@@ -160,7 +161,7 @@ class EventEmitterClass {
     if (type === "error") {
       const monitors = listeners.get(errorMonitor);
       if (monitors) {
-        for (const monitor of [...monitors]) {
+        for (const monitor of monitors.slice()) {
           monitor.apply(this, args);
         }
       }
@@ -175,12 +176,12 @@ class EventEmitterClass {
         throw nodeError(
           Error,
           "ERR_UNHANDLED_ERROR",
-          `Unhandled error.${error === undefined ? "" : ` (${String(error)})`}`,
+          `Unhandled error.${error === undefined ? "" : ` (${inspect(error)})`}`,
         );
       }
       return false;
     }
-    for (const listener of [...list]) {
+    for (const listener of list.slice()) {
       listener.apply(this, args);
     }
     return true;
@@ -239,7 +240,7 @@ class EventEmitterClass {
   removeAllListeners(type?: EventName): this {
     const listeners = table(this);
     if (type === undefined) {
-      for (const name of [...listeners.keys()]) {
+      for (const name of Array.from(listeners.keys())) {
         if (name !== "removeListener") {
           this.removeAllListeners(name);
         }

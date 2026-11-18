@@ -171,5 +171,17 @@ describe("string_decoder", () => {
     expect(() => new StringDecoder("nope")).toThrow(
       expect.objectContaining({ code: "ERR_UNKNOWN_ENCODING", name: "TypeError" }),
     );
+    const message = (create: (encoding: never) => unknown, encoding: unknown) => {
+      try {
+        create(encoding as never);
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    for (const encoding of [1, true, [], { toString: () => "utf8" }]) {
+      expect(message((value) => new StringDecoder(value), encoding)).toBe(
+        message((value) => new nodeStringDecoder.StringDecoder(value), encoding),
+      );
+    }
   });
 });
