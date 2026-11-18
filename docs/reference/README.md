@@ -86,7 +86,7 @@ Unexpected results: 0.
 | nuxt-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | nuxt 4.6.4                    | 159.0.8154.6  |
 | react-router-axum            | 12 / 12 | 12 / 12 | 12 / 12 | react-router 8.5.1            | 159.0.8154.6  |
 | honox-axum                   | 11 / 11 | 11 / 11 | 11 / 11 | honox 0.1.62                  | 159.0.8154.6  |
-| honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 157.0.4341.46 |
+| honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 157.0.4341.60 |
 | tanstack-start-axum          | 11 / 11 | 11 / 11 | 11 / 11 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
 | solidstart-axum              | 11 / 11 | 11 / 11 | 11 / 11 | @solidjs/start 2.2.3          | 159.0.8154.6  |
 | qwik-city-axum               | 11 / 11 | 11 / 11 | 11 / 11 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |

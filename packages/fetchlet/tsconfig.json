@@ -5,7 +5,14 @@
   "compilerOptions": {
     "strict": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    // TypeScript emits no declarations for a file it reaches through
+    // node_modules, so the packed declarations reach @fetchlet/web's sources
+    // by path.
+    "paths": {
+      "@fetchlet/web": ["../web/src/index.ts"],
+      "@fetchlet/web/*": ["../web/src/*.ts"]
+    }
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"],
   "exclude": ["src/runtime/**"]

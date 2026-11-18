@@ -16,6 +16,7 @@
     "fixtures/**/*.ts",
     "fixtures/**/*.tsx",
     "packages/fetchlet/src/runtime/**/*.ts",
+    "packages/web/src/**/*.ts",
     "tools/bench/bare/entry.ts",
     "tools/bench/probe/entry.ts"
   ],

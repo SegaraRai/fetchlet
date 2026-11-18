@@ -1,4 +1,4 @@
-/// <reference path="../polyfills.d.ts" />
+/// <reference path="./polyfills.d.ts" />
 
 import {
   TextDecoder,

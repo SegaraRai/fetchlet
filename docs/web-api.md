@@ -8,8 +8,8 @@ randomness, digests, URL parsing, the clock — go through Rust.
 
 ## Providers
 
-The entry point is `packages/fetchlet/src/runtime/index.ts`; each API's
-implementation is in `packages/fetchlet/src/runtime/web/`. Host operations
+The implementations are in the [`@fetchlet/web`](../packages/web/README.md)
+package, which `fetchlet/runtime` installs. Host operations
 marked below are in the [fetchlet-web](../crates/fetchlet-web/README.md)
 crate; the profile installs an API only when the host reports it.
 

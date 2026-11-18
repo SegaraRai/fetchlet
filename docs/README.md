@@ -33,7 +33,8 @@
   polyfill selection.
 - [fetchlet/runtime](../packages/fetchlet/docs/runtime.md): the Fetch entry
   and bindings.
-- [Web API profile](web-api.md): what the profile provides on every engine.
+- [Web API profile](web-api.md): what the profile provides on every engine,
+  implemented in [@fetchlet/web](../packages/web/README.md).
 - [Examples](../examples/README.md): runnable applications per framework.
 
 ## Security and verification

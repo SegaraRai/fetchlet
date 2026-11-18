@@ -1,4 +1,4 @@
-import { wireRequest, wireResponse, type WireRequest, type WireResponse } from "./web/wire";
+import { wireRequest, wireResponse, type WireRequest, type WireResponse } from "@fetchlet/web/wire";
 
 export interface ServiceBinding {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;

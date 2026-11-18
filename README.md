@@ -99,7 +99,8 @@ generated from its OpenAPI document.
 ```text
 crates/fetchlet/       Functions and Fetch, shared handles, host services
 crates/fetchlet-http/  Tower, hyper, axum and actix integration; artifacts and asset archives
-packages/fetchlet/     The fetchlet npm package: runtime, artifact builder, framework adapters
+packages/fetchlet/     The fetchlet npm package: runtime, artifact builder, framework integrations
+packages/web/          @fetchlet/web: the Web API implementations that run in the engine
 examples/              Runnable applications per framework and Rust server
 fixtures/              Pinned framework builds and probes for the engine matrix
 tests/conformance/     Pinned WPT and Test262 sources and expectations

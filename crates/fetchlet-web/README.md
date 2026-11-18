@@ -1,7 +1,8 @@
 # fetchlet-web
 
 Host implementations of Web APIs for fetchlet guests. The guest runtime
-(`fetchlet/runtime`) calls them as host operations: a name, a JSON message
+([`@fetchlet/web`](../../packages/web/README.md), installed by
+`fetchlet/runtime`) calls them as host operations: a name, a JSON message
 and byte-store handles. They depend on no JavaScript engine, so QuickJS, Boa
 and V8 share one implementation of each API.
 

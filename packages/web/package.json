@@ -1,0 +1,16 @@
+{
+  "name": "@fetchlet/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Web API implementations that run inside a fetchlet engine on the host operations of fetchlet-web",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./wire": "./src/wire.ts"
+  },
+  "dependencies": {
+    "@exodus/bytes": "catalog:",
+    "core-js-pure": "catalog:",
+    "web-streams-polyfill": "catalog:"
+  }
+}

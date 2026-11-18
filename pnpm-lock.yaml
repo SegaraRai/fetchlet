@@ -923,6 +923,9 @@ importers:
       '@builder.io/qwik-city':
         specifier: 'catalog:'
         version: 1.20.4(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(rollup@4.68.3)(supports-color@10.2.2)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))
+      '@fetchlet/web':
+        specifier: workspace:*
+        version: link:../web
       '@hono/vite-build':
         specifier: 'catalog:'
         version: 1.11.1(hono@4.13.19)
@@ -980,6 +983,18 @@ importers:
       waku:
         specifier: 'catalog:'
         version: 1.0.0-rc.5(@types/node@26.6.6)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.1(react@19.3.1))(react-server-dom-webpack@19.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(webpack@5.112.2(cssnano@9.9.0(postcss@8.5.33))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.33)(sharp@0.35.5(@types/node@26.6.6))(svgo@4.1.0)))(react@19.3.1)(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
+
+  packages/web:
+    dependencies:
+      '@exodus/bytes':
+        specifier: 'catalog:'
+        version: 1.16.0(@noble/hashes@2.4.0)
+      core-js-pure:
+        specifier: 'catalog:'
+        version: 3.51.0
+      web-streams-polyfill:
+        specifier: 'catalog:'
+        version: 4.5.1
 
   tools/bench:
     devDependencies:

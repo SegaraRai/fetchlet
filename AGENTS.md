@@ -8,7 +8,7 @@ Work directly in `F:\Projects\fetchlet`.
 - Keep `lib.rs` and `mod.rs` limited to module declarations and reexports.
 - Keep modules private and expose public APIs through `pub use`.
 - Put engine implementations and options under `crates/fetchlet/src/backend/<engine>/`.
-- Put host implementations of Web APIs in `crates/fetchlet-web/`, one module and Cargo feature per optional API, independent of any engine. Bump `PROTOCOL_VERSION` with the runtime's copy in `web-host.ts` when an operation's name or message changes.
+- Put host implementations of Web APIs in `crates/fetchlet-web/`, one module and Cargo feature per optional API, independent of any engine. Bump `PROTOCOL_VERSION` with the copy in `packages/web/src/web-host.ts` when an operation's name or message changes.
 - Group implementation by responsibility. Use descriptive names and ordinary control flow.
 - Put framework runners, mock transports and benchmark scaffolding under test or tool directories (`tools/<name>/` for repository tooling, `fixtures/` for shared test inputs).
 - Give each production limit an explicit owner and rationale: caller policy, external specification, or underlying capacity. Put caller budgets in configuration.
@@ -27,7 +27,8 @@ Use Vite+ with pnpm. Define tasks in `vite.config.ts`. Use `vp i` for dependenci
 - Resolve paths from the repository root exported by `tools/workspace/paths.ts`, not from the working directory. Run Cargo through `tools/workspace/cargo.ts` so the native compiler environment is consistent.
 - Write package sources, example scripts and tests in TypeScript too. Code that runs inside the engines as written, such as `crates/fetchlet/js/` and engine fixtures, stays JavaScript.
 - When code needs another module of the package as a file, publish that module as a subpath and resolve it with `createRequire(import.meta.url).resolve`; do not build paths relative to `import.meta.url`.
-- Publish JavaScript as the single npm package `fetchlet` (`packages/fetchlet`), with one subpath per framework and the integrations under `src/integrations/<framework>/`. Name private workspace packages `@fetchlet-internal/*`; keep `@fetchlet/*` free for future publishable packages.
+- Publish JavaScript as the single npm package `fetchlet` (`packages/fetchlet`), with one subpath per framework and the integrations under `src/integrations/<framework>/`. Name private workspace packages `@fetchlet-internal/*`; keep `@fetchlet/*` for packages that could be published on their own.
+- Put the guest Web API implementations in `@fetchlet/web` (`packages/web`), the counterpart of `crates/fetchlet-web`. It stays private with subpaths pointing at its TypeScript sources; `fetchlet` lists it as a development dependency and compiles it into its own output.
 
 ## Documentation
 

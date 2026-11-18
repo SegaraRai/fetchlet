@@ -88,6 +88,7 @@
   "devDependencies": {
     "@builder.io/qwik": "catalog:",
     "@builder.io/qwik-city": "catalog:",
+    "@fetchlet/web": "workspace:*",
     "@hono/vite-build": "catalog:",
     "@react-router/dev": "catalog:",
     "@solidjs/start": "catalog:",
