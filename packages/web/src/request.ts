@@ -1,7 +1,6 @@
 import { BodyImpl } from "./body";
 import { byteString, dictionary, domString, exposeAttributes, usvString } from "./idl";
 import { runtime } from "./runtime";
-
 import "./abort";
 
 const normalizedMethods = new Set(["DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT"]);

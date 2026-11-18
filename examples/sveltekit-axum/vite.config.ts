@@ -1,5 +1,5 @@
-import fetchletAdapter from "fetchlet/sveltekit";
 import { sveltekit } from "@sveltejs/kit/vite";
+import fetchletAdapter from "fetchlet/sveltekit";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({

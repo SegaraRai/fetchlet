@@ -1,5 +1,4 @@
 import { _deserializeData, _serializeData, _verifySerializable } from "@builder.io/qwik";
-import { setServerPlatform } from "@builder.io/qwik/server";
 import {
   getErrorHtml,
   mergeHeadersCookies,
@@ -7,6 +6,7 @@ import {
   type ServerRenderOptions,
   type ServerRequestEvent,
 } from "@builder.io/qwik-city/middleware/request-handler";
+import { setServerPlatform } from "@builder.io/qwik/server";
 import { getBindings, waitUntil } from "fetchlet/runtime/adapter";
 
 /** A host service binding: a fetch scoped by the Rust FetchPolicy. */

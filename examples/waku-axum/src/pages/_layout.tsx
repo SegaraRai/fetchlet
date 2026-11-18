@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "waku";
+
 import "../styles.css";
 
 export default function Layout({ children }: { children: ReactNode }) {

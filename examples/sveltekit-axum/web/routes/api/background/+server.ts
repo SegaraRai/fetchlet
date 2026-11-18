@@ -1,4 +1,5 @@
 import { json } from "@sveltejs/kit";
+
 import type { RequestHandler } from "./$types";
 
 // Work recorded after responses, kept in this instance for the example.

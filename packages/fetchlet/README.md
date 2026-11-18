@@ -20,10 +20,10 @@ Install it as a development dependency next to your framework. Each framework ha
 | `fetchlet/runtime`, `/adapter`, `/handler`                 | The Web API profile and Fetch entry inside the bundle | [runtime](docs/runtime.md)               |
 
 ```ts
-// vite.config.ts
-import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import fetchletAdapter from "fetchlet/sveltekit";
+// vite.config.ts
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [

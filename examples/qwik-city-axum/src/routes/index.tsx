@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { routeLoader$, useLocation } from "@builder.io/qwik-city";
+
 import { Counter } from "../components/counter";
 
 // Runs on the server, also when the client navigates here.

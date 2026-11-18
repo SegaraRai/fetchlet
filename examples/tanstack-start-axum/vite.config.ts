@@ -1,6 +1,6 @@
-import fetchletStart from "fetchlet/tanstack-start";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
+import fetchletStart from "fetchlet/tanstack-start";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({

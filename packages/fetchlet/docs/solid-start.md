@@ -6,9 +6,9 @@ fetchlet artifact. Supports `@solidjs/start` 2 with Solid 1
 [examples/solidstart-axum](../../../examples/solidstart-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
+import { solidStart } from "@solidjs/start/config";
 // vite.config.ts
 import fetchletSolidStart from "fetchlet/solid-start";
-import { solidStart } from "@solidjs/start/config";
 
 export default defineConfig({
   plugins: [solidStart(), fetchletSolidStart({ backend: "quickjs" })],

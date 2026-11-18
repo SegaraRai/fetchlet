@@ -1,5 +1,5 @@
-import { Hono } from "hono";
 import { wireRequest, wireResponse } from "fetchlet/runtime";
+import { Hono } from "hono";
 
 const app = new Hono();
 

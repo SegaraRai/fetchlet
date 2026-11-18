@@ -3,6 +3,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+
 import { buildArtifact, type BuildBackend } from "fetchlet/build";
 
 const [name, outDir, backend] = process.argv.slice(2);

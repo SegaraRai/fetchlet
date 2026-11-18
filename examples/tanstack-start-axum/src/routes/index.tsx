@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+
 import { Counter } from "../components/Counter";
 
 // Runs on the server, also when the client navigates here.

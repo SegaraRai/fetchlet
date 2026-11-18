@@ -11,6 +11,8 @@ export default defineConfig({
     printWidth: 100,
     tabWidth: 2,
     useTabs: false,
+    sortImports: true,
+    sortPackageJson: true,
     // Pinned upstream sources are verified byte-for-byte against sources.lock.json.
     ignorePatterns: ["tests/conformance/upstream/**"],
   },
@@ -36,8 +38,7 @@ export default defineConfig({
         cache: false,
       },
       "check:format": {
-        command:
-          "vp fmt crates/fetchlet/js crates/fetchlet/tests/fixtures crates/fetchlet-http/tests/fixtures crates/fetchlet-http/tests/contract packages examples fixtures tools tests/conformance/regressions vite.config.ts tsconfig.json package.json --check",
+        command: "vp fmt --check",
         cache: false,
       },
       "check:generated": {

@@ -1,5 +1,6 @@
-import { getRequestContext } from "fetchlet/solid-start/context";
 import { createAsync, query, useSearchParams } from "@solidjs/router";
+import { getRequestContext } from "fetchlet/solid-start/context";
+
 import { Counter } from "../components/Counter";
 
 // Runs on the server, also when the client navigates here.

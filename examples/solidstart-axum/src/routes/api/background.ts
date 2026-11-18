@@ -1,5 +1,6 @@
-import { getRequestContext } from "fetchlet/solid-start/context";
 import type { APIEvent } from "@solidjs/start/server";
+import { getRequestContext } from "fetchlet/solid-start/context";
+
 import { completed } from "../../lib/completed";
 
 // Register work that finishes after the response was sent.

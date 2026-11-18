@@ -1,4 +1,5 @@
 import { createRoute } from "honox/factory";
+
 import Counter from "../islands/counter";
 
 export default createRoute(async (c) => {

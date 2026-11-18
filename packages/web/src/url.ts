@@ -5,8 +5,8 @@
 // read those strings without crossing the bridge. searchParams is the
 // profile's URLSearchParams, linked both ways as the URL Standard specifies.
 
-import { runtime } from "./runtime";
 import { usvString } from "./idl";
+import { runtime } from "./runtime";
 import { hostProvides } from "./web-host";
 
 const enum Part {

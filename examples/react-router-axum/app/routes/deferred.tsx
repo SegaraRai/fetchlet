@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Await } from "react-router";
+
 import type { Route } from "./+types/deferred";
 
 // The shell renders first; the slow value streams in the same response.

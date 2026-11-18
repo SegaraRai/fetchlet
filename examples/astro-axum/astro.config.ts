@@ -1,5 +1,5 @@
-import { defineConfig } from "astro/config";
 import svelte from "@astrojs/svelte";
+import { defineConfig } from "astro/config";
 import fetchletAdapter from "fetchlet/astro";
 import type { BuildBackend } from "fetchlet/build";
 

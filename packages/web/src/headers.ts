@@ -1,6 +1,6 @@
-import { runtime } from "./runtime";
-import { byteString } from "./idl";
 import { headerIterator } from "./header-iterator";
+import { byteString } from "./idl";
+import { runtime } from "./runtime";
 
 const immutableHeaders = new WeakSet<object>();
 

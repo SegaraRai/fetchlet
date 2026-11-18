@@ -1,5 +1,6 @@
 import "fetchlet/runtime";
 import { wireRequest, wireResponse } from "fetchlet/runtime";
+
 import { server } from "./build/server-instance.js";
 
 let ready: Promise<void> | undefined;

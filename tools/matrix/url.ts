@@ -9,7 +9,6 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import { buildArtifact } from "fetchlet/build";
 import { hostBackends, startHost, type HostBackend } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import {
@@ -17,6 +16,7 @@ import {
   writeResult,
   type Environment,
 } from "@fetchlet-internal/tools-workspace/results";
+import { buildArtifact } from "fetchlet/build";
 
 interface CargoPackage {
   id: string;

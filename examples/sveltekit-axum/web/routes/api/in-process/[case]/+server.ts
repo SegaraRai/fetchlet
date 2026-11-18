@@ -1,4 +1,5 @@
 import { error, json } from "@sveltejs/kit";
+
 import type { RequestHandler } from "./$types";
 
 const API = "https://rust.fetchlet.test";

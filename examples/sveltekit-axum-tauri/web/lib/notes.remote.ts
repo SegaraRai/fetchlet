@@ -5,9 +5,10 @@
 import { command, form, query } from "$app/server";
 import { error, invalid, redirect } from "@sveltejs/kit";
 import * as v from "valibot";
+
+import { noteHref, normalizeNewPath } from "#lib/paths.ts";
 import { render } from "#lib/server/render.ts";
 import { rust } from "#lib/server/rust.ts";
-import { noteHref, normalizeNewPath } from "#lib/paths.ts";
 
 const notePath = v.pipe(v.string(), v.minLength(1), v.maxLength(1024));
 

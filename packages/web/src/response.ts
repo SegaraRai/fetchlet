@@ -1,7 +1,7 @@
-import { runtime } from "./runtime";
 import { BodyImpl } from "./body";
-import { byteString, dictionary, unsignedShort } from "./idl";
 import { makeHeadersImmutable } from "./headers";
+import { byteString, dictionary, unsignedShort } from "./idl";
+import { runtime } from "./runtime";
 
 class ResponseImpl extends BodyImpl {
   status: number;

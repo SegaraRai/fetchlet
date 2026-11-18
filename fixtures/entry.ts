@@ -1,5 +1,4 @@
 import "fetchlet/runtime";
-
 import "./probe/web-api.js";
 
 export * from "./functions";

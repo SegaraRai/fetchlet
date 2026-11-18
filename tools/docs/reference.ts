@@ -5,8 +5,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { features, unsupported, type Feature } from "@fetchlet-internal/tools-examples/features";
+import { root } from "@fetchlet-internal/tools-workspace/paths";
 import type { Environment } from "@fetchlet-internal/tools-workspace/results";
 
 const output = resolve(root, "docs/reference/README.md");

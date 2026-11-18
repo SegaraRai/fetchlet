@@ -5,9 +5,9 @@ fetchlet artifact. Supports `@tanstack/react-start` 1;
 [examples/tanstack-start-axum](../../../examples/tanstack-start-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 // vite.config.ts
 import fetchletStart from "fetchlet/tanstack-start";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
 export default defineConfig({
   plugins: [tanstackStart(), react(), fetchletStart({ backend: "quickjs" })],

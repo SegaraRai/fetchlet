@@ -1,5 +1,4 @@
 import { runtime } from "./runtime";
-
 import "./blob";
 
 class FormDataImpl {

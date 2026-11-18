@@ -1,7 +1,8 @@
-import { defineConfig } from "vite-plus";
-import { sveltekit } from "@sveltejs/kit/vite";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+
+import { sveltekit } from "@sveltejs/kit/vite";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   plugins: [

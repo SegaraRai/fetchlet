@@ -1,4 +1,5 @@
 import { fail } from "@sveltejs/kit";
+
 import type { Actions, PageServerLoad } from "./$types";
 
 // The in-process Rust API. Its origin is admitted by the Rust FetchPolicy, so

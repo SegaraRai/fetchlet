@@ -9,8 +9,8 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { request } from "node:http";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { brotliDecompressSync } from "node:zlib";
 import { after, before, test } from "node:test";
+import { brotliDecompressSync } from "node:zlib";
 
 import type { Feature } from "@fetchlet-internal/tools-examples/features";
 import { backend, resultFile } from "@fetchlet-internal/tools-examples/suite";

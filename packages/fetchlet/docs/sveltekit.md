@@ -8,9 +8,9 @@ both the synchronous (default) and asynchronous rendering profiles;
 check them, and [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
-import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import fetchletAdapter from "fetchlet/sveltekit";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [
