@@ -11,3 +11,6 @@ mod rsa;
 mod secret;
 
 pub(crate) use operations::dispatch;
+
+#[cfg_attr(not(feature = "node-crypto"), allow(unused_imports))]
+pub(crate) use message::Bytes;

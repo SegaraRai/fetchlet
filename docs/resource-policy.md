@@ -21,9 +21,10 @@ services, concurrency and the process's total capacity.
 | `header_bytes`         | Total bytes of names and values in each header set                                                                                        |
 | `url_bytes`            | Bytes of the incoming request URL and of each rewritten destination URL                                                                   |
 | `bridge_message_bytes` | Bytes of each JSON message to a native callback, and of each body buffer passed from JavaScript                                           |
-| `digest_bytes`         | Bytes of input to one `crypto.subtle.digest` call                                                                                         |
+| `digest_bytes`         | Bytes of input to one `crypto.subtle.digest` call, or to one `node:crypto` hash or HMAC                                                   |
 | `rsa_modulus_bits`     | Modulus length of each RSA key `crypto.subtle.generateKey` creates, which bounds the time generation takes                                |
-| `pbkdf2_iterations`    | Iterations of each PBKDF2 derivation in `crypto.subtle`                                                                                   |
+| `pbkdf2_iterations`    | Iterations of each PBKDF2 derivation in `crypto.subtle` or `node:crypto`                                                                  |
+| `scrypt_memory_bytes`  | Working memory, 128 × N × r bytes, of each `node:crypto` scrypt derivation, which the host allocates                                      |
 | `compression_streams`  | `CompressionStream` and `DecompressionStream` instances open at once in an invocation                                                     |
 | `decompressed_bytes`   | Bytes one `DecompressionStream` produces, which bounds highly compressed input                                                            |
 | `subrequests`          | Host fetches an invocation attempts to start; failed and aborted attempts still count                                                     |

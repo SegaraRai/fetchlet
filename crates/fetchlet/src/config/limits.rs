@@ -22,12 +22,16 @@ pub struct Limits {
     pub url_bytes: Option<usize>,
     /// Bytes in each JSON input to a native host callback.
     pub bridge_message_bytes: Option<usize>,
-    /// Input bytes of one `crypto.subtle.digest` call.
+    /// Input bytes of one `crypto.subtle.digest` call, or of one `node:crypto`
+    /// hash or HMAC.
     pub digest_bytes: Option<usize>,
     /// Modulus length, in bits, of an RSA key that `crypto.subtle` generates.
     pub rsa_modulus_bits: Option<usize>,
-    /// Iterations of one PBKDF2 derivation in `crypto.subtle`.
+    /// Iterations of one PBKDF2 derivation in `crypto.subtle` or `node:crypto`.
     pub pbkdf2_iterations: Option<usize>,
+    /// Working memory, 128 * N * r bytes, of one `node:crypto` scrypt
+    /// derivation, which the host allocates.
+    pub scrypt_memory_bytes: Option<usize>,
     /// `CompressionStream` and `DecompressionStream` instances open at once
     /// in one invocation.
     pub compression_streams: Option<usize>,
@@ -73,6 +77,7 @@ impl Limits {
             decompressed_bytes: self.decompressed_bytes,
             rsa_modulus_bits: self.rsa_modulus_bits,
             pbkdf2_iterations: self.pbkdf2_iterations,
+            scrypt_memory_bytes: self.scrypt_memory_bytes,
         }
     }
 }
@@ -147,6 +152,7 @@ mod tests {
             decompressed_bytes: Some(3),
             rsa_modulus_bits: Some(4),
             pbkdf2_iterations: Some(5),
+            scrypt_memory_bytes: Some(7),
             request_body_bytes: Some(6),
             ..Limits::default()
         };
@@ -158,8 +164,9 @@ mod tests {
                 web.decompressed_bytes,
                 web.rsa_modulus_bits,
                 web.pbkdf2_iterations,
+                web.scrypt_memory_bytes,
             ),
-            (Some(1), Some(2), Some(3), Some(4), Some(5))
+            (Some(1), Some(2), Some(3), Some(4), Some(5), Some(7))
         );
     }
 }

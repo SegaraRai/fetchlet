@@ -4,7 +4,8 @@ use crate::{Error, Result};
 /// the embedder owns the values and documents them with its other limits.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct WebLimits {
-    /// Bytes one `crypto.subtle.digest` call hashes.
+    /// Bytes one `crypto.subtle.digest` call, or one `node:crypto` hash or
+    /// HMAC, hashes.
     pub digest_bytes: Option<usize>,
     /// `CompressionStream` and `DecompressionStream` instances open at once
     /// in an invocation.
@@ -16,6 +17,9 @@ pub struct WebLimits {
     pub rsa_modulus_bits: Option<usize>,
     /// Iterations of one PBKDF2 derivation.
     pub pbkdf2_iterations: Option<usize>,
+    /// Working memory of one `node:crypto` scrypt derivation, 128 * N * r
+    /// bytes, which the host allocates.
+    pub scrypt_memory_bytes: Option<usize>,
 }
 
 #[cfg_attr(

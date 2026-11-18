@@ -42,6 +42,9 @@ pub fn capabilities() -> Value {
     if cfg!(feature = "crypto") {
         apis.push("crypto");
     }
+    if cfg!(feature = "node-crypto") {
+        apis.push("node-crypto");
+    }
     json!({ "protocol": PROTOCOL_VERSION, "apis": apis })
 }
 
@@ -69,6 +72,9 @@ pub fn dispatch<B: ByteHandles>(
         | "crypto.decrypt" | "crypto.deriveBits" => {
             crate::crypto::dispatch(operation, input, limits)
         }
+        #[cfg(feature = "node-crypto")]
+        "nodeCrypto.hash" | "nodeCrypto.hmac" | "nodeCrypto.pbkdf2" | "nodeCrypto.hkdf"
+        | "nodeCrypto.scrypt" => crate::node_crypto::dispatch(operation, input, limits),
         #[cfg(feature = "compression")]
         "compression.open" | "compression.write" | "compression.finish" | "compression.read"
         | "compression.close" => {

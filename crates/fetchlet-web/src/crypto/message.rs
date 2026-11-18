@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 /// Bytes, as standard base64 in messages.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(super) struct Bytes(pub Vec<u8>);
+pub(crate) struct Bytes(pub Vec<u8>);
 
 impl<'de> Deserialize<'de> for Bytes {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {

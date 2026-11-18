@@ -13,6 +13,8 @@ mod state;
 mod compression;
 #[cfg(feature = "crypto")]
 mod crypto;
+#[cfg(feature = "node-crypto")]
+mod node_crypto;
 #[cfg(feature = "url")]
 mod url;
 #[cfg(feature = "url-pattern")]

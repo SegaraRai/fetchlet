@@ -15,10 +15,11 @@ fuzzing = ["web"]
 # Host implementations of Web APIs (fetchlet-web). Every engine enables it;
 # the features below select its APIs.
 web = ["dep:fetchlet-web"]
-web-apis = ["url", "url-pattern", "compression", "web-crypto"]
+web-apis = ["url", "url-pattern", "compression", "web-crypto", "node-crypto"]
+compression = ["fetchlet-web?/compression"]
+node-crypto = ["fetchlet-web?/node-crypto"]
 url = ["fetchlet-web?/url"]
 url-pattern = ["fetchlet-web?/url-pattern"]
-compression = ["fetchlet-web?/compression"]
 web-crypto = ["fetchlet-web?/crypto"]
 
 [dependencies]

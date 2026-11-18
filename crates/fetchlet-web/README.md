@@ -12,6 +12,7 @@ and V8 share one implementation of each API.
 | `url-pattern` (default) | `URLPattern`                                            | `urlpattern`                   |
 | `compression` (default) | `CompressionStream`, `DecompressionStream`              | `flate2`, `brotli`             |
 | `crypto` (default)      | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` | RustCrypto crates, `getrandom` |
+| `node-crypto` (default) | `node:crypto` hashes, HMAC, PBKDF2, HKDF and scrypt     | RustCrypto crates              |
 
 The `crypto.*` operations are stateless: the guest's `CryptoKey` holds the
 key material (raw bytes for secret keys, SubjectPublicKeyInfo and PKCS #8 DER
@@ -21,9 +22,15 @@ key usages and JWK members; the host converts formats and does the
 cryptography. AES-GCM is implemented over `aes` and `ghash` so that any iv
 length and every tag length the specification allows work.
 
+The `nodeCrypto.*` operations serve [`node:crypto`](../../docs/node-compat.md):
+`nodeCrypto.hash` and `nodeCrypto.hmac` for MD5, SHA-1 and the SHA-2
+family including SHA-512/224 and SHA-512/256, with HMAC keys of any length,
+and `nodeCrypto.pbkdf2`, `nodeCrypto.hkdf` and `nodeCrypto.scrypt`. Each
+takes its whole input in one message and returns the result as base64.
+
 The `fetchlet` crate enables it with every engine and forwards the
-APIs through its `url`, `url-pattern`, `compression` and `web-crypto`
-features (`web-apis` enables all four).
+APIs through its `url`, `url-pattern`, `compression`, `web-crypto` and
+`node-crypto` features (`web-apis` enables all five).
 
 ## Embedding
 
@@ -51,6 +58,6 @@ version differs from its own.
 
 `WebLimits` carries the caller budgets these operations enforce
 (`digest_bytes`, `rsa_modulus_bits`, `pbkdf2_iterations`,
-`compression_streams`, `decompressed_bytes`). The embedder
+`scrypt_memory_bytes`, `compression_streams`, `decompressed_bytes`). The embedder
 owns their values; fetchlet takes them from its `Limits`
 ([resource policy](../../docs/resource-policy.md)).
