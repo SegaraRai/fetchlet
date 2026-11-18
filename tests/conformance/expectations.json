@@ -15,9 +15,9 @@
   "failures": [
     {
       "key": "[\"wpt\",\"boa\",\"FileAPI/blob/Blob-constructor.any.js\",\"shell\",\"Passing a FrozenArray as the blobParts array should work (FrozenArray<MessagePort>).\"]",
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure.",
+      "reason": "MessagePort transfer is outside this profile: MessageChannel works within one instance, where there is no other agent to send a port to.",
       "category": "host-capability",
-      "message": "MessageChannel is not defined"
+      "message": "MessagePort transfer is not supported within one instance"
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for brotli\"]",
@@ -224,12 +224,6 @@
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
-      "key": "[\"wpt\",\"boa\",\"dom/events/EventTarget-removeEventListener.any.js\",\"shell\",\"removing a null event listener should succeed\"]",
-      "reason": "The global scope is not an EventTarget in this profile, so globalThis.removeEventListener does not exist; EventTarget instances pass the other subtests.",
-      "category": "host-capability",
-      "message": "not a callable function"
-    },
-    {
       "key": "[\"wpt\",\"boa\",\"encoding/encodeInto.any.js\",\"shell\",\"Invalid encodeInto() destination: BigInt64Array, backed by: SharedArrayBuffer\"]",
       "reason": "This engine configuration does not expose SharedArrayBuffer; the ArrayBuffer variants of the same subtests pass.",
       "category": "backend-capability",
@@ -300,12 +294,6 @@
       "reason": "This engine configuration does not expose SharedArrayBuffer; the ArrayBuffer variants of the same subtests pass.",
       "category": "backend-capability",
       "message": "not a constructor"
-    },
-    {
-      "key": "[\"wpt\",\"boa\",\"encoding/encodeInto.any.js\",\"shell\",\"encodeInto() and a detached output buffer\"]",
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure.",
-      "category": "host-capability",
-      "message": "MessageChannel is not defined"
     },
     {
       "key": "[\"wpt\",\"boa\",\"encoding/encodeInto.any.js\",\"shell\",\"encodeInto() into SharedArrayBuffer with A and destination length 10, offset 0, filler 0\"]",
@@ -1568,12 +1556,6 @@
       "message": "assert_not_equals: got disallowed value undefined"
     },
     {
-      "key": "[\"wpt\",\"node-reference\",\"dom/events/EventTarget-removeEventListener.any.js\",\"shell\",\"removing a null event listener should succeed\"]",
-      "reason": "The global scope is not an EventTarget in this profile, so globalThis.removeEventListener does not exist; EventTarget instances pass the other subtests.",
-      "category": "host-capability",
-      "message": "globalThis.removeEventListener is not a function"
-    },
-    {
       "key": "[\"wpt\",\"node-reference\",\"encoding/textdecoder-eof.any.js\",\"shell\",\"TextDecoder end-of-queue handling using stream: true\"]",
       "reason": "Node reference TextDecoder differs on this end-of-queue case; recorded as a reference difference.",
       "category": "reference-difference",
@@ -2493,9 +2475,9 @@
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"FileAPI/blob/Blob-constructor.any.js\",\"shell\",\"Passing a FrozenArray as the blobParts array should work (FrozenArray<MessagePort>).\"]",
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure.",
+      "reason": "MessagePort transfer is outside this profile: MessageChannel works within one instance, where there is no other agent to send a port to.",
       "category": "host-capability",
-      "message": "MessageChannel is not defined"
+      "message": "MessagePort transfer is not supported within one instance"
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for brotli\"]",
@@ -2594,12 +2576,6 @@
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
-      "key": "[\"wpt\",\"quickjs\",\"dom/events/EventTarget-removeEventListener.any.js\",\"shell\",\"removing a null event listener should succeed\"]",
-      "reason": "The global scope is not an EventTarget in this profile, so globalThis.removeEventListener does not exist; EventTarget instances pass the other subtests.",
-      "category": "host-capability",
-      "message": "not a function"
-    },
-    {
       "key": "[\"wpt\",\"quickjs\",\"encoding/encodeInto.any.js\",\"shell\",\"Invalid encodeInto() destination: BigInt64Array, backed by: SharedArrayBuffer\"]",
       "reason": "This engine configuration does not expose SharedArrayBuffer; the ArrayBuffer variants of the same subtests pass.",
       "category": "backend-capability",
@@ -2670,12 +2646,6 @@
       "reason": "This engine configuration does not expose SharedArrayBuffer; the ArrayBuffer variants of the same subtests pass.",
       "category": "backend-capability",
       "message": "not a function"
-    },
-    {
-      "key": "[\"wpt\",\"quickjs\",\"encoding/encodeInto.any.js\",\"shell\",\"encodeInto() and a detached output buffer\"]",
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure.",
-      "category": "host-capability",
-      "message": "MessageChannel is not defined"
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"encoding/encodeInto.any.js\",\"shell\",\"encodeInto() into SharedArrayBuffer with A and destination length 10, offset 0, filler 0\"]",
@@ -3921,21 +3891,9 @@
     },
     {
       "key": "[\"wpt\",\"v8\",\"FileAPI/blob/Blob-constructor.any.js\",\"shell\",\"Passing a FrozenArray as the blobParts array should work (FrozenArray<MessagePort>).\"]",
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure.",
+      "reason": "MessagePort transfer is outside this profile: MessageChannel works within one instance, where there is no other agent to send a port to.",
       "category": "host-capability",
-      "message": "MessageChannel is not defined"
-    },
-    {
-      "key": "[\"wpt\",\"v8\",\"dom/events/EventTarget-removeEventListener.any.js\",\"shell\",\"removing a null event listener should succeed\"]",
-      "reason": "The global scope is not an EventTarget in this profile, so globalThis.removeEventListener does not exist; EventTarget instances pass the other subtests.",
-      "category": "host-capability",
-      "message": "globalThis.removeEventListener is not a function"
-    },
-    {
-      "key": "[\"wpt\",\"v8\",\"encoding/encodeInto.any.js\",\"shell\",\"encodeInto() and a detached output buffer\"]",
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure.",
-      "category": "host-capability",
-      "message": "MessageChannel is not defined"
+      "message": "MessagePort transfer is not supported within one instance"
     },
     {
       "key": "[\"wpt\",\"v8\",\"encoding/textdecoder-eof.any.js\",\"shell\",\"TextDecoder end-of-queue handling using stream: true\"]",

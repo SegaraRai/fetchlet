@@ -22,9 +22,12 @@ crate; the profile installs an API only when the host reports it.
 | URLPattern                                                | Rust `urlpattern` crate through host operations                                                                    |
 | CompressionStream, DecompressionStream                    | Rust `flate2` and `brotli` through host operations                                                                 |
 | Random values, SHA-256                                    | Rust `getrandom` and `sha2` through host operations                                                                |
-| `performance.now`, `timeOrigin`                           | Rust's monotonic clock                                                                                             |
+| `performance` clock                                       | Rust's monotonic clock                                                                                             |
 | Fetch, Headers, Body, FormData, Blob, File, Abort, timers | fetchlet's own implementation                                                                                      |
 | Event, CustomEvent, EventTarget, `navigator`, reportError | fetchlet's own implementation                                                                                      |
+| ErrorEvent, PromiseRejectionEvent, global error events    | fetchlet's own implementation, on each engine's promise rejection tracker                                          |
+| MessageChannel, MessagePort, MessageEvent                 | fetchlet's own implementation                                                                                      |
+| Performance, User Timing marks and measures               | fetchlet's own implementation                                                                                      |
 
 Native APIs that an engine already provides, such as V8's `TextEncoder`, are
 kept.
@@ -42,7 +45,11 @@ kept.
 | Crypto              | `getRandomValues`, UUID v4 and every `SubtleCrypto` method: SHA digests, HMAC, RSA, ECDSA, ECDH, Ed25519, X25519, AES, HKDF and PBKDF2; key material stays in the guest      |
 | Compression         | Four formats over any BufferSource chunks; truncated, corrupt or trailing input errors the stream; the `decompressed_bytes` limit bounds the output                          |
 | URLPattern          | Patterns, base URLs, `ignoreCase`, `test` and `exec`; component regular expressions run in the engine's own `RegExp`                                                         |
-| Timers and jobs     | Promises, `setTimeout`, `setInterval` and their clear functions, driven by host future notifications                                                                         |
+| Timers and jobs     | Promises, `setTimeout`, `setInterval` and their clear functions, driven by host future notifications; an exception in a timer callback is reported and ends only that task   |
+| Global events       | The global scope is an event target with `onerror`, `onunhandledrejection` and `onrejectionhandled`; `reportError` dispatches a cancelable `ErrorEvent`, then logs           |
+| Rejections          | Rejections still unhandled after a microtask checkpoint dispatch `unhandledrejection`, then log unless canceled; a later handler dispatches `rejectionhandled`               |
+| Messaging           | `MessageChannel` within one instance: structured clones delivered one per task after `start()` or `onmessage`; ports cannot be transferred                                   |
+| Performance         | `now`, `timeOrigin`, `mark`, `measure` with mark names, timestamps and options, entry getters and clearing; entries are cleared at the end of each invocation                |
 | fetch and env       | Async bridge to Rust services, origin policy, fixed bindings                                                                                                                 |
 | Bodies, background  | Streaming response bodies, request and upstream bodies as `ReadableStream`, binary transfer through the byte store, `fetchlet.waitUntil`, timer cleanup at the end of a call |
 | Execution control   | Optional cooperative deadline and engine options                                                                                                                             |
@@ -63,22 +70,22 @@ The [Minimum Common API](https://min-common-api.proposal.wintertc.org/)
 (Ecma TC55) lists the interfaces and globals that server runtimes share.
 fetchlet's status for each:
 
-| Area                     | Status                                                                                                                                                               |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Fetch, FormData          | `fetch`, `Headers`, `Request`, `Response`, `FormData`                                                                                                                |
-| File API                 | `Blob`, `File`                                                                                                                                                       |
-| Streams                  | All thirteen interfaces                                                                                                                                              |
-| Encoding                 | `TextEncoder`, `TextDecoder`, `TextEncoderStream`, `TextDecoderStream`                                                                                               |
-| URL                      | `URL`, `URLSearchParams`, `URLPattern`                                                                                                                               |
-| DOM events and abort     | `Event`, `EventTarget`, `CustomEvent`, `AbortController`, `AbortSignal`                                                                                              |
-| HTML events and messages | `ErrorEvent`, `PromiseRejectionEvent`, `MessageChannel`, `MessagePort` and `MessageEvent` are missing                                                                |
-| WebIDL                   | `DOMException`                                                                                                                                                       |
-| Compression              | `CompressionStream` and `DecompressionStream` with `gzip`, `deflate`, `deflate-raw` and `brotli`                                                                     |
-| Web Crypto               | `Crypto`, `SubtleCrypto` and `CryptoKey` with the algorithms of the Web Cryptography API Level 2 and Ed25519 and X25519; `QuotaExceededError`                        |
-| Performance              | `performance.now` and `timeOrigin`; the `Performance` interface is not exposed                                                                                       |
-| WebAssembly              | Native on V8; QuickJS and Boa have none                                                                                                                              |
-| Globals                  | `globalThis`, `self`, `atob`, `btoa`, `console`, `queueMicrotask`, `structuredClone`, timers, `navigator.userAgent` (`"fetchlet"`), `reportError`                    |
-| Global events            | Missing: the global scope is not an `EventTarget`, so `onerror`, `onunhandledrejection` and `onrejectionhandled` have no events; `reportError` writes to the console |
+| Area                     | Status                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fetch, FormData          | `fetch`, `Headers`, `Request`, `Response`, `FormData`                                                                                             |
+| File API                 | `Blob`, `File`                                                                                                                                    |
+| Streams                  | All thirteen interfaces                                                                                                                           |
+| Encoding                 | `TextEncoder`, `TextDecoder`, `TextEncoderStream`, `TextDecoderStream`                                                                            |
+| URL                      | `URL`, `URLSearchParams`, `URLPattern`                                                                                                            |
+| DOM events and abort     | `Event`, `EventTarget`, `CustomEvent`, `AbortController`, `AbortSignal`                                                                           |
+| HTML events and messages | `ErrorEvent`, `PromiseRejectionEvent`, `MessageChannel`, `MessagePort`, `MessageEvent`; ports cannot be transferred                               |
+| WebIDL                   | `DOMException`                                                                                                                                    |
+| Compression              | `CompressionStream` and `DecompressionStream` with `gzip`, `deflate`, `deflate-raw` and `brotli`                                                  |
+| Web Crypto               | `Crypto`, `SubtleCrypto` and `CryptoKey` with the algorithms of the Web Cryptography API Level 2 and Ed25519 and X25519; `QuotaExceededError`     |
+| Performance              | `Performance`, `PerformanceEntry`, `PerformanceMark` and `PerformanceMeasure`; no `PerformanceObserver`                                           |
+| WebAssembly              | Native on V8; QuickJS and Boa have none                                                                                                           |
+| Globals                  | `globalThis`, `self`, `atob`, `btoa`, `console`, `queueMicrotask`, `structuredClone`, timers, `navigator.userAgent` (`"fetchlet"`), `reportError` |
+| Global events            | The global scope has the `EventTarget` methods and `onerror`, `onunhandledrejection` and `onrejectionhandled`                                     |
 
 [TODO](TODO.md#wintertc-gaps) tracks the missing parts.
 
@@ -104,7 +111,7 @@ fetchlet's status for each:
 
 ## Verification
 
-- 29 behavior probes ([fixtures/probe](../fixtures/probe/README.md)) run on
+- 35 behavior probes ([fixtures/probe](../fixtures/probe/README.md)) run on
   each engine and on Node as a reference.
 - Selected WPT, Test262 and regression tests run on each engine
   ([conformance](conformance.md)).

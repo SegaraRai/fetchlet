@@ -21,7 +21,7 @@
       "boa": "boa_engine 0.22.0",
       "v8": "v8 150.4.0"
     },
-    "profileSha256": "0db0f381e749401478c37a6279112d99d55d428b04ece30b8e78ab8d1d973acf"
+    "profileSha256": "0c5cdb3302f5262d6985a324134fd78fd8c0765eacc6cc337672b1eef35dc238"
   },
   "options": {
     "suite": "all",
@@ -33,7 +33,7 @@
   },
   "verdict": {
     "unexpected": 0,
-    "expectations": 802,
+    "expectations": 795,
     "stale": []
   },
   "summary": {
@@ -94,30 +94,30 @@
       "errors": 0
     },
     "wpt/boa": {
-      "pass": 27668,
-      "fail": 257,
-      "expectedFailures": 257,
+      "pass": 27670,
+      "fail": 255,
+      "expectedFailures": 255,
       "unsupported": 0,
       "errors": 0
     },
     "wpt/node-reference": {
-      "pass": 28311,
-      "fail": 156,
-      "expectedFailures": 156,
+      "pass": 28312,
+      "fail": 155,
+      "expectedFailures": 155,
       "unsupported": 0,
       "errors": 0
     },
     "wpt/quickjs": {
-      "pass": 28056,
-      "fail": 238,
-      "expectedFailures": 238,
+      "pass": 28058,
+      "fail": 236,
+      "expectedFailures": 236,
       "unsupported": 0,
       "errors": 0
     },
     "wpt/v8": {
-      "pass": 28143,
-      "fail": 151,
-      "expectedFailures": 151,
+      "pass": 28145,
+      "fail": 149,
+      "expectedFailures": 149,
       "unsupported": 0,
       "errors": 0
     }
@@ -524,9 +524,10 @@
       "dom/events/EventTarget-add-remove-listener.any.js": 1,
       "dom/events/EventTarget-addEventListener.any.js": 1,
       "dom/events/EventTarget-constructible.any.js": 3,
+      "dom/events/EventTarget-removeEventListener.any.js": 1,
       "encoding/api-basics.any.js": 6,
       "encoding/api-surrogates-utf8.any.js": 6,
-      "encoding/encodeInto.any.js": 56,
+      "encoding/encodeInto.any.js": 57,
       "encoding/textdecoder-arguments.any.js": 4,
       "encoding/textdecoder-byte-order-marks.any.js": 3,
       "encoding/textdecoder-copy.any.js": 1,
@@ -728,6 +729,7 @@
       "dom/events/EventTarget-add-remove-listener.any.js": 1,
       "dom/events/EventTarget-addEventListener.any.js": 1,
       "dom/events/EventTarget-constructible.any.js": 3,
+      "dom/events/EventTarget-removeEventListener.any.js": 1,
       "encoding/api-basics.any.js": 6,
       "encoding/api-surrogates-utf8.any.js": 6,
       "encoding/encodeInto.any.js": 111,
@@ -935,9 +937,10 @@
       "dom/events/EventTarget-add-remove-listener.any.js": 1,
       "dom/events/EventTarget-addEventListener.any.js": 1,
       "dom/events/EventTarget-constructible.any.js": 3,
+      "dom/events/EventTarget-removeEventListener.any.js": 1,
       "encoding/api-basics.any.js": 6,
       "encoding/api-surrogates-utf8.any.js": 6,
-      "encoding/encodeInto.any.js": 56,
+      "encoding/encodeInto.any.js": 57,
       "encoding/textdecoder-arguments.any.js": 4,
       "encoding/textdecoder-byte-order-marks.any.js": 3,
       "encoding/textdecoder-copy.any.js": 1,
@@ -1142,9 +1145,10 @@
       "dom/events/EventTarget-add-remove-listener.any.js": 1,
       "dom/events/EventTarget-addEventListener.any.js": 1,
       "dom/events/EventTarget-constructible.any.js": 3,
+      "dom/events/EventTarget-removeEventListener.any.js": 1,
       "encoding/api-basics.any.js": 6,
       "encoding/api-surrogates-utf8.any.js": 6,
-      "encoding/encodeInto.any.js": 110,
+      "encoding/encodeInto.any.js": 111,
       "encoding/textdecoder-arguments.any.js": 4,
       "encoding/textdecoder-byte-order-marks.any.js": 3,
       "encoding/textdecoder-copy.any.js": 2,
@@ -1695,28 +1699,6 @@
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
       "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
-    },
-    {
-      "suite": "wpt",
-      "file": "dom/events/EventTarget-removeEventListener.any.js",
-      "mode": "shell",
-      "backend": "boa",
-      "name": "removing a null event listener should succeed",
-      "status": "fail",
-      "message": "not a callable function",
-      "expected": true,
-      "reason": "The global scope is not an EventTarget in this profile, so globalThis.removeEventListener does not exist; EventTarget instances pass the other subtests."
-    },
-    {
-      "suite": "wpt",
-      "file": "encoding/encodeInto.any.js",
-      "mode": "shell",
-      "backend": "boa",
-      "name": "encodeInto() and a detached output buffer",
-      "status": "fail",
-      "message": "MessageChannel is not defined",
-      "expected": true,
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure."
     },
     {
       "suite": "wpt",
@@ -4134,9 +4116,9 @@
       "backend": "boa",
       "name": "Passing a FrozenArray as the blobParts array should work (FrozenArray<MessagePort>).",
       "status": "fail",
-      "message": "MessageChannel is not defined",
+      "message": "MessagePort transfer is not supported within one instance",
       "expected": true,
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure."
+      "reason": "MessagePort transfer is outside this profile: MessageChannel works within one instance, where there is no other agent to send a port to."
     },
     {
       "suite": "wpt",
@@ -4170,17 +4152,6 @@
       "message": "assert_not_equals: got disallowed value undefined",
       "expected": true,
       "reason": "Node defines Event.prototype.isTrusted instead of the [LegacyUnforgeable] own accessor; fetchlet's Event passes on every engine."
-    },
-    {
-      "suite": "wpt",
-      "file": "dom/events/EventTarget-removeEventListener.any.js",
-      "mode": "shell",
-      "backend": "node-reference",
-      "name": "removing a null event listener should succeed",
-      "status": "fail",
-      "message": "globalThis.removeEventListener is not a function",
-      "expected": true,
-      "reason": "The global scope is not an EventTarget in this profile, so globalThis.removeEventListener does not exist; EventTarget instances pass the other subtests."
     },
     {
       "suite": "wpt",
@@ -6043,28 +6014,6 @@
     },
     {
       "suite": "wpt",
-      "file": "dom/events/EventTarget-removeEventListener.any.js",
-      "mode": "shell",
-      "backend": "quickjs",
-      "name": "removing a null event listener should succeed",
-      "status": "fail",
-      "message": "not a function",
-      "expected": true,
-      "reason": "The global scope is not an EventTarget in this profile, so globalThis.removeEventListener does not exist; EventTarget instances pass the other subtests."
-    },
-    {
-      "suite": "wpt",
-      "file": "encoding/encodeInto.any.js",
-      "mode": "shell",
-      "backend": "quickjs",
-      "name": "encodeInto() and a detached output buffer",
-      "status": "fail",
-      "message": "MessageChannel is not defined",
-      "expected": true,
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure."
-    },
-    {
-      "suite": "wpt",
       "file": "encoding/encodeInto.any.js",
       "mode": "shell",
       "backend": "quickjs",
@@ -8479,31 +8428,9 @@
       "backend": "quickjs",
       "name": "Passing a FrozenArray as the blobParts array should work (FrozenArray<MessagePort>).",
       "status": "fail",
-      "message": "MessageChannel is not defined",
+      "message": "MessagePort transfer is not supported within one instance",
       "expected": true,
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure."
-    },
-    {
-      "suite": "wpt",
-      "file": "dom/events/EventTarget-removeEventListener.any.js",
-      "mode": "shell",
-      "backend": "v8",
-      "name": "removing a null event listener should succeed",
-      "status": "fail",
-      "message": "globalThis.removeEventListener is not a function",
-      "expected": true,
-      "reason": "The global scope is not an EventTarget in this profile, so globalThis.removeEventListener does not exist; EventTarget instances pass the other subtests."
-    },
-    {
-      "suite": "wpt",
-      "file": "encoding/encodeInto.any.js",
-      "mode": "shell",
-      "backend": "v8",
-      "name": "encodeInto() and a detached output buffer",
-      "status": "fail",
-      "message": "MessageChannel is not defined",
-      "expected": true,
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure."
+      "reason": "MessagePort transfer is outside this profile: MessageChannel works within one instance, where there is no other agent to send a port to."
     },
     {
       "suite": "wpt",
@@ -10140,9 +10067,9 @@
       "backend": "v8",
       "name": "Passing a FrozenArray as the blobParts array should work (FrozenArray<MessagePort>).",
       "status": "fail",
-      "message": "MessageChannel is not defined",
+      "message": "MessagePort transfer is not supported within one instance",
       "expected": true,
-      "reason": "MessageChannel is outside the current embedded host profile; the original assertion remains a recorded failure."
+      "reason": "MessagePort transfer is outside this profile: MessageChannel works within one instance, where there is no other agent to send a port to."
     }
   ]
 }

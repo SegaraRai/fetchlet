@@ -43,17 +43,8 @@ Sources: [SolidStart adapter](../packages/fetchlet/src/integrations/solid-start/
 ### WinterTC gaps
 
 The [WinterTC table](web-api.md#wintertc-minimum-common-api) lists what the
-profile lacks. In rough order of how often server code needs them:
+profile lacks:
 
-- Global error events: make the global scope an `EventTarget`, dispatch
-  `ErrorEvent` from `reportError` and `PromiseRejectionEvent` for
-  unhandled rejections where each engine exposes a rejection tracker.
-- `MessageChannel`, `MessagePort` and `MessageEvent` within one instance.
-  React's `scheduler` detects `setImmediate`, then `MessageChannel`, then
-  `setTimeout`, and other libraries test for them.
-- The `Performance` interface with `mark`, `measure` and the entry getters,
-  which React development builds, framework tracing and `Server-Timing`
-  helpers call. Only `now` and `timeOrigin` exist.
 - WebAssembly on QuickJS and Boa has no practical provider. Record it as an
   engine limit in each framework guide, with the libraries it rules out:
   wasm image rendering (satori with resvg), shiki's Oniguruma engine and

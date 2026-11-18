@@ -23,10 +23,10 @@ describes the suites. Each section names the versions its run recorded.
 
 | Engine           | Passed  | Engine version    |
 | ---------------- | ------- | ----------------- |
-| QuickJS          | 31 / 31 | rquickjs 0.14.0   |
-| Boa              | 31 / 31 | boa_engine 0.22.0 |
-| V8               | 31 / 31 | v8 150.4.0        |
-| Node (reference) | 31 / 31 | v26.13.1          |
+| QuickJS          | 35 / 35 | rquickjs 0.14.0   |
+| Boa              | 35 / 35 | boa_engine 0.22.0 |
+| V8               | 35 / 35 | v8 150.4.0        |
+| Node (reference) | 35 / 35 | v26.13.1          |
 
 ## Host services
 
@@ -46,10 +46,10 @@ Unexpected results: 0.
 
 | Engine           | WPT                     | Test262 | Regressions |
 | ---------------- | ----------------------- | ------- | ----------- |
-| QuickJS          | 28056 / 238 (238 known) | 88 / 0  | 32 / 0      |
-| Boa              | 27668 / 257 (257 known) | 88 / 0  | 32 / 0      |
-| V8               | 28143 / 151 (151 known) | 88 / 0  | 32 / 0      |
-| Node (reference) | 28311 / 156 (156 known) | 88 / 0  | 32 / 0      |
+| QuickJS          | 28058 / 236 (236 known) | 88 / 0  | 32 / 0      |
+| Boa              | 27670 / 255 (255 known) | 88 / 0  | 32 / 0      |
+| V8               | 28145 / 149 (149 known) | 88 / 0  | 32 / 0      |
+| Node (reference) | 28312 / 155 (155 known) | 88 / 0  | 32 / 0      |
 
 ## URL
 

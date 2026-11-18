@@ -73,6 +73,15 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
     "setTimeout",
     "setInterval",
     "reportError",
+    "ErrorEvent",
+    "PromiseRejectionEvent",
+    "MessageChannel",
+    "MessagePort",
+    "MessageEvent",
+    "performance",
+    "Performance",
+    "PerformanceMark",
+    "PerformanceMeasure",
     "navigator",
     "queueMicrotask",
     "structuredClone",
@@ -293,6 +302,58 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
   await check("navigator-user-agent-and-report-error", () => {
     equal(typeof navigator.userAgent, "string");
     equal(typeof reportError, "function");
+  });
+  await check("global-error-event", () => {
+    const seen = [];
+    const listener = (event) => {
+      seen.push([event instanceof ErrorEvent, event.error?.message, event.cancelable]);
+      event.preventDefault();
+    };
+    globalThis.addEventListener("error", listener);
+    try {
+      reportError(new Error("reported"));
+    } finally {
+      globalThis.removeEventListener("error", listener);
+    }
+    equal(seen, [[true, "reported", true]]);
+  });
+  await check("unhandled-rejection-event", async () => {
+    const reason = new Error("unhandled");
+    const event = await new Promise((resolve) => {
+      const listener = (event) => {
+        if (event.reason === reason) {
+          event.preventDefault();
+          globalThis.removeEventListener("unhandledrejection", listener);
+          resolve(event);
+        }
+      };
+      globalThis.addEventListener("unhandledrejection", listener);
+      Promise.reject(reason);
+    });
+    equal([event instanceof PromiseRejectionEvent, event.cancelable], [true, true]);
+  });
+  await check("message-channel-task", async () => {
+    const order = [];
+    await new Promise((resolve) => {
+      const { port1, port2 } = new MessageChannel();
+      port2.onmessage = (event) => {
+        order.push(["message", event.data]);
+        port1.close();
+        resolve();
+      };
+      port1.postMessage({ value: 1 });
+      queueMicrotask(() => order.push("microtask"));
+    });
+    equal(order, ["microtask", ["message", { value: 1 }]]);
+  });
+  await check("performance-mark-measure", () => {
+    performance.clearMarks("fetchlet-probe");
+    performance.mark("fetchlet-probe", { startTime: 1, detail: { step: 1 } });
+    const measure = performance.measure("fetchlet-probe-span", { start: "fetchlet-probe", end: 4 });
+    equal([measure.entryType, measure.startTime, measure.duration], ["measure", 1, 3]);
+    equal(performance.getEntriesByName("fetchlet-probe")[0].detail, { step: 1 });
+    performance.clearMarks("fetchlet-probe");
+    performance.clearMeasures("fetchlet-probe-span");
   });
   await check("structured-clone-cycle-and-bytes", () => {
     const original = { bytes: new Uint8Array([0, 255]) };

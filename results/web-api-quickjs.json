@@ -40,6 +40,15 @@
     "setTimeout": "function",
     "setInterval": "function",
     "reportError": "function",
+    "ErrorEvent": "function",
+    "PromiseRejectionEvent": "function",
+    "MessageChannel": "function",
+    "MessagePort": "function",
+    "MessageEvent": "function",
+    "performance": "object",
+    "Performance": "function",
+    "PerformanceMark": "function",
+    "PerformanceMeasure": "function",
     "navigator": "object",
     "queueMicrotask": "function",
     "structuredClone": "function",
@@ -143,6 +152,22 @@
       "status": "pass"
     },
     {
+      "id": "global-error-event",
+      "status": "pass"
+    },
+    {
+      "id": "unhandled-rejection-event",
+      "status": "pass"
+    },
+    {
+      "id": "message-channel-task",
+      "status": "pass"
+    },
+    {
+      "id": "performance-mark-measure",
+      "status": "pass"
+    },
+    {
       "id": "structured-clone-cycle-and-bytes",
       "status": "pass"
     },
@@ -172,8 +197,8 @@
     }
   ],
   "summary": {
-    "total": 31,
-    "passed": 31,
+    "total": 35,
+    "passed": 35,
     "failed": 0
   }
 }
