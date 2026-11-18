@@ -153,3 +153,26 @@ impl ByteTransport for ByteStore {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn handles_are_never_reused_once_exhausted() {
+        let mut store = ByteStore {
+            next: u64::MAX - 1,
+            ..ByteStore::default()
+        };
+        assert_eq!(store.put(Bytes::new()).unwrap(), u64::MAX);
+        assert!(matches!(
+            store.put(Bytes::new()),
+            Err(Error::LimitExceeded("byte handles"))
+        ));
+        assert!(matches!(
+            store.put_guest(Bytes::new()),
+            Err(Error::LimitExceeded("byte handles"))
+        ));
+        assert!(store.take(u64::MAX).is_ok());
+    }
+}

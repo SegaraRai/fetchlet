@@ -73,3 +73,117 @@ pub(super) fn response(response: http::Response<fetchlet::Body>) -> HttpResponse
         None => builder.streaming(stream),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use actix_web::body::{BodySize, MessageBody};
+    use actix_web::test::TestRequest;
+
+    use super::*;
+
+    fn origin() -> PublicOrigin {
+        PublicOrigin::parse("https://public.test").unwrap()
+    }
+
+    #[test]
+    fn the_request_head_uses_the_public_origin_and_keeps_every_header() {
+        let request = TestRequest::post()
+            .uri("http://internal:8080/path?q=1")
+            .insert_header(("host", "internal:8080"))
+            .append_header(("accept", "text/html"))
+            .append_header(("accept", "application/json"))
+            .to_http_request();
+        let head = request_head(&request, &origin()).unwrap();
+        assert_eq!(head.method, http::Method::POST);
+        assert_eq!(head.uri, "https://public.test/path?q=1");
+        let accept: Vec<_> = head.headers.get_all("accept").iter().collect();
+        assert_eq!(accept, ["text/html", "application/json"]);
+        assert_eq!(head.headers["host"], "internal:8080");
+    }
+
+    #[test]
+    fn extension_methods_and_bare_paths_convert() {
+        let request = TestRequest::default()
+            .method(actix_web::http::Method::from_bytes(b"PURGE").unwrap())
+            .uri("/")
+            .to_http_request();
+        let head = request_head(&request, &origin()).unwrap();
+        assert_eq!(head.method.as_str(), "PURGE");
+        assert_eq!(head.uri, "https://public.test/");
+    }
+
+    fn head_with(headers: &[(&'static str, &'static str)]) -> http::request::Parts {
+        let mut builder = http::Request::builder();
+        for (name, value) in headers {
+            builder = builder.header(*name, *value);
+        }
+        builder.body(()).unwrap().into_parts().0
+    }
+
+    #[test]
+    fn a_body_follows_a_positive_length_or_chunked_framing() {
+        assert_eq!(declared_body(&head_with(&[])), (None, false));
+        assert_eq!(
+            declared_body(&head_with(&[("content-length", "0")])),
+            (Some(0), false)
+        );
+        assert_eq!(
+            declared_body(&head_with(&[("content-length", "12")])),
+            (Some(12), true)
+        );
+        assert_eq!(
+            declared_body(&head_with(&[("transfer-encoding", "chunked")])),
+            (None, true)
+        );
+        assert_eq!(
+            declared_body(&head_with(&[("content-length", "nope")])),
+            (None, false)
+        );
+    }
+
+    #[test]
+    fn the_response_drops_framing_headers_and_keeps_the_rest() {
+        let response = http::Response::builder()
+            .status(201)
+            .header("content-length", "999")
+            .header("transfer-encoding", "chunked")
+            .header("connection", "close")
+            .header("set-cookie", "a=1")
+            .header("set-cookie", "b=2")
+            .body(fetchlet::Body::from("hello"))
+            .unwrap();
+        let response = super::response(response);
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let headers = response.headers();
+        assert!(!headers.contains_key("content-length"));
+        assert!(!headers.contains_key("transfer-encoding"));
+        assert!(!headers.contains_key("connection"));
+        assert_eq!(headers.get_all("set-cookie").count(), 2);
+        assert_eq!(response.into_body().size(), BodySize::Sized(5));
+    }
+
+    #[test]
+    fn a_body_without_a_known_length_streams() {
+        let body = fetchlet::Body::from_http_body(http_body_util::StreamBody::new(one_chunk()));
+        let response = super::response(http::Response::new(body));
+        assert_eq!(response.into_body().size(), BodySize::Stream);
+    }
+
+    fn one_chunk()
+    -> impl futures_core::Stream<Item = Result<http_body::Frame<bytes::Bytes>, std::io::Error>>
+    + Send
+    + Sync
+    + 'static {
+        struct Once(Option<bytes::Bytes>);
+        impl futures_core::Stream for Once {
+            type Item = Result<http_body::Frame<bytes::Bytes>, std::io::Error>;
+            fn poll_next(
+                mut self: std::pin::Pin<&mut Self>,
+                _context: &mut std::task::Context<'_>,
+            ) -> std::task::Poll<Option<Self::Item>> {
+                std::task::Poll::Ready(self.0.take().map(|data| Ok(http_body::Frame::data(data))))
+            }
+        }
+        Once(Some(bytes::Bytes::from_static(b"chunk")))
+    }
+}
