@@ -22,5 +22,5 @@ export type CreateClientConfig<T extends ClientOptions = ClientOptions2> = (
 ) => Config<Required<ClientOptions> & T>;
 
 export const client: Client = createClient(
-  createConfig<ClientOptions2>({ baseUrl: "https://rust.fetchlet.test" }),
+  createConfig<ClientOptions2>({ baseUrl: "https://fetchlet.internal" }),
 );

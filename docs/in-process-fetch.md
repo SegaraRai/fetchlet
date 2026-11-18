@@ -40,7 +40,7 @@ state. External destinations go to transports registered separately.
 
 ```rust,ignore
 let service = OriginRouter::new()
-    .internal("https://api.internal", router_transport(api_router(state.clone())))?
+    .internal("https://fetchlet.internal", router_transport(api_router(state.clone())))?
     .external("https://api.example.com", network_client)?
     .into_service();
 let services = HostServices::new()
@@ -67,6 +67,27 @@ port.
 
 Registering an origin twice, or an origin with a path or query, is a
 configuration error.
+
+## Naming internal origins
+
+Internal origins are ordinary `https://` origins, so the WHATWG URL parser,
+Fetch `Request`, redirects and framework clients treat them like any other
+HTTP destination and give each one a distinct origin. A custom scheme such as
+`fetchlet://` would have the opaque origin `null`, which exact origin routing
+cannot distinguish, and other runtimes reject it in `fetch`.
+
+The examples use `https://fetchlet.internal`. The name is the application's
+choice; the router only compares origins exactly.
+
+- Use a host under `.internal`, a top-level domain that ICANN reserves for
+  private use and never delegates in public DNS, so an internal name cannot
+  collide with a real site.
+- An application can register several internal origins to keep its APIs
+  apart, such as `https://api.fetchlet.internal` and
+  `https://search.fetchlet.internal`, each with its own transport.
+- An origin reaches only the transport registered for it. Leaving one out
+  makes requests to it fail with `PERMISSION_DENIED`; they never reach the
+  network.
 
 ## Trusted Context
 

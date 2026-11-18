@@ -99,13 +99,13 @@ globalThis.fetchletExports = {
     }
     if (request.url.endsWith("/slow")) {
       // Waits for an in-process route that never answers.
-      await fetch("https://api.test/slow");
+      await fetch("https://fetchlet.internal/slow");
       return { status: 200, headers: [], body: [] };
     }
     if (request.url.endsWith("/caller")) {
       // The in-process API answers from the trusted Rust Context; the header
       // set here does not identify the caller.
-      const response = await fetch("https://api.test/caller", {
+      const response = await fetch("https://fetchlet.internal/caller", {
         headers: [["x-caller", "forged"]],
       });
       return { status: response.status, headers: [], body: Array.from(response.body) };

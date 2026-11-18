@@ -15,7 +15,7 @@ export default defineConfig({
       // The in-process origin of the Rust API. Global `fetch` sends requests
       // for it to the axum router inside the same process, with no socket; the
       // Rust fetch policy admits no other origin.
-      baseUrl: "https://rust.fetchlet.test",
+      baseUrl: "https://fetchlet.internal",
     },
     "@hey-api/typescript",
     "@hey-api/sdk",

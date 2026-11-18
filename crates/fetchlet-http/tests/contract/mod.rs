@@ -244,7 +244,7 @@ fn caller_response(request: &fetchlet::Request) -> Response {
 pub async fn spawn(backend: Backend) -> AppHandle {
     let api = OriginRouter::new()
         .internal(
-            "https://api.test",
+            "https://fetchlet.internal",
             transport_fn(|request| {
                 let slow = request.uri().path() == "/slow";
                 let response = caller_response(&request);

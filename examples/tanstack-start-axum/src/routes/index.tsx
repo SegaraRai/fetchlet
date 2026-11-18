@@ -5,7 +5,7 @@ import { Counter } from "../components/Counter";
 
 // Runs on the server, also when the client navigates here.
 const greeting = createServerFn({ method: "GET" }).handler(async ({ context }) => {
-  const response = await context.env.RUST.fetch("https://rust.fetchlet.test/");
+  const response = await context.env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };
   return { message: context.env.MESSAGE, service: service.message };
 });

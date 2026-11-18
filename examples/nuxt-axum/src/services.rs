@@ -3,7 +3,7 @@ use fetchlet::{
 };
 
 pub(crate) fn host_services(message: &str) -> Result<HostServices> {
-    let policy = FetchPolicy::deny_all().allow_origin("https://rust.fetchlet.test")?;
+    let policy = FetchPolicy::deny_all().allow_origin("https://fetchlet.internal")?;
     let service = FetchService::new(
         transport_fn(|_request| async {
             let body = serde_json::json!({ "message": "Greetings from the Rust service." });

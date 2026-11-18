@@ -11,7 +11,7 @@ browser ──HTTP────────┐
 Tauri webview ─URI scheme─┘           ├─ /files/*   workspace files
                                       ├─ assets     embedded asset archive
                                       └─ the rest   SvelteKit (fetchlet / QuickJS)
-                                                      └─ fetch("https://rust.fetchlet.test/…")
+                                                      └─ fetch("https://fetchlet.internal/…")
                                                            → the same Rust API, in-process
 ```
 
@@ -81,7 +81,7 @@ web/lib/notes.remote.ts (remote functions) ─▶ components
 - Server-side JavaScript calls typed functions generated from utoipa's
   operation IDs, such as `rust.getNote({ query: { path } })`. `svelte-check`
   reports mismatched argument names, types or response shapes.
-- The generated client uses `https://rust.fetchlet.test` as its base URL and
+- The generated client uses `https://fetchlet.internal` as its base URL and
   has no runtime dependencies; see `openapi-ts.config.ts`.
 - Remote functions carry the same types to browser components.
 - After changing the API, regenerate both with
@@ -91,7 +91,7 @@ web/lib/notes.remote.ts (remote functions) ─▶ components
 The in-process API and the API `mdw serve` publishes at `/api/v1` are the
 same axum router. In-process requests reach it through
 `fetchlet_http::router_transport` without a socket. The fetch policy allows
-only `https://rust.fetchlet.test`.
+only `https://fetchlet.internal`.
 
 ## Layout
 

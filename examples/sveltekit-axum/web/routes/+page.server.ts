@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from "./$types";
 
 export const load: PageServerLoad = async ({ url, platform }) => {
-  const response = await platform!.env.RUST.fetch("https://rust.fetchlet.test/greeting");
+  const response = await platform!.env.RUST.fetch("https://fetchlet.internal/greeting");
   const greeting = await response.json();
   return {
     name: url.searchParams.get("name") ?? "fetchlet",

@@ -47,7 +47,7 @@ written to shared globals.
 `api_router` in `src/services.rs` defines the Rust API as one axum router.
 
 - The server mounts it at `/api/v1` for browsers.
-- `OriginRouter::internal("https://rust.fetchlet.test", router_transport(...))`
+- `OriginRouter::internal("https://fetchlet.internal", router_transport(...))`
   registers the same router in-process and passes it to both the `RUST`
   binding and global `fetch`. The policy allows only that origin.
 - Calls from JavaScript reach the router without a socket and share the

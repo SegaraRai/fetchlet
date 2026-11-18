@@ -5,7 +5,7 @@ import { Counter } from "../components/counter";
 
 // Runs on the server, also when the client navigates here.
 export const useGreeting = routeLoader$(async ({ platform }) => {
-  const response = await platform.env.RUST.fetch("https://rust.fetchlet.test/");
+  const response = await platform.env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };
   return { message: platform.env.MESSAGE, service: service.message };
 });

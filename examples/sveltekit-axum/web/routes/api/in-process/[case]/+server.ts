@@ -2,7 +2,7 @@ import { error, json } from "@sveltejs/kit";
 
 import type { RequestHandler } from "./$types";
 
-const API = "https://rust.fetchlet.test";
+const API = "https://fetchlet.internal";
 
 // How a rejected fetch looks to the application.
 function describe(reason: unknown) {

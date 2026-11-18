@@ -3,7 +3,7 @@ import { createRoute } from "honox/factory";
 import Counter from "../islands/counter";
 
 export default createRoute(async (c) => {
-  const response = await c.env.RUST.fetch("https://rust.fetchlet.test/");
+  const response = await c.env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };
   const name = c.req.query("name") ?? "guest";
   return c.render(

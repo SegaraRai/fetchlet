@@ -93,8 +93,10 @@ and the same authorization and budgets apply.
 
 `OriginRouter` selects a transport by exact origin and builds a service that
 allows only the registered origins. Internal routes receive the `Context`
-from the extensions of the request given to `App::fetch`.
-`fetchlet_http::router_transport` lets one axum router serve both public
+from the extensions of the request given to `App::fetch`. Internal origins
+are ordinary `https://` origins under the private `.internal` domain; the
+examples use `https://fetchlet.internal`, and an application can choose its
+own names or register several. `fetchlet_http::router_transport` lets one axum router serve both public
 HTTP and in-process fetches. Calling the same `AppHandle` while one of its
 host fetches is running fails with `Error::Reentrant`. [In-process
 fetch](in-process-fetch.md) has the details.

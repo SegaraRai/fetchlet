@@ -14,7 +14,7 @@ export async function app(
   const url = new URL(request.url);
   if (url.pathname === "/" && request.method === "GET") {
     const name = url.searchParams.get("name") ?? "world";
-    const greeting = (await (await env.RUST.fetch("https://rust.fetchlet.test/")).json()) as {
+    const greeting = (await (await env.RUST.fetch("https://fetchlet.internal/")).json()) as {
       message: string;
     };
     const html =

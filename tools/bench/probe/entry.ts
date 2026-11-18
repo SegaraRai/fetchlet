@@ -75,7 +75,7 @@ export async function jsLoop(stage: string, count: number): Promise<number> {
     response: () => Response.json({ clientAddress: "127.0.0.1", message: "m" }),
     wireResponse: () => wireResponse(Response.json({ clientAddress: "127.0.0.1", message: "m" })),
     readJson: () => wireRequest(echo).json(),
-    serviceFetch: async () => (await bindings().RUST.fetch("https://rust.fetchlet.test/")).json(),
+    serviceFetch: async () => (await bindings().RUST.fetch("https://fetchlet.internal/")).json(),
     context: () => handle(wire, { clientAddress: "127.0.0.1" }),
     echo: () => handle(echo, { clientAddress: "127.0.0.1" }),
   };

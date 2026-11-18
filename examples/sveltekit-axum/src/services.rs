@@ -15,7 +15,7 @@ use fetchlet::{Context, HostServices, OriginRouter, Result};
 use fetchlet_http::router_transport;
 
 /// The origin that names the in-process Rust API for server-side JavaScript.
-pub(crate) const RUST_ORIGIN: &str = "https://rust.fetchlet.test";
+pub(crate) const RUST_ORIGIN: &str = "https://fetchlet.internal";
 
 /// Byte budget for a project request body, owned by this API: names are short.
 const PROJECT_BODY_BYTES: usize = 4096;

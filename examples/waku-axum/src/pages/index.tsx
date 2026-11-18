@@ -7,7 +7,7 @@ import { Counter } from "../components/counter";
 export default async function Home() {
   const { env } = getRequestContext();
   const name = new URL(getRequest().url).searchParams.get("name") ?? "guest";
-  const response = await env.RUST.fetch("https://rust.fetchlet.test/");
+  const response = await env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };
   return (
     <main>

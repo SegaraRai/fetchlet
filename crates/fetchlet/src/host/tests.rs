@@ -404,13 +404,16 @@ async fn routed_origins_are_exact_and_scope_the_context() {
     let internal = Arc::new(Mutex::new(Vec::new()));
     let external = Arc::new(Mutex::new(Vec::new()));
     let service = OriginRouter::new()
-        .internal("https://internal.test", recording(internal.clone()))
+        .internal("https://fetchlet.internal", recording(internal.clone()))
         .unwrap()
         .external("https://EXTERNAL.test:443", recording(external.clone()))
         .unwrap()
         .into_service();
 
-    for url in ["https://internal.test/start", "https://external.test/start"] {
+    for url in [
+        "https://fetchlet.internal/start",
+        "https://external.test/start",
+    ] {
         service
             .fetch(with_context(url), Limits::default())
             .await
@@ -420,8 +423,8 @@ async fn routed_origins_are_exact_and_scope_the_context() {
     assert_eq!(*external.lock().unwrap(), [false, false]);
 
     for url in [
-        "http://internal.test/",
-        "https://internal.test:8443/",
+        "http://fetchlet.internal/",
+        "https://fetchlet.internal:8443/",
         "https://other.test/",
     ] {
         assert!(matches!(
@@ -433,14 +436,14 @@ async fn routed_origins_are_exact_and_scope_the_context() {
 
     assert!(matches!(
         OriginRouter::new()
-            .internal("https://internal.test", recording(internal.clone()))
+            .internal("https://fetchlet.internal", recording(internal.clone()))
             .unwrap()
-            .external("https://internal.test/", recording(external.clone())),
+            .external("https://fetchlet.internal/", recording(external.clone())),
         Err(Error::Configuration(_))
     ));
     assert!(
         OriginRouter::new()
-            .internal("https://internal.test/api", recording(internal))
+            .internal("https://fetchlet.internal/api", recording(internal))
             .is_err()
     );
 }

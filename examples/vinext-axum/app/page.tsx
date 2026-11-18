@@ -12,7 +12,7 @@ export default async function Home({
 }) {
   const { name } = await searchParams;
   const { env } = getRequestContext();
-  const response = await env.RUST.fetch("https://rust.fetchlet.test/");
+  const response = await env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };
   return (
     <main>

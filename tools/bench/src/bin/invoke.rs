@@ -77,7 +77,7 @@ fn backend(name: &str) -> Result<Backend> {
 
 /// The HonoX example's bindings: MESSAGE and a RUST service answering JSON.
 fn host_services() -> Result<HostServices> {
-    let policy = FetchPolicy::deny_all().allow_origin("https://rust.fetchlet.test")?;
+    let policy = FetchPolicy::deny_all().allow_origin("https://fetchlet.internal")?;
     let service = FetchService::new(
         transport_fn(|_request| async {
             let body = json!({ "message": "Greetings from the Rust service." });

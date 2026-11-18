@@ -16,7 +16,7 @@ use crate::workspace::{Workspace, watch};
 /// The origin that names the in-process Rust API for server-side JavaScript.
 /// It resolves nowhere on the network; the fetch policy routes it to the API
 /// router inside this process and admits no other origin.
-pub(crate) const RUST_ORIGIN: &str = "https://rust.fetchlet.test";
+pub(crate) const RUST_ORIGIN: &str = "https://fetchlet.internal";
 
 /// Where the pages are shown. Server-side JavaScript reads it as `MDW_SHELL`.
 #[derive(Clone, Copy)]

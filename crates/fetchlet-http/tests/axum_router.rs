@@ -32,7 +32,7 @@ async fn whoami(context: Option<Extension<Context>>) -> String {
 fn services() -> fetchlet::Result<HostServices> {
     Ok(HostServices::new().outbound(
         OriginRouter::new()
-            .internal("https://api.test", router_transport(api()))?
+            .internal("https://fetchlet.internal", router_transport(api()))?
             .into_service(),
     ))
 }
@@ -65,7 +65,9 @@ async fn one_router_serves_http_and_in_process_fetches() -> anyhow::Result<()> {
             ("/missing", (404, String::new())),
         ] {
             let mut request = Request::builder()
-                .uri(format!("https://app.test/fetch?to=https://api.test{path}"))
+                .uri(format!(
+                    "https://app.test/fetch?to=https://fetchlet.internal{path}"
+                ))
                 .body(fetchlet::Body::empty())?;
             request
                 .extensions_mut()
@@ -96,7 +98,7 @@ async fn the_trusted_context_comes_from_the_incoming_request() -> anyhow::Result
                 Context::new().with(Caller(address))
             });
         let mut request = Request::builder()
-            .uri("/fetch?to=https://api.test/whoami")
+            .uri("/fetch?to=https://fetchlet.internal/whoami")
             .body(Body::empty())?;
         request
             .extensions_mut()
@@ -107,7 +109,7 @@ async fn the_trusted_context_comes_from_the_incoming_request() -> anyhow::Result
         // Without the factory, in-process routes see no Context.
         let plain = AxumService::new(handle.clone(), "https://app.test")?;
         let request = Request::builder()
-            .uri("/fetch?to=https://api.test/whoami")
+            .uri("/fetch?to=https://fetchlet.internal/whoami")
             .body(Body::empty())?;
         let response = plain.oneshot(request).await?;
         assert_eq!(text(response).await?, (200, "anonymous".into()));

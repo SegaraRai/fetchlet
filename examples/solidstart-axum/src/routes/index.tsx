@@ -7,7 +7,7 @@ import { Counter } from "../components/Counter";
 const greeting = query(async () => {
   "use server";
   const { env } = getRequestContext();
-  const response = await env.RUST.fetch("https://rust.fetchlet.test/");
+  const response = await env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };
   return { message: env.MESSAGE, service: service.message };
 }, "greeting");

@@ -71,7 +71,7 @@ impl Internal {
             "/failure" => Err(Error::Transport("detail".into())),
             "/reenter" => {
                 let same = self.same.get().expect("handle").clone();
-                same.fetch(relay("/global?to=https://internal.test/whoami", None))
+                same.fetch(relay("/global?to=https://fetchlet.internal/whoami", None))
                     .await
             }
             "/other" => {
@@ -87,7 +87,7 @@ impl Internal {
 fn services(internal: Arc<Internal>) -> fetchlet::Result<HostServices> {
     let router = OriginRouter::new()
         .internal(
-            "https://internal.test",
+            "https://fetchlet.internal",
             transport_fn(move |request| {
                 let internal = internal.clone();
                 async move { internal.handle(request).await }
@@ -144,7 +144,7 @@ async fn the_context_reaches_internal_routes_only() -> anyhow::Result<()> {
             .build()?;
 
         for entry in ["global", "binding"] {
-            let path = format!("/{entry}?to=https://internal.test/whoami");
+            let path = format!("/{entry}?to=https://fetchlet.internal/whoami");
             let response = app.fetch(relay(&path, alice())).await?;
             // The header JavaScript set does not identify the caller.
             assert_eq!(
@@ -155,7 +155,7 @@ async fn the_context_reaches_internal_routes_only() -> anyhow::Result<()> {
         }
 
         let anonymous = app
-            .fetch(relay("/global?to=https://internal.test/whoami", None))
+            .fetch(relay("/global?to=https://fetchlet.internal/whoami", None))
             .await?;
         assert_eq!(outcome(anonymous).await.1, "anonymous|forged");
 
@@ -167,7 +167,7 @@ async fn the_context_reaches_internal_routes_only() -> anyhow::Result<()> {
         // An internal redirect to an external route leaves the Context behind.
         let redirected = app
             .fetch(relay(
-                "/global?to=https://internal.test/to-external",
+                "/global?to=https://fetchlet.internal/to-external",
                 alice(),
             ))
             .await?;
@@ -177,18 +177,27 @@ async fn the_context_reaches_internal_routes_only() -> anyhow::Result<()> {
         );
 
         let missing = app
-            .fetch(relay("/binding?to=https://internal.test/nothing", alice()))
+            .fetch(relay(
+                "/binding?to=https://fetchlet.internal/nothing",
+                alice(),
+            ))
             .await?;
         assert_eq!(outcome(missing).await, (404, "missing".into()));
 
         let failure = app
-            .fetch(relay("/binding?to=https://internal.test/failure", alice()))
+            .fetch(relay(
+                "/binding?to=https://fetchlet.internal/failure",
+                alice(),
+            ))
             .await?;
         assert_eq!(outcome(failure).await, (599, "TRANSPORT".into()));
 
         // Unregistered origins are denied before any route runs.
         let calls = internal.calls.load(Ordering::SeqCst);
-        for target in ["https://other.test/whoami", "http://internal.test/whoami"] {
+        for target in [
+            "https://other.test/whoami",
+            "http://fetchlet.internal/whoami",
+        ] {
             let denied = app
                 .fetch(relay(&format!("/global?to={target}"), alice()))
                 .await?;
@@ -220,18 +229,27 @@ async fn a_host_fetch_cannot_call_its_own_application() -> anyhow::Result<()> {
         // Refused at once instead of waiting for the invocation deadline.
         let started = Instant::now();
         let response = handle
-            .fetch(relay("/binding?to=https://internal.test/reenter", alice()))
+            .fetch(relay(
+                "/binding?to=https://fetchlet.internal/reenter",
+                alice(),
+            ))
             .await?;
         assert_eq!(outcome(response).await, (599, "REENTRANT".into()));
         assert!(started.elapsed() < Duration::from_secs(5));
 
         // Another application is not affected, and this one stays usable.
         let response = handle
-            .fetch(relay("/binding?to=https://internal.test/other", alice()))
+            .fetch(relay(
+                "/binding?to=https://fetchlet.internal/other",
+                alice(),
+            ))
             .await?;
         assert_eq!(outcome(response).await, (200, "pong".into()));
         let response = handle
-            .fetch(relay("/global?to=https://internal.test/whoami", alice()))
+            .fetch(relay(
+                "/global?to=https://fetchlet.internal/whoami",
+                alice(),
+            ))
             .await?;
         assert_eq!(outcome(response).await.1, "alice|forged");
 

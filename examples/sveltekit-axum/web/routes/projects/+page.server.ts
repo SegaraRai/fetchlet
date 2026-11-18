@@ -4,7 +4,7 @@ import type { Actions, PageServerLoad } from "./$types";
 
 // The in-process Rust API. Its origin is admitted by the Rust FetchPolicy, so
 // both SvelteKit's `fetch` and `platform.env.RUST.fetch` reach it without a socket.
-const API = "https://rust.fetchlet.test";
+const API = "https://fetchlet.internal";
 
 export const load: PageServerLoad = async ({ fetch }) => {
   // SvelteKit forwards other-origin requests from `event.fetch` to the global

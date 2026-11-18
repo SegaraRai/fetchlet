@@ -12,7 +12,7 @@ function visitor(request: Request) {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = fetchlet(context);
-  const response = await env.RUST.fetch("https://rust.fetchlet.test/");
+  const response = await env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };
   const url = new URL(request.url);
   return {

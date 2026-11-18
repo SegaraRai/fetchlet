@@ -17,10 +17,10 @@ let html = highlighter.highlight(&block.code, &block.language);
 
 ## API
 
-| Route                          | Caller         | Transport  |
-| ------------------------------ | -------------- | ---------- |
-| `https://rust.fetchlet.test/*` | Server-side JS | In-process |
-| `/api/v1/*`                    | Browser        | HTTP       |
+| Route                         | Caller         | Transport  |
+| ----------------------------- | -------------- | ---------- |
+| `https://fetchlet.internal/*` | Server-side JS | In-process |
+| `/api/v1/*`                   | Browser        | HTTP       |
 
 ## Authority
 
