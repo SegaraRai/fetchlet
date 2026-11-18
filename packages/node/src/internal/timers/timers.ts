@@ -127,8 +127,7 @@ export function setTimeout<Args extends unknown[]>(
   ...args: Args
 ): Timeout {
   validateFunction(callback, "callback");
-  let timeout: Timeout;
-  timeout = track(
+  const timeout: Timeout = track(
     new Timeout(
       () =>
         runtime.setTimeout(() => {
@@ -155,8 +154,7 @@ export function setImmediate<Args extends unknown[]>(
   ...args: Args
 ): Immediate {
   validateFunction(callback, "callback");
-  let immediate: Immediate;
-  immediate = track(
+  const immediate: Immediate = track(
     new Immediate(
       () =>
         runtime.setTimeout(() => {

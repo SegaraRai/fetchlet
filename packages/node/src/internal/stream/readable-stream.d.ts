@@ -9,8 +9,8 @@ declare module "readable-stream/lib/stream.js" {
 
 declare module "readable-stream/lib/stream/promises.js" {
   const promises: {
-    pipeline(...streams: unknown[]): Promise<void>;
-    finished(stream: unknown, options?: object): Promise<void>;
+    pipeline: (...streams: unknown[]) => Promise<void>;
+    finished: (stream: unknown, options?: object) => Promise<void>;
   };
   export default promises;
 }

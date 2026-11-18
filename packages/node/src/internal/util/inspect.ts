@@ -423,7 +423,8 @@ export function formatWithOptions(options: InspectOptions, ...args: unknown[]): 
                         ...options,
                         depth: 0,
                       })
-                    : String(argument)
+                    : // eslint-disable-next-line typescript/no-base-to-string -- %s uses the object's own toString, as Node's does.
+                      String(argument)
                   : typeof argument === "symbol"
                     ? argument.toString()
                     : String(argument);

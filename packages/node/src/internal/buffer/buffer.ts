@@ -41,7 +41,8 @@ const isEncoding = bufferStatics.isEncoding;
 bufferStatics.isEncoding = function (this: unknown, encoding: unknown) {
   return isBase64url(encoding) || (isEncoding.call(this, encoding) as boolean);
 };
-const toString = bufferMethods.toString as unknown as Method;
+// The prototype's own toString, which Object.prototype's shadows in the type.
+const toString = Reflect.get(bufferMethods, "toString") as Method;
 bufferMethods["toString"] = function (this: unknown, encoding?: unknown, ...rest: unknown[]) {
   if (!isBase64url(encoding)) {
     return toString.apply(this, [encoding, ...rest]);

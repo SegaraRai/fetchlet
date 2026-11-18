@@ -114,12 +114,12 @@ export class AsyncResource {
     callback: (this: This, ...args: Args) => Result,
     thisArg?: This,
   ): (...args: Args) => Result {
-    const resource = this;
+    const run = (receiver: This, args: Args) => this.runInAsyncScope(callback, receiver, ...args);
     if (thisArg !== undefined) {
-      return (...args: Args) => resource.runInAsyncScope(callback, thisArg, ...args);
+      return (...args: Args) => run(thisArg, args);
     }
     return function (this: This, ...args: Args) {
-      return resource.runInAsyncScope(callback, this, ...args);
+      return run(this, args);
     };
   }
 

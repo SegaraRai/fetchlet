@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { build } from "rolldown";
 import { afterEach, describe, expect, test } from "vite-plus/test";
@@ -16,8 +17,8 @@ afterEach(() => {
 });
 
 /**
- * Bundle `files` with the plugin as fetchlet/build configures it, evaluate
- * the bundle in this process and return what its entry exports as `result`.
+ * Bundle `files` with the plugin as fetchlet/build configures it, import the
+ * bundle in this process and return what its entry exports as `result`.
  */
 async function run(files: Record<string, string>, asyncContext?: "serialized"): Promise<unknown> {
   directory = mkdtempSync(join(tmpdir(), "fetchlet-node-"));
@@ -33,13 +34,14 @@ async function run(files: Record<string, string>, asyncContext?: "serialized"): 
     },
     write: false,
     output: {
-      format: "iife",
-      name: "exports",
+      format: "esm",
       codeSplitting: false,
     },
   });
-  const code = bundle.output[0].code;
-  return new Function(`${code}; return exports.result;`)();
+  const file = join(directory, "bundle.js");
+  writeFileSync(file, bundle.output[0].code);
+  const module = (await import(pathToFileURL(file).href)) as { result: unknown };
+  return module.result;
 }
 
 describe("nodeBuiltins", () => {

@@ -21,6 +21,12 @@
       "@fetchlet/web/*": ["../web/src/*.ts"]
     }
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vite.config.ts"],
+  // The typings @fetchlet/node declares for readable-stream's files.
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "vite.config.ts",
+    "../node/src/internal/stream/readable-stream.d.ts"
+  ],
   "exclude": ["src/runtime/**"]
 }

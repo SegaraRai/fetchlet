@@ -123,7 +123,7 @@ describe("keys", () => {
     const key = crypto.createSecretKey("secret", "utf8");
     expect(key.type).toBe("secret");
     expect(key.symmetricKeySize).toBe(6);
-    expect(key.export().toString()).toBe("secret");
+    expect((key.export() as Buffer).toString()).toBe("secret");
     expect(
       key.export({
         format: "jwk",

@@ -97,6 +97,7 @@ export class ClientRequest extends Writable {
     const hostname = merged.hostname ?? merged.host?.replace(/:\d+$/, "") ?? "localhost";
     const port = merged.port ?? merged.defaultPort ?? agent?.defaultPort ?? defaults.port;
     const path = merged.path ?? "/";
+    // eslint-disable-next-line no-control-regex -- Node rejects control characters and spaces in a path.
     if (/[\u0000- ]/.test(path)) {
       throw nodeError(
         TypeError,

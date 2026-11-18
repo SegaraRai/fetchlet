@@ -68,10 +68,12 @@ globalThis.fetchletExports = {
   // A thenable's then method runs in the context of the await that took it.
   thenable: async () => {
     const thenable = {
+      // eslint-disable-next-line unicorn/no-thenable -- the case awaits a thenable.
       then(resolve) {
         resolve(variable.get());
       },
     };
+    // eslint-disable-next-line typescript/await-thenable -- the case awaits a thenable.
     return variable.run("awaited", async () => await thenable);
   },
 

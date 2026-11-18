@@ -16,6 +16,7 @@
     "fixtures/**/*.ts",
     "fixtures/**/*.tsx",
     "packages/fetchlet/src/runtime/**/*.ts",
+    "packages/node/src/internal/stream/readable-stream.d.ts",
     "packages/web/src/**/*.ts",
     "packages/web/vite.config.ts",
     "tools/bench/bare/entry.ts",

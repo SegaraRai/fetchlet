@@ -25,7 +25,7 @@ export function validateHeaderValue(name: string, value: unknown) {
       `Invalid value "${String(value)}" for header "${name}"`,
     );
   }
-  if (invalidValuePattern.test(String(value))) {
+  if (invalidValuePattern.test(value as string)) {
     throw nodeError(
       TypeError,
       "ERR_INVALID_CHAR",

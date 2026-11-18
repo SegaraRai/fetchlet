@@ -2,8 +2,6 @@
 // a bundler and Node both use it rather than Node's module of the same
 // name, with the Web stream adapters and duplexPair attached.
 
-/// <reference path="./readable-stream.d.ts" />
-
 import Stream from "readable-stream/lib/stream.js";
 import promises from "readable-stream/lib/stream/promises.js";
 

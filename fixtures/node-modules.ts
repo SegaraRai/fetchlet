@@ -170,7 +170,9 @@ export async function nodeModulesResults(): Promise<Record<string, unknown> | nu
       ),
     ],
     url: [
-      { ...url.parse("http://user@Example.com:8080/p/a?x=1&y=2#h", true) },
+      Object.fromEntries(
+        Object.entries(url.parse("http://user@Example.com:8080/p/a?x=1&y=2#h", true)),
+      ),
       url.format({ protocol: "https", hostname: "example.com", pathname: "/a", query: { q: "1" } }),
       url.resolve("http://example.com/a/b", "../c"),
       url.pathToFileURL("/tmp/a b#c").href,

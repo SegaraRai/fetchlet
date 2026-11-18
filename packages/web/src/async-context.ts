@@ -69,6 +69,7 @@ export class Variable<T> {
   readonly #defaultValue: T | undefined;
 
   constructor(options?: { name?: unknown; defaultValue?: T }) {
+    // eslint-disable-next-line typescript/no-base-to-string -- the proposal converts the name with ToString.
     this.#name = options?.name === undefined ? "" : String(options.name);
     this.#defaultValue = options?.defaultValue;
   }
