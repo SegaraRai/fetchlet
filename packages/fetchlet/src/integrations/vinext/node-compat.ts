@@ -65,6 +65,7 @@ export function vinextNodeCompat(): Plugin {
             "react-dom/server": reactDomServer,
             "react/jsx-runtime": jsxRuntime,
           };
+
           export const createRequire = () => (specifier) => {
             const namespace = modules[specifier];
             if (!namespace) {
@@ -72,6 +73,7 @@ export function vinextNodeCompat(): Plugin {
             }
             return namespace.default ?? namespace;
           };
+
           export default { createRequire };
         `;
       }

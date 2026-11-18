@@ -47,16 +47,24 @@ export async function writeArtifact(nitro: Nitro): Promise<void> {
   const { backend = "portable", intl = {}, assets = false } = nitro.options.fetchlet ?? {};
   const serverDir = nitro.options.output.serverDir;
   const entrySource = `
-    import ${JSON.stringify(environmentId)};
     import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
     import { handler } from ${JSON.stringify(modulePath(join(serverDir, "index.mjs")))};
+
+    import ${JSON.stringify(environmentId)};
 
     const fetchlet = { env: getBindings() };
 
     export const handle = createFetchHandler((request, context = {}) => {
       // Nitro copies _platform into the context of nested $fetch events.
-      const platform = { clientAddress: context.clientAddress, fetchlet };
-      return handler(request, { ...platform, _platform: platform, waitUntil });
+      const platform = {
+        clientAddress: context.clientAddress,
+        fetchlet,
+      };
+      return handler(request, {
+        ...platform,
+        _platform: platform,
+        waitUntil,
+      });
     });
     `;
   // fetchlet.json replaces Nitro's build information in the artifact.

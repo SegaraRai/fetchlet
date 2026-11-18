@@ -73,6 +73,8 @@ export default function fetchletBuild({
         import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
         import app from ${JSON.stringify(modulePath(join(serverDir, "index.mjs")))};
 
+        ${functionExports}
+
         const bindings = getBindings();
         const executionContext = {
           waitUntil,
@@ -80,12 +82,13 @@ export default function fetchletBuild({
           props: {},
         };
 
-        ${functionExports}
-
         export const handle = createFetchHandler((request, context = {}) =>
           app.fetch(
             request,
-            { ...bindings, [Symbol.for("fetchlet.hono.context")]: context },
+            {
+              ...bindings,
+              [Symbol.for("fetchlet.hono.context")]: context,
+            },
             executionContext,
           ),
         );

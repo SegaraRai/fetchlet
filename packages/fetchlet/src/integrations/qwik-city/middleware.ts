@@ -72,8 +72,14 @@ export function createQwikCity(options: QwikCityFetchletOptions): QwikCityFetchl
           return typeof value === "string" ? value : undefined;
         },
       },
-      platform: { clientAddress: context.clientAddress, env, waitUntil },
-      getClientConn: () => ({ ip: context.clientAddress }),
+      platform: {
+        clientAddress: context.clientAddress,
+        env,
+        waitUntil,
+      },
+      getClientConn: () => ({
+        ip: context.clientAddress,
+      }),
       getWritableStream: (status, headers, cookies, resolve) => {
         const { readable, writable } = new TransformStream();
         resolve(

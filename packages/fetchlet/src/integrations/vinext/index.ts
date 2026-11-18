@@ -87,9 +87,16 @@ export default function fetchletVinext({
           const env = getBindings();
 
           export const handle = createFetchHandler((request, context = {}) => {
-            const requestContext = { clientAddress: context.clientAddress, env, waitUntil };
+            const requestContext = {
+              clientAddress: context.clientAddress,
+              env,
+              waitUntil,
+            };
             return runWithRequestContext(requestContext, () =>
-              handler(request, { waitUntil, passThroughOnException() {} }),
+              handler(request, {
+                waitUntil,
+                passThroughOnException() {},
+              }),
             );
           });
           `;

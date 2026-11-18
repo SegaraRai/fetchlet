@@ -53,7 +53,11 @@ export default function fetchletStart({
     config() {
       return {
         environments: {
-          client: { build: { outDir: join(outDir, "client") } },
+          client: {
+            build: {
+              outDir: join(outDir, "client"),
+            },
+          },
           ssr: {
             // Web-standard builds of dependencies, such as react-dom/server.edge,
             // resolved and bundled here. fetchlet/build bundles the output again.
@@ -74,7 +78,9 @@ export default function fetchletStart({
               "process.env.TSS_PRERENDERING": JSON.stringify("false"),
               "process.env.TSS_SHELL": JSON.stringify("false"),
             },
-            build: { outDir: "node_modules/.cache/fetchlet-tanstack-start" },
+            build: {
+              outDir: "node_modules/.cache/fetchlet-tanstack-start",
+            },
           },
         },
       };

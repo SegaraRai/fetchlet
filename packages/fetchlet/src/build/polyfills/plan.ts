@@ -26,8 +26,15 @@ export interface PolyfillPlan {
   requirements: string[];
   /** Requirements the backend provides natively, checked when the artifact starts. */
   nativeRequirements: string[];
-  polyfills: { api: string; package: string; modules: string[] }[];
-  intl: { locales: string[]; timeZoneData: TimeZoneData };
+  polyfills: {
+    api: string;
+    package: string;
+    modules: string[];
+  }[];
+  intl: {
+    locales: string[];
+    timeZoneData: TimeZoneData;
+  };
   /** Resolved module files, in dependency order. */
   imports: string[];
 }
@@ -131,7 +138,10 @@ export function planPolyfills({
     requirements: requested,
     nativeRequirements: [...nativeRequirements],
     polyfills,
-    intl: { locales: canonicalLocales, timeZoneData },
+    intl: {
+      locales: canonicalLocales,
+      timeZoneData,
+    },
     imports,
   };
 }

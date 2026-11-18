@@ -35,7 +35,11 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
       const env = getBindings();
 
       export const handle = createFetchHandler((request, context = {}) =>
-        INTERNAL_runFetch(env, request, { clientAddress: context.clientAddress, env, waitUntil }),
+        INTERNAL_runFetch(env, request, {
+          clientAddress: context.clientAddress,
+          env,
+          waitUntil,
+        }),
       );
       `;
     const output = resolve(root, outDir);

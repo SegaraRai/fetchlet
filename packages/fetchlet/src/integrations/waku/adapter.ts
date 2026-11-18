@@ -56,7 +56,10 @@ const adapter: (handlers: unknown, options?: FetchletWakuOptions) => unknown =
         // The fetchlet entry passes the request context as the second argument.
         fetch(request: Request, context?: FetchletRequestContext) {
           if (context) {
-            Object.defineProperty(request, contextKey, { value: context, configurable: true });
+            Object.defineProperty(request, contextKey, {
+              value: context,
+              configurable: true,
+            });
           }
           return app.fetch(request, context?.env as never, {
             waitUntil: (promise: Promise<unknown>) => context?.waitUntil(promise),
@@ -65,7 +68,10 @@ const adapter: (handlers: unknown, options?: FetchletWakuOptions) => unknown =
           });
         },
         build: processBuild,
-        buildOptions: { distDir: config.distDir, fetchlet },
+        buildOptions: {
+          distDir: config.distDir,
+          fetchlet,
+        },
         buildEnhancers: ["fetchlet/waku/build-enhancer"],
       };
     },
