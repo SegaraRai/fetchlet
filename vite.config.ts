@@ -85,13 +85,17 @@ export default defineConfig({
         command: "vp fmt --check",
         cache: false,
       },
+      "check:lint": {
+        command: "vp lint",
+        cache: false,
+      },
       "check:generated": {
         command: "node tools/docs/reference.ts --check",
         cache: false,
       },
       check: {
         command: "",
-        dependsOn: ["check:types", "check:format", "check:generated"],
+        dependsOn: ["check:types", "check:format", "check:lint", "check:generated"],
       },
 
       // test

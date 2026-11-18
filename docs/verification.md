@@ -8,7 +8,7 @@ from `results/`.
 
 | Command                   | Checks                                                                                                                                                    | Results                                 |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `vp run check`            | Types (root, tools, the `fetchlet` package, examples), formatting, generated reference                                                                    | —                                       |
+| `vp run check`            | Types (root, tools, the `fetchlet` and `@fetchlet/node` packages, examples), formatting, lint, generated reference                                        | —                                       |
 | `vp run test:rust`        | Rust unit and integration tests, all features and none, clippy, rustfmt                                                                                   | —                                       |
 | `vp run test:matrix`      | Functions, Hono JSX, SvelteKit and the Web API probes on QuickJS, Boa, V8 and Node                                                                        | `runtime-matrix.json`, `web-api-*.json` |
 | `vp run test:host`        | JavaScript fetch through mock transports on each engine: permissions, bodies, cookies, credentials, redirects, rewrites, env, services, abort, retirement | `host-matrix.json`                      |
