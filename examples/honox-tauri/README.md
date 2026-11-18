@@ -32,7 +32,7 @@ used).
 | `config.json`             | Queue, body and response budgets, deadline, background budgets, stacks, backend |
 | `tauri.conf.json`         | Tauri configuration; the window is created in `src/desktop.rs`                  |
 | `capabilities/`, `icons/` | Tauri capabilities and icons                                                    |
-| `tests/e2e.ts`            | Checks that drive WebView2 through the DevTools protocol                        |
+| `tests/e2e.test.ts`       | Checks that drive WebView2 through the DevTools protocol                        |
 | `build/`                  | `server.js`, `client/`, `fetchlet.json`                                         |
 
 ## Flow

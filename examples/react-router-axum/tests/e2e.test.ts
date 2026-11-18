@@ -1,7 +1,6 @@
-import assert from "node:assert/strict";
-
 import { assertStreams } from "@fetchlet-internal/tools-examples/common-checks";
 import { exampleSuite } from "@fetchlet-internal/tools-examples/suite";
+import { expect } from "vite-plus/test";
 
 const suite = exampleSuite("react-router-axum");
 const { check } = suite;
@@ -13,15 +12,15 @@ check("React Router SSR, escaping and the Rust service binding", ["ssr", "bindin
   const response = await fetch(suite.base + "/?name=" + encodeURIComponent("<Rust & RR>"), {
     headers: browser,
   });
-  assert.equal(response.status, 200);
+  expect(response.status).toBe(200);
   const html = await response.text();
-  assert.match(html, /Hello, (?:<!-- -->)?&lt;Rust &amp; RR&gt;/);
-  assert.match(html, /Welcome to React Router and Rust/);
-  assert.match(html, /Greetings from the Rust service/);
+  expect(html).toMatch(/Hello, (?:<!-- -->)?&lt;Rust &amp; RR&gt;/);
+  expect(html).toMatch(/Welcome to React Router and Rust/);
+  expect(html).toMatch(/Greetings from the Rust service/);
   // Every hoisted link is complete; a renderer retry must not leave a partial tag.
-  assert.doesNotMatch(html, /<link<|<link\/?>/);
+  expect(html).not.toMatch(/<link<|<link\/?>/);
   const preloads = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)"\/>/g)];
-  assert.ok(preloads.length >= 3, `modulepreload links: ${preloads.length}`);
+  expect(preloads.length >= 3, `modulepreload links: ${preloads.length}`).toBeTruthy();
 });
 
 check("React Router JavaScript, CSS and public files", ["assets"], async () => {
@@ -29,19 +28,20 @@ check("React Router JavaScript, CSS and public files", ["assets"], async () => {
   const assets = [...html.matchAll(/["']([^"'<>]+\.(?:js|css))["']/g)]
     .map((match) => new URL(match[1]!, suite.base))
     .filter((url) => url.pathname.startsWith("/assets/"));
-  assert.ok(assets.some((url) => url.pathname.endsWith(".js")));
-  assert.ok(assets.some((url) => url.pathname.endsWith(".css")));
+  expect(assets.some((url) => url.pathname.endsWith(".js"))).toBeTruthy();
+  expect(assets.some((url) => url.pathname.endsWith(".css"))).toBeTruthy();
   for (const asset of assets) {
     const response = await fetch(asset);
-    assert.equal(response.status, 200, asset.href);
-    assert.match(
-      response.headers.get("content-type") ?? "",
+    expect(response.status, asset.href).toBe(200);
+    expect(response.headers.get("content-type") ?? "").toMatch(
       asset.pathname.endsWith(".css") ? /css/ : /javascript/,
     );
   }
-  assert.match(await (await fetch(suite.base + "/health.txt")).text(), /react-router-axum assets/);
-  assert.equal((await fetch(suite.base + "/server.js")).status, 404);
-  assert.equal((await fetch(suite.base + "/server/index.js")).status, 404);
+  expect(await (await fetch(suite.base + "/health.txt")).text()).toMatch(
+    /react-router-axum assets/,
+  );
+  expect((await fetch(suite.base + "/server.js")).status).toBe(404);
+  expect((await fetch(suite.base + "/server/index.js")).status).toBe(404);
 });
 
 check("deferred loader data streams after the shell", ["streaming-ssr"], async () => {
@@ -55,8 +55,8 @@ check("resource route JSON action", ["json"], async () => {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(value),
   });
-  assert.equal(response.status, 201);
-  assert.deepEqual(await response.json(), value);
+  expect(response.status).toBe(201);
+  expect(await response.json()).toStrictEqual(value);
 });
 
 check("document form action and Set-Cookie", ["form", "cookies"], async () => {
@@ -69,9 +69,9 @@ check("document form action and Set-Cookie", ["form", "cookies"], async () => {
     },
     body: new URLSearchParams({ name: "Zoë" }),
   });
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("set-cookie") ?? "", /visitor=/);
-  assert.match(await response.text(), /Hello, (?:<!-- -->)?Zoë/);
+  expect(response.status).toBe(200);
+  expect(response.headers.get("set-cookie") ?? "").toMatch(/visitor=/);
+  expect(await response.text()).toMatch(/Hello, (?:<!-- -->)?Zoë/);
 });
 
 check(
@@ -79,8 +79,8 @@ check(
   ["client-address", "bindings"],
   async () => {
     const response = await fetch(suite.base + "/api/context");
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
+    expect(response.status).toBe(200);
+    expect(await response.json()).toStrictEqual({
       clientAddress: "127.0.0.1",
       message: "Welcome to React Router and Rust.",
     });
@@ -89,7 +89,7 @@ check(
 
 check("native axum route coexists with React Router", ["rust-routes"], async () => {
   const response = await fetch(suite.base + "/api/rust");
-  assert.deepEqual(await response.json(), { message: "served by axum" });
+  expect(await response.json()).toStrictEqual({ message: "served by axum" });
 });
 
 check("input budget and the following React Router request", ["body-budget"], async () => {
@@ -97,8 +97,8 @@ check("input budget and the following React Router request", ["body-budget"], as
     method: "POST",
     body: "x".repeat(4097),
   });
-  assert.equal(response.status, 413);
-  assert.equal((await fetch(suite.base)).status, 200);
+  expect(response.status).toBe(413);
+  expect((await fetch(suite.base)).status).toBe(200);
 });
 
 // A chunked upload without Content-Length, produced over time.
@@ -126,16 +126,16 @@ check(
   ["streaming-upload", "body-budget"],
   async () => {
     const response = await upload(3, 1000);
-    assert.equal(response.status, 200);
+    expect(response.status).toBe(200);
     const result = await response.json();
-    assert.equal(result.bytes, 3000);
-    assert.ok(result.chunks >= 2, `chunks: ${result.chunks}`);
+    expect(result.bytes).toBe(3000);
+    expect(result.chunks >= 2, `chunks: ${result.chunks}`).toBeTruthy();
 
     // Undeclared excess errors the action's body stream.
     const oversized = await upload(5, 1000);
-    assert.equal(oversized.status, 413);
-    assert.deepEqual(await oversized.json(), { error: "LIMIT_EXCEEDED" });
-    assert.equal((await fetch(suite.base)).status, 200);
+    expect(oversized.status).toBe(413);
+    expect(await oversized.json()).toStrictEqual({ error: "LIMIT_EXCEEDED" });
+    expect((await fetch(suite.base)).status).toBe(200);
   },
 );
 
@@ -149,12 +149,12 @@ check(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ label }),
     });
-    assert.equal(response.status, 202);
+    expect(response.status).toBe(202);
     const accepted = await response.json();
-    assert.equal(accepted.accepted, label);
-    assert.ok(!accepted.completed.includes(label), "sent before the work finished");
+    expect(accepted.accepted).toBe(label);
+    expect(!accepted.completed.includes(label), "sent before the work finished").toBeTruthy();
     const { completed } = await (await fetch(suite.base + "/api/background")).json();
-    assert.ok(completed.includes(label));
+    expect(completed.includes(label)).toBeTruthy();
   },
 );
 
@@ -162,7 +162,7 @@ check("concurrent React Router requests keep their own values", ["concurrency"],
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
       const html = await (await fetch(suite.base + "/?name=" + name, { headers: browser })).text();
-      assert.match(html, new RegExp("Hello, (?:<!-- -->)?" + name));
+      expect(html).toMatch(new RegExp("Hello, (?:<!-- -->)?" + name));
     }),
   );
 });
@@ -179,7 +179,7 @@ check(
       () => document.querySelector<HTMLElement>("[data-counter]")?.dataset.hydrated === "true",
     );
     await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
-    assert.equal(await page.getByRole("button", { name: "Clicks 1", exact: true }).count(), 1);
+    expect(await page.getByRole("button", { name: "Clicks 1", exact: true }).count()).toBe(1);
 
     await page.evaluate(() => {
       (window as unknown as Record<string, unknown>).fetchletNavigationMarker = "retained";
@@ -190,7 +190,7 @@ check(
     await page.waitForFunction(() =>
       document.querySelector("h1")?.textContent?.includes("Browser"),
     );
-    assert.equal(await page.getByRole("button", { name: "Clicks 1", exact: true }).count(), 1);
+    expect(await page.getByRole("button", { name: "Clicks 1", exact: true }).count()).toBe(1);
 
     await page.getByRole("link", { name: "Deferred data" }).click();
     await page.waitForURL("**/deferred");
@@ -200,14 +200,13 @@ check(
     await page.waitForURL("**/about");
     // The URL changes before the route renders.
     await page.getByRole("heading", { name: "About" }).waitFor();
-    assert.equal(await page.getByRole("heading", { name: "About" }).count(), 1);
-    assert.equal(
+    expect(await page.getByRole("heading", { name: "About" }).count()).toBe(1);
+    expect(
       await page.evaluate(
         () => (window as unknown as Record<string, unknown>).fetchletNavigationMarker,
       ),
-      "retained",
-    );
-    assert.deepEqual(errors, []);
+    ).toBe("retained");
+    expect(errors).toStrictEqual([]);
     await page.close();
   },
 );

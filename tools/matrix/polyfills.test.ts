@@ -2,10 +2,8 @@
 // selected polyfills, their locale data and the native capability catalog.
 // Records results/polyfill-matrix.json: `vp run test:polyfills`.
 
-import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { after, before, test } from "node:test";
 
 import { backends, runLab, type Backend, type Reply } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
@@ -16,6 +14,7 @@ import {
   writeResult,
 } from "@fetchlet-internal/tools-workspace/results";
 import { buildArtifact, type BuildArtifactOptions } from "fetchlet/build";
+import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 
 // The planner is internal to fetchlet/build; this suite checks it directly.
 import {
@@ -55,15 +54,19 @@ function execute(backend: Backend, bundle: string, exportName: string): Reply {
   const session = runLab([backend, bundle], [{ export: exportName, args: [] }], {
     timeoutMs: 90_000,
   });
-  assert.equal(session.status, 0, session.stderr);
+  expect(session.status, session.stderr).toBe(0);
   const [reply] = session.replies;
-  assert.ok(reply, session.stdout + session.stderr);
+  if (!reply) {
+    expect.fail(session.stdout + session.stderr);
+  }
   return reply;
 }
 
 function artifactNamed(name: string): Artifact {
   const artifact = artifacts.get(name);
-  assert.ok(artifact, `artifact ${name} was not built`);
+  if (!artifact) {
+    expect.fail(`artifact ${name} was not built`);
+  }
   return artifact;
 }
 
@@ -94,7 +97,7 @@ async function buildIntlArtifact(
   });
 }
 
-before(async () => {
+beforeAll(async () => {
   const requirements = [
     "Intl.DateTimeFormat",
     "Intl.NumberFormat",
@@ -119,7 +122,7 @@ before(async () => {
   });
 });
 
-after(() => {
+afterAll(() => {
   writeResult("polyfill-matrix.json", {
     environment: environment(),
     summary: summarize(results),
@@ -153,15 +156,16 @@ check("default backend Intl capabilities match the build catalog", () => {
   );
   for (const backend of backends) {
     const reply = execute(backend, file, "capabilities");
-    assert.ok(reply.ok);
+    if (!reply.ok) {
+      expect.fail(reply.error);
+    }
     const capabilities = reply.value as Record<string, boolean>;
     nativeCapabilities[backend] = capabilities;
     const plan = planPolyfills({
       backend,
       requirements: Object.keys(capabilities),
     });
-    assert.deepEqual(
-      new Set(plan.nativeRequirements),
+    expect(new Set(plan.nativeRequirements)).toStrictEqual(
       new Set(
         Object.entries(capabilities)
           .filter(([, native]) => native)
@@ -175,9 +179,9 @@ for (const backend of backends) {
   check(backend + " executes selected Intl APIs with Japanese and Tokyo data", () => {
     const artifact = artifactNamed(backend === "v8" ? "v8" : "quickjs");
     const reply = execute(backend, artifact.server, "format");
-    if (!reply.ok) assert.fail(reply.error);
+    if (!reply.ok) expect.fail(reply.error);
     const { frenchSupported, usesFormatJS, ...formatted } = reply.value;
-    assert.deepEqual(formatted, {
+    expect(formatted).toStrictEqual({
       canonical: ["en-US"],
       locale: "ja",
       plural: ["one", "other"],
@@ -185,53 +189,55 @@ for (const backend of backends) {
       utc: "01/02/2024",
       tokyo: "09:00",
     });
-    assert.equal(usesFormatJS, backend !== "v8");
-    assert.equal(frenchSupported, backend === "v8");
+    expect(usesFormatJS).toBe(backend !== "v8");
+    expect(frenchSupported).toBe(backend === "v8");
   });
 }
 
 check("V8 and unrequested Intl contribute zero FormatJS modules", () => {
   for (const name of ["v8", "plain"]) {
-    assert.deepEqual(artifactNamed(name).manifest.polyfills, []);
-    assert.deepEqual(artifactNamed(name).modules, []);
+    expect(artifactNamed(name).manifest.polyfills).toStrictEqual([]);
+    expect(artifactNamed(name).modules).toStrictEqual([]);
   }
-  assert.ok(artifactNamed("quickjs").bytes > artifactNamed("v8").bytes);
+  expect(artifactNamed("quickjs").bytes > artifactNamed("v8").bytes).toBeTruthy();
 });
 
 check("plural-only artifacts contain their dependencies and selected locale", () => {
   const { manifest, modules } = artifactNamed("plural");
-  assert.deepEqual(
-    manifest.polyfills.map((polyfill) => polyfill.api),
-    ["Intl.getCanonicalLocales", "Intl.Locale", "Intl.PluralRules"],
-  );
-  assert.ok(modules.some((module) => module.includes("/intl-pluralrules/locale-data/ja.js")));
-  assert.ok(modules.every((module) => !module.includes("/intl-numberformat/")));
-  assert.ok(modules.every((module) => !module.includes("/intl-datetimeformat/")));
-  assert.ok(modules.every((module) => !module.includes("/locale-data/en.js")));
+  expect(manifest.polyfills.map((polyfill) => polyfill.api)).toStrictEqual([
+    "Intl.getCanonicalLocales",
+    "Intl.Locale",
+    "Intl.PluralRules",
+  ]);
+  expect(
+    modules.some((module) => module.includes("/intl-pluralrules/locale-data/ja.js")),
+  ).toBeTruthy();
+  expect(modules.every((module) => !module.includes("/intl-numberformat/"))).toBeTruthy();
+  expect(modules.every((module) => !module.includes("/intl-datetimeformat/"))).toBeTruthy();
+  expect(modules.every((module) => !module.includes("/locale-data/en.js"))).toBeTruthy();
 });
 
 check("native requirements fail clearly on an incompatible runtime", () => {
   const session = runLab(["quickjs", artifactNamed("v8").server], [], {
     timeoutMs: 30_000,
   });
-  assert.notEqual(session.status, 0);
-  assert.ok(session.stderr.includes("requires native Intl."), session.stderr);
+  expect(session.status).not.toBe(0);
+  expect(session.stderr.includes("requires native Intl."), session.stderr).toBeTruthy();
 });
 
 check("invalid APIs, backend names and locale data fail at build planning", () => {
   // Options from JavaScript callers, which the declared types would reject.
   const plan = (options: unknown) => () => planPolyfills(options as PlanOptions);
-  assert.throws(plan({ requirements: "Intl.Locale" }), /array of API names/);
-  assert.throws(plan({ intl: { apis: "Intl.Locale" } }), /array of API names/);
-  assert.throws(plan({ backend: "unknown" }), /Unknown fetchlet backend/);
-  assert.throws(plan({ requirements: ["Intl.Unknown"] }), /Unsupported fetchlet Intl API/);
-  assert.throws(plan({ intl: { locales: [] } }), /at least one locale/);
-  assert.throws(plan({ intl: { timeZoneData: "unknown" } }), /timeZoneData/);
-  assert.throws(
+  expect(plan({ requirements: "Intl.Locale" })).toThrow(/array of API names/);
+  expect(plan({ intl: { apis: "Intl.Locale" } })).toThrow(/array of API names/);
+  expect(plan({ backend: "unknown" })).toThrow(/Unknown fetchlet backend/);
+  expect(plan({ requirements: ["Intl.Unknown"] })).toThrow(/Unsupported fetchlet Intl API/);
+  expect(plan({ intl: { locales: [] } })).toThrow(/at least one locale/);
+  expect(plan({ intl: { timeZoneData: "unknown" } })).toThrow(/timeZoneData/);
+  expect(
     plan({
       requirements: ["Intl.DateTimeFormat"],
       intl: { locales: ["zz"] },
     }),
-    /locale data is unavailable/,
-  );
+  ).toThrow(/locale data is unavailable/);
 });

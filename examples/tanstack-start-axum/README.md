@@ -19,15 +19,15 @@ QuickJS.
 
 ## Layout
 
-| Path             | Role                                                                      |
-| ---------------- | ------------------------------------------------------------------------- |
-| `src/routes/`    | Routes and server routes (`server.handlers`)                              |
-| `src/context.ts` | Registers the request context type                                        |
-| `vite.config.ts` | TanStack Start, React and fetchlet Vite plugins, Vite+ tasks              |
-| `src/`           | Starting axum, bindings, routing                                          |
-| `config.json`    | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.ts`   | Checks over real HTTP in a real browser                                   |
-| `build/`         | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                | Role                                                                      |
+| ------------------- | ------------------------------------------------------------------------- |
+| `src/routes/`       | Routes and server routes (`server.handlers`)                              |
+| `src/context.ts`    | Registers the request context type                                        |
+| `vite.config.ts`    | TanStack Start, React and fetchlet Vite plugins, Vite+ tasks              |
+| `src/`              | Starting axum, bindings, routing                                          |
+| `config.json`       | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                   |
+| `build/`            | `server.js`, `client/`, `fetchlet.json`                                   |
 
 The loader of `/` calls `context.env.RUST` in a server function, so client
 navigation also reaches the Rust binding through the server function.

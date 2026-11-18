@@ -17,7 +17,7 @@
 // - with `streaming`, `/deferred` sends `Loading…` first and
 //   `A value that arrived late` about 200 ms later, in the same response.
 
-import assert from "node:assert/strict";
+import { expect } from "vite-plus/test";
 
 import type { ExampleSuite } from "./suite.ts";
 
@@ -58,12 +58,12 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
       const response = await fetch(suite.base + "/?name=" + encodeURIComponent("<Rust & JS>"), {
         headers: browserHeaders,
       });
-      assert.equal(response.status, 200);
+      expect(response.status).toBe(200);
       const html = await response.text();
       // HTML text needs `<` and `&` escaped; Solid leaves `>` as it is.
-      assert.match(html, new RegExp("Hello, " + rendered("&lt;Rust &amp; JS(?:&gt;|>)")));
-      assert.ok(html.includes(options.message), "MESSAGE binding");
-      assert.match(html, /Greetings from the Rust service/);
+      expect(html).toMatch(new RegExp("Hello, " + rendered("&lt;Rust &amp; JS(?:&gt;|>)")));
+      expect(html.includes(options.message), "MESSAGE binding").toBeTruthy();
+      expect(html).toMatch(/Greetings from the Rust service/);
     },
   );
 
@@ -76,33 +76,31 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
         .map((match) => new URL(match[1]!, suite.base))
         .filter((url) => url.origin === new URL(suite.base).origin)
         .filter((url) => url.pathname.startsWith(options.assetPrefix));
-      assert.ok(
+      expect(
         assets.some((url) => /\.m?js$/.test(url.pathname)),
         "JavaScript assets",
-      );
+      ).toBeTruthy();
       if (options.requireCss !== false) {
-        assert.ok(
+        expect(
           assets.some((url) => url.pathname.endsWith(".css")),
           "CSS assets",
-        );
+        ).toBeTruthy();
       }
       for (const asset of assets) {
         const response = await fetch(asset);
-        assert.equal(response.status, 200, asset.href);
-        assert.match(
-          response.headers.get("content-type") ?? "",
+        expect(response.status, asset.href).toBe(200);
+        expect(response.headers.get("content-type") ?? "").toMatch(
           asset.pathname.endsWith(".css") ? /css/ : /javascript/,
         );
         // Served from the artifact's asset archive with the framework's caching.
-        assert.ok(response.headers.get("etag"), `${asset.pathname} ETag`);
-        assert.match(response.headers.get("cache-control") ?? "", /immutable/, asset.pathname);
+        expect(response.headers.get("etag"), `${asset.pathname} ETag`).toBeTruthy();
+        expect(response.headers.get("cache-control") ?? "", asset.pathname).toMatch(/immutable/);
       }
-      assert.match(
-        await (await fetch(suite.base + "/health.txt")).text(),
+      expect(await (await fetch(suite.base + "/health.txt")).text()).toMatch(
         new RegExp(options.example + " assets"),
       );
       for (const path of ["/server.js", ...(options.hiddenPaths ?? [])]) {
-        assert.equal((await fetch(suite.base + path)).status, 404, path);
+        expect((await fetch(suite.base + path)).status, path).toBe(404);
       }
     },
   );
@@ -114,8 +112,8 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
       headers: { "content-type": "application/json", origin: suite.base },
       body: JSON.stringify(value),
     });
-    assert.equal(response.status, 201);
-    assert.deepEqual(await response.json(), value);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toStrictEqual(value);
   });
 
   check(
@@ -123,8 +121,8 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     ["client-address", "bindings"],
     async () => {
       const response = await fetch(suite.base + "/api/context");
-      assert.equal(response.status, 200);
-      assert.deepEqual(await response.json(), {
+      expect(response.status).toBe(200);
+      expect(await response.json()).toStrictEqual({
         clientAddress: "127.0.0.1",
         message: options.message,
       });
@@ -133,7 +131,7 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
 
   check(`native axum route coexists with ${framework}`, ["rust-routes"], async () => {
     const response = await fetch(suite.base + "/api/rust");
-    assert.deepEqual(await response.json(), { message: "served by axum" });
+    expect(await response.json()).toStrictEqual({ message: "served by axum" });
   });
 
   check(`input budget and the following ${framework} request`, ["body-budget"], async () => {
@@ -142,8 +140,8 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
       headers: { "content-type": "application/json", origin: suite.base },
       body: JSON.stringify("x".repeat(4097)),
     });
-    assert.equal(response.status, 413);
-    assert.equal((await fetch(suite.base, { headers: browserHeaders })).status, 200);
+    expect(response.status).toBe(413);
+    expect((await fetch(suite.base, { headers: browserHeaders })).status).toBe(200);
   });
 
   // A chunked upload without Content-Length, produced over time.
@@ -171,16 +169,16 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     ["streaming-upload", "body-budget"],
     async () => {
       const response = await upload(3, 1000);
-      assert.equal(response.status, 200);
+      expect(response.status).toBe(200);
       const result = await response.json();
-      assert.equal(result.bytes, 3000);
-      assert.ok(result.chunks >= 2, `chunks: ${result.chunks}`);
+      expect(result.bytes).toBe(3000);
+      expect(result.chunks >= 2, `chunks: ${result.chunks}`).toBeTruthy();
 
       // Undeclared excess errors the handler's body stream.
       const oversized = await upload(5, 1000);
-      assert.equal(oversized.status, 413);
-      assert.deepEqual(await oversized.json(), { error: "LIMIT_EXCEEDED" });
-      assert.equal((await fetch(suite.base, { headers: browserHeaders })).status, 200);
+      expect(oversized.status).toBe(413);
+      expect(await oversized.json()).toStrictEqual({ error: "LIMIT_EXCEEDED" });
+      expect((await fetch(suite.base, { headers: browserHeaders })).status).toBe(200);
     },
   );
 
@@ -194,12 +192,12 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
         headers: { "content-type": "application/json", origin: suite.base },
         body: JSON.stringify({ label }),
       });
-      assert.equal(response.status, 202);
+      expect(response.status).toBe(202);
       const accepted = await response.json();
-      assert.equal(accepted.accepted, label);
-      assert.ok(!accepted.completed.includes(label), "sent before the work finished");
+      expect(accepted.accepted).toBe(label);
+      expect(!accepted.completed.includes(label), "sent before the work finished").toBeTruthy();
       const { completed } = await (await fetch(suite.base + "/api/background")).json();
-      assert.ok(completed.includes(label));
+      expect(completed.includes(label)).toBeTruthy();
     },
   );
 
@@ -209,7 +207,7 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
         const html = await (
           await fetch(suite.base + "/?name=" + name, { headers: browserHeaders })
         ).text();
-        assert.match(html, new RegExp("Hello, " + rendered(name)));
+        expect(html).toMatch(new RegExp("Hello, " + rendered(name)));
       }),
     );
   });
@@ -233,11 +231,10 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
     await page.waitForURL(/\/about\/?$/);
     await page.getByRole("heading", { name: "About" }).waitFor();
     // A client-side router keeps the document; a document navigation replaces it.
-    assert.equal(
-      await page.evaluate(() => window.fetchletNavigationMarker),
+    expect(await page.evaluate(() => window.fetchletNavigationMarker)).toBe(
       options.clientNavigation === false ? undefined : "retained",
     );
-    assert.deepEqual(errors, []);
+    expect(errors).toStrictEqual([]);
     await page.close();
   });
 
@@ -253,25 +250,25 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
  * the shell must arrive while the value is still pending on the server.
  */
 export async function assertStreams(response: Response): Promise<void> {
-  assert.equal(response.status, 200);
-  assert.ok(response.body);
+  expect(response.status).toBe(200);
+  if (!response.body) {
+    expect.fail("the response has a body");
+  }
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let received = "";
   while (!received.includes("Loading")) {
     const { done, value } = await reader.read();
-    assert.ok(!done, "the response ended before the shell: " + received.slice(-200));
+    expect(!done, "the response ended before the shell: " + received.slice(-200)).toBeTruthy();
     received += decoder.decode(value, { stream: true });
   }
-  assert.doesNotMatch(
-    received,
+  expect(received, "the slow value arrived with the shell").not.toMatch(
     /A value that arrived late/,
-    "the slow value arrived with the shell",
   );
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
     received += decoder.decode(value, { stream: true });
   }
-  assert.match(received, /A value that arrived late/);
+  expect(received).toMatch(/A value that arrived late/);
 }

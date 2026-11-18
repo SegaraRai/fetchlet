@@ -38,7 +38,7 @@ and license diff after an update, then run the tests.
 From the repository root:
 
 ```bash
-vp run test:tools
+vp run test:js
 vp run test:conformance
 ```
 
@@ -181,7 +181,7 @@ place of the WPT server. It re-records every hash.
 ```bash
 node tools/conformance/update-sources.ts --suite wpt --revision <40-character commit> --add fetch/api/response/response-clone.any.js
 node tools/conformance/update-sources.ts --suite test262 --revision <40-character commit> --add test/built-ins/Array/prototype/at/returns-item.js
-vp run test:tools
+vp run test:js
 vp run test:conformance
 ```
 

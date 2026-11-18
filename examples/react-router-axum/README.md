@@ -26,7 +26,7 @@ server on QuickJS.
 | `vite.config.ts`         | React Router's Vite plugin, Vite+ tasks                                   |
 | `src/`                   | Starting axum, bindings, routing                                          |
 | `config.json`            | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.ts`           | Checks over real HTTP in a real browser                                   |
+| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                   |
 | `build/`                 | `server.js`, `client/`, `fetchlet.json` (`server/` is intermediate)       |
 
 ## Routes and context

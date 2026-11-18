@@ -28,10 +28,9 @@ jobs:
       - run: vp run test:rust
       - run: vp run check:types
       - run: vp run check:format
-      - run: vp run test:tools
       - run: vp run test:conformance
       - run: vp run test:polyfills
-      - run: vp run test:build
+      - run: vp run test:js
       - run: vp run test:package
       - run: vp run test:matrix
       - run: vp run test:host

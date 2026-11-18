@@ -20,6 +20,7 @@
     "**/*.ts",
     "../fixtures/probe/run.ts",
     "../examples/*/tests/*.ts",
+    "../examples/*/acceptance.config.ts",
     "../examples/*/scripts/*.ts"
   ],
   // Guest entries bundled with fetchlet/runtime are checked with the runtime's

@@ -18,14 +18,14 @@ server; stop it with Ctrl+C.
 
 ## Layout
 
-| Path             | Role                                                                |
-| ---------------- | ------------------------------------------------------------------- |
-| `web/`           | SvelteKit pages, actions, endpoints and public files                |
-| `vite.config.ts` | Build settings for SvelteKit and the fetchlet adapter               |
-| `src/`           | axum routing, the shared handle and HTTP integration, Rust services |
-| `config.json`    | Listen address, queue, body budgets, deadlines, env                 |
-| `tests/e2e.ts`   | Checks over real HTTP in a real browser                             |
-| `build/`         | Output: `server.js`, `client/`, `fetchlet.json`                     |
+| Path                | Role                                                                |
+| ------------------- | ------------------------------------------------------------------- |
+| `web/`              | SvelteKit pages, actions, endpoints and public files                |
+| `vite.config.ts`    | Build settings for SvelteKit and the fetchlet adapter               |
+| `src/`              | axum routing, the shared handle and HTTP integration, Rust services |
+| `config.json`       | Listen address, queue, body budgets, deadlines, env                 |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                             |
+| `build/`            | Output: `server.js`, `client/`, `fetchlet.json`                     |
 
 One server handles Rust's `/api/rust` and SvelteKit's routes. Static files
 are served first and dynamic requests go to JavaScript, including POST and

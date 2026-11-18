@@ -2,20 +2,19 @@
 // below comes from the webview and reaches the `mdw` URI scheme protocol in
 // the app process, which answers with the same router `mdw serve` uses.
 
-import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer, type AddressInfo } from "node:net";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { after, before, test } from "node:test";
 
 import type { Feature } from "@fetchlet-internal/tools-examples/features";
 import { backend, resultFile } from "@fetchlet-internal/tools-examples/suite";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
+import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 
 const name = "sveltekit-axum-tauri";
 const example = resolve(root, "examples", name);
@@ -60,7 +59,7 @@ async function waitFor<T>(
   }
 }
 
-before(async () => {
+beforeAll(async () => {
   if (!supported) return;
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
@@ -114,7 +113,7 @@ before(async () => {
   await page.waitForLoadState();
 });
 
-after(async () => {
+afterAll(async () => {
   await browser?.close();
   if (child && child.exitCode === null && child.signalCode === null) {
     const exited = once(child, "exit");
@@ -133,7 +132,8 @@ after(async () => {
 });
 
 function check(label: string, features: Feature[], operation: () => Promise<void>): void {
-  test(label, { timeout: 30000, skip: !supported && "needs WebView2 (Windows)" }, async () => {
+  // Skipped where WebView2 (Windows) is unavailable.
+  test.skipIf(!supported)(label, { timeout: 30000 }, async () => {
     try {
       await operation();
       results.push({ name: label, features, status: "pass" });
@@ -152,9 +152,9 @@ function check(label: string, features: Feature[], operation: () => Promise<void
 check("the window renders the workspace through the URI scheme protocol", ["ssr"], async () => {
   await page.goto(origin + "/");
   await page.locator(".brand", { hasText: "notes" }).waitFor();
-  assert.match((await page.locator("main").textContent()) ?? "", /4 notes/);
+  expect((await page.locator("main").textContent()) ?? "").toMatch(/4 notes/);
   // The page runs in the Tauri webview, not in a browser of `mdw serve`.
-  assert.equal(await page.evaluate(() => "__TAURI_INTERNALS__" in window), true);
+  expect(await page.evaluate(() => "__TAURI_INTERNALS__" in window)).toBe(true);
 });
 
 check(
@@ -167,7 +167,7 @@ check(
       const response = await fetch("/api/v1/highlight.css");
       return [response.status, response.headers.get("content-type")];
     });
-    assert.deepEqual(css, [200, "text/css; charset=utf-8"]);
+    expect(css).toStrictEqual([200, "text/css; charset=utf-8"]);
   },
 );
 
@@ -185,8 +185,8 @@ check("the protocol keeps the workspace boundary", [], async () => {
     return results;
   });
   for (const [status, leaked] of statuses) {
-    assert.notEqual(status, 200);
-    assert.equal(leaked, false);
+    expect(status).not.toBe(200);
+    expect(leaked).toBe(false);
   }
 });
 
@@ -199,7 +199,7 @@ check("workspace changes arrive as Tauri events", [], async () => {
   const streams = await page.evaluate(() =>
     performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/events")),
   );
-  assert.deepEqual(streams, []);
+  expect(streams).toStrictEqual([]);
 });
 
 check("the editor saves through the protocol", ["server-functions"], async () => {
@@ -213,5 +213,5 @@ check("the editor saves through the protocol", ["server-functions"], async () =>
   await page.waitForURL(/getting-started\.md$/);
   await page.locator(".markdown", { hasText: "Saved from the desktop" }).waitFor();
   const saved = await readFile(resolve(notes, "guide/getting-started.md"), "utf8");
-  assert.match(saved, /Saved from the desktop/);
+  expect(saved).toMatch(/Saved from the desktop/);
 });

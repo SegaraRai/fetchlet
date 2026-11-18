@@ -2,13 +2,18 @@ import { cpSync, readFileSync, rmSync } from "node:fs";
 
 import { defineConfig } from "vite-plus";
 
-const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+const manifest = JSON.parse(readFileSync(new URL("package.json", import.meta.url), "utf8"));
 
 // Every module an export names; unbundled, the modules they import compile
 // next to them in dist/.
 const entries = Object.values<string>(manifest.exports).filter((file) => !file.endsWith(".d.ts"));
 
 export default defineConfig({
+  root: import.meta.dirname,
+  test: {
+    name: "fetchlet",
+    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+  },
   run: {
     tasks: {
       build: {

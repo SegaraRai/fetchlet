@@ -2,14 +2,12 @@
 // functions, the typed Rust API, live updates, the workspace boundary and the
 // client assets embedded in the binary.
 
-import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { request } from "node:http";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { after, before, test } from "node:test";
 import { brotliDecompressSync } from "node:zlib";
 
 import type { Feature } from "@fetchlet-internal/tools-examples/features";
@@ -17,6 +15,7 @@ import { backend, resultFile } from "@fetchlet-internal/tools-examples/suite";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
+import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 
 const name = "sveltekit-axum-tauri";
 const example = resolve(root, "examples", name);
@@ -29,7 +28,7 @@ let browser: Browser | undefined;
 let base: string;
 let stderr = "";
 
-before(async () => {
+beforeAll(async () => {
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
   await cp(resolve(example, "sample"), notes, { recursive: true });
@@ -73,7 +72,7 @@ before(async () => {
   });
 });
 
-after(async () => {
+afterAll(async () => {
   await browser?.close();
   if (child && child.exitCode === null && child.signalCode === null) {
     const exited = once(child, "exit");
@@ -186,22 +185,24 @@ function raw(
 check("client assets come from the archive embedded in mdw", ["assets"], async () => {
   const home = await fetch(base + "/").then((response) => response.text());
   const script = /\/_app\/immutable\/[^"]+\.js/.exec(home)?.[0];
-  assert.ok(script, "the page links a hashed script");
+  if (!script) {
+    expect.fail("the page links a hashed script");
+  }
   const compressed = await raw(script, {
     "accept-encoding": "gzip, deflate, br",
   });
-  assert.equal(compressed.status, 200);
-  assert.equal(compressed.headers["content-encoding"], "br");
-  assert.equal(compressed.headers["cache-control"], "public, max-age=31536000, immutable");
-  assert.equal(compressed.headers.vary, "accept-encoding");
+  expect(compressed.status).toBe(200);
+  expect(compressed.headers["content-encoding"]).toBe("br");
+  expect(compressed.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+  expect(compressed.headers.vary).toBe("accept-encoding");
   // Clients without Brotli, such as plain HTTP outside localhost, get it decompressed.
   const plain = await raw(script, { "accept-encoding": "gzip, deflate" });
-  assert.equal(plain.headers["content-encoding"], undefined);
-  assert.deepEqual(brotliDecompressSync(compressed.body), plain.body);
+  expect(plain.headers["content-encoding"]).toBe(undefined);
+  expect(brotliDecompressSync(compressed.body)).toStrictEqual(plain.body);
   const cached = await raw(script, {
     "if-none-match": String(plain.headers.etag),
   });
-  assert.equal(cached.status, 304);
+  expect(cached.status).toBe(304);
 });
 
 check(
@@ -209,18 +210,18 @@ check(
   ["ssr"],
   async () => {
     const home = await fetch(base + "/").then((response) => response.text());
-    assert.match(home, /<a class="brand" href="\/">notes<\/a>/);
-    assert.match(home, /4 notes/);
-    assert.match(home, /href="\/notes\/guide\/getting-started\.md"/);
+    expect(home).toMatch(/<a class="brand" href="\/">notes<\/a>/);
+    expect(home).toMatch(/4 notes/);
+    expect(home).toMatch(/href="\/notes\/guide\/getting-started\.md"/);
 
     const response = await fetch(base + "/notes/index.md");
-    assert.equal(response.status, 200);
+    expect(response.status).toBe(200);
     const html = await response.text();
-    assert.match(html, /<title>Welcome — mdw<\/title>/);
+    expect(html).toMatch(/<title>Welcome — mdw<\/title>/);
     // Relative links and images are rewritten to workspace routes.
-    assert.match(html, /href="\/notes\/guide\/architecture\.md#rendering"/);
-    assert.match(html, /src="\/files\/images\/flow\.svg"/);
-    assert.match(html, /<li>#fetchlet<\/li>/);
+    expect(html).toMatch(/href="\/notes\/guide\/architecture\.md#rendering"/);
+    expect(html).toMatch(/src="\/files\/images\/flow\.svg"/);
+    expect(html).toMatch(/<li>#fetchlet<\/li>/);
   },
 );
 
@@ -229,19 +230,21 @@ check(
   ["ssr", "internal-fetch"],
   async () => {
     const html = await fetch(base + "/notes/guide/architecture.md").then((r) => r.text());
-    assert.match(html, /<code class="language-rust highlighted"><span class="hl-source hl-rust">/);
-    assert.match(html, /<code class="language-ts highlighted">/);
-    assert.match(html, /<h2 id="rendering">Rendering<\/h2>/);
+    expect(html).toMatch(
+      /<code class="language-rust highlighted"><span class="hl-source hl-rust">/,
+    );
+    expect(html).toMatch(/<code class="language-ts highlighted">/);
+    expect(html).toMatch(/<h2 id="rendering">Rendering<\/h2>/);
     const css = await fetch(base + "/api/v1/highlight.css");
-    assert.equal(css.headers.get("content-type"), "text/css; charset=utf-8");
-    assert.match(await css.text(), /prefers-color-scheme: dark/);
+    expect(css.headers.get("content-type")).toBe("text/css; charset=utf-8");
+    expect(await css.text()).toMatch(/prefers-color-scheme: dark/);
   },
 );
 
 check("raw HTML in a note is dropped from the rendered page", [], async () => {
   const html = await fetch(base + "/notes/journal/2026-11-17.md").then((r) => r.text());
-  assert.doesNotMatch(html, /<script>alert/);
-  assert.match(html, /Raw HTML is removed when rendering./);
+  expect(html).not.toMatch(/<script>alert/);
+  expect(html).toMatch(/Raw HTML is removed when rendering./);
 });
 
 check(
@@ -249,22 +252,23 @@ check(
   ["json", "internal-fetch"],
   async () => {
     const listed = await json("/api/v1/notes");
-    assert.equal(listed.status, 200);
-    assert.deepEqual(
-      listed.body.map((note: { path: string }) => note.path),
-      ["guide/architecture.md", "guide/getting-started.md", "index.md", "journal/2026-11-17.md"],
-    );
+    expect(listed.status).toBe(200);
+    expect(listed.body.map((note: { path: string }) => note.path)).toStrictEqual([
+      "guide/architecture.md",
+      "guide/getting-started.md",
+      "index.md",
+      "journal/2026-11-17.md",
+    ]);
     const search = await json("/api/v1/search?q=" + encodeURIComponent("日本語"));
-    assert.equal(search.body[0].path, "journal/2026-11-17.md");
-    assert.deepEqual(
+    expect(search.body[0].path).toBe("journal/2026-11-17.md");
+    expect(
       search.body[0].snippet
         .filter((part: { matched: boolean }) => part.matched)
         .map((part: { text: string }) => part.text),
-      ["日本語"],
-    );
+    ).toStrictEqual(["日本語"]);
     const note = await json("/api/v1/note?path=index.md");
-    assert.equal(note.body.title, "Welcome");
-    assert.match(note.body.version, /^[0-9a-f]{64}$/);
+    expect(note.body.title).toBe("Welcome");
+    expect(note.body.version).toMatch(/^[0-9a-f]{64}$/);
   },
 );
 
@@ -280,12 +284,12 @@ check(
         body: JSON.stringify({ path: note.path, content, base_version }),
       });
     const saved = await put(note.content + "\nAppended\n", note.version);
-    assert.equal(saved.status, 200);
+    expect(saved.status).toBe(200);
     const stale = await put("lost", note.version);
-    assert.equal(stale.status, 409);
-    assert.equal(stale.body.conflict.current_version, saved.body.version);
+    expect(stale.status).toBe(409);
+    expect(stale.body.conflict.current_version).toBe(saved.body.version);
     const created = await put("# exists", null);
-    assert.equal(created.status, 409);
+    expect(created.status).toBe(409);
   },
 );
 
@@ -298,7 +302,7 @@ check("paths outside the workspace are refused by the API and the file route", [
     "C:/secret.md",
   ]) {
     const response = await json("/api/v1/note?path=" + encodeURIComponent(path));
-    assert.equal(response.status, 400, path);
+    expect(response.status, path).toBe(400);
   }
   for (const path of [
     "/files/..%2fsecret.md",
@@ -306,8 +310,8 @@ check("paths outside the workspace are refused by the API and the file route", [
     "/files/guide/..%2f..%2fsecret.md",
   ]) {
     const response = await fetch(base + path);
-    assert.notEqual(response.status, 200, path);
-    assert.doesNotMatch(await response.text(), /Secret/, path);
+    expect(response.status, path).not.toBe(200);
+    expect(await response.text(), path).not.toMatch(/Secret/);
   }
   const put = await fetch(base + "/api/v1/note", {
     method: "PUT",
@@ -318,21 +322,21 @@ check("paths outside the workspace are refused by the API and the file route", [
       base_version: null,
     }),
   });
-  assert.equal(put.status, 400);
+  expect(put.status).toBe(400);
 });
 
 check("workspace files are served sandboxed", [], async () => {
   const response = await fetch(base + "/files/images/flow.svg");
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get("content-type"), "image/svg+xml");
-  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
-  assert.match(response.headers.get("content-security-policy") ?? "", /^sandbox/);
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toBe("image/svg+xml");
+  expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  expect(response.headers.get("content-security-policy") ?? "").toMatch(/^sandbox/);
 });
 
 check("requests for another host name are refused", [], async () => {
-  assert.equal(await withHost(new URL(base).host, "/"), 200);
-  assert.equal(await withHost("rebound.example:80", "/"), 421);
-  assert.equal(await withHost("localhost:1", "/api/v1/notes"), 421);
+  expect(await withHost(new URL(base).host, "/")).toBe(200);
+  expect(await withHost("rebound.example:80", "/")).toBe(421);
+  expect(await withHost("localhost:1", "/api/v1/notes")).toBe(421);
 });
 
 check(
@@ -348,8 +352,8 @@ check(
     await browserPage.getByRole("searchbox").fill("syntect");
     const suggestion = browserPage.locator(".suggestions a").first();
     await suggestion.waitFor();
-    assert.match((await suggestion.textContent()) ?? "", /How it works/);
-    assert.equal(await browserPage.locator(".suggestions mark").first().textContent(), "syntect");
+    expect((await suggestion.textContent()) ?? "").toMatch(/How it works/);
+    expect(await browserPage.locator(".suggestions mark").first().textContent()).toBe("syntect");
 
     await browserPage.getByRole("searchbox").press("Escape");
     await browserPage.locator(".suggestions").waitFor({ state: "detached" });
@@ -360,11 +364,10 @@ check(
     await browserPage.waitForURL(/getting-started\.md$/);
     await browserPage.locator("h1", { hasText: "Getting started" }).waitFor();
     // Client navigation keeps the same document.
-    assert.equal(
+    expect(
       await browserPage.evaluate(() => (window as unknown as Record<string, unknown>).__marker),
-      true,
-    );
-    assert.deepEqual(browserPage.errors, []);
+    ).toBe(true);
+    expect(browserPage.errors).toStrictEqual([]);
   },
 );
 
@@ -382,14 +385,14 @@ check(
     const preview = browserPage.locator(".preview");
     await preview.locator("h2", { hasText: "Preview heading" }).waitFor();
     await preview.locator("code.language-rust.highlighted").first().waitFor();
-    assert.equal(await browserPage.locator(".status").textContent(), "Unsaved changes");
+    expect(await browserPage.locator(".status").textContent()).toBe("Unsaved changes");
 
     await browserPage.keyboard.press("Control+s");
     await browserPage.waitForURL(/\/notes\/guide\/architecture\.md$/);
     await browserPage.locator(".markdown h2", { hasText: "Preview heading" }).waitFor();
     const saved = await readFile(resolve(notes, "guide/architecture.md"), "utf8");
-    assert.ok(saved.startsWith("## Preview heading\n"), saved.slice(0, 80));
-    assert.deepEqual(browserPage.errors, []);
+    expect(saved.startsWith("## Preview heading\n"), saved.slice(0, 80)).toBeTruthy();
+    expect(browserPage.errors).toStrictEqual([]);
   },
 );
 
@@ -417,15 +420,14 @@ check("the editor reports a conflict and can overwrite the version on disk", [],
   await browserPage.locator(".banner", { hasText: "changed outside the editor" }).waitFor();
   await browserPage.keyboard.press("Control+s");
   await browserPage.getByRole("alert").waitFor();
-  assert.match(
-    (await browserPage.getByRole("alert").textContent()) ?? "",
+  expect((await browserPage.getByRole("alert").textContent()) ?? "").toMatch(
     /changed after it was loaded/,
   );
   await browserPage.getByRole("button", { name: "Overwrite with this version" }).click();
   await browserPage.waitForURL(/\/notes\/journal\/2026-11-17\.md$/);
   const saved = await readFile(resolve(notes, "journal/2026-11-17.md"), "utf8");
-  assert.match(saved, /Appended in the browser/);
-  assert.doesNotMatch(saved, /Another change/);
+  expect(saved).toMatch(/Appended in the browser/);
+  expect(saved).not.toMatch(/Another change/);
 });
 
 check(
@@ -445,7 +447,7 @@ check(
     await browserPage.getByRole("button", { name: "Create and edit" }).click();
     await browserPage.waitForURL(/projects\/caf%C3%A9-plan\.md\/edit$/);
     const created = await readFile(resolve(notes, "projects/café-plan.md"), "utf8");
-    assert.equal(created, "# café-plan\n\n");
+    expect(created).toBe("# café-plan\n\n");
     await browserPage.locator(".tree a", { hasText: "café-plan" }).waitFor();
   },
 );
@@ -458,5 +460,5 @@ check("search and notes work without JavaScript", ["ssr", "form"], async () => {
   await browserPage.waitForURL(/\/search\?q=/);
   await browserPage.locator(".results a").first().click();
   await browserPage.waitForURL(/\/notes\//);
-  assert.ok(((await browserPage.locator(".markdown").textContent()) ?? "").length > 0);
+  expect(((await browserPage.locator(".markdown").textContent()) ?? "").length > 0).toBeTruthy();
 });

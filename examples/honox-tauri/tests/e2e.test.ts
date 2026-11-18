@@ -2,20 +2,19 @@
 // below is made by the webview itself, so it reaches the `fetchlet` URI scheme
 // protocol in the app process; no HTTP server is involved.
 
-import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type AddressInfo } from "node:net";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { after, before, test } from "node:test";
 
 import type { Feature } from "@fetchlet-internal/tools-examples/features";
 import { backend, resultFile } from "@fetchlet-internal/tools-examples/suite";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 import { environment, summarize, writeResult } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
+import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 
 const name = "honox-tauri";
 const example = resolve(root, "examples", name);
@@ -64,7 +63,7 @@ async function waitFor<T>(
   }
 }
 
-before(async () => {
+beforeAll(async () => {
   if (!supported) return;
   await mkdir(output, { recursive: true });
   const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
@@ -118,7 +117,7 @@ before(async () => {
   await page.waitForLoadState();
 });
 
-after(async () => {
+afterAll(async () => {
   await browser?.close();
   if (child && child.exitCode === null && child.signalCode === null) {
     const exited = once(child, "exit");
@@ -137,7 +136,8 @@ after(async () => {
 });
 
 function check(label: string, features: Feature[], operation: () => Promise<void>): void {
-  test(label, { timeout: 30000, skip: !supported && "needs WebView2 (Windows)" }, async () => {
+  // Skipped where WebView2 (Windows) is unavailable.
+  test.skipIf(!supported)(label, { timeout: 30000 }, async () => {
     try {
       await operation();
       results.push({ name: label, features, status: "pass" });
@@ -184,15 +184,15 @@ function post(path: string, value: unknown) {
 }
 
 check("the main window opens on the fetchlet scheme", [], async () => {
-  assert.equal(new URL(page.url()).origin, origin);
+  expect(new URL(page.url()).origin).toBe(origin);
 });
 
 check("HonoX SSR, escaping and the Rust service binding", ["ssr", "bindings"], async () => {
   const response = await request("/?name=" + encodeURIComponent("<Rust & JS>"));
-  assert.equal(response.status, 200);
-  assert.match(response.text, /Hello, &lt;Rust &amp; JS&gt;/);
-  assert.ok(response.text.includes(message), "MESSAGE binding");
-  assert.match(response.text, /Greetings from the Rust service/);
+  expect(response.status).toBe(200);
+  expect(response.text).toMatch(/Hello, &lt;Rust &amp; JS&gt;/);
+  expect(response.text.includes(message), "MESSAGE binding").toBeTruthy();
+  expect(response.text).toMatch(/Greetings from the Rust service/);
 });
 
 check("JavaScript, CSS and public files from the client build", ["assets"], async () => {
@@ -200,48 +200,48 @@ check("JavaScript, CSS and public files from the client build", ["assets"], asyn
   const assets = [...text.matchAll(/["'](\/static\/[^"'<>\s]+\.(?:js|css))["']/g)].map(
     (match) => match[1]!,
   );
-  assert.ok(
+  expect(
     assets.some((path) => path.endsWith(".js")),
     "JavaScript assets",
-  );
-  assert.ok(
+  ).toBeTruthy();
+  expect(
     assets.some((path) => path.endsWith(".css")),
     "CSS assets",
-  );
+  ).toBeTruthy();
   for (const path of assets) {
     const response = await request(path);
-    assert.equal(response.status, 200, path);
-    assert.match(response.type ?? "", path.endsWith(".css") ? /css/ : /javascript/);
+    expect(response.status, path).toBe(200);
+    expect(response.type ?? "").toMatch(path.endsWith(".css") ? /css/ : /javascript/);
   }
-  assert.match((await request("/health.txt")).text, /honox-tauri assets/);
+  expect((await request("/health.txt")).text).toMatch(/honox-tauri assets/);
   // server.js lives next to client/, outside the served directory.
-  assert.equal((await request("/server.js")).status, 404);
-  assert.equal((await request("/%2e%2e/server.js")).status, 404);
-  assert.equal((await request("/static/..%2f..%2fserver.js")).status, 404);
+  expect((await request("/server.js")).status).toBe(404);
+  expect((await request("/%2e%2e/server.js")).status).toBe(404);
+  expect((await request("/static/..%2f..%2fserver.js")).status).toBe(404);
 });
 
 check("JSON endpoint", ["json"], async () => {
   const value = { message: "日本語😀", values: [0, 128, 255] };
   const response = await post("/api/echo", value);
-  assert.equal(response.status, 201);
-  assert.deepEqual(JSON.parse(response.text), value);
+  expect(response.status).toBe(201);
+  expect(JSON.parse(response.text)).toStrictEqual(value);
 });
 
 check("in-process requests carry no client address", ["bindings"], async () => {
   const response = await request("/api/context");
-  assert.equal(response.status, 200);
-  assert.deepEqual(JSON.parse(response.text), { message });
+  expect(response.status).toBe(200);
+  expect(JSON.parse(response.text)).toStrictEqual({ message });
 });
 
 check("a Rust route of the protocol coexists with HonoX", ["rust-routes"], async () => {
   const response = await request("/api/rust");
-  assert.deepEqual(JSON.parse(response.text), { message: "served by the Tauri protocol" });
+  expect(JSON.parse(response.text)).toStrictEqual({ message: "served by the Tauri protocol" });
 });
 
 check("request body budget and the following request", ["body-budget"], async () => {
   const response = await post("/api/echo", "x".repeat(4097));
-  assert.equal(response.status, 413);
-  assert.equal((await request("/")).status, 200);
+  expect(response.status).toBe(413);
+  expect((await request("/")).status).toBe(200);
 });
 
 check(
@@ -250,19 +250,19 @@ check(
   async () => {
     const label = "job-" + Date.now();
     const response = await post("/api/background", { label });
-    assert.equal(response.status, 202);
+    expect(response.status).toBe(202);
     const accepted = JSON.parse(response.text);
-    assert.equal(accepted.accepted, label);
-    assert.ok(!accepted.completed.includes(label), "sent before the work finished");
+    expect(accepted.accepted).toBe(label);
+    expect(!accepted.completed.includes(label), "sent before the work finished").toBeTruthy();
     const { completed } = JSON.parse((await request("/api/background")).text);
-    assert.ok(completed.includes(label));
+    expect(completed.includes(label)).toBeTruthy();
   },
 );
 
 check("concurrent requests keep their own values", ["concurrency"], async () => {
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
-      assert.match((await request("/?name=" + name)).text, new RegExp("Hello, " + name));
+      expect((await request("/?name=" + name)).text).toMatch(new RegExp("Hello, " + name));
     }),
   );
 });
@@ -292,7 +292,7 @@ check(
       await page.getByRole("link", { name: "About" }).click();
       await page.waitForURL(/\/about\/?$/);
       await page.getByRole("heading", { name: "About" }).waitFor();
-      assert.deepEqual(errors, []);
+      expect(errors).toStrictEqual([]);
     } finally {
       page.off("pageerror", record);
     }

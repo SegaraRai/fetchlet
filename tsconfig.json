@@ -17,6 +17,7 @@
     "fixtures/**/*.tsx",
     "packages/fetchlet/src/runtime/**/*.ts",
     "packages/web/src/**/*.ts",
+    "packages/web/vite.config.ts",
     "tools/bench/bare/entry.ts",
     "tools/bench/probe/entry.ts"
   ],

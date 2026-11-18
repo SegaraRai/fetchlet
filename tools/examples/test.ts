@@ -44,10 +44,7 @@ for (const backend of requestedBackends) {
 const backends = engines.filter((backend) => requestedBackends.includes(backend));
 
 for (const name of positionals.length ? positionals : examples) {
-  const tests = resolve(root, "examples", name, "tests");
-  const suites = readdirSync(tests)
-    .filter((file) => /\.m?[jt]s$/.test(file))
-    .map((file) => resolve(tests, file));
+  const example = resolve(root, "examples", name);
   for (const backend of backends) {
     console.log(`[examples] ${name} on ${backend}`);
     const env = { ...process.env, FETCHLET_BACKEND: backend };
@@ -55,7 +52,7 @@ for (const name of positionals.length ? positionals : examples) {
     const steps = [
       () => run("vp", ["run", "--filter", `@fetchlet-internal/example-${name}`, "build"], { env }),
       () => cargo(["build", "--locked", "--package", `example-${name}`, ...features], { env }),
-      () => run(process.execPath, ["--test", ...suites], { env }),
+      () => run("vp", ["test", "--run", "--config", "acceptance.config.ts"], { cwd: example, env }),
     ];
     for (const step of steps) {
       const code = step();

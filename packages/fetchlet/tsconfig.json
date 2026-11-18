@@ -14,6 +14,6 @@
       "@fetchlet/web/*": ["../web/src/*.ts"]
     }
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "vite.config.ts"],
   "exclude": ["src/runtime/**"]
 }

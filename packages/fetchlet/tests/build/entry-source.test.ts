@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import {
   existsSync,
   mkdirSync,
@@ -10,9 +9,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
 
 import { buildArtifact } from "fetchlet/build";
+import { expect, test } from "vite-plus/test";
 
 test("an entry given as source builds without a file", async () => {
   const directory = mkdtempSync(join(tmpdir(), "fetchlet-entry-source-"));
@@ -31,9 +30,9 @@ test("an entry given as source builds without a file", async () => {
       outDir: join(directory, "out"),
     });
     // The relative import resolved from resolveDir, and no entry file was written.
-    assert.deepEqual(readdirSync(server), ["app.js"]);
-    assert.ok(existsSync(join(directory, "out/server.js")));
-    assert.match(readFileSync(join(directory, "out/server.js"), "utf8"), /from disk/);
+    expect(readdirSync(server)).toStrictEqual(["app.js"]);
+    expect(existsSync(join(directory, "out/server.js"))).toBeTruthy();
+    expect(readFileSync(join(directory, "out/server.js"), "utf8")).toMatch(/from disk/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

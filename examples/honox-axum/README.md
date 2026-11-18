@@ -18,14 +18,14 @@ Open `http://127.0.0.1:3400`. The task builds twice, the client
 
 ## Layout
 
-| Path             | Role                                                                      |
-| ---------------- | ------------------------------------------------------------------------- |
-| `app/`           | Routes, islands, renderer, API routes                                     |
-| `vite.config.ts` | HonoX and fetchlet Vite plugins, Vite+ tasks                              |
-| `src/`           | Starting axum, bindings, routing                                          |
-| `config.json`    | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.ts`   | Checks over real HTTP in a real browser                                   |
-| `build/`         | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                | Role                                                                      |
+| ------------------- | ------------------------------------------------------------------------- |
+| `app/`              | Routes, islands, renderer, API routes                                     |
+| `vite.config.ts`    | HonoX and fetchlet Vite plugins, Vite+ tasks                              |
+| `src/`              | Starting axum, bindings, routing                                          |
+| `config.json`       | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                   |
+| `build/`            | `server.js`, `client/`, `fetchlet.json`                                   |
 
 HonoX islands have no client router, so navigating to `/about` loads a new
 document. Assets are served from `/static/`.

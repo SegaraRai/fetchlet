@@ -1,9 +1,7 @@
 // The serialized AsyncLocalStorage that artifacts use in place of node:async_hooks.
 
-import assert from "node:assert/strict";
-import { test } from "node:test";
-
 import { AsyncLocalStorage } from "fetchlet/build/async-hooks";
+import { expect, test } from "vite-plus/test";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -21,8 +19,8 @@ test("keeps a run's store across its awaits and restores the outer store", async
     await tick();
     seen.push(storage.getStore());
   });
-  assert.deepEqual(seen, ["request", "request"]);
-  assert.equal(storage.getStore(), undefined);
+  expect(seen).toStrictEqual(["request", "request"]);
+  expect(storage.getStore()).toBe(undefined);
 });
 
 test("overlapping runs that settle out of order leave no settled store behind", async () => {
@@ -34,47 +32,44 @@ test("overlapping runs that settle out of order leave no settled store behind", 
     const second = deferred();
     const a = storage.run("query a", () => first.promise);
     const b = storage.run("query b", () => second.promise);
-    assert.equal(storage.getStore(), "query b");
+    expect(storage.getStore()).toBe("query b");
     first.resolve();
     await a;
     await tick();
-    assert.equal(storage.getStore(), "query b");
+    expect(storage.getStore()).toBe("query b");
     second.resolve();
     await b;
     await tick();
     // Before the fix, settling b restored the store of a, which had already settled.
-    assert.equal(storage.getStore(), "render");
+    expect(storage.getStore()).toBe("render");
   });
-  assert.equal(storage.getStore(), undefined);
+  expect(storage.getStore()).toBe(undefined);
 });
 
 test("restores synchronous runs at once, including when they throw", () => {
   const storage = new AsyncLocalStorage();
   storage.enterWith("outside");
-  assert.equal(
-    storage.run("inner", () => storage.getStore()),
-    "inner",
-  );
-  assert.throws(() =>
+  expect(storage.run("inner", () => storage.getStore())).toBe("inner");
+  expect(() =>
     storage.run("failing", () => {
       throw new Error("failed");
     }),
-  );
-  assert.equal(storage.getStore(), "outside");
+  ).toThrow();
+  expect(storage.getStore()).toBe("outside");
   storage.disable();
-  assert.equal(storage.getStore(), undefined);
+  expect(storage.getStore()).toBe(undefined);
 });
 
 test("rejected runs release their store", async () => {
   const storage = new AsyncLocalStorage();
-  await assert.rejects(
+  await expect(
     storage.run("failing", async () => {
       await tick();
       throw new Error("failed");
     }),
-  );
+  ).rejects.toThrow();
   await tick();
-  assert.equal(storage.getStore(), undefined);
+  expect(storage.getStore()).toBe(undefined);
 });
 
 test("enterWith inside a run changes that run's store only", async () => {
@@ -83,10 +78,10 @@ test("enterWith inside a run changes that run's store only", async () => {
     await storage.run("inner", async () => {
       storage.enterWith("changed");
       await tick();
-      assert.equal(storage.getStore(), "changed");
+      expect(storage.getStore()).toBe("changed");
     });
     await tick();
-    assert.equal(storage.getStore(), "outer");
+    expect(storage.getStore()).toBe("outer");
   });
 });
 
@@ -96,7 +91,7 @@ test("snapshot and bind restore every storage's captured store", async () => {
   const read = () => [first.getStore(), second.getStore()];
   const snapshot = first.run("a", () => second.run("b", () => AsyncLocalStorage.snapshot()));
   const bound = first.run("x", () => AsyncLocalStorage.bind(read));
-  assert.deepEqual(snapshot(read), ["a", "b"]);
-  assert.deepEqual(bound(), ["x", undefined]);
-  assert.deepEqual(read(), [undefined, undefined]);
+  expect(snapshot(read)).toStrictEqual(["a", "b"]);
+  expect(bound()).toStrictEqual(["x", undefined]);
+  expect(read()).toStrictEqual([undefined, undefined]);
 });

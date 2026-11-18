@@ -5,6 +5,7 @@
   "description": "End-to-end harness and shared checks of the framework examples",
   "type": "module",
   "exports": {
+    "./acceptance-config": "./acceptance-config.ts",
     "./common-checks": "./common-checks.ts",
     "./features": "./features.ts",
     "./suite": "./suite.ts"
@@ -12,6 +13,7 @@
   "devDependencies": {
     "@fetchlet-internal/tools-workspace": "workspace:*",
     "@types/node": "catalog:",
-    "playwright": "catalog:"
+    "playwright": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

@@ -1,5 +1,5 @@
 // The end-to-end harness of a framework example: starts the example's Rust
-// server with a test configuration, registers checks with node:test, opens
+// server with a test configuration, registers checks with Vitest, opens
 // Playwright pages on demand and records results/example-<name>.json.
 
 import { spawn, type ChildProcess } from "node:child_process";
@@ -7,7 +7,6 @@ import { once } from "node:events";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { after, before, test } from "node:test";
 
 import { exampleBinary, root } from "@fetchlet-internal/tools-workspace/paths";
 import {
@@ -17,6 +16,7 @@ import {
   writeResult,
 } from "@fetchlet-internal/tools-workspace/results";
 import { chromium, type Browser, type Page } from "playwright";
+import { afterAll, beforeAll, test } from "vite-plus/test";
 
 import type { Feature } from "./features.ts";
 
@@ -47,7 +47,7 @@ export function exampleSuite(name: string): ExampleSuite {
   let base: string | undefined;
   let stderr = "";
 
-  before(async () => {
+  beforeAll(async () => {
     await mkdir(output, { recursive: true });
     const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
     config.listen = "127.0.0.1:0";
@@ -87,7 +87,7 @@ export function exampleSuite(name: string): ExampleSuite {
     });
   });
 
-  after(async () => {
+  afterAll(async () => {
     await browser?.close();
     if (child && child.exitCode === null && child.signalCode === null) {
       const exited = once(child, "exit");

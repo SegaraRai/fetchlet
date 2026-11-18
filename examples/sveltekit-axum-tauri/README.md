@@ -109,8 +109,8 @@ only `https://rust.fetchlet.test`.
 | `openapi.json`            | The Rust API's OpenAPI document (generated, committed)                       |
 | `config.json`             | Listen address, queue, body, note, file and index budgets, watch delay       |
 | `sample/`                 | Demo notes                                                                   |
-| `tests/e2e.ts`            | Checks `mdw serve` over real HTTP with Chromium                              |
-| `tests/desktop.ts`        | Checks `mdw desktop` through WebView2's DevTools protocol                    |
+| `tests/e2e.test.ts`       | Checks `mdw serve` over real HTTP with Chromium                              |
+| `tests/desktop.test.ts`   | Checks `mdw desktop` through WebView2's DevTools protocol                    |
 
 ## SvelteKit configuration
 
@@ -205,8 +205,8 @@ vp run setup:browser
 vp run test:examples -- sveltekit-axum-tauri
 ```
 
-The task builds the frontend and Rust, then runs `tests/e2e.ts` and
-`tests/desktop.ts`.
+The task builds the frontend and Rust, then runs `tests/e2e.test.ts` and
+`tests/desktop.test.ts`.
 
 - `e2e.ts`: Brotli serving and ETags of the embedded assets, SSR,
   highlighting in Rust, raw HTML removal, the public API, 409 on conflicts,

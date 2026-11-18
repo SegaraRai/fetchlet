@@ -12,5 +12,8 @@
     "@exodus/bytes": "catalog:",
     "core-js-pure": "catalog:",
     "web-streams-polyfill": "catalog:"
+  },
+  "devDependencies": {
+    "vite-plus": "catalog:"
   }
 }

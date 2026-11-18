@@ -1,19 +1,18 @@
-import assert from "node:assert/strict";
-
 import { assertStreams } from "@fetchlet-internal/tools-examples/common-checks";
 import { exampleSuite } from "@fetchlet-internal/tools-examples/suite";
+import { expect } from "vite-plus/test";
 
 const suite = exampleSuite("sveltekit-axum");
 const { check } = suite;
 
 check("SSR, escaping and the Rust service binding", ["ssr", "bindings"], async () => {
   const response = await fetch(suite.base + "/?name=" + encodeURIComponent("<Rust & Svelte>"));
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /text\/html/);
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type") ?? "").toMatch(/text\/html/);
   const html = await response.text();
-  assert.match(html, /&lt;Rust &amp; Svelte>/);
-  assert.match(html, /Welcome to SvelteKit and Rust/);
-  assert.match(html, /Greetings from the Rust service/);
+  expect(html).toMatch(/&lt;Rust &amp; Svelte>/);
+  expect(html).toMatch(/Welcome to SvelteKit and Rust/);
+  expect(html).toMatch(/Greetings from the Rust service/);
 });
 
 check("a promise from load streams after the page", ["streaming-ssr"], async () => {
@@ -25,19 +24,18 @@ check("client JavaScript, CSS and static files", ["assets"], async () => {
   const assets = [...html.matchAll(/["']([^"'<>]+\.(?:js|css))["']/g)]
     .map((match) => new URL(match[1]!, suite.base))
     .filter((url) => url.pathname.startsWith("/_app/"));
-  assert.ok(assets.some((url) => url.pathname.endsWith(".js")));
-  assert.ok(assets.some((url) => url.pathname.endsWith(".css")));
+  expect(assets.some((url) => url.pathname.endsWith(".js"))).toBeTruthy();
+  expect(assets.some((url) => url.pathname.endsWith(".css"))).toBeTruthy();
   for (const asset of assets) {
     const response = await fetch(asset);
-    assert.equal(response.status, 200, asset.href);
-    assert.match(
-      response.headers.get("content-type") ?? "",
+    expect(response.status, asset.href).toBe(200);
+    expect(response.headers.get("content-type") ?? "").toMatch(
       asset.pathname.endsWith(".css") ? /css/ : /javascript/,
     );
-    assert.ok((await response.text()).length > 0);
+    expect((await response.text()).length > 0).toBeTruthy();
   }
-  assert.match(await (await fetch(suite.base + "/health.txt")).text(), /sveltekit-axum assets/);
-  assert.equal((await fetch(suite.base + "/server.js")).status, 404);
+  expect(await (await fetch(suite.base + "/health.txt")).text()).toMatch(/sveltekit-axum assets/);
+  expect((await fetch(suite.base + "/server.js")).status).toBe(404);
 });
 
 check("SvelteKit JSON endpoint", ["json"], async () => {
@@ -47,8 +45,8 @@ check("SvelteKit JSON endpoint", ["json"], async () => {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(value),
   });
-  assert.equal(response.status, 201);
-  assert.deepEqual(await response.json(), value);
+  expect(response.status).toBe(201);
+  expect(await response.json()).toStrictEqual(value);
 });
 
 check("form action and Set-Cookie", ["form", "cookies"], async () => {
@@ -61,15 +59,15 @@ check("form action and Set-Cookie", ["form", "cookies"], async () => {
     },
     body: new URLSearchParams({ name: "Zoë" }),
   });
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("set-cookie") ?? "", /visitor=/);
-  assert.match(await response.text(), /Zoë/);
+  expect(response.status).toBe(200);
+  expect(response.headers.get("set-cookie") ?? "").toMatch(/visitor=/);
+  expect(await response.text()).toMatch(/Zoë/);
 });
 
 check("request context and environment", ["client-address", "bindings"], async () => {
   const response = await fetch(suite.base + "/api/context");
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
+  expect(response.status).toBe(200);
+  expect(await response.json()).toStrictEqual({
     clientAddress: "127.0.0.1",
     message: "Welcome to SvelteKit and Rust.",
   });
@@ -77,8 +75,8 @@ check("request context and environment", ["client-address", "bindings"], async (
 
 check("native axum route coexists with SvelteKit", ["rust-routes"], async () => {
   const response = await fetch(suite.base + "/api/rust");
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { message: "served by axum" });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toStrictEqual({ message: "served by axum" });
 });
 
 check("input budget and the following request", ["body-budget"], async () => {
@@ -86,8 +84,8 @@ check("input budget and the following request", ["body-budget"], async () => {
     method: "POST",
     body: "x".repeat(4097),
   });
-  assert.equal(response.status, 413);
-  assert.equal((await fetch(suite.base)).status, 200);
+  expect(response.status).toBe(413);
+  expect((await fetch(suite.base)).status).toBe(200);
 });
 
 const stats = async () => (await fetch(suite.base + "/api/v1/stats")).json();
@@ -103,49 +101,52 @@ check(
       headers: { origin: suite.base, "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ name: " " }),
     });
-    assert.equal(empty.status, 400);
-    assert.match(await empty.text(), /name is required/);
+    expect(empty.status).toBe(400);
+    expect(await empty.text()).toMatch(/name is required/);
 
     const created = await fetch(suite.base + "/projects", {
       method: "POST",
       headers: { origin: suite.base, "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ name: "Review" }),
     });
-    assert.equal(created.status, 200);
-    assert.match(await (await fetch(suite.base + "/projects")).text(), /\d+: Review/);
+    expect(created.status).toBe(200);
+    expect(await (await fetch(suite.base + "/projects")).text()).toMatch(/\d+: Review/);
 
     const found = await fetch(suite.base + "/api/projects/1");
-    assert.equal(found.status, 200);
-    assert.equal((await found.json()).id, 1);
+    expect(found.status).toBe(200);
+    expect((await found.json()).id).toBe(1);
     // Browsers reach the same Rust router and state over public HTTP.
     const listed = await (await fetch(suite.base + "/api/v1/projects")).json();
-    assert.ok(listed.some((project: { name: string }) => project.name === "Review"));
+    expect(listed.some((project: { name: string }) => project.name === "Review")).toBeTruthy();
 
     const missing = await fetch(suite.base + "/api/projects/999");
-    assert.equal(missing.status, 404);
-    assert.deepEqual(await missing.json(), { error: "project not found" });
+    expect(missing.status).toBe(404);
+    expect(await missing.json()).toStrictEqual({ error: "project not found" });
   },
 );
 
 check("a Rust 500 reaches JavaScript as a Response", ["internal-fetch"], async () => {
-  assert.deepEqual(await inProcess("failure"), { status: 500, body: { error: "internal error" } });
+  expect(await inProcess("failure")).toStrictEqual({
+    status: 500,
+    body: { error: "internal error" },
+  });
 });
 
 check("the trusted caller comes from Rust, not from headers", ["internal-fetch"], async () => {
-  assert.deepEqual(await inProcess("caller"), { status: 200, body: { address: "127.0.0.1" } });
+  expect(await inProcess("caller")).toStrictEqual({ status: 200, body: { address: "127.0.0.1" } });
   const response = await fetch(suite.base + "/api/v1/caller", {
     headers: { "x-forwarded-for": "203.0.113.9" },
   });
-  assert.equal(response.status, 401);
+  expect(response.status).toBe(401);
 });
 
 check("the fetch policy denies other origins on every path", ["internal-fetch"], async () => {
   const before = await stats();
   const outcome = await inProcess("denied");
   for (const path of ["binding", "global", "event"]) {
-    assert.equal(outcome[path].rejected?.code, "PERMISSION_DENIED", path);
+    expect(outcome[path].rejected?.code, path).toBe("PERMISSION_DENIED");
   }
-  assert.equal((await stats()).calls, before.calls, "denied before reaching Rust");
+  expect((await stats()).calls, "denied before reaching Rust").toBe(before.calls);
 });
 
 check(
@@ -154,19 +155,19 @@ check(
   async () => {
     const before = await stats();
     const outcome = await inProcess("abort");
-    assert.equal(outcome.rejected?.name, "AbortError");
-    assert.equal(outcome.cancelledDuringInvocation, 1);
-    assert.equal((await stats()).cancelled, before.cancelled + 1);
-    assert.equal((await fetch(suite.base)).status, 200);
+    expect(outcome.rejected?.name).toBe("AbortError");
+    expect(outcome.cancelledDuringInvocation).toBe(1);
+    expect((await stats()).cancelled).toBe(before.cancelled + 1);
+    expect((await fetch(suite.base)).status).toBe(200);
   },
 );
 
 check("same-origin event.fetch stays inside SvelteKit", ["internal-fetch"], async () => {
   const before = await stats();
   const outcome = await inProcess("internal");
-  assert.equal(outcome.status, 200);
-  assert.equal(outcome.body.message, "Welcome to SvelteKit and Rust.");
-  assert.equal((await stats()).calls, before.calls);
+  expect(outcome.status).toBe(200);
+  expect(outcome.body.message).toBe("Welcome to SvelteKit and Rust.");
+  expect((await stats()).calls).toBe(before.calls);
 });
 
 check(
@@ -179,12 +180,12 @@ check(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ label }),
     });
-    assert.equal(response.status, 202);
+    expect(response.status).toBe(202);
     const accepted = await response.json();
-    assert.equal(accepted.accepted, label);
-    assert.ok(!accepted.completed.includes(label), "sent before the work finished");
+    expect(accepted.accepted).toBe(label);
+    expect(!accepted.completed.includes(label), "sent before the work finished").toBeTruthy();
     const { completed } = await (await fetch(suite.base + "/api/background")).json();
-    assert.ok(completed.includes(label));
+    expect(completed.includes(label)).toBeTruthy();
   },
 );
 
@@ -192,7 +193,7 @@ check("concurrent requests keep their own values", ["concurrency"], async () => 
   await Promise.all(
     ["Alice", "Bob", "Carol", "Dave"].map(async (name) => {
       const html = await (await fetch(suite.base + "/?name=" + name)).text();
-      assert.match(html, new RegExp("Hello, " + name));
+      expect(html).toMatch(new RegExp("Hello, " + name));
     }),
   );
 });
@@ -209,7 +210,7 @@ check(
       () => document.querySelector<HTMLElement>("main")?.dataset.hydrated === "true",
     );
     await page.getByRole("button", { name: "Clicks 0", exact: true }).click();
-    assert.equal(await page.getByRole("button", { name: "Clicks 1", exact: true }).count(), 1);
+    expect(await page.getByRole("button", { name: "Clicks 1", exact: true }).count()).toBe(1);
 
     await page.getByLabel("Name").fill("Browser");
     await page.getByRole("button", { name: "Greet" }).click();
@@ -225,14 +226,13 @@ check(
     });
     await page.getByRole("link", { name: "About" }).click();
     await page.waitForURL("**/about");
-    assert.equal(await page.getByRole("heading", { name: "About" }).count(), 1);
-    assert.equal(
+    expect(await page.getByRole("heading", { name: "About" }).count()).toBe(1);
+    expect(
       await page.evaluate(
         () => (window as unknown as Record<string, unknown>).fetchletNavigationMarker,
       ),
-      "retained",
-    );
-    assert.deepEqual(errors, []);
+    ).toBe("retained");
+    expect(errors).toStrictEqual([]);
     await page.close();
   },
 );

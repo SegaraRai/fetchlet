@@ -2,11 +2,9 @@
 // what it shares and how it merges Vary; and how directoryAssets and the
 // assets option build entries. docs/asset-archive.md has the format.
 
-import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { test } from "node:test";
 import { brotliDecompressSync } from "node:zlib";
 
 import {
@@ -18,6 +16,7 @@ import {
   type AssetsOption,
   type DirectoryAssetOptions,
 } from "fetchlet/build";
+import { expect, test } from "vite-plus/test";
 
 interface Entry {
   path: string;
@@ -30,8 +29,8 @@ interface Entry {
 
 /** Read an archive back, following docs/asset-archive.md. */
 function readArchive(archive: Buffer): Entry[] {
-  assert.equal(archive.subarray(0, 4).toString("latin1"), "FLPK");
-  assert.equal(archive.readUInt16LE(4), 1);
+  expect(archive.subarray(0, 4).toString("latin1")).toBe("FLPK");
+  expect(archive.readUInt16LE(4)).toBe(1);
   const entryCount = archive.readUInt32LE(8);
   const entryOffset = Number(archive.readBigUInt64LE(24));
   const setOffset = Number(archive.readBigUInt64LE(32));
@@ -93,14 +92,11 @@ const text = "fetchlet ".repeat(100);
 
 test("entries are sorted by path bytes and identical bodies are stored once", async () => {
   const { entries } = await archiveOf({ "b.txt": text, "a.txt": text, "Z.txt": "other" });
-  assert.deepEqual(
-    entries.map((entry) => entry.path),
-    ["/Z.txt", "/a.txt", "/b.txt"],
-  );
+  expect(entries.map((entry) => entry.path)).toStrictEqual(["/Z.txt", "/a.txt", "/b.txt"]);
   const [, a, b] = entries;
-  assert.equal(a!.dataOffset, b!.dataOffset);
-  assert.equal(a!.body.toString(), text);
-  assert.ok(a!.brotli);
+  expect(a!.dataOffset).toBe(b!.dataOffset);
+  expect(a!.body.toString()).toBe(text);
+  expect(a!.brotli).toBeTruthy();
 });
 
 test("Brotli entries vary on Accept-Encoding, merged into a stored Vary", async () => {
@@ -113,12 +109,12 @@ test("Brotli entries vary on Accept-Encoding, merged into a stored Vary", async 
   );
   const vary = (path: string) =>
     entries.find((entry) => entry.path === path)!.headers.find(([name]) => name === "vary")?.[1];
-  assert.equal(vary("/a.txt"), "accept-encoding");
-  assert.equal(vary("/b.txt"), "origin, accept-encoding");
+  expect(vary("/a.txt")).toBe("accept-encoding");
+  expect(vary("/b.txt")).toBe("origin, accept-encoding");
   // A body Brotli does not shrink is stored as it is, without Vary.
   const tiny = entries.find((entry) => entry.path === "/tiny.txt")!;
-  assert.equal(tiny.brotli, false);
-  assert.equal(vary("/tiny.txt"), undefined);
+  expect(tiny.brotli).toBe(false);
+  expect(vary("/tiny.txt")).toBe(undefined);
 });
 
 test("a Response replaces the file with its status, headers and body", async () => {
@@ -127,9 +123,9 @@ test("a Response replaces the file with its status, headers and body", async () 
     () => new Response("generated", { status: 410, headers: { "x-reason": "gone" } }),
   );
   const [page] = entries;
-  assert.equal(page!.status, 410);
-  assert.equal(page!.body.toString(), "generated");
-  assert.deepEqual(page!.headers, [
+  expect(page!.status).toBe(410);
+  expect(page!.body.toString()).toBe("generated");
+  expect(page!.headers).toStrictEqual([
     ["content-type", "text/plain;charset=UTF-8"],
     ["x-reason", "gone"],
   ]);
@@ -137,13 +133,12 @@ test("a Response replaces the file with its status, headers and body", async () 
 
 test("headers the server derives are refused", async () => {
   for (const name of ["content-length", "content-encoding", "etag", "content-range"]) {
-    await assert.rejects(
+    await expect(
       archiveOf({ "a.txt": "a" }, ({ headers }) => {
         headers.set(name, "1");
         return headers;
       }),
-      new RegExp(`sets ${name}`),
-    );
+    ).rejects.toThrow(new RegExp(`sets ${name}`));
   }
 });
 
@@ -157,13 +152,13 @@ test("archiveArtifactAssets writes assets.flpk and names it in fetchlet.json", a
       JSON.stringify({ server: "server.js", client: "client" }),
     );
     const summary = await archiveArtifactAssets({ outDir: directory });
-    assert.equal(summary.entries, 2);
+    expect(summary.entries).toBe(2);
     const manifest = JSON.parse(readFileSync(join(directory, "fetchlet.json"), "utf8"));
-    assert.equal(manifest.assets, "assets.flpk");
+    expect(manifest.assets).toBe("assets.flpk");
     const paths = readArchive(readFileSync(join(directory, "assets.flpk"))).map(
       (entry) => entry.path,
     );
-    assert.deepEqual(paths, ["/", "/index.html"]);
+    expect(paths).toStrictEqual(["/", "/index.html"]);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -191,7 +186,7 @@ async function routesOf(
       readArchive(bytes).map((entry, index) => {
         const location = entry.headers.find(([name]) => name === "location")?.[1];
         const keepsQuery = (bytes.readUInt16LE(entryOffset + index * 64 + 38) & 2) === 2;
-        if (location) assert.ok(keepsQuery, `${entry.path} keeps the query`);
+        if (location) expect(keepsQuery, `${entry.path} keeps the query`).toBeTruthy();
         return [entry.path, location ? `${entry.status} ${location}` : entry.body.toString()];
       }),
     );
@@ -203,7 +198,7 @@ async function routesOf(
 const pages = ["index.html", "docs/index.html", "about.html", "app.js"];
 
 test("the default routes serve what ServeDir serves", async () => {
-  assert.deepEqual(await routesOf(pages), {
+  expect(await routesOf(pages)).toStrictEqual({
     "/": "index.html",
     "/about.html": "about.html",
     "/app.js": "app.js",
@@ -215,59 +210,57 @@ test("the default routes serve what ServeDir serves", async () => {
 });
 
 test("trailingSlash never with stripped extensions follows SvelteKit", async () => {
-  assert.deepEqual(
+  expect(
     await routesOf(pages, { routes: { trailingSlash: "never", htmlExtension: "strip" } }),
-    {
-      "/": "index.html",
-      "/about": "about.html",
-      "/about.html": "308 /about",
-      "/about/": "308 /about",
-      "/app.js": "app.js",
-      "/docs": "docs/index.html",
-      "/docs/": "308 /docs",
-      "/docs/index.html": "308 /docs",
-      "/index.html": "308 /",
-    },
-  );
+  ).toStrictEqual({
+    "/": "index.html",
+    "/about": "about.html",
+    "/about.html": "308 /about",
+    "/about/": "308 /about",
+    "/app.js": "app.js",
+    "/docs": "docs/index.html",
+    "/docs/": "308 /docs",
+    "/docs/index.html": "308 /docs",
+    "/index.html": "308 /",
+  });
 });
 
 test("trailingSlash always with stripped extensions puts pages under a slash", async () => {
   const routes = await routesOf(pages, {
     routes: { trailingSlash: "always", htmlExtension: "strip" },
   });
-  assert.equal(routes["/about/"], "about.html");
-  assert.equal(routes["/about"], "308 /about/");
-  assert.equal(routes["/about.html"], "308 /about/");
+  expect(routes["/about/"]).toBe("about.html");
+  expect(routes["/about"]).toBe("308 /about/");
+  expect(routes["/about.html"]).toBe("308 /about/");
 });
 
 test("trailingSlash ignore serves both forms", async () => {
   const routes = await routesOf(pages, {
     routes: { trailingSlash: "ignore", htmlExtension: "strip" },
   });
-  assert.equal(routes["/docs"], "docs/index.html");
-  assert.equal(routes["/docs/"], "docs/index.html");
-  assert.equal(routes["/about"], "about.html");
-  assert.equal(routes["/about/"], "about.html");
+  expect(routes["/docs"]).toBe("docs/index.html");
+  expect(routes["/docs/"]).toBe("docs/index.html");
+  expect(routes["/about"]).toBe("about.html");
+  expect(routes["/about/"]).toBe("about.html");
 });
 
 test("two files at one path are refused, and a file wins over a redirect", async () => {
-  await assert.rejects(
+  await expect(
     routesOf(["about.html", "about/index.html"], {
       routes: { trailingSlash: "never", htmlExtension: "strip" },
     }),
-    /\/about is served twice/,
-  );
+  ).rejects.toThrow(/\/about is served twice/);
   // x.html redirects /x.html to /x, but x.html.html is served at /x.html.
   const routes = await routesOf(["x.html", "x.html.html"], {
     routes: { trailingSlash: "never", htmlExtension: "strip" },
   });
-  assert.equal(routes["/x"], "x.html");
-  assert.equal(routes["/x.html"], "x.html.html");
+  expect(routes["/x"]).toBe("x.html");
+  expect(routes["/x.html"]).toBe("x.html.html");
 });
 
 test("dot-named build metadata is left out, .well-known is kept", async () => {
   const routes = await routesOf([".vite/manifest.json", ".well-known/security.txt", "app.js"]);
-  assert.deepEqual(Object.keys(routes).sort(), ["/.well-known/security.txt", "/app.js"]);
+  expect(Object.keys(routes).sort()).toStrictEqual(["/.well-known/security.txt", "/app.js"]);
 });
 
 test("include overrides the default with the default decision in hand", async () => {
@@ -275,7 +268,7 @@ test("include overrides the default with the default decision in hand", async ()
   const routes = await routesOf(files, {
     include: ({ path }, defaults) => (defaults || path === "/.nojekyll") && path !== "/drafts",
   });
-  assert.deepEqual(Object.keys(routes).sort(), ["/.nojekyll", "/app.js"]);
+  expect(Object.keys(routes).sort()).toStrictEqual(["/.nojekyll", "/app.js"]);
 });
 
 test("cache rules apply by the longest prefix, and respond can leave a file out", async () => {
@@ -283,10 +276,10 @@ test("cache rules apply by the longest prefix, and respond can leave a file out"
     { "assets/a.js": "a", "assets/fonts/b.woff2": "b", "legacy.js": "c" },
     ({ path, headers }) => (path === "/legacy.js" ? null : headers),
   );
-  assert.deepEqual(
-    entries.map((entry) => entry.path),
-    ["/assets/a.js", "/assets/fonts/b.woff2"],
-  );
+  expect(entries.map((entry) => entry.path)).toStrictEqual([
+    "/assets/a.js",
+    "/assets/fonts/b.woff2",
+  ]);
   const directory = mkdtempSync(join(tmpdir(), "fetchlet-asset-cache-"));
   try {
     mkdirSync(join(directory, "assets/fonts"), { recursive: true });
@@ -300,8 +293,8 @@ test("cache rules apply by the longest prefix, and respond can leave a file out"
     });
     const cacheControl = (path: string) =>
       new Headers(cached.find((entry) => entry.path === path)!.headers).get("cache-control");
-    assert.equal(cacheControl("/assets/a.js"), "short");
-    assert.equal(cacheControl("/assets/fonts/b.woff2"), "long");
+    expect(cacheControl("/assets/a.js")).toBe("short");
+    expect(cacheControl("/assets/fonts/b.woff2")).toBe("long");
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -318,21 +311,17 @@ test("entries are written as given, and a path is refused twice", async () => {
     ];
     await writeAssetArchive({ entries, out });
     const written = readArchive(readFileSync(out));
-    assert.deepEqual(
-      written.map((entry) => [entry.path, entry.status]),
-      [
-        ["/bytes", 200],
-        ["/old", 308],
-        ["/robots.txt", 200],
-      ],
-    );
-    assert.deepEqual(written[0]!.headers, []);
-    assert.deepEqual([...written[0]!.body], [1, 2, 3]);
-    assert.deepEqual(written[1]!.headers, [["location", "/new"]]);
-    await assert.rejects(
+    expect(written.map((entry) => [entry.path, entry.status])).toStrictEqual([
+      ["/bytes", 200],
+      ["/old", 308],
+      ["/robots.txt", 200],
+    ]);
+    expect(written[0]!.headers).toStrictEqual([]);
+    expect([...written[0]!.body]).toStrictEqual([1, 2, 3]);
+    expect(written[1]!.headers).toStrictEqual([["location", "/new"]]);
+    await expect(
       writeAssetArchive({ entries: [...entries, { path: "/old" }], out }),
-      /\/old is served twice/,
-    );
+    ).rejects.toThrow(/\/old is served twice/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -356,7 +345,7 @@ async function artifactPaths(assets: AssetsOption & object): Promise<string[]> {
 }
 
 test("settings add entries after the client directory's", async () => {
-  assert.deepEqual(await artifactPaths({ entries: [redirect("/home", "/")] }), [
+  expect(await artifactPaths({ entries: [redirect("/home", "/")] })).toStrictEqual([
     "/",
     "/home",
     "/index.html",
@@ -364,12 +353,11 @@ test("settings add entries after the client directory's", async () => {
 });
 
 test("a function returns every entry, with the defaults on request", async () => {
-  assert.deepEqual(await artifactPaths(() => [{ path: "/only" }]), ["/only"]);
-  assert.deepEqual(
+  expect(await artifactPaths(() => [{ path: "/only" }])).toStrictEqual(["/only"]);
+  expect(
     await artifactPaths(async ({ defaults }) => [
       ...(await defaults({ routes: { htmlExtension: "strip" } })),
       { path: "/extra" },
     ]),
-    ["/", "/extra", "/index.html"],
-  );
+  ).toStrictEqual(["/", "/extra", "/index.html"]);
 });

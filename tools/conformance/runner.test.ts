@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
 import vm from "node:vm";
+
+import { expect, test } from "vite-plus/test";
 
 import { runProcess } from "./process.ts";
 import { assess, key } from "./report.ts";
@@ -27,22 +27,21 @@ test("all vendored sources match their pinned checksums", () => {
 
 test("Test262 metadata preserves YAML and chooses strict/sloppy modes", () => {
   const text = "/*---\ndescription: >\n  multiple\n  lines\nincludes: [compareArray.js]\n---*/";
-  assert.equal(String(metadata(text).description).trim(), "multiple lines");
-  assert.deepEqual(
-    variantsForSource("example", text).map((variant) => variant.mode),
-    ["sloppy", "strict"],
-  );
+  expect(String(metadata(text).description).trim()).toBe("multiple lines");
+  expect(variantsForSource("example", text).map((variant) => variant.mode)).toStrictEqual([
+    "sloppy",
+    "strict",
+  ]);
   for (const [flag, modes] of [
     ["onlyStrict", ["strict"]],
     ["noStrict", ["sloppy"]],
     ["raw", ["sloppy"]],
   ] as const) {
-    assert.deepEqual(
+    expect(
       variantsForSource("example", "/*---\nflags: [" + flag + "]\n---*/").map(
         (variant) => variant.mode,
       ),
-      modes,
-    );
+    ).toStrictEqual(modes);
   }
 });
 
@@ -53,7 +52,9 @@ test("unsupported module and negative phases are explicit", () => {
     "/*---\nnegative:\n  phase: parse\n  type: SyntaxError\n---*/",
     "/*---\nnegative:\n  phase: runtime\n  type: TypeError\n---*/",
   ])
-    assert.ok(variantsForSource("unsupported", text).every((variant) => variant.unsupported));
+    expect(
+      variantsForSource("unsupported", text).every((variant) => variant.unsupported),
+    ).toBeTruthy();
 });
 
 test("Test262 sources retain global script semantics and harness lexical bindings", async () => {
@@ -69,8 +70,10 @@ test("Test262 sources retain global script semantics and harness lexical binding
   try {
     writeFileSync(file, test262Program(strictVariant));
     const result = await runProcess("node-reference", file, 10000, "test262");
-    assert.ok(result.status === "complete");
-    assert.equal(result.value.tests[0].status, 0, result.value.tests[0].message);
+    if (result.status !== "complete") {
+      expect.fail(result.message);
+    }
+    expect(result.value.tests[0].status, result.value.tests[0].message).toBe(0);
   } finally {
     unlinkSync(file);
     rmdirSync(directory);
@@ -78,9 +81,9 @@ test("Test262 sources retain global script semantics and harness lexical binding
 });
 
 test("Test262 assertion errors stay failures and async DONE errors are observed", async () => {
-  assert.throws(() => {
+  expect(() => {
     new vm.Script(test262Program(variant({ text: "assert.sameValue(1, 2);" }))).runInNewContext({});
-  });
+  }).toThrow();
   const result = await execute(
     test262Program(
       variant({
@@ -89,8 +92,8 @@ test("Test262 assertion errors stay failures and async DONE errors are observed"
       }),
     ),
   );
-  assert.equal(result.tests[0].status, 1);
-  assert.match(result.tests[0].message, /sentinel/);
+  expect(result.tests[0].status).toBe(1);
+  expect(result.tests[0].message).toMatch(/sentinel/);
 });
 
 test("unmodified WPT harness preserves sync and async assertion failures", async () => {
@@ -101,15 +104,14 @@ test("unmodified WPT harness preserves sync and async assertion failures", async
         "test(() => assert_equals(1, 1), 'pass');",
     ]),
   );
-  assert.equal(result.harness.status, 0);
-  assert.deepEqual(
-    Array.from(result.tests, (entry: { status: number }) => entry.status),
-    [1, 1, 0],
-  );
+  expect(result.harness.status).toBe(0);
+  expect(Array.from(result.tests, (entry: { status: number }) => entry.status)).toStrictEqual([
+    1, 1, 0,
+  ]);
 });
 
 test("pinned WPT data answers literal relative fetches", async () => {
-  assert.deepEqual(fetchedData("fetch('resources/a.json'); fetch(url); fetch(\"b.json\")"), [
+  expect(fetchedData("fetch('resources/a.json'); fetch(url); fetch(\"b.json\")")).toStrictEqual([
     "resources/a.json",
     "b.json",
   ]);
@@ -137,10 +139,9 @@ test("pinned WPT data answers literal relative fetches", async () => {
     ),
   ).runInContext(realm);
   const result = await realm.fetchletExports.run();
-  assert.deepEqual(
-    Array.from(result.tests, (entry: { status: number }) => entry.status),
-    [0, 0],
-  );
+  expect(Array.from(result.tests, (entry: { status: number }) => entry.status)).toStrictEqual([
+    0, 0,
+  ]);
 });
 
 test("expectations accept only known assertion failures, and improvements require review", () => {
@@ -152,16 +153,15 @@ test("expectations accept only known assertion failures, and improvements requir
     name: "case",
   };
   const expectations = [{ key: key(identity), reason: "Known behavior" }];
-  assert.equal(assess([{ ...identity, status: "fail" }], expectations).unexpected, 0);
-  assert.equal(assess([{ ...identity, status: "pass" }], expectations).unexpected, 1);
-  assert.equal(
-    assess([{ ...identity, status: "fail" }], expectations, { strict: true }).unexpected,
+  expect(assess([{ ...identity, status: "fail" }], expectations).unexpected).toBe(0);
+  expect(assess([{ ...identity, status: "pass" }], expectations).unexpected).toBe(1);
+  expect(assess([{ ...identity, status: "fail" }], expectations, { strict: true }).unexpected).toBe(
     1,
   );
   for (const status of ["timeout", "runner-error", "harness-error"]) {
-    assert.equal(assess([{ ...identity, status }], expectations).unexpected, 1);
+    expect(assess([{ ...identity, status }], expectations).unexpected).toBe(1);
   }
-  assert.equal(assess([], expectations, { complete: true }).unexpected, 1);
+  expect(assess([], expectations, { complete: true }).unexpected).toBe(1);
 });
 
 test("the parent terminates a non-completing process at its deadline", async () => {
@@ -173,7 +173,7 @@ test("the parent terminates a non-completing process at its deadline", async () 
       "var fetchletExports = { run() { setInterval(() => {}, 1000); return new Promise(() => {}); } };",
     );
     const result = await runProcess("node-reference", file, 100, "wpt");
-    assert.equal(result.status, "timeout");
+    expect(result.status).toBe("timeout");
   } finally {
     // This directory is created and owned exclusively by this test.
     unlinkSync(join(directory, "hang.js"));

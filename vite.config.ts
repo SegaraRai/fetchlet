@@ -16,6 +16,13 @@ export default defineConfig({
     // Pinned upstream sources are verified byte-for-byte against sources.lock.json.
     ignorePatterns: ["tests/conformance/upstream/**"],
   },
+  test: {
+    projects: [
+      "packages/fetchlet/vite.config.ts",
+      "packages/web/vite.config.ts",
+      "tools/conformance/vite.config.ts",
+    ],
+  },
   run: {
     tasks: {
       // build
@@ -55,12 +62,8 @@ export default defineConfig({
         command: "node tools/rust/test.ts",
         cache: false,
       },
-      "test:tools": {
-        command: "node --test tools/conformance/runner.test.ts",
-        cache: false,
-      },
-      "test:build": {
-        command: "node --test packages/fetchlet/tests/*/*.test.ts",
+      "test:js": {
+        command: "vp test --run",
         cache: false,
       },
       "test:package": {
@@ -79,7 +82,7 @@ export default defineConfig({
         cache: false,
       },
       "test:polyfills": {
-        command: "node --test tools/matrix/polyfills.test.ts",
+        command: "vp test --run --config tools/matrix/vite.config.ts",
         dependsOn: ["build:lab"],
         cache: false,
       },
@@ -106,10 +109,9 @@ export default defineConfig({
         dependsOn: [
           "check",
           "test:rust",
-          "test:tools",
           "test:conformance",
           "test:polyfills",
-          "test:build",
+          "test:js",
           "test:package",
           "test:matrix",
           "test:host",

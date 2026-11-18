@@ -19,14 +19,14 @@ QuickJS.
 
 ## Layout
 
-| Path             | Role                                                                      |
-| ---------------- | ------------------------------------------------------------------------- |
-| `app/`           | Layouts, pages, route handlers                                            |
-| `vite.config.ts` | vinext and fetchlet Vite plugins, Vite+ tasks                             |
-| `src/`           | Starting axum, bindings, routing                                          |
-| `config.json`    | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.ts`   | Checks over real HTTP in a real browser                                   |
-| `build/`         | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                | Role                                                                      |
+| ------------------- | ------------------------------------------------------------------------- |
+| `app/`              | Layouts, pages, route handlers                                            |
+| `vite.config.ts`    | vinext and fetchlet Vite plugins, Vite+ tasks                             |
+| `src/`              | Starting axum, bindings, routing                                          |
+| `config.json`       | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                   |
+| `build/`            | `server.js`, `client/`, `fetchlet.json`                                   |
 
 `/api/background` registers work after the response with `after()` from
 `next/server`. `background_tasks` in `config.json` is 64: on the first
