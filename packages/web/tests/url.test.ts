@@ -5,11 +5,11 @@
 
 import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 
-import { URLImpl } from "../src/url.ts";
+import { URLImpl } from "../src/internal/url/url.ts";
 
 const calls: string[] = [];
 
-vi.mock(import("../src/runtime.ts"), async () => {
+vi.mock(import("../src/internal/runtime/runtime.ts"), async () => {
   const { isolatedRuntime } = await import("./isolated-runtime.ts");
   const parts = (url: URL) => [
     url.href,

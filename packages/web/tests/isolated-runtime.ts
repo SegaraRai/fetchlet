@@ -4,7 +4,7 @@
 // globals, which it hides, so the profile installs its implementations of
 // those on this object and leaves Node's globals untouched.
 //
-//   vi.mock(import("../src/runtime.ts"), async () =>
+//   vi.mock(import("../src/internal/runtime/runtime.ts"), async () =>
 //     (await import("./isolated-runtime.ts")).isolatedRuntime(["Headers"]));
 
 import * as streams from "web-streams-polyfill";

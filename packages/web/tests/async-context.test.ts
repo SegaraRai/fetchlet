@@ -5,15 +5,21 @@
 
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 
-import "../src/abort.ts";
-import { Snapshot, Variable, enter, leave, propagates } from "../src/async-context.ts";
-import "../src/events.ts";
-import "../src/global-events.ts";
-import "../src/message-channel.ts";
-import { runtime } from "../src/runtime.ts";
-import "../src/timers.ts";
+import "../src/internal/dom/abort.ts";
+import {
+  Snapshot,
+  Variable,
+  enter,
+  leave,
+  propagates,
+} from "../src/internal/async-context/async-context.ts";
+import "../src/internal/dom/events.ts";
+import "../src/internal/html/global-events.ts";
+import "../src/internal/html/message-channel.ts";
+import { runtime } from "../src/internal/runtime/runtime.ts";
+import "../src/internal/html/timers.ts";
 
-vi.mock(import("../src/runtime.ts"), async () => {
+vi.mock(import("../src/internal/runtime/runtime.ts"), async () => {
   const { isolatedRuntime, nodeAsyncContextSlot } = await import("./isolated-runtime.ts");
   const isolated = isolatedRuntime([
     "setTimeout",

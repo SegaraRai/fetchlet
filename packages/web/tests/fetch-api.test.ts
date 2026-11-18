@@ -6,14 +6,14 @@
 
 import { describe, expect, test, vi } from "vite-plus/test";
 
-import { BodyImpl } from "../src/body.ts";
-import { runtime } from "../src/runtime.ts";
-import "../src/foundation.ts";
-import "../src/form-data.ts";
-import "../src/request.ts";
-import "../src/response.ts";
+import { BodyImpl } from "../src/internal/fetch/body.ts";
+import { runtime } from "../src/internal/runtime/runtime.ts";
+import "../src/internal/foundation/foundation.ts";
+import "../src/internal/fetch/form-data.ts";
+import "../src/internal/fetch/request.ts";
+import "../src/internal/fetch/response.ts";
 
-vi.mock(import("../src/runtime.ts"), async () => {
+vi.mock(import("../src/internal/runtime/runtime.ts"), async () => {
   const { fetchGlobals, isolatedRuntime } = await import("./isolated-runtime.ts");
   return isolatedRuntime(fetchGlobals);
 });

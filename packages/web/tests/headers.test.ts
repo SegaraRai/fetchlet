@@ -1,10 +1,10 @@
 import { describe, expect, test, vi } from "vite-plus/test";
 
-import { makeHeadersImmutable } from "../src/headers.ts";
-import "../src/headers.ts";
-import { runtime } from "../src/runtime.ts";
+import { makeHeadersImmutable } from "../src/internal/fetch/headers.ts";
+import "../src/internal/fetch/headers.ts";
+import { runtime } from "../src/internal/runtime/runtime.ts";
 
-vi.mock(import("../src/runtime.ts"), async () =>
+vi.mock(import("../src/internal/runtime/runtime.ts"), async () =>
   (await import("./isolated-runtime.ts")).isolatedRuntime(["Headers"]),
 );
 

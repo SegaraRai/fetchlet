@@ -3,13 +3,13 @@
 
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 
-import "../src/events.ts";
-import "../src/performance.ts";
-import { runtime } from "../src/runtime.ts";
+import "../src/internal/dom/events.ts";
+import "../src/internal/performance/performance.ts";
+import { runtime } from "../src/internal/runtime/runtime.ts";
 
 const clock = vi.hoisted(() => ({ now: 0 }));
 
-vi.mock(import("../src/runtime.ts"), async () =>
+vi.mock(import("../src/internal/runtime/runtime.ts"), async () =>
   (await import("./isolated-runtime.ts")).isolatedRuntime(
     [
       "Event",
