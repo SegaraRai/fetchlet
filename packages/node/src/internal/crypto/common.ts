@@ -3,8 +3,8 @@
 // derivations and `crypto.*` for the Web Crypto algorithms that keys,
 // signatures and ciphers use.
 
-import { Buffer } from "./buffer.ts";
-import { invalidArgType, nodeError } from "./errors.ts";
+import { Buffer } from "../buffer/buffer.ts";
+import { invalidArgType, nodeError } from "../errors/errors.ts";
 
 export type BinaryLike = string | ArrayBuffer | ArrayBufferView;
 export type Encoding =

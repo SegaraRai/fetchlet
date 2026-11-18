@@ -1,11 +1,8 @@
 // node:stream/promises: pipeline and finished as promises.
 
-/// <reference path="./readable-stream.d.ts" />
+import { finished, pipeline } from "./internal/stream/promises.ts";
 
-import promises from "readable-stream/lib/stream/promises.js";
-
-export const pipeline = promises.pipeline;
-export const finished = promises.finished;
+export { finished, pipeline };
 
 export default {
   pipeline,

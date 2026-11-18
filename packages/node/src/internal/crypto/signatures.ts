@@ -2,26 +2,26 @@
 // Web Crypto operations: RSASSA-PKCS1-v1_5 and RSA-PSS, ECDSA with Node's
 // DER or IEEE P1363 encoding, Ed25519, RSA-OAEP, ECDH and X25519.
 
-import { Buffer } from "./buffer.ts";
+import { Buffer } from "../buffer/buffer.ts";
+import { invalidArgType, invalidArgValue, nodeError, validateFunction } from "../errors/errors.ts";
 import {
-  type BinaryLike,
-  type Encoding,
-  type NodeBuffer,
-  WebCryptoFailure,
   base64,
+  type BinaryLike,
   callLater,
   concat,
   encode,
+  type Encoding,
   fromBase64,
   hashLengths,
   hashName,
+  type NodeBuffer,
   toBytes,
+  WebCryptoFailure,
   webCryptoHost,
   webHashes,
-} from "./crypto-common.ts";
-import { type AsymmetricKey, keyAlgorithm, prepareAsymmetricKey } from "./crypto-keys.ts";
+} from "./common.ts";
 import * as der from "./der.ts";
-import { invalidArgType, invalidArgValue, nodeError, validateFunction } from "./errors.ts";
+import { type AsymmetricKey, keyAlgorithm, prepareAsymmetricKey } from "./keys.ts";
 
 export const constants = {
   RSA_PKCS1_PADDING: 1,

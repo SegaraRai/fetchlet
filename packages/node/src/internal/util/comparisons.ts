@@ -155,3 +155,7 @@ function sameKeys(
 export function isDeepEqual(a: unknown, b: unknown, strict: boolean): boolean {
   return deepEqual(a, b, new Map(), strict);
 }
+
+export function isDeepStrictEqual(a: unknown, b: unknown): boolean {
+  return isDeepEqual(a, b, true);
+}

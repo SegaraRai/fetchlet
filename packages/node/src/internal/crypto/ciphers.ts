@@ -5,22 +5,22 @@
 // advances the counter by the blocks it used. GCM authenticates the whole
 // message, so its output comes from final.
 
-import { Buffer } from "./buffer.ts";
+import { Buffer } from "../buffer/buffer.ts";
+import { invalidArgType, invalidArgValue, nodeError } from "../errors/errors.ts";
 import {
-  type BinaryLike,
-  type Encoding,
-  type NodeBuffer,
-  WebCryptoFailure,
   base64,
+  type BinaryLike,
   concat,
   encode,
+  type Encoding,
   fromBase64,
   isBinary,
+  type NodeBuffer,
   toBytes,
+  WebCryptoFailure,
   webCryptoHost,
-} from "./crypto-common.ts";
-import { KeyObject, secretBytes } from "./crypto-keys.ts";
-import { invalidArgType, invalidArgValue, nodeError } from "./errors.ts";
+} from "./common.ts";
+import { KeyObject, secretBytes } from "./keys.ts";
 
 type Mode = "cbc" | "ctr" | "gcm";
 

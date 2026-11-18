@@ -5,7 +5,7 @@ import * as node from "node:crypto";
 
 import { describe, expect, test } from "vite-plus/test";
 
-import * as der from "../src/der.ts";
+import * as der from "../src/internal/crypto/der.ts";
 import { installHost } from "./host.ts";
 
 // fetchlet's Buffer is not Node's, so bytes compare by content.

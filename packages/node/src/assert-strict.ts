@@ -1,29 +1,48 @@
-// node:assert/strict: node:assert with the strict comparisons under the
-// loose names.
+// node:assert/strict: node:assert with the strict comparisons under the loose
+// names.
 
-import { strict } from "./assert.ts";
-
-export const {
-  ok,
-  fail,
-  equal,
-  notEqual,
-  strictEqual,
-  notStrictEqual,
+import {
+  AssertionError,
   deepEqual,
-  notDeepEqual,
   deepStrictEqual,
-  notDeepStrictEqual,
-  throws,
-  doesNotThrow,
-  rejects,
+  doesNotMatch,
   doesNotReject,
+  doesNotThrow,
+  equal,
+  fail,
   ifError,
   match,
-  doesNotMatch,
-  AssertionError,
-} = strict;
+  notDeepEqual,
+  notDeepStrictEqual,
+  notEqual,
+  notStrictEqual,
+  ok,
+  rejects,
+  strict,
+  strictEqual,
+  throws,
+} from "./internal/assert/strict.ts";
 
-export { strict };
+export {
+  AssertionError,
+  deepEqual,
+  deepStrictEqual,
+  doesNotMatch,
+  doesNotReject,
+  doesNotThrow,
+  equal,
+  fail,
+  ifError,
+  match,
+  notDeepEqual,
+  notDeepStrictEqual,
+  notEqual,
+  notStrictEqual,
+  ok,
+  rejects,
+  strict,
+  strictEqual,
+  throws,
+};
 
 export default strict;

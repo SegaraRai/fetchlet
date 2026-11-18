@@ -40,6 +40,12 @@ Each module's default export holds all of its members, so `require` of the
 module returns the same object as Node's. The `events` default export is the
 `EventEmitter` class with the module's functions as statics.
 
+Each subpath is a file in `src/` that only re-exports the module's members
+and assembles its default export. The implementations live in
+`src/internal/<area>/`, one directory per concern (`crypto`, `http`,
+`stream`, `url`, `util`, `zlib` and so on), and import each other there
+rather than through the subpaths.
+
 The package is private. [fetchlet](../fetchlet/README.md) lists it as a
 development dependency, reexports its modules as `fetchlet/node/*` and
 compiles them into its published output. Its peer dependencies are the ones

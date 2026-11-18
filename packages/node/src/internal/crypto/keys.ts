@@ -4,25 +4,25 @@
 // operations take; PEM, PKCS #1, SEC 1, X.509 certificates and JWK convert
 // to and from them here. The host validates each key as it is created.
 
-import { Buffer } from "./buffer.ts";
-import {
-  type NodeBuffer,
-  WebCryptoFailure,
-  base64,
-  callLater,
-  fromBase64,
-  isBinary,
-  toBytes,
-  webCryptoHost,
-} from "./crypto-common.ts";
-import * as der from "./der.ts";
+import { Buffer } from "../buffer/buffer.ts";
 import {
   invalidArgType,
   invalidArgValue,
   nodeError,
   validateFunction,
   validateInteger,
-} from "./errors.ts";
+} from "../errors/errors.ts";
+import {
+  base64,
+  callLater,
+  fromBase64,
+  isBinary,
+  type NodeBuffer,
+  toBytes,
+  WebCryptoFailure,
+  webCryptoHost,
+} from "./common.ts";
+import * as der from "./der.ts";
 
 export type AsymmetricKeyType = "rsa" | "ec" | "ed25519" | "x25519";
 type KeyType = "secret" | "public" | "private";
