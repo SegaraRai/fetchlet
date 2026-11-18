@@ -30,6 +30,13 @@ step(
   run("vp", ["pm", "pack", "--pack-destination", workDirectory], { cwd: packageDirectory }),
 );
 assert.ok(existsSync(tarball), `vp pm pack wrote ${tarball}`);
+// The build compiles in workspace packages such as @fetchlet/web; a module
+// from node_modules in dist/ is a dependency the manifest does not declare,
+// which would ship a copy apart from the one the user installs.
+assert.ok(
+  !existsSync(resolve(packageDirectory, "dist/node_modules")),
+  "dist/ contains modules from node_modules; declare them as dependencies or peers",
+);
 
 // The consumer's sources, plus a manifest naming this tarball and the same
 // Vite as the workspace.
