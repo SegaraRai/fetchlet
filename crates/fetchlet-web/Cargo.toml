@@ -8,7 +8,7 @@ description = "Engine-independent host implementations of Web APIs for fetchlet 
 # Each feature adds the host operations of one Web API; the guest runtime
 # installs the matching globals only when the host reports them.
 [features]
-default = ["compression", "crypto", "url-pattern"]
+default = ["compression", "crypto", "url", "url-pattern"]
 compression = ["dep:brotli", "dep:flate2"]
 crypto = [
   "dep:serde",
@@ -31,6 +31,7 @@ crypto = [
   "dep:pkcs8",
   "dep:spki",
 ]
+url = ["dep:url"]
 url-pattern = ["dep:urlpattern"]
 
 [dependencies]
@@ -38,7 +39,7 @@ bytes = "1"
 serde = { workspace = true, optional = true }
 serde_json.workspace = true
 thiserror.workspace = true
-url = "2"
+url = { version = "2", optional = true }
 urlpattern = { version = "0.6", optional = true }
 flate2 = { version = "1", optional = true }
 brotli = { version = "9", optional = true }

@@ -12,13 +12,15 @@ responses and named functions share one runtime on QuickJS, Boa or V8.
 Several engine features can be enabled together. Without any, the host API
 (`HostServices`, `FetchService`, `Body`, `Limits`) remains available.
 
-Every engine includes URL parsing from [fetchlet-web](../fetchlet-web/README.md).
-These features add its optional Web APIs; the guest runtime installs only the
-globals of the enabled ones.
+Every engine includes the host implementations of [fetchlet-web](../fetchlet-web/README.md).
+These features select its Web APIs; the guest runtime installs only the
+globals of the enabled ones. Without `url`, the guest's `URL` uses core-js's
+parser instead of the `url` crate.
 
 | Feature              | Adds                                                    |
 | -------------------- | ------------------------------------------------------- |
-| `web-apis` (default) | All three below                                         |
+| `web-apis` (default) | All four below                                          |
+| `url`                | `URL` parsing and setters in Rust                       |
 | `url-pattern`        | `URLPattern`                                            |
 | `compression`        | `CompressionStream`, `DecompressionStream`              |
 | `web-crypto`         | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` |

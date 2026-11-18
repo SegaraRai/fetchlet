@@ -8,7 +8,7 @@ publish = false
 cargo-fuzz = true
 
 [dependencies]
-fetchlet = { workspace = true, features = ["fuzzing"] }
+fetchlet = { workspace = true, features = ["fuzzing", "url"] }
 fetchlet-http.workspace = true
 libfuzzer-sys = "0.4"
 serde = { version = "1", features = ["derive"] }

@@ -8,12 +8,13 @@ mod dispatch;
 mod error;
 mod limits;
 mod state;
-mod url;
 
 #[cfg(feature = "compression")]
 mod compression;
 #[cfg(feature = "crypto")]
 mod crypto;
+#[cfg(feature = "url")]
+mod url;
 #[cfg(feature = "url-pattern")]
 mod url_pattern;
 

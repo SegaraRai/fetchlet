@@ -13,18 +13,18 @@ package, which `fetchlet/runtime` installs. Host operations
 marked below are in the [fetchlet-web](../crates/fetchlet-web/README.md)
 crate; the profile installs an API only when the host reports it.
 
-| Area                                                      | Provider                                                       |
-| --------------------------------------------------------- | -------------------------------------------------------------- |
-| URL                                                       | Rust `url` crate (WHATWG URL Standard) through host operations |
-| URLSearchParams, base64, structuredClone, DOMException    | core-js-pure                                                   |
-| Streams                                                   | web-streams-polyfill, pinned                                   |
-| Encoding                                                  | `@exodus/bytes` encoding-lite                                  |
-| URLPattern                                                | Rust `urlpattern` crate through host operations                |
-| CompressionStream, DecompressionStream                    | Rust `flate2` and `brotli` through host operations             |
-| Random values, SHA-256                                    | Rust `getrandom` and `sha2` through host operations            |
-| `performance.now`, `timeOrigin`                           | Rust's monotonic clock                                         |
-| Fetch, Headers, Body, FormData, Blob, File, Abort, timers | fetchlet's own implementation                                  |
-| Event, CustomEvent, EventTarget, `navigator`, reportError | fetchlet's own implementation                                  |
+| Area                                                      | Provider                                                                                                           |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| URL                                                       | Rust `url` crate (WHATWG URL Standard) through host operations; core-js-pure when the host omits the `url` feature |
+| URLSearchParams, base64, structuredClone, DOMException    | core-js-pure                                                                                                       |
+| Streams                                                   | web-streams-polyfill, pinned                                                                                       |
+| Encoding                                                  | `@exodus/bytes` encoding-lite                                                                                      |
+| URLPattern                                                | Rust `urlpattern` crate through host operations                                                                    |
+| CompressionStream, DecompressionStream                    | Rust `flate2` and `brotli` through host operations                                                                 |
+| Random values, SHA-256                                    | Rust `getrandom` and `sha2` through host operations                                                                |
+| `performance.now`, `timeOrigin`                           | Rust's monotonic clock                                                                                             |
+| Fetch, Headers, Body, FormData, Blob, File, Abort, timers | fetchlet's own implementation                                                                                      |
+| Event, CustomEvent, EventTarget, `navigator`, reportError | fetchlet's own implementation                                                                                      |
 
 Native APIs that an engine already provides, such as V8's `TextEncoder`, are
 kept.

@@ -12,10 +12,11 @@ boa = ["dep:boa_engine", "web"]
 v8 = ["dep:deno_core", "dep:deno_error", "web"]
 # Exposes a hidden harness over the private host bridge for cargo-fuzz targets.
 fuzzing = ["web"]
-# Host implementations of Web APIs (fetchlet-web). Every engine enables it
-# for URL parsing; the features below add the optional APIs.
+# Host implementations of Web APIs (fetchlet-web). Every engine enables it;
+# the features below select its APIs.
 web = ["dep:fetchlet-web"]
-web-apis = ["url-pattern", "compression", "web-crypto"]
+web-apis = ["url", "url-pattern", "compression", "web-crypto"]
+url = ["fetchlet-web?/url"]
 url-pattern = ["fetchlet-web?/url-pattern"]
 compression = ["fetchlet-web?/compression"]
 web-crypto = ["fetchlet-web?/crypto"]

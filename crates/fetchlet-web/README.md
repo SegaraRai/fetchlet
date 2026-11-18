@@ -8,7 +8,7 @@ and V8 share one implementation of each API.
 
 | Feature                 | API                                                     | Provider                       |
 | ----------------------- | ------------------------------------------------------- | ------------------------------ |
-| (always)                | `URL` parsing and setters                               | `url`                          |
+| `url` (default)         | `URL` parsing and setters                               | `url`                          |
 | `url-pattern` (default) | `URLPattern`                                            | `urlpattern`                   |
 | `compression` (default) | `CompressionStream`, `DecompressionStream`              | `flate2`, `brotli`             |
 | `crypto` (default)      | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` | RustCrypto crates, `getrandom` |
@@ -21,9 +21,9 @@ key usages and JWK members; the host converts formats and does the
 cryptography. AES-GCM is implemented over `aes` and `ghash` so that any iv
 length and every tag length the specification allows work.
 
-The `fetchlet` crate enables it with every engine and forwards the optional
-APIs through its `url-pattern`, `compression` and `web-crypto` features
-(`web-apis` enables all three).
+The `fetchlet` crate enables it with every engine and forwards the
+APIs through its `url`, `url-pattern`, `compression` and `web-crypto`
+features (`web-apis` enables all four).
 
 ## Embedding
 

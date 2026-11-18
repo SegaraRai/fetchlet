@@ -29,7 +29,10 @@ pub struct Invocation<'a, B> {
 /// The Web APIs this build implements, reported by the `web.capabilities`
 /// operation so the guest runtime installs only those globals.
 pub fn capabilities() -> Value {
-    let mut apis = vec!["url"];
+    let mut apis = Vec::new();
+    if cfg!(feature = "url") {
+        apis.push("url");
+    }
     if cfg!(feature = "url-pattern") {
         apis.push("url-pattern");
     }
@@ -53,9 +56,10 @@ pub fn dispatch<B: ByteHandles>(
     limits: &WebLimits,
     invocation: Option<Invocation<'_, B>>,
 ) -> Option<Result<Value, B::Error>> {
-    let _ = (limits, &invocation);
+    let _ = (input, limits, &invocation);
     let result = match operation {
         "web.capabilities" => Ok(capabilities()),
+        #[cfg(feature = "url")]
         "url.parse" | "url.set" => crate::url::dispatch(operation, input),
         #[cfg(feature = "url-pattern")]
         "urlpattern.parse" | "urlpattern.match" => crate::url_pattern::dispatch(operation, input),
@@ -118,21 +122,32 @@ mod tests {
     fn reports_the_protocol_and_leaves_other_operations_to_the_embedder() {
         let reply = run("web.capabilities", "null", None);
         assert_eq!(reply["protocol"], PROTOCOL_VERSION);
-        assert_eq!(reply["apis"][0], "url");
         assert!(dispatch::<Store>("fetch.start", "{}", &WebLimits::default(), None).is_none());
     }
 
-    #[cfg(not(any(feature = "url-pattern", feature = "compression", feature = "crypto")))]
+    #[cfg(not(any(
+        feature = "url",
+        feature = "url-pattern",
+        feature = "compression",
+        feature = "crypto"
+    )))]
     #[test]
     fn omitted_apis_are_neither_reported_nor_served() {
-        assert_eq!(capabilities()["apis"], json!(["url"]));
-        for operation in ["urlpattern.parse", "compression.open", "crypto.random"] {
+        assert_eq!(capabilities()["apis"], json!([]));
+        for operation in [
+            "url.parse",
+            "urlpattern.parse",
+            "compression.open",
+            "crypto.random",
+        ] {
             assert!(dispatch::<Store>(operation, "null", &WebLimits::default(), None).is_none());
         }
     }
 
+    #[cfg(feature = "url")]
     #[test]
     fn stateless_operations_run_without_an_invocation() {
+        assert_eq!(capabilities()["apis"][0], "url");
         let reply = run("url.parse", r#"["https://a.test/x", null]"#, None);
         assert_eq!(reply[0], "https://a.test/x");
     }
