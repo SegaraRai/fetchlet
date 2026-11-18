@@ -83,25 +83,9 @@ documented refusal, and a check in a framework example:
     readers each see their own request.
   - Before that change, measure `run`, `getStore` and an `await` loop per
     engine against the serialized implementation.
-- More of Node's built-in modules ([Node.js compatibility](node-compat.md)
-  lists what every artifact has). In order of how often framework servers
-  and their dependencies reach them:
-  - `node:crypto` keys and ciphers: `KeyObject`, `createSecretKey`,
-    `createPublicKey`, `createPrivateKey`, `sign` and `verify`, and
-    `createCipheriv` and `createDecipheriv` for AES, over the host's Web
-    Crypto operations. JWT and session libraries reach them on their Node
-    paths.
-  - `node:stream` and `node:string_decoder`, which Express-style
-    middleware and older parsers import; `node:stream/web` and
-    `Readable.fromWeb` and `toWeb` against the profile's streams.
-  - `node:assert`, `node:url` (`fileURLToPath`, `pathToFileURL` and the
-    legacy `parse`), `node:querystring` and `node:diagnostics_channel`.
-  - `node:util/types`, now available only as `util.types`.
-  - Synchronous `node:zlib` over the host's compression, and
-    `http.request` and `https.request` over the host fetch.
-  - Decide whether `process.env` carries the string bindings for every
-    artifact, as Workers' `nodejs_compat` does; the Nitro preset fills it
-    today.
+- Decide whether `process.env` carries the string bindings for every
+  artifact, as Workers' `nodejs_compat` does; the Nitro preset fills it
+  today ([Node.js compatibility](node-compat.md)).
 - Client disconnects on the incoming request. `wireRequest` gives the entry
   `Request` a signal that never aborts, so SSE and streaming SSR keep running
   after the client leaves. Abort it when Rust drops the response body, and
