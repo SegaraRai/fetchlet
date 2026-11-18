@@ -59,6 +59,7 @@ describe("fetchlet/qwik-city", () => {
         ssr: true,
         rollupOptions: {
           input: ["src/server.tsx", "@qwik-city-plan"],
+          external: [/^fetchlet\/runtime(\/|$)/],
         },
       },
     });

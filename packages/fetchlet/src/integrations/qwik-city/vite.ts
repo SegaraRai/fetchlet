@@ -64,6 +64,9 @@ export function fetchletAdapter({
           outDir: "node_modules/.cache/fetchlet-qwik-city",
           rollupOptions: {
             input: [entry, "@qwik-city-plan"],
+            // fetchlet/build adds the runtime once, before the framework;
+            // a copy bundled here would install the Web API profile twice.
+            external: [/^fetchlet\/runtime(\/|$)/],
           },
         },
       };
