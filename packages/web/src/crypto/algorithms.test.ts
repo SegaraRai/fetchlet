@@ -139,6 +139,13 @@ describe("enforceRange", () => {
     expect(() => enforceRange(Number.NaN, 255)).toThrow("Expected a finite number");
     expect(() => enforceRange(Number.POSITIVE_INFINITY, 255)).toThrow("Expected a finite number");
   });
+
+  // Known deviation: Web IDL ConvertToInt turns -0 into +0, but Math.trunc keeps
+  // the sign of -0.5. The host receives JSON, where both are 0. test.fails
+  // reports when the implementation starts to conform, so the case can move up.
+  test.fails("a negative fraction truncates to +0", () => {
+    expect(enforceRange(-0.5, 255)).toBe(0);
+  });
 });
 
 describe("key usages", () => {
