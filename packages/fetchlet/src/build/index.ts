@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import { build, type Plugin } from "rolldown";
 
 import { archiveArtifactAssets, type AssetsOption } from "./asset-option.ts";
-import { serializedAsyncContext } from "./async-context.ts";
+import { type AsyncContextMode, asyncContextPlugin } from "./async-context.ts";
 import { nativeCapabilityCheck } from "./polyfills/bootstrap.ts";
 import {
   planPolyfills,
@@ -43,6 +43,7 @@ export {
   type AssetSettings,
   type AssetsOption,
 } from "./asset-option.ts";
+export type { AsyncContextMode } from "./async-context.ts";
 export type { BuildBackend, IntlOptions } from "./polyfills/plan.ts";
 
 /** An entry module given as source instead of a file. */
@@ -73,8 +74,13 @@ export interface BuildArtifactOptions {
   requirements?: string[];
   backend?: BuildBackend;
   intl?: IntlOptions;
-  /** `"serialized"` provides `node:async_hooks` with one context at a time. */
-  asyncContext?: "serialized";
+  /**
+   * Provides `node:async_hooks`. `"propagated"` carries the context through
+   * promise reactions on engines with an async context slot (V8 and Boa);
+   * `"serialized"` keeps one context at a time and runs on every engine.
+   * Recorded in fetchlet.json.
+   */
+  asyncContext?: AsyncContextMode;
   /** Extra resolve conditions for dependencies a framework left external. */
   conditions?: string[];
   /** Global replacements, in addition to `process.env.NODE_ENV`. */
@@ -204,7 +210,7 @@ export async function buildArtifact({
       typeof entry === "string"
         ? artifactEntry(resolve(entry), plan)
         : artifactEntry(join(resolve(entry.resolveDir), sourceEntryName), plan, entry.source),
-      ...(asyncContext === "serialized" ? [serializedAsyncContext()] : []),
+      ...(asyncContext ? [asyncContextPlugin(asyncContext)] : []),
       ...plugins,
       emptyNodeBuiltins(),
     ],

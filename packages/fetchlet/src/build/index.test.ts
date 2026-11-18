@@ -153,6 +153,21 @@ describe("buildArtifact", () => {
     expect(empty).not.toContain("enterWith");
   });
 
+  test("propagated async context builds AsyncLocalStorage over the engine slot", async () => {
+    const { server, manifest } = await build(
+      `import { AsyncLocalStorage, AsyncResource } from "node:async_hooks";
+      export const handle = () => [new AsyncLocalStorage(), AsyncResource];`,
+      {
+        asyncContext: "propagated",
+      },
+    );
+    expect(server).toContain("__fetchletAsyncContext");
+    expect(server).toContain("runInAsyncScope");
+    expect(manifest).toMatchObject({
+      asyncContext: "propagated",
+    });
+  });
+
   test("the adapter's plugins run after fetchlet's own and before the empty built-ins", async () => {
     const seen: string[] = [];
     const plugin: Plugin = {
