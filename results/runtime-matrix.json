@@ -12,19 +12,19 @@
   "profile": "portable experimental Web APIs in embedded engines; native globals in Node reference",
   "summary": {
     "node-reference": {
-      "passed": 19,
+      "passed": 21,
       "failed": 0
     },
     "quickjs": {
-      "passed": 19,
+      "passed": 21,
       "failed": 0
     },
     "boa": {
-      "passed": 19,
+      "passed": 21,
       "failed": 0
     },
     "v8": {
-      "passed": 19,
+      "passed": 21,
       "failed": 0
     }
   },
@@ -115,6 +115,18 @@
     },
     {
       "backend": "node-reference",
+      "suite": "node",
+      "id": "keys",
+      "status": "pass"
+    },
+    {
+      "backend": "node-reference",
+      "suite": "node",
+      "id": "modules",
+      "status": "pass"
+    },
+    {
+      "backend": "node-reference",
       "suite": "web-api",
       "id": "probe",
       "status": "pass",
@@ -234,6 +246,18 @@
     },
     {
       "backend": "quickjs",
+      "suite": "node",
+      "id": "keys",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "suite": "node",
+      "id": "modules",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
       "suite": "web-api",
       "id": "probe",
       "status": "pass",
@@ -353,6 +377,18 @@
     },
     {
       "backend": "boa",
+      "suite": "node",
+      "id": "keys",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "suite": "node",
+      "id": "modules",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
       "suite": "web-api",
       "id": "probe",
       "status": "pass",
@@ -468,6 +504,18 @@
       "backend": "v8",
       "suite": "node",
       "id": "crypto",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "suite": "node",
+      "id": "keys",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "suite": "node",
+      "id": "modules",
       "status": "pass"
     },
     {

@@ -91,8 +91,8 @@ describe("nodeBuiltins", () => {
     const result = (await run({
       "entry.js": `
         import { readFileSync } from "node:fs";
-        const { Readable } = require("stream");
-        class Custom extends Readable {}
+        const { Socket } = require("net");
+        class Custom extends Socket {}
         const attempt = (run) => {
           try {
             run();
@@ -108,8 +108,25 @@ describe("nodeBuiltins", () => {
     })) as unknown[];
     expect(result).toStrictEqual([
       ["ERR_METHOD_NOT_IMPLEMENTED", "node:fs.readFileSync is not available in fetchlet"],
-      ["ERR_METHOD_NOT_IMPLEMENTED", "node:stream.Readable is not available in fetchlet"],
+      ["ERR_METHOD_NOT_IMPLEMENTED", "node:net.Socket is not available in fetchlet"],
     ]);
+  });
+
+  test("node:stream bundles readable-stream with the artifact's process and string_decoder", async () => {
+    const result = await run({
+      "entry.js": `
+        import { Readable, Transform } from "node:stream";
+        export const result = new Promise((resolve) => {
+          const chunks = [];
+          Readable.from(["fetch", "let"])
+            .pipe(new Transform({ transform: (chunk, _, done) => done(null, String(chunk).toUpperCase()) }))
+            .setEncoding("utf8")
+            .on("data", (chunk) => chunks.push(chunk))
+            .on("end", () => resolve(chunks.join("")));
+        });
+      `,
+    });
+    expect(await result).toBe("FETCHLET");
   });
 
   test("node:async_hooks follows asyncContext", async () => {

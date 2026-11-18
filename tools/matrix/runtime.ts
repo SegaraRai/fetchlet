@@ -5,6 +5,9 @@
 import assert from "node:assert/strict";
 import * as crypto from "node:crypto";
 import { resolve } from "node:path";
+import * as querystring from "node:querystring";
+import * as url from "node:url";
+import * as zlib from "node:zlib";
 
 import { hostBackends, startHost, type HostBackend } from "@fetchlet-internal/tools-workspace/lab";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
@@ -78,6 +81,92 @@ function expectedNodeCrypto() {
     randomBytes: 100_000,
     randomUUID: true,
   };
+}
+
+/** PKCS #8 for a curve25519 key from its 32-byte seed, as fixtures/node-modules.ts builds it. */
+function seedKey(oid: "70" | "6e", seed: number) {
+  const prefix = `302e020100300506032b65${oid}04220420`;
+  return crypto.createPrivateKey({
+    key: Buffer.from(prefix + seed.toString(16).padStart(2, "0").repeat(32), "hex"),
+    format: "der",
+    type: "pkcs8",
+  });
+}
+
+function cipherBytes(name: string, keyLength: number) {
+  const cipher = crypto.createCipheriv(name, Buffer.alloc(keyLength, 7), Buffer.alloc(16, 9));
+  const plaintext = Buffer.from("fetchlet encrypts this across several AES blocks");
+  return Buffer.concat([cipher.update(plaintext), cipher.final()]).toString("hex");
+}
+
+/** What fixtures/node-modules.ts nodeKeysResults returns, computed by Node. */
+function expectedNodeKeys() {
+  const data = Buffer.from("fetchlet signs this");
+  const ed25519 = seedKey("70", 1);
+  const gcm = crypto.createCipheriv("aes-256-gcm", Buffer.alloc(32, 7), Buffer.alloc(12, 9));
+  gcm.setAAD(Buffer.from("header"));
+  const sealed = Buffer.concat([gcm.update("sealed"), gcm.final()]).toString("hex");
+  const plaintext = "fetchlet encrypts this across several AES blocks";
+  return {
+    ed25519: {
+      signature: crypto.sign(null, data, ed25519).toString("hex"),
+      publicKey: crypto.createPublicKey(ed25519).export({ format: "pem", type: "spki" }),
+      jwk: ed25519.export({ format: "jwk" }),
+    },
+    x25519: crypto
+      .diffieHellman({
+        privateKey: seedKey("6e", 2),
+        publicKey: crypto.createPublicKey(seedKey("6e", 3)),
+      })
+      .toString("hex"),
+    ecdsa: [true, 64, { namedCurve: "prime256v1" }],
+    rsa: [true, true, "secret", true, 1024],
+    ciphers: {
+      "aes-128-cbc": [cipherBytes("aes-128-cbc", 16), plaintext],
+      "aes-192-cbc": [cipherBytes("aes-192-cbc", 24), plaintext],
+      "aes-256-ctr": [cipherBytes("aes-256-ctr", 32), plaintext],
+    },
+    gcm: [sealed, gcm.getAuthTag().toString("hex")],
+  };
+}
+
+/** What fixtures/node-modules.ts nodeModulesResults returns, computed by Node. */
+function expectedNodeModules() {
+  // Results arrive as JSON, without null prototypes.
+  return JSON.parse(
+    JSON.stringify({
+      zlib: [
+        true,
+        true,
+        true,
+        "fetchlet inflates what Node deflated",
+        "fetchlet",
+        zlib.crc32("fetchlet"),
+      ],
+      stream: ["FETCHLET", "to web"],
+      stringDecoder: ["", "€", "�"],
+      assert: ["pass", "pass", "ERR_ASSERTION", "pass"],
+      url: [
+        { ...url.parse("http://user@Example.com:8080/p/a?x=1&y=2#h", true) },
+        url.format({
+          protocol: "https",
+          hostname: "example.com",
+          pathname: "/a",
+          query: { q: "1" },
+        }),
+        url.resolve("http://example.com/a/b", "../c"),
+        "file:///tmp/a%20b%23c",
+        "/tmp/a b",
+        url.domainToUnicode("xn--mnchen-3ya.de"),
+      ],
+      querystring: [
+        { ...querystring.parse("a=1&a=2&b=%20c+d&bad=%zz") },
+        querystring.stringify({ a: [1, "two"], b: true, c: "é&" }),
+      ],
+      diagnostics: [{ ok: true }],
+      utilTypes: [true, true],
+    }),
+  ) as unknown;
 }
 
 async function check(
@@ -188,6 +277,18 @@ for (const backend of hostBackends) {
     assert.deepEqual(
       await app.call("nodeCryptoResults"),
       backend === "node-reference" ? null : expectedNodeCrypto(),
+    ),
+  );
+  await check(backend, "node", "keys", async () =>
+    assert.deepEqual(
+      await app.call("nodeKeysResults"),
+      backend === "node-reference" ? null : expectedNodeKeys(),
+    ),
+  );
+  await check(backend, "node", "modules", async () =>
+    assert.deepEqual(
+      await app.call("nodeModulesResults"),
+      backend === "node-reference" ? null : expectedNodeModules(),
     ),
   );
   await check(backend, "web-api", "probe", async () => {

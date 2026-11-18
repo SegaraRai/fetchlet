@@ -13,15 +13,28 @@ export type AsyncContextMode = "serialized" | "propagated";
  * depends on the build's asyncContext option and is listed separately.
  */
 const modules: Record<string, string> = {
+  assert: "fetchlet/node/assert",
+  "assert/strict": "fetchlet/node/assert/strict",
   buffer: "fetchlet/node/buffer",
   crypto: "fetchlet/node/crypto",
+  diagnostics_channel: "fetchlet/node/diagnostics-channel",
   events: "fetchlet/node/events",
+  http: "fetchlet/node/http",
+  https: "fetchlet/node/https",
   path: "fetchlet/node/path",
   "path/posix": "fetchlet/node/path",
   process: "fetchlet/node/process",
+  querystring: "fetchlet/node/querystring",
+  stream: "fetchlet/node/stream",
+  "stream/promises": "fetchlet/node/stream/promises",
+  "stream/web": "fetchlet/node/stream/web",
+  string_decoder: "fetchlet/node/string-decoder",
   timers: "fetchlet/node/timers",
   "timers/promises": "fetchlet/node/timers/promises",
+  url: "fetchlet/node/url",
   util: "fetchlet/node/util",
+  "util/types": "fetchlet/node/util/types",
+  zlib: "fetchlet/node/zlib",
 };
 
 const asyncHooksModules: Record<AsyncContextMode, string> = {
@@ -44,6 +57,16 @@ export const nodeGlobals: Record<string, string | [string, string]> = {
   process: "node:process",
   setImmediate: ["node:timers", "setImmediate"],
   clearImmediate: ["node:timers", "clearImmediate"],
+};
+
+/**
+ * Specifiers that name the npm polyfill of a built-in by its directory.
+ * readable-stream, which node:stream is built on, requires these; the
+ * artifact's own modules serve them.
+ */
+const polyfillNames: Record<string, string> = {
+  "process/": "process",
+  "string_decoder/": "string_decoder",
 };
 
 const requirePrefix = "\0fetchlet:node-require:";
@@ -104,10 +127,11 @@ export function nodeBuiltins(asyncContext?: AsyncContextMode): Plugin {
   return {
     name: "fetchlet:node-builtins",
     async resolveId(id, importer, options) {
-      if (!isBuiltin(id)) {
+      const polyfill = Object.hasOwn(polyfillNames, id) ? polyfillNames[id] : undefined;
+      if (!polyfill && !isBuiltin(id)) {
         return;
       }
-      const name = id.startsWith("node:") ? id.slice("node:".length) : id;
+      const name = polyfill ?? (id.startsWith("node:") ? id.slice("node:".length) : id);
       const file = implementation(name);
       if (file) {
         return options.kind === "require-call" ? requirePrefix + file : file;
