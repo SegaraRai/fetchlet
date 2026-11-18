@@ -15,18 +15,6 @@ use crate::reentry;
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
 use crate::{Body, ConsoleLevel, Context, Error, HostServices, Limits, Response, Result};
 
-#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-use super::compression::{Codec, Format};
-#[cfg(any(
-    feature = "boa",
-    feature = "quickjs",
-    feature = "v8",
-    feature = "fuzzing"
-))]
-use super::url_api;
-#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-use super::{crypto, url_pattern};
-
 struct PendingFetch {
     future: TransportFuture,
 }
@@ -47,11 +35,9 @@ struct InvocationState {
     background_pending: usize,
     /// Trusted values attached to each host fetch of this invocation.
     context: Option<Context>,
-    /// Open compression and decompression streams, by id.
-    #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-    codecs: BTreeMap<u64, Codec>,
-    #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-    next_codec: u64,
+    /// Web API state, such as open compression streams.
+    #[cfg(feature = "web")]
+    web: fetchlet_web::WebState,
 }
 
 impl InvocationState {
@@ -221,10 +207,8 @@ impl HostBridge {
             background_registered: 0,
             background_pending: 0,
             context,
-            #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-            codecs: BTreeMap::new(),
-            #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-            next_codec: 0,
+            #[cfg(feature = "web")]
+            web: fetchlet_web::WebState::default(),
         });
 
         Ok(InvocationScope {
@@ -302,6 +286,11 @@ impl HostBridge {
             "bridge message bytes",
         )?;
 
+        #[cfg(feature = "web")]
+        if let Some(result) = self.web_operation(operation, input) {
+            return result;
+        }
+
         match operation {
             "bindings" => Ok(self.bindings()),
             "clock" => Ok(self.clock.read()),
@@ -314,68 +303,34 @@ impl HostBridge {
             "background.register" => self.register_background(),
             "background.settle" => self.settle_background(),
             "console.write" => self.write_console(input),
-            #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-            "random" | "sha256" => crypto::dispatch(operation, input, &limits),
-            #[cfg(any(
-                feature = "boa",
-                feature = "quickjs",
-                feature = "v8",
-                feature = "fuzzing"
-            ))]
-            "url.parse" | "url.set" => url_api::dispatch(operation, input),
-            #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-            "urlpattern.parse" | "urlpattern.match" => url_pattern::dispatch(operation, input),
-            #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-            "compression.open" | "compression.write" | "compression.finish"
-            | "compression.read" | "compression.close" => self.compression(operation, input),
             _ => Err(Error::PermissionDenied),
         }
     }
 
-    /// The guest's CompressionStream and DecompressionStream. Codecs belong
-    /// to the invocation and are dropped when it ends.
-    #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-    fn compression(&self, operation: &str, input: &str) -> Result<Value> {
-        let invalid = || Error::InvalidRequest("invalid compression message".into());
-        let mut state = self.lock_state()?;
-        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
-        if operation == "compression.open" {
-            let (format, decompress): (String, bool) =
-                serde_json::from_str(input).map_err(|_| invalid())?;
-            let format = Format::parse(&format).ok_or_else(invalid)?;
-            check_limit(
-                invocation.limits.compression_streams,
-                invocation.codecs.len() + 1,
-                "compression streams",
-            )?;
-            let codec = if decompress {
-                Codec::decompressor(format, invocation.limits.decompressed_bytes)
-            } else {
-                Codec::compressor(format)
-            };
-            invocation.next_codec += 1;
-            invocation.codecs.insert(invocation.next_codec, codec);
-            return Ok(json!(invocation.next_codec));
-        }
-        if operation == "compression.write" {
-            let (id, handle): (u64, u64) = serde_json::from_str(input).map_err(|_| invalid())?;
-            let bytes = invocation.bytes.take(handle)?;
-            let codec = invocation.codecs.get_mut(&id).ok_or_else(invalid)?;
-            return codec.write(&bytes).map(|()| Value::Null);
-        }
-        let id: u64 = serde_json::from_str(input).map_err(|_| invalid())?;
-        if operation == "compression.close" {
-            invocation.codecs.remove(&id);
-            return Ok(Value::Null);
-        }
-        let codec = invocation.codecs.get_mut(&id).ok_or_else(invalid)?;
-        if operation == "compression.finish" {
-            codec.finish();
-            return Ok(Value::Null);
-        }
-        match codec.read()? {
-            Some(piece) => Ok(json!(invocation.bytes.put(Bytes::from(piece))?)),
-            None => Ok(Value::Null),
+    /// A Web API operation of `fetchlet-web`, with the current invocation's
+    /// state and byte store when one is active, or None for other operations.
+    #[cfg(feature = "web")]
+    fn web_operation(&self, operation: &str, input: &str) -> Option<Result<Value>> {
+        let mut state = match self.lock_state() {
+            Ok(state) => state,
+            Err(error) => return Some(Err(error)),
+        };
+        match state.invocation.as_mut() {
+            Some(invocation) => {
+                let limits = invocation.limits.web();
+                fetchlet_web::dispatch(
+                    operation,
+                    input,
+                    &limits,
+                    Some(fetchlet_web::Invocation {
+                        state: &mut invocation.web,
+                        bytes: &mut WebBytes(&mut invocation.bytes),
+                    }),
+                )
+            }
+            None => {
+                fetchlet_web::dispatch::<WebBytes<'_>>(operation, input, &self.limits.web(), None)
+            }
         }
     }
 
@@ -669,6 +624,23 @@ fn encode_reply(result: Result<Value>) -> Value {
                 "message": error.guest_message(),
             },
         }),
+    }
+}
+
+/// An invocation's byte store, as `fetchlet-web` operations use it.
+#[cfg(feature = "web")]
+struct WebBytes<'a>(&'a mut ByteStore);
+
+#[cfg(feature = "web")]
+impl fetchlet_web::ByteHandles for WebBytes<'_> {
+    type Error = Error;
+
+    fn put(&mut self, bytes: Bytes) -> Result<u64> {
+        self.0.put(bytes)
+    }
+
+    fn take(&mut self, handle: u64) -> Result<Bytes> {
+        self.0.take(handle)
     }
 }
 

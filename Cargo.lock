@@ -1996,22 +1996,19 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "boa_engine",
- "brotli",
  "bytes",
  "deno_core",
  "deno_error",
+ "fetchlet-web",
  "flate2",
- "getrandom 0.4.3",
  "http 1.5.0",
  "http-body",
  "rquickjs",
  "serde",
  "serde_json",
- "sha2 0.11.1",
  "thiserror 2.0.21",
  "tokio",
  "url",
- "urlpattern",
 ]
 
 [[package]]
@@ -2077,6 +2074,21 @@ dependencies = [
  "http-body",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "fetchlet-web"
+version = "0.0.0"
+dependencies = [
+ "brotli",
+ "bytes",
+ "flate2",
+ "getrandom 0.4.3",
+ "serde_json",
+ "sha2 0.11.1",
+ "thiserror 2.0.21",
+ "url",
+ "urlpattern",
 ]
 
 [[package]]

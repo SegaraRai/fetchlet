@@ -9,7 +9,7 @@ use url::{Url, quirks};
 
 use crate::{Error, Result};
 
-pub(super) fn dispatch(operation: &str, input: &str) -> Result<Value> {
+pub(crate) fn dispatch(operation: &str, input: &str) -> Result<Value> {
     match operation {
         "url.parse" => {
             let (input, base): (String, Option<String>) = serde_json::from_str(input)
@@ -23,7 +23,7 @@ pub(super) fn dispatch(operation: &str, input: &str) -> Result<Value> {
                 .map_err(|_| Error::InvalidRequest("invalid URL record".into()))?;
             set(&mut url, &setter, &value)
         }
-        _ => Err(Error::PermissionDenied),
+        _ => Err(Error::UnknownOperation),
     }
 }
 
@@ -141,7 +141,7 @@ mod tests {
         assert!(dispatch("url.set", r#"["relative", "hash", "x"]"#).is_err());
         assert!(matches!(
             dispatch("url.other", "null"),
-            Err(Error::PermissionDenied)
+            Err(Error::UnknownOperation)
         ));
     }
 }

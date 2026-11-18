@@ -6,7 +6,7 @@ publish.workspace = true
 description = "Closed-loop HTTP/1.1 load generator for the example servers"
 
 [dependencies]
-fetchlet = { workspace = true, features = ["quickjs", "boa", "v8"] }
+fetchlet = { workspace = true, features = ["quickjs", "boa", "v8", "web-apis"] }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

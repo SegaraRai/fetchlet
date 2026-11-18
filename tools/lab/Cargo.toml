@@ -6,7 +6,7 @@ publish.workspace = true
 description = "Line-protocol host that runs bundles on each engine for the repository tools"
 
 [dependencies]
-fetchlet = { workspace = true, features = ["quickjs", "boa", "v8"] }
+fetchlet = { workspace = true, features = ["quickjs", "boa", "v8", "web-apis"] }
 anyhow.workspace = true
 bytes = "1"
 http-body = "1"

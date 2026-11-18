@@ -80,3 +80,16 @@ impl Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+#[cfg(feature = "web")]
+impl From<fetchlet_web::Error> for Error {
+    fn from(error: fetchlet_web::Error) -> Self {
+        match error {
+            fetchlet_web::Error::InvalidRequest(message) => Self::InvalidRequest(message),
+            fetchlet_web::Error::LimitExceeded(resource) => Self::LimitExceeded(resource),
+            fetchlet_web::Error::UnknownOperation => Self::PermissionDenied,
+            fetchlet_web::Error::NoInvocation => Self::InvocationClosed,
+            fetchlet_web::Error::Unavailable(facility) => Self::Transport(facility.into()),
+        }
+    }
+}

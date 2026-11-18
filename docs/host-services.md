@@ -188,5 +188,6 @@ all three engines: permissions, binary POST, cookies, credentials,
 redirects, rewrites, env, named services, abort and instance retirement.
 Results are in [reference](reference/README.md#host-services). The
 implementation is in `crates/fetchlet/src/host/`,
-`crates/fetchlet/src/bridge/` and `crates/fetchlet/js/host-bridge.js`; the
+`crates/fetchlet/src/bridge/` and `crates/fetchlet/js/host-bridge.js`, with
+Web API operations in `crates/fetchlet-web/`; the
 runner is in `tools/lab/`.

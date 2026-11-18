@@ -12,7 +12,7 @@ use urlpattern::{RegexSyntax, UrlPatternOptions};
 
 use crate::{Error, Result};
 
-pub(super) fn dispatch(operation: &str, input: &str) -> Result<Value> {
+pub(crate) fn dispatch(operation: &str, input: &str) -> Result<Value> {
     match operation {
         "urlpattern.parse" => {
             let (input, base, ignore_case): (StringOrInit<'_>, Option<String>, bool) =
@@ -25,7 +25,7 @@ pub(super) fn dispatch(operation: &str, input: &str) -> Result<Value> {
                 .map_err(|_| Error::InvalidRequest("invalid URLPattern message".into()))?;
             Ok(match_input(input, base.as_deref()))
         }
-        _ => Err(Error::PermissionDenied),
+        _ => Err(Error::UnknownOperation),
     }
 }
 

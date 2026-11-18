@@ -7,6 +7,7 @@
 
 import { runtime } from "./runtime";
 import { usvString } from "./idl";
+import { hostProvides } from "./web-host";
 
 const enum Part {
   Href,
@@ -281,12 +282,5 @@ Object.defineProperty(URLImpl, "name", {
 
 /** Whether the host provides the URL parser this class uses. */
 export function hostHasUrlParser() {
-  if (typeof runtime.__fetchletHost !== "function") {
-    return false;
-  }
-  try {
-    return Array.isArray(host("url.parse", ["https://fetchlet.test/", null]));
-  } catch {
-    return false;
-  }
+  return hostProvides("url");
 }

@@ -8,6 +8,7 @@ Work directly in `F:\Projects\fetchlet`.
 - Keep `lib.rs` and `mod.rs` limited to module declarations and reexports.
 - Keep modules private and expose public APIs through `pub use`.
 - Put engine implementations and options under `crates/fetchlet/src/backend/<engine>/`.
+- Put host implementations of Web APIs in `crates/fetchlet-web/`, one module and Cargo feature per optional API, independent of any engine. Bump `PROTOCOL_VERSION` with the runtime's copy in `web-host.ts` when an operation's name or message changes.
 - Group implementation by responsibility. Use descriptive names and ordinary control flow.
 - Put framework runners, mock transports and benchmark scaffolding under test or tool directories (`tools/<name>/` for repository tooling, `fixtures/` for shared test inputs).
 - Give each production limit an explicit owner and rationale: caller policy, external specification, or underlying capacity. Put caller budgets in configuration.

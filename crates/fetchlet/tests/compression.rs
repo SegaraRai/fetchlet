@@ -1,4 +1,7 @@
-#![cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+#![cfg(all(
+    feature = "compression",
+    any(feature = "boa", feature = "quickjs", feature = "v8")
+))]
 
 //! Codecs behind `CompressionStream` and `DecompressionStream` belong to one
 //! invocation and stay within the caller's budgets.

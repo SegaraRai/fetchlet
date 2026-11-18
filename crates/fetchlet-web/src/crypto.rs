@@ -1,12 +1,12 @@
 use serde_json::{Value, json};
 
-use crate::config::check_limit;
-use crate::{Error, Limits, Result};
+use crate::limits::check_limit;
+use crate::{Error, Result, WebLimits};
 
 // Web Crypto quota: https://www.w3.org/TR/webcrypto-2/#Crypto-method-getRandomValues
 const GET_RANDOM_VALUES_QUOTA: usize = 65_536;
 
-pub(super) fn dispatch(operation: &str, input: &str, limits: &Limits) -> Result<Value> {
+pub(crate) fn dispatch(operation: &str, input: &str, limits: &WebLimits) -> Result<Value> {
     match operation {
         "random" => {
             let size: usize = serde_json::from_str(input)
@@ -15,8 +15,7 @@ pub(super) fn dispatch(operation: &str, input: &str, limits: &Limits) -> Result<
                 return Err(Error::LimitExceeded("random bytes"));
             }
             let mut bytes = vec![0u8; size];
-            getrandom::fill(&mut bytes)
-                .map_err(|_| Error::Transport("random source unavailable".into()))?;
+            getrandom::fill(&mut bytes).map_err(|_| Error::Unavailable("random source"))?;
             Ok(json!(bytes))
         }
         "sha256" => {
@@ -26,6 +25,6 @@ pub(super) fn dispatch(operation: &str, input: &str, limits: &Limits) -> Result<
             check_limit(limits.digest_bytes, bytes.len(), "digest bytes")?;
             Ok(json!(sha2::Sha256::digest(&bytes).to_vec()))
         }
-        _ => Err(Error::PermissionDenied),
+        _ => Err(Error::UnknownOperation),
     }
 }

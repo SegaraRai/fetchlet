@@ -4,8 +4,9 @@
 
 import { dictionary, exposeAttributes, usvString } from "./idl";
 import { runtime } from "./runtime";
+import { hostProvides } from "./web-host";
 
-if (!runtime.URLPattern && typeof runtime.__fetchletHost === "function") {
+if (!runtime.URLPattern && hostProvides("url-pattern")) {
   const components = [
     "protocol",
     "username",

@@ -3,8 +3,9 @@
 // the brotli crate for brotli. Codecs belong to the current invocation.
 
 import { runtime } from "./runtime";
+import { hostProvides } from "./web-host";
 
-if (!runtime.CompressionStream && typeof runtime.__fetchletHost === "function") {
+if (!runtime.CompressionStream && hostProvides("compression")) {
   const formats = new Set(["deflate", "deflate-raw", "gzip", "brotli"]);
 
   const host = (operation: string, input: unknown) => {

@@ -33,7 +33,7 @@ tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
 # The integration contract runs on every engine.
-fetchlet = { workspace = true, features = ["quickjs", "boa", "v8"] }
+fetchlet = { workspace = true, features = ["quickjs", "boa", "v8", "web-apis"] }
 actix-http = "3"
 actix-web = { workspace = true, features = ["macros"] }
 anyhow.workspace = true

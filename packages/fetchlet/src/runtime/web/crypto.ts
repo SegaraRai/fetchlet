@@ -1,6 +1,7 @@
 import { runtime } from "./runtime";
+import { hostProvides } from "./web-host";
 
-if (!runtime.crypto && typeof runtime.__fetchletHost === "function") {
+if (!runtime.crypto && hostProvides("crypto")) {
   const host = (op: string, input: any) => {
     const result = JSON.parse(runtime.__fetchletHost(op, JSON.stringify(input)));
     if (!result.ok) {

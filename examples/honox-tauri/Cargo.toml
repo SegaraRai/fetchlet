@@ -10,7 +10,7 @@ boa = ["fetchlet/boa"]
 v8 = ["fetchlet/v8"]
 
 [dependencies]
-fetchlet = { workspace = true, features = ["quickjs"] }
+fetchlet = { workspace = true, features = ["quickjs", "web-apis"] }
 fetchlet-http.workspace = true
 anyhow.workspace = true
 serde.workspace = true

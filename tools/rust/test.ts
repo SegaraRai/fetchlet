@@ -15,6 +15,7 @@ const axumExamples = [
   "vinext-axum",
 ];
 const engines = "quickjs,boa,v8";
+const enginesWithWebApis = `${engines},web-apis`;
 
 cargoAll([
   ["fmt", "--all", "--check"],
@@ -32,7 +33,35 @@ cargoAll([
     "-D",
     "warnings",
   ],
-  ["test", "--locked", "-p", "fetchlet", "--no-default-features", "--features", engines],
+  // Web API host implementations build with every optional API and with none.
+  ["test", "--locked", "-p", "fetchlet-web"],
+  ["test", "--locked", "-p", "fetchlet-web", "--no-default-features"],
+  ...[[], ["--no-default-features"]].map((features) => [
+    "clippy",
+    "--locked",
+    "-p",
+    "fetchlet-web",
+    "--all-targets",
+    ...features,
+    "--",
+    "-D",
+    "warnings",
+  ]),
+  ["test", "--locked", "-p", "fetchlet", "--no-default-features", "--features", enginesWithWebApis],
+  [
+    "clippy",
+    "--locked",
+    "-p",
+    "fetchlet",
+    "--all-targets",
+    "--no-default-features",
+    "--features",
+    enginesWithWebApis,
+    "--",
+    "-D",
+    "warnings",
+  ],
+  // Engines without the optional Web APIs.
   [
     "clippy",
     "--locked",

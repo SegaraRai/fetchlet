@@ -6,7 +6,7 @@
 //! The guest writes input and then reads output in pieces of at most
 //! [`OUTPUT_PIECE`] bytes, so one small input never has to inflate into one
 //! large message. Decompressed output counts toward
-//! [`Limits::decompressed_bytes`](crate::Limits::decompressed_bytes).
+//! [`WebLimits::decompressed_bytes`](crate::WebLimits::decompressed_bytes).
 
 use brotli::enc::StandardAlloc;
 use brotli::enc::encode::{

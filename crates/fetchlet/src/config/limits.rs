@@ -59,6 +59,18 @@ impl Limits {
     }
 }
 
+#[cfg(feature = "web")]
+impl Limits {
+    /// The budgets that `fetchlet-web` operations enforce.
+    pub(crate) fn web(&self) -> fetchlet_web::WebLimits {
+        fetchlet_web::WebLimits {
+            digest_bytes: self.digest_bytes,
+            compression_streams: self.compression_streams,
+            decompressed_bytes: self.decompressed_bytes,
+        }
+    }
+}
+
 pub(crate) fn check_limit(
     limit: Option<usize>,
     observed: usize,

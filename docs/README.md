@@ -14,6 +14,8 @@
   engine selection.
 - [fetchlet-http crate](../crates/fetchlet-http/README.md): Tower, hyper,
   axum and actix integration, artifacts and errors.
+- [fetchlet-web crate](../crates/fetchlet-web/README.md): engine-independent
+  host implementations of Web APIs and their features.
 - [Host services](host-services.md): env, services, console, outbound fetch
   and transports.
 - [In-process fetch](in-process-fetch.md): calling Rust routers from

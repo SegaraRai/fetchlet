@@ -1,0 +1,23 @@
+//! Host implementations of Web APIs for fetchlet guests.
+//!
+//! The guest runtime calls these as host operations: a name, a JSON message
+//! and byte-store handles. They depend on no JavaScript engine, so QuickJS,
+//! Boa and V8 share one implementation of each API.
+
+mod dispatch;
+mod error;
+mod limits;
+mod state;
+mod url;
+
+#[cfg(feature = "compression")]
+mod compression;
+#[cfg(feature = "crypto")]
+mod crypto;
+#[cfg(feature = "url-pattern")]
+mod url_pattern;
+
+pub use dispatch::{ByteHandles, Invocation, PROTOCOL_VERSION, capabilities, dispatch};
+pub use error::{Error, Result};
+pub use limits::WebLimits;
+pub use state::WebState;
