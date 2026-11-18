@@ -24,7 +24,7 @@
     <button type="submit">Greet</button>
   </form>
 
-  <button type="button" onclick={() => clicks += 1}>Clicks {clicks}</button>
+  <button type="button" onclick={() => (clicks += 1)}>Clicks {clicks}</button>
   <a href="/about">About</a>
   <a href="/projects">Projects</a>
 </main>
@@ -50,7 +50,8 @@
     gap: 0.75rem;
     margin: 2rem 0;
   }
-  input, button {
+  input,
+  button {
     font: inherit;
     padding: 0.5rem 0.75rem;
   }

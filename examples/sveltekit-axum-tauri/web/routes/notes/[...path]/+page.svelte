@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
+
   import LocalTime from "#lib/components/LocalTime.svelte";
   import { getRenderedNote } from "#lib/notes.remote.ts";
   import { noteHref } from "#lib/paths.ts";

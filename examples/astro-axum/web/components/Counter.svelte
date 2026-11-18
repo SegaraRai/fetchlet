@@ -9,5 +9,5 @@
 </script>
 
 <div data-counter data-hydrated={hydrated}>
-  <button type="button" onclick={() => clicks += 1}>Clicks {clicks}</button>
+  <button type="button" onclick={() => (clicks += 1)}>Clicks {clicks}</button>
 </div>

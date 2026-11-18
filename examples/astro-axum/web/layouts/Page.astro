@@ -5,6 +5,7 @@ interface Props {
 }
 const { title } = Astro.props;
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -14,7 +15,9 @@ const { title } = Astro.props;
     <ClientRouter />
   </head>
   <body>
-    <main><slot /></main>
+    <main>
+      <slot />
+    </main>
   </body>
 </html>
 
@@ -39,7 +42,8 @@ const { title } = Astro.props;
     gap: 0.75rem;
     margin: 2rem 0;
   }
-  input, button {
+  input,
+  button {
     font: inherit;
     padding: 0.5rem 0.75rem;
   }

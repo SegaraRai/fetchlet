@@ -5,5 +5,6 @@
 </script>
 
 <span class="snippet"
-  >{#each parts as part, index (index)}{#if part.matched}<mark>{part.text}</mark>{:else}{part.text}{/if}{/each}</span
+  >{#each parts as part, index (index)}{#if part.matched}<mark>{part.text}</mark
+      >{:else}{part.text}{/if}{/each}</span
 >

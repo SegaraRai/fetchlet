@@ -1,6 +1,6 @@
 ---
-import Page from "../layouts/Page.astro";
 import Counter from "../components/Counter.svelte";
+import Page from "../layouts/Page.astro";
 
 let name = Astro.url.searchParams.get("name") ?? "fetchlet";
 if (Astro.request.method === "POST") {
@@ -11,6 +11,7 @@ if (Astro.request.method === "POST") {
 const response = await Astro.locals.env.RUST.fetch("https://rust.fetchlet.test/greeting");
 const greeting = await response.json();
 ---
+
 <Page title="Astro greeting">
   <h1>Hello, {name}</h1>
   <p>{Astro.locals.env.MESSAGE}</p>

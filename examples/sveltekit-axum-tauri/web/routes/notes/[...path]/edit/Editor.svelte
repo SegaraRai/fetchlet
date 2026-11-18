@@ -1,7 +1,14 @@
 <script lang="ts">
   import { beforeNavigate } from "$app/navigation";
+
   import { subscribeToChanges } from "#lib/live.ts";
-  import { deleteNote, getNote, getRenderedNote, renderPreview, saveNote } from "#lib/notes.remote.ts";
+  import {
+    deleteNote,
+    getNote,
+    getRenderedNote,
+    renderPreview,
+    saveNote,
+  } from "#lib/notes.remote.ts";
   import { noteHref } from "#lib/paths.ts";
 
   let { path }: { path: string } = $props();
@@ -27,7 +34,7 @@
   // Render the preview in the Rust process once typing pauses.
   $effect(() => {
     const text = content;
-    if (text === saved && preview === initialPreview) return;
+    if (text === saved && preview === initialPreview) {return;}
     const timer = setTimeout(async () => {
       preview = await renderPreview({ path, content: text });
     }, 250);
@@ -36,7 +43,7 @@
 
   $effect(() =>
     subscribeToChanges((change) => {
-      if (change.paths.includes(path)) changedOnDisk = true;
+      if (change.paths.includes(path)) {changedOnDisk = true;}
     }),
   );
 
@@ -46,7 +53,7 @@
     const saved =
       navigation.type === "goto" &&
       navigation.to?.url.pathname === new URL(noteHref(path), location.href).pathname;
-    if (dirty && !leaving && !saved && !confirm("Discard unsaved changes?")) navigation.cancel();
+    if (dirty && !leaving && !saved && !confirm("Discard unsaved changes?")) {navigation.cancel();}
   });
 
   function onkeydown(event: KeyboardEvent) {
@@ -85,7 +92,9 @@
     {#if conflict !== undefined}
       <div class="banner warning" role="alert">
         <p>This note was {conflict === null ? "deleted" : "changed"} after it was loaded.</p>
-        <button {...saveNote.fields.overwrite.as("submit", conflict ?? "")}>Overwrite with this version</button>
+        <button {...saveNote.fields.overwrite.as("submit", conflict ?? "")}
+          >Overwrite with this version</button
+        >
         <a href={noteHref(path) + "/edit"} data-sveltekit-reload>Discard and reload</a>
       </div>
     {:else if changedOnDisk}
@@ -103,8 +112,7 @@
       <textarea
         {...saveNote.fields.content.as("text", saved)}
         spellcheck="false"
-        aria-label="Markdown"
-      ></textarea>
+        aria-label="Markdown"></textarea>
       <div class="preview markdown" aria-label="Preview">{@html preview}</div>
     </div>
   </form>

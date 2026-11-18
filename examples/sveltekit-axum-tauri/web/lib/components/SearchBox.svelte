@@ -1,8 +1,10 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
+
   import { searchNotes } from "#lib/notes.remote.ts";
   import { noteHref } from "#lib/paths.ts";
+
   import Snippet from "./Snippet.svelte";
 
   let query = $state(page.url.pathname === "/search" ? (page.url.searchParams.get("q") ?? "") : "");

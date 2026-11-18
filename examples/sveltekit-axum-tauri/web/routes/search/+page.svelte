@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
+
   import Snippet from "#lib/components/Snippet.svelte";
   import { searchNotes } from "#lib/notes.remote.ts";
   import { noteHref } from "#lib/paths.ts";

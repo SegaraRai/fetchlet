@@ -2,6 +2,7 @@
   import "../app.css";
   import { onNavigate, refreshAll } from "$app/navigation";
   import { page } from "$app/state";
+
   import NoteTree from "#lib/components/NoteTree.svelte";
   import SearchBox from "#lib/components/SearchBox.svelte";
   import { subscribeToChanges } from "#lib/live.ts";
@@ -14,7 +15,7 @@
 
   // Cross-fade between pages where the browser supports view transitions.
   onNavigate((navigation) => {
-    if (!document.startViewTransition) return;
+    if (!document.startViewTransition) {return;}
     return new Promise((resolve) => {
       document.startViewTransition(async () => {
         resolve();

@@ -14,7 +14,8 @@
 <section class="overview">
   <h1>{workspace.name}</h1>
   <p class="muted">
-    {workspace.notes} {workspace.notes === 1 ? "note" : "notes"}{#if workspace.skipped > 0}
+    {workspace.notes}
+    {workspace.notes === 1 ? "note" : "notes"}{#if workspace.skipped > 0}
       ({workspace.skipped} left out for size or non-UTF-8 content){/if}
   </p>
 
