@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 import { root } from "./paths.ts";
+import { run } from "./process.ts";
 
 /**
  * What a result was produced with. Results record versions rather than
@@ -63,9 +64,21 @@ export function installedPackages(directory: string): Record<string, string> {
   return versions;
 }
 
+/**
+ * Writes `value` as JSON in the layout `vp fmt` gives it, so `check:format`
+ * accepts the file and a rerun with the same outcomes leaves it unchanged.
+ */
+export function writeJson(file: string, value: unknown): void {
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
+  if (run("vp", ["fmt", file], { log: logPath("format.log") }) !== 0) {
+    throw new Error(`vp fmt could not format ${file}; see results/logs/format.log`);
+  }
+}
+
 /** Writes a JSON result under `results/`, which the documentation reports from. */
 export function writeResult(name: string, value: unknown): void {
-  writeText(name, JSON.stringify(value, null, 2) + "\n");
+  writeJson(resolve(root, "results", name), value);
 }
 
 /** Writes a text file under `results/`. */

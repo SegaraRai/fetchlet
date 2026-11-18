@@ -6,11 +6,11 @@
 
 import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { root as workspaceRoot } from "@fetchlet-internal/tools-workspace/paths";
-import { environment } from "@fetchlet-internal/tools-workspace/results";
+import { environment, writeJson } from "@fetchlet-internal/tools-workspace/results";
 import { build } from "vite-plus";
 
 import { runProcess } from "./process.ts";
@@ -292,7 +292,6 @@ const report = {
   results: results.filter((result) => result.status !== "pass"),
 };
 const output = resolve(workspaceRoot, values.output);
-mkdirSync(dirname(output), { recursive: true });
-writeFileSync(output, JSON.stringify(report, null, 2) + "\n");
+writeJson(output, report);
 console.log(JSON.stringify({ summary, verdict }, null, 2));
 process.exitCode = verdict.unexpected > 0 ? 1 : 0;

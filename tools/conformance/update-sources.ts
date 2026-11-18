@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname, relative, isAbsolute, posix } from "node:path";
 import { parseArgs } from "node:util";
 
+import { writeJson } from "@fetchlet-internal/tools-workspace/results";
 import { parse } from "yaml";
 
 import { lock, root, type Suite } from "./sources.ts";
@@ -103,7 +104,7 @@ lock.suites[suite] = {
     }))
     .sort((a, b) => a.path.localeCompare(b.path)),
 };
-writeFileSync(resolve(root, "sources.lock.json"), JSON.stringify(lock, null, 2) + "\n");
+writeJson(resolve(root, "sources.lock.json"), lock);
 console.log(
   "Updated " +
     suite +

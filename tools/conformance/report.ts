@@ -1,5 +1,7 @@
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+
+import { writeJson } from "@fetchlet-internal/tools-workspace/results";
 
 import { root } from "./sources.ts";
 
@@ -94,10 +96,7 @@ export function evaluate(
         reason: recordNote,
         message: result.message,
       }));
-    writeFileSync(
-      baselineFile,
-      JSON.stringify({ schemaVersion: 1, failures: expectations }, null, 2) + "\n",
-    );
+    writeJson(baselineFile, { schemaVersion: 1, failures: expectations });
   }
   return assess(results, expectations, options);
 }
