@@ -29,6 +29,14 @@ Fetch entry is `handle`. Nitro's server bundle is built in
 evaluates after the Web API profile. Rust serves public assets, so Nitro's
 `serveStatic` is disabled.
 
+Nitro's worker presets polyfill Node's built-in modules with unenv. The
+preset keeps the modules fetchlet implements, and the `Buffer`, `process`,
+`setImmediate` and `clearImmediate` globals, as imports for `fetchlet/build`,
+so Nitro code gets the same `node:crypto`, `node:async_hooks` and other
+modules as every artifact ([Node.js compatibility](../../../docs/node-compat.md)).
+unenv still provides the rest. The artifact builds with
+`asyncContext: "serialized"`.
+
 `nitro.fetchlet.assets: true` packs the public assets into `assets.flpk`
 and caches each `publicAssets` entry that has a `maxAge` (Nuxt's `/_nuxt/`,
 for example) for that age ([asset archive](../../../docs/asset-archive.md)).

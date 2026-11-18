@@ -68,10 +68,10 @@ Unexpected results: 0.
 
 | Build   | Bytes     | Intl polyfills                                                                                  |
 | ------- | --------- | ----------------------------------------------------------------------------------------------- |
-| quickjs | 2,779,893 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
-| v8      | 447,136   | none                                                                                            |
-| plain   | 447,042   | none                                                                                            |
-| plural  | 1,097,493 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
+| quickjs | 2,800,667 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
+| v8      | 467,910   | none                                                                                            |
+| plain   | 467,816   | none                                                                                            |
+| plural  | 1,118,267 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
 
 ## Examples
 

@@ -35,6 +35,8 @@
   and bindings.
 - [Web API profile](web-api.md): what the profile provides on every engine,
   implemented in [@fetchlet/web](../packages/web/README.md).
+- [Node.js compatibility](node-compat.md): the `node:*` modules and globals
+  every artifact gets, implemented in [@fetchlet/node](../packages/node/README.md).
 - [Examples](../examples/README.md): runnable applications per framework.
 
 ## Security and verification

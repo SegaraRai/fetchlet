@@ -103,9 +103,10 @@ fetchlet's status for each:
 - **Boa** gets ArrayBuffer `transfer`, `transferToFixedLength` and
   `detached` from the backend, because Boa 0.22 keeps them behind its
   `experimental` feature. Resizable buffers transfer as fixed-length.
-- **Node APIs** are outside the profile. `fetchlet/build` provides
-  `AsyncLocalStorage` for `node:async_hooks`, and the vinext adapter
-  replaces the Node modules it needs. `asyncContext: "propagated"` isolates
+- **Node APIs** are outside the profile. `fetchlet/build` provides a
+  subset of Node's built-in modules on top of it
+  ([Node.js compatibility](node-compat.md)), including `AsyncLocalStorage`
+  for `node:async_hooks`. `asyncContext: "propagated"` isolates
   concurrent runs on V8 and Boa, whose engines carry the async context
   through promise reactions; QuickJS has no such mechanism yet and uses
   `asyncContext: "serialized"`, which shares one store per invocation. The

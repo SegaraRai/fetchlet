@@ -31,14 +31,14 @@ environments and the rebundle resolve dependencies with the `workerd`,
 ## Node APIs
 
 vinext's server uses Node APIs on the assumption of Cloudflare Workers'
-`nodejs_compat`. The plugin replaces them in the artifact bundle:
+`nodejs_compat`. `node:buffer`, `node:crypto` and the other modules every
+artifact gets come from fetchlet/build ([Node.js compatibility](../../../docs/node-compat.md)).
+The plugin replaces the rest in the artifact bundle:
 
 | Module or value | Replacement                                                                         |
 | --------------- | ----------------------------------------------------------------------------------- |
 | `node:path`     | pathe 2.0.3 (posix and win32)                                                       |
 | `node:fs`       | A file system with no files; vinext uses its in-memory cache                        |
-| `node:buffer`   | buffer 6.0.3, and `isUtf8` through a fatal `TextDecoder`                            |
-| `node:crypto`   | `createHash` for SHA-256 through @noble/hashes 2.4.0 (cache keys)                   |
 | `node:module`   | `createRequire` returning the React entries vinext leaves external in the SSR build |
 | `process.env`   | An empty object; `process.platform` is `"linux"`                                    |
 
