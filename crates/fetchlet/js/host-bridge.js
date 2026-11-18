@@ -1,4 +1,5 @@
 // Rust installs the host bindings before evaluating application code.
+
 (() => {
   const nativeDispatch = globalThis.__fetchletHost;
   // Body bytes cross the bridge as typed arrays in the invocation's byte store;
