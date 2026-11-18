@@ -142,21 +142,3 @@ Test262 host features, negative and module tests, writable, transform and
 piping Streams, the no-cors header guard, legacy multi-byte encodings, and
 fuzzing of JavaScript multipart and Body parsing are next
 ([conformance](conformance.md#next)).
-
-## Unit tests
-
-Integration, conformance and example end-to-end suites cover whole artifacts.
-Code that runs on the user's side also has unit tests that pin its own
-decisions. Vitest covers `fetchlet/build` (`buildArtifact`, polyfill planning,
-asset entries and options), the runtime Fetch handler, every framework
-integration's options, generated entry, middleware and context helpers, and
-`@fetchlet/web`: Web IDL conversions, `multipart/form-data` parsing, wire
-conversion with the response body registry, the host protocol, Web
-Cryptography algorithm normalization, and the global classes Headers, Body,
-Request, Response, URL over a fake host parser and the timer queue, installed
-on an isolated runtime object. Rust module tests cover asset archive and
-manifest validation, public origins, error statuses, limits, error codes, the
-actix request and response conversion, and the wire codec and byte store
-edge cases. Add unit tests with each new decision in these modules; the hyper
-and axum services delegate to the Tower service, which the integration
-contract covers.
