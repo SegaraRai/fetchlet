@@ -48,10 +48,63 @@ profile lacks. In rough order of how often server code needs them:
 - Global error events: make the global scope an `EventTarget`, dispatch
   `ErrorEvent` from `reportError` and `PromiseRejectionEvent` for
   unhandled rejections where each engine exposes a rejection tracker.
-- `MessageChannel`, `MessagePort` and `MessageEvent` within one instance,
-  which React's scheduler and some libraries detect.
-- WebAssembly on QuickJS and Boa has no practical provider; record it as an
-  engine limit.
+- `MessageChannel`, `MessagePort` and `MessageEvent` within one instance.
+  React's `scheduler` detects `setImmediate`, then `MessageChannel`, then
+  `setTimeout`, and other libraries test for them.
+- The `Performance` interface with `mark`, `measure` and the entry getters,
+  which React development builds, framework tracing and `Server-Timing`
+  helpers call. Only `now` and `timeOrigin` exist.
+- WebAssembly on QuickJS and Boa has no practical provider. Record it as an
+  engine limit in each framework guide, with the libraries it rules out:
+  wasm image rendering (satori with resvg), shiki's Oniguruma engine and
+  wasm database drivers.
+
+### Framework runtime needs beyond WinterTC
+
+Framework servers and their common dependencies also expect APIs outside
+the Minimum Common API. Each item needs a decision, an implementation or a
+documented refusal, and a check in a framework example:
+
+- Concurrent request context. Next.js, SvelteKit's `getRequestEvent`, Nuxt
+  through unctx, SolidStart and TanStack Start keep the request in
+  `AsyncLocalStorage`. `asyncContext: "serialized"` shares the last started
+  store between concurrent `run` calls (see
+  [Asynchronous SvelteKit SSR](#asynchronous-sveltekit-ssr)). Investigate
+  per-engine promise hooks or an AsyncContext implementation under
+  `docs/research/` first.
+- A shared Node compatibility layer in `fetchlet/build`: `Buffer`,
+  `process.env`, `process.nextTick`, `setImmediate` and `node:events`. Only
+  the vinext adapter replaces Node modules today, inside its own
+  integration. Decide whether the layer is opt-in per artifact and how it
+  relates to unenv, which Nitro already applies.
+- A `node:crypto` subset over Web Crypto: `createHash`, `createHmac`,
+  `randomBytes` and `timingSafeEqual`, which session and token libraries
+  reach on their Node paths.
+- Client disconnects on the incoming request. `wireRequest` gives the entry
+  `Request` a signal that never aborts, so SSE and streaming SSR keep running
+  after the client leaves. Abort it when Rust drops the response body, and
+  test that the handler observes it.
+- Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
+  QuickJS and Boa, which libraries such as depd call at load time.
+- WebSocket: server upgrades as crossws and framework WebSocket routes use
+  them, and the client `WebSocket`. Both need a connection lifetime beyond
+  one Request → Response call and a host service boundary.
+- The Cache API (`caches`), which some edge adapters use for ISR and fetch
+  caching. Decide whether it maps to a host service or stays out.
+- TCP sockets (TC55 Sockets API `connect()`), which postgres.js, pg and
+  Redis clients use on edge runtimes. Decide between a host-mediated socket
+  service and documenting host services as the supported path.
+- A runtime key for package `exports`: choose fetchlet's condition name
+  following WinterTC Runtime Keys and which of `worker`, `edge-light` and
+  `workerd` it implies, so adapters stop adding conditions one by one.
+- `SharedArrayBuffer` and `Atomics` on QuickJS and Boa, which some wasm
+  builds and libraries detect.
+
+Streaming outbound request bodies, Intl coverage checks and legacy
+multi-byte encodings are tracked under
+[Streaming outbound request bodies](#streaming-outbound-request-bodies),
+[Capability negotiation](#capability-negotiation) and
+[Conformance](#conformance).
 
 ### Capability negotiation
 
