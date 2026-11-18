@@ -3,12 +3,13 @@
 Framework servers keep the current request in `AsyncLocalStorage`. Next.js,
 SvelteKit's `getRequestEvent`, Nuxt through unctx, SolidStart and TanStack
 Start depend on it, and React's server renderer reads its request cache the
-same way. fetchlet provides `asyncContext: "serialized"` today
-([build options](../../packages/fetchlet/docs/build.md)): a store lasts until
-the `run` callback's promise settles, and overlapping `run`s inside one
+same way. `asyncContext: "serialized"`
+([build options](../../packages/fetchlet/docs/build.md)) keeps a store until
+the `run` callback's promise settles, so overlapping `run`s inside one
 invocation see the last started store. This document designs propagation
-that isolates concurrent runs on every engine, and states what each engine
-needs.
+that isolates concurrent runs, states what each engine needs, and records
+the semantics chosen where engines and runtimes differ. V8 and Boa implement
+it as `asyncContext: "propagated"`; QuickJS waits for an engine API.
 
 ## Requirements
 
@@ -25,8 +26,9 @@ needs.
   context crosses from one invocation to the next, including through work a
   previous invocation left behind. Background work registered with
   `fetchlet.waitUntil` keeps the context it was registered in.
-- **One semantics on every engine.** QuickJS, Boa and V8 give the same
-  results for the same program, or the build refuses the combination.
+- **One semantics on every engine.** Every engine with a slot gives the
+  results Node gives for the same program. On an engine without one, a
+  propagated artifact fails when it loads instead of sharing stores.
 
 ## Semantics
 
@@ -63,43 +65,45 @@ in the current mapping.
 The design splits into a profile part shared by all engines and one slot per
 engine.
 
-**Profile.** A module of `@fetchlet/web`, `async-context.ts`, implements
-`Variable` and `Snapshot` over two host functions: `get()` returns the
-current mapping and `set(mapping)` replaces it. It does not install a global
-`AsyncContext`, since the proposal may change; the `node:async_hooks`
-replacement of `fetchlet/build` imports it. The module also wraps the host
-task sources below.
+**Profile.** `@fetchlet/web/async-context` implements `Variable` and
+`Snapshot` over the engine's slot, `__fetchletAsyncContext`, whose `get()`
+returns the current mapping and `set(mapping)` replaces it. The engine
+installs the slot before the bundle runs. The module does not install a
+global `AsyncContext`: none of the runtimes fetchlet aligns with exposes
+one, and the proposal may still change. `fetchlet/build/propagated-async-hooks`,
+the `node:async_hooks` replacement, imports it, and the profile's timers,
+`MessageChannel` and rejection events run their callbacks in its
+snapshots.
 
 **Engine slot.** Each engine stores the current mapping and carries it
 through promise reactions natively, so `await` in engine code, in the
 Streams polyfill and in framework code all propagate without source changes.
 
-| Engine  | Slot                                                                                                                                                                                                                                                                                                                                                              | Status                     |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| V8      | V8's continuation-preserved embedder data. V8 captures it when a promise reaction is created and restores it when the reaction runs; Node's `AsyncContextFrame` and Deno's `AsyncLocalStorage` are built on it. deno_core exposes it as `Deno.core.getAsyncContext` and `setAsyncContext`, and rusty_v8 as `get_` and `set_continuation_preserved_embedder_data`. | Available                  |
-| Boa     | The `HostHooks` of the Context. Boa 0.22 calls `make_job_callback` in `perform_promise_then`, which `await` and thenable jobs also use, and `call_job_callback` when the job runs. The first stores the current mapping in the `JobCallback`'s host-defined field, which the garbage collector traces; the second makes it current around the call.               | Available, needs the hooks |
-| QuickJS | No mechanism. quickjs-ng 0.16.2 calls its promise hook only on promise creation, resolution and thenable jobs. Reaction jobs, including every `await` continuation, run with no hook, and `await` creates no derived promise to attach a context to.                                                                                                              | Needs an engine change     |
+| Engine  | Slot                                                                                                                                                                                                                                                                                                                                           | Status                |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| V8      | V8's continuation-preserved embedder data, which V8 captures when a promise reaction is created and restores when the reaction runs. Node's `AsyncContextFrame` and Deno's `AsyncLocalStorage` are built on it. The slot is deno_core's `Deno.core.getAsyncContext` and `setAsyncContext`.                                                     | Implemented           |
+| Boa     | The Context's `HostHooks`. Boa 0.22 calls `make_job_callback` in `perform_promise_then`, which `await` and thenable jobs also use, and `call_job_callback` when the job runs. The first stores the current mapping in the `JobCallback`'s host-defined field, which the garbage collector traces; the second makes it current around the call. | Implemented           |
+| QuickJS | None yet. quickjs-ng 0.16.2 calls its promise hook only on promise creation, resolution and thenable jobs. Reaction jobs, including every `await` continuation, run with no hook, and `await` creates no derived promise to attach a context to.                                                                                               | Waiting on quickjs-ng |
 
-Boa's Context host data is not traced, so the slot itself must not hold JS
-values there. The Boa slot keeps the current mapping on an internal object
-reachable from the global object, and the hooks read and write that object.
+Boa's Context host data is not traced, so the slot keeps the current mapping
+on an internal object that the global object holds,
+`__fetchletAsyncContextSlot`, and the hooks read and write it there.
 
-**QuickJS change.** `perform_promise_then` is the single point where every
-reaction is registered (`then`, `await`, async generators and thenables), and
-`promise_reaction_job` and `js_promise_resolve_thenable_job` are where they
-run. The change adds a current-mapping `JSValue` to the runtime, copies it
-into `JSPromiseReactionData` when a reaction is registered, swaps it in and
-out around the job, marks it during garbage collection, and exposes
-`JS_GetAsyncContext` and `JS_SetAsyncContext`. It is a few dozen lines in
-`quickjs.c`. Propose it to quickjs-ng first; until a release contains it,
-carry it as a patch on rquickjs-sys's bundled source through a
-`[patch.crates-io]` entry, with the patch file and the upstream revision it
-applies to recorded in the repository.
+**QuickJS.** quickjs-ng
+[issue #1919](https://github.com/quickjs-ng/quickjs/issues/1919) asks for an
+embedder value carried through promise jobs, and
+[pull request #1920](https://github.com/quickjs-ng/quickjs/pull/1920) adds
+`JS_GetContinuationData` and `JS_SetContinuationData`, which capture the
+value when a reaction is registered and restore it around the job, as V8
+does. fetchlet does not patch QuickJS. Once a quickjs-ng release with that
+API reaches rquickjs, the QuickJS slot calls it; until then QuickJS
+artifacts use `"serialized"`.
 
-**Fallback.** An engine without a slot keeps `asyncContext: "serialized"`.
-`fetchlet.json` records which mode an artifact was built with, and the App
-refuses an artifact built for propagation on an engine without a slot, as
-part of [capability negotiation](../TODO.md#capability-negotiation).
+**Fallback.** An engine without a slot uses `asyncContext: "serialized"`.
+`fetchlet.json` records the mode an artifact was built with. The propagated
+`node:async_hooks` module throws when it is evaluated without a slot, so a
+propagated artifact fails to load on QuickJS; refusing it before loading
+belongs to [capability negotiation](../TODO.md#capability-negotiation).
 
 ## Host task sources
 
@@ -107,20 +111,50 @@ Promise reactions propagate through the engine slot. Callbacks that the
 profile or the host schedules capture a snapshot when they are scheduled and
 run inside it:
 
-| Source                                             | Context the callback runs in                                    |
-| -------------------------------------------------- | --------------------------------------------------------------- |
-| `setTimeout`, `setInterval`, `AbortSignal.timeout` | The context of the call that scheduled it, for every repetition |
-| `queueMicrotask`                                   | The context of the call                                         |
-| `MessagePort` messages                             | The context of `postMessage`                                    |
-| `dispatchEvent` listeners                          | The context of the dispatch, as for any synchronous call        |
-| `fetch` completion, Streams                        | Promise reactions, propagated by the engine                     |
-| `unhandledrejection`, `rejectionhandled`           | The empty context                                               |
-| The start of an invocation, response body pulls    | The empty context                                               |
+| Source                                   | Context the callback runs in                                    |
+| ---------------------------------------- | --------------------------------------------------------------- |
+| `setTimeout`, `setInterval`              | The context of the call that scheduled it, for every repetition |
+| `AbortSignal.timeout` abort listeners    | The context of the `timeout()` call                             |
+| `queueMicrotask`                         | The context of the call                                         |
+| `dispatchEvent` listeners                | The context of the dispatch, as for any synchronous call        |
+| `MessagePort` messages                   | The context in which the `MessageChannel` was created           |
+| `unhandledrejection`, `rejectionhandled` | The context in which the promise was rejected                   |
+| `fetch` completion, Streams              | Promise reactions, propagated by the engine                     |
+| Invocation start, response body pulls    | The empty context                                               |
 
-The entry scripts (`invoke.js`, `response-body.js`, `background.js`) set the
-empty mapping before calling into the application, so a mapping left current
-by a previous invocation cannot leak. Background work keeps its own context
-through its promise reactions.
+The entry scripts (`invoke.js`, `response-body.js`, `background.js`) and each
+host event loop step set the empty mapping before calling into the
+application, so a mapping left current by a previous invocation or task
+cannot leak. Background work keeps its own context through its promise
+reactions.
+
+## Precedents
+
+Where the proposal leaves a choice to the host, fetchlet follows Node,
+checked against Deno and Cloudflare Workers. Node 26.13, with and without
+`AsyncContextFrame`, and Deno 2.9.8 ran the same programs with
+`AsyncLocalStorage`; Workers' behavior is from its
+[documentation](https://developers.cloudflare.com/workers/runtime-apis/nodejs/asynclocalstorage/).
+
+| Case                                | Node                                         | Deno                           | Workers             | fetchlet     |
+| ----------------------------------- | -------------------------------------------- | ------------------------------ | ------------------- | ------------ |
+| Generator and async generator steps | Context of `next()`                          | Same as Node                   | Not documented      | Same as Node |
+| `then` callbacks                    | Context of registration                      | Same as Node                   | Same as Node        | Same as Node |
+| Thenable `then`                     | Context of the `await`                       | Same as Node                   | Not fully supported | Same as Node |
+| `setTimeout`, `queueMicrotask`      | Context of the call                          | Same as Node                   | Not documented      | Same as Node |
+| `AbortSignal.timeout` listeners     | Context of `timeout()`                       | No context                     | Not documented      | Same as Node |
+| `EventTarget` listeners             | Context of `dispatchEvent`                   | Same as Node                   | Not documented      | Same as Node |
+| `MessagePort` listeners             | Context of the channel's creation            | Context of setting `onmessage` | Not documented      | Same as Node |
+| `unhandledrejection` handlers       | Context of the rejection                     | Same as Node                   | Same as Node        | Same as Node |
+| `enterWith`                         | Lasts to the end of the enclosing run or job | Same as Node                   | Not provided        | Same as Node |
+| `disable`                           | Unsets the store                             | Same as Node                   | Not provided        | Same as Node |
+| Global `AsyncContext`               | None                                         | None                           | None                | None         |
+
+`enterWith` and `disable` stay because frameworks written for Node call
+them; code written for Workers does not call them. When the proposal
+reaches Stage 3 and an engine ships it, the profile's `Variable` and
+`Snapshot` follow its text, and a global `AsyncContext` is reconsidered
+then.
 
 ## Alternatives
 
@@ -140,40 +174,38 @@ through its promise reactions.
 
 ## Verification
 
-- Rust tests per engine, through the profile: a value set by `run` survives
-  `await`, `then`, thenables, async generators and `for await`; two `run`s
-  started with `Promise.all` each see only their own value after several
-  awaits; `enterWith` lasts until the end of the current job; `exit`,
-  `snapshot` and `bind` match Node; a new invocation starts empty after one
-  that left a mapping current; background work keeps its context.
-- The same cases run on the Node reference host against Node's
-  `AsyncLocalStorage`, so each engine is compared with Node.
-- The asynchronous SvelteKit example (`rendering: "async"`) gains a page that
-  renders two concurrent `getRequestEvent` readers, and its end-to-end check
-  asserts each sees its own request. That replaces the limitation recorded
-  under [asynchronous SvelteKit SSR](../TODO.md#asynchronous-sveltekit-ssr).
-- Measure `run`, `getStore` and an `await` loop per engine with the bench
-  tools, against the serialized implementation.
+- `crates/fetchlet/tests/async_context.rs` runs one program on each engine
+  through the slot alone: two `run`s started with `Promise.all` each see
+  only their own value after several awaits, `then` callbacks run in their
+  registration context, thenables in the awaiting context, async generators
+  in the context of each `next()`, `for await` in the loop's context,
+  `enterWith` lasts to the end of its run, and a value entered by one
+  invocation is gone in the next. The expected values are Node's for the
+  same program. On QuickJS it asserts that there is no slot.
+- `vp run test:matrix` checks every host task source above with the
+  profile on QuickJS, Boa, V8 and the Node reference host, which provides
+  the slot through Node's `AsyncLocalStorage`.
+- `packages/web/tests/async-context.test.ts` tests `Variable`, `Snapshot`
+  and the task sources over a slot backed by Node's `AsyncContextFrame`.
+- `packages/fetchlet/tests/build/propagated-async-hooks.test.ts` runs each
+  `AsyncLocalStorage` and `AsyncResource` scenario with fetchlet's classes
+  and with Node's, and requires the same result.
 
 ## Rollout
 
-1. The profile module with `Variable` and `Snapshot`, its unit tests over a
-   fake slot, and the snapshot wrapping of timers, `queueMicrotask` and
-   `MessagePort`.
-2. The V8 slot, and a `node:async_hooks` replacement over the profile module
-   (`asyncContext: "propagated"`), verified on V8.
-3. The Boa slot through `HostHooks`.
-4. The QuickJS change, proposed upstream and carried as a patch.
-5. Make `"propagated"` the default where the backend has a slot, keep
-   `"serialized"` as the explicit fallback, and record the mode in
-   `fetchlet.json` for capability negotiation.
+The profile module and its task sources, the V8 and Boa slots, and
+`asyncContext: "propagated"` are implemented. The remaining steps are
+tracked in [TODO](../TODO.md#framework-runtime-needs-beyond-wintertc):
 
-## Open questions
-
-- Generators: the proposal discusses whether a generator resumes in the
-  context of `next()` or of its creation. Follow the proposal's current text
-  and pin it with a test on each engine.
-- Event listeners registered in one context and dispatched in another by the
-  host, such as `AbortSignal` abort events from a timeout, run in the
-  dispatch context; confirm against the proposal's web integration notes.
-- Whether to expose a global `AsyncContext` once the proposal reaches Stage 3.
+1. Let the framework adapters build with `"propagated"`. They pass
+   `"serialized"` today because an artifact may run on any engine.
+2. The asynchronous SvelteKit example (`rendering: "async"`) renders two
+   concurrent `getRequestEvent` readers on V8 and Boa, and its end-to-end
+   check asserts each sees its own request.
+3. Measure `run`, `getStore` and an `await` loop per engine with the bench
+   tools, against the serialized implementation.
+4. The QuickJS slot, once a quickjs-ng release with
+   [#1920](https://github.com/quickjs-ng/quickjs/pull/1920) reaches rquickjs.
+5. Make `"propagated"` the default where the engine has a slot, with the App
+   refusing propagated artifacts on engines without one through capability
+   negotiation.

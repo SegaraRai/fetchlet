@@ -12,10 +12,10 @@ describes the suites. Each section names the versions its run recorded.
 
 | Engine           | Functions | Hono  | SvelteKit | Web API probes |
 | ---------------- | --------- | ----- | --------- | -------------- |
-| QuickJS          | 7 / 7     | 5 / 5 | 4 / 4     | 1 / 1          |
-| Boa              | 7 / 7     | 5 / 5 | 4 / 4     | 1 / 1          |
-| V8               | 7 / 7     | 5 / 5 | 4 / 4     | 1 / 1          |
-| Node (reference) | 7 / 7     | 5 / 5 | 4 / 4     | 1 / 1          |
+| QuickJS          | 7 / 7     | 5 / 5 | 4 / 4     | 2 / 2          |
+| Boa              | 7 / 7     | 5 / 5 | 4 / 4     | 2 / 2          |
+| V8               | 7 / 7     | 5 / 5 | 4 / 4     | 2 / 2          |
+| Node (reference) | 7 / 7     | 5 / 5 | 4 / 4     | 2 / 2          |
 
 ## Web API probes
 

@@ -104,8 +104,14 @@ fetchlet's status for each:
   `detached` from the backend, because Boa 0.22 keeps them behind its
   `experimental` feature. Resizable buffers transfer as fixed-length.
 - **Node APIs** are outside the profile. `fetchlet/build` provides
-  `AsyncLocalStorage` for `node:async_hooks` (`asyncContext: "serialized"`),
-  and the vinext adapter replaces the Node modules it needs.
+  `AsyncLocalStorage` for `node:async_hooks`, and the vinext adapter
+  replaces the Node modules it needs. `asyncContext: "propagated"` isolates
+  concurrent runs on V8 and Boa, whose engines carry the async context
+  through promise reactions; QuickJS has no such mechanism yet and uses
+  `asyncContext: "serialized"`, which shares one store per invocation. The
+  profile's timers, `AbortSignal.timeout`, `MessageChannel` and rejection
+  events run their callbacks in the context Node gives them
+  ([async context design](research/async-context.md#host-task-sources)).
 
 [Conformance](conformance.md) lists every known difference with its reason.
 

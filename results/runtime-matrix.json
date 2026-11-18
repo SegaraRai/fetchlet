@@ -12,19 +12,19 @@
   "profile": "portable experimental Web APIs in embedded engines; native globals in Node reference",
   "summary": {
     "node-reference": {
-      "passed": 17,
+      "passed": 18,
       "failed": 0
     },
     "quickjs": {
-      "passed": 17,
+      "passed": 18,
       "failed": 0
     },
     "boa": {
-      "passed": 17,
+      "passed": 18,
       "failed": 0
     },
     "v8": {
-      "passed": 17,
+      "passed": 18,
       "failed": 0
     }
   },
@@ -104,6 +104,12 @@
     {
       "backend": "node-reference",
       "suite": "web-api",
+      "id": "async-context",
+      "status": "pass"
+    },
+    {
+      "backend": "node-reference",
+      "suite": "web-api",
       "id": "probe",
       "status": "pass",
       "details": {
@@ -206,6 +212,12 @@
       "backend": "quickjs",
       "suite": "hono",
       "id": "not-found",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "suite": "web-api",
+      "id": "async-context",
       "status": "pass"
     },
     {
@@ -318,6 +330,12 @@
     {
       "backend": "boa",
       "suite": "web-api",
+      "id": "async-context",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "suite": "web-api",
       "id": "probe",
       "status": "pass",
       "details": {
@@ -420,6 +438,12 @@
       "backend": "v8",
       "suite": "hono",
       "id": "not-found",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "suite": "web-api",
+      "id": "async-context",
       "status": "pass"
     },
     {

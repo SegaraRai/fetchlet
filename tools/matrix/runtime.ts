@@ -128,6 +128,25 @@ for (const backend of hostBackends) {
   await check(backend, "hono", "not-found", async () =>
     assert.equal((await app.call("handle", [request("/missing")])).status, 404),
   );
+  // Each host task source runs its callback in the context Node gives it.
+  // QuickJS has no async context slot until quickjs-ng/quickjs#1919.
+  await check(backend, "web-api", "async-context", async () =>
+    assert.deepEqual(
+      await app.call("asyncContextSources"),
+      backend === "quickjs"
+        ? null
+        : {
+            setTimeout: "timeout",
+            "setInterval 1": "interval",
+            "setInterval 2": "interval",
+            queueMicrotask: "microtask",
+            "AbortSignal.timeout": "timeout call",
+            dispatchEvent: "dispatch",
+            MessagePort: "created",
+            unhandledrejection: "rejected",
+          },
+    ),
+  );
   await check(backend, "web-api", "probe", async () => {
     const report = await app.call("probe");
     writeResult(`web-api-${backend}.json`, { environment: environment(), ...report });
