@@ -5,25 +5,40 @@
   "description": "Node.js built-in modules for code that runs inside a fetchlet engine, over the Web API profile and the host operations of fetchlet-web",
   "type": "module",
   "exports": {
+    "./assert": "./src/assert.ts",
+    "./assert/strict": "./src/assert-strict.ts",
     "./async-hooks": "./src/async-hooks.ts",
     "./async-hooks/serialized": "./src/async-hooks-serialized.ts",
     "./buffer": "./src/buffer.ts",
     "./crypto": "./src/crypto.ts",
+    "./diagnostics-channel": "./src/diagnostics-channel.ts",
     "./events": "./src/events.ts",
+    "./http": "./src/http.ts",
+    "./https": "./src/https.ts",
     "./path": "./src/path.ts",
     "./process": "./src/process.ts",
+    "./querystring": "./src/querystring.ts",
+    "./stream": "./src/stream.ts",
+    "./stream/promises": "./src/stream-promises.ts",
+    "./stream/web": "./src/stream-web.ts",
+    "./string-decoder": "./src/string-decoder.ts",
     "./timers": "./src/timers.ts",
     "./timers/promises": "./src/timers-promises.ts",
-    "./util": "./src/util.ts"
+    "./url": "./src/url.ts",
+    "./util": "./src/util.ts",
+    "./util/types": "./src/util-types.ts",
+    "./zlib": "./src/zlib.ts"
   },
   "devDependencies": {
     "@fetchlet/web": "workspace:*",
     "@types/node": "catalog:",
     "buffer": "catalog:",
+    "readable-stream": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "@fetchlet/web": "workspace:*",
-    "buffer": "catalog:"
+    "buffer": "catalog:",
+    "readable-stream": "catalog:"
   }
 }

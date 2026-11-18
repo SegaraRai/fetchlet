@@ -118,6 +118,23 @@ describe("EventEmitter", () => {
     compare(({ EventEmitter }) => codeOf(() => new EventEmitter().on("x", "nope" as never))));
 });
 
+test("EventEmitter initializes function-style subclasses, as older libraries define them", () => {
+  const { EventEmitter } = fetchletEvents;
+  function Legacy(this: InstanceType<typeof EventEmitter>) {
+    EventEmitter.call(this);
+  }
+  Object.setPrototypeOf(Legacy.prototype, EventEmitter.prototype);
+  const emitter = new (Legacy as unknown as new () => InstanceType<typeof EventEmitter>)();
+  const received: unknown[] = [];
+  emitter.on("event", (value) => received.push(value));
+  emitter.emit("event", 1);
+  expect(received).toStrictEqual([1]);
+  expect(emitter).toBeInstanceOf(EventEmitter);
+  expect(new EventEmitter().constructor).toBe(EventEmitter);
+  expect(EventEmitter.EventEmitter).toBe(EventEmitter);
+  expect(typeof EventEmitter.once).toBe("function");
+});
+
 describe("module functions", () => {
   test("once resolves with the arguments and rejects on error", () =>
     compare(async ({ EventEmitter, once }) => {

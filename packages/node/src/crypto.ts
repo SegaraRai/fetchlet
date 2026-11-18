@@ -1,10 +1,57 @@
 // node:crypto: random values, hashes, HMAC, timingSafeEqual and the PBKDF2,
-// HKDF and scrypt derivations, with Web Crypto under `webcrypto` and
-// `subtle`. Hashing and derivation run synchronously in the host through the
-// `nodeCrypto.*` operations of fetchlet-web; the callback forms call back on
-// a later microtask. Ciphers, signatures and KeyObject are not provided yet.
+// HKDF and scrypt derivations here, with keys, signatures and ciphers in
+// the crypto-* modules and Web Crypto under `webcrypto` and `subtle`. All
+// cryptography runs synchronously in the host, through the `nodeCrypto.*`
+// and `crypto.*` operations of fetchlet-web; the callback forms call back
+// on a later microtask.
 
 import { Buffer } from "./buffer.ts";
+import {
+  Cipheriv,
+  Decipheriv,
+  createCipheriv,
+  createDecipheriv,
+  getCipherInfo,
+  getCiphers,
+} from "./crypto-ciphers.ts";
+import {
+  type BinaryLike,
+  type Encoding,
+  type NodeBuffer,
+  encode,
+  hashLengths,
+  hashName,
+  hashes,
+  host,
+  base64,
+  concat,
+  toBytes,
+} from "./crypto-common.ts";
+import {
+  KeyObject,
+  createPrivateKey,
+  createPublicKey,
+  createSecretKey,
+  generateKey,
+  generateKeyPair,
+  generateKeyPairSync,
+  generateKeySync,
+  getCurves,
+} from "./crypto-keys.ts";
+import {
+  Sign,
+  Verify,
+  constants,
+  createSign,
+  createVerify,
+  diffieHellman,
+  privateDecrypt,
+  privateEncrypt,
+  publicDecrypt,
+  publicEncrypt,
+  sign,
+  verify,
+} from "./crypto-signatures.ts";
 import {
   invalidArgType,
   nodeError,
@@ -13,129 +60,7 @@ import {
   validateInteger,
 } from "./errors.ts";
 
-type BinaryLike = string | ArrayBuffer | ArrayBufferView;
-type Encoding =
-  | "hex"
-  | "base64"
-  | "base64url"
-  | "latin1"
-  | "binary"
-  | "utf8"
-  | "utf-8"
-  | "ascii"
-  | "ucs2"
-  | "utf16le";
-type NodeBuffer = InstanceType<typeof Buffer>;
-
 const webCrypto = (globalThis as unknown as { crypto: Crypto }).crypto;
-
-interface HostReply {
-  ok: boolean;
-  value?: unknown;
-  error?: {
-    code: string;
-    message: string;
-  };
-}
-
-function host(operation: string, input: object): NodeBuffer {
-  const call = (
-    globalThis as {
-      __fetchletHost?: (operation: string, input: string) => string;
-    }
-  ).__fetchletHost;
-  if (typeof call !== "function") {
-    throw nodeError(
-      Error,
-      "ERR_METHOD_NOT_IMPLEMENTED",
-      `node:crypto needs the fetchlet host for ${operation}`,
-    );
-  }
-  const reply = JSON.parse(call(operation, JSON.stringify(input))) as HostReply;
-  if (!reply.ok) {
-    throw nodeError(Error, reply.error!.code, reply.error!.message);
-  }
-  return Buffer.from(reply.value as string, "base64");
-}
-
-function base64(bytes: Uint8Array): string {
-  return Buffer.from(bytes.buffer as ArrayBuffer, bytes.byteOffset, bytes.byteLength).toString(
-    "base64",
-  );
-}
-
-function encode(bytes: NodeBuffer, encoding?: string): NodeBuffer | string {
-  if (encoding === undefined || encoding === "buffer") {
-    return bytes;
-  }
-  return bytes.toString(encoding as BufferEncoding);
-}
-
-type BufferEncoding = Parameters<NodeBuffer["toString"]>[0];
-
-function toBytes(data: unknown, name: string, encoding?: string): Uint8Array {
-  if (typeof data === "string") {
-    return Buffer.from(data, (encoding ?? "utf8") as BufferEncoding);
-  }
-  if (ArrayBuffer.isView(data)) {
-    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-  }
-  if (data instanceof ArrayBuffer) {
-    return new Uint8Array(data);
-  }
-  throw invalidArgType(
-    name,
-    "of type string or an instance of ArrayBuffer, Buffer, TypedArray, or DataView",
-    data,
-  );
-}
-
-function concat(chunks: Uint8Array[]): Uint8Array {
-  const length = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
-  const bytes = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes;
-}
-
-const hashes = ["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512-224", "sha512-256"];
-
-const hashAliases: Record<string, string> = {
-  "rsa-md5": "md5",
-  "rsa-sha1": "sha1",
-  "sha-1": "sha1",
-  "rsa-sha224": "sha224",
-  "sha-224": "sha224",
-  "sha2-224": "sha224",
-  "rsa-sha256": "sha256",
-  "sha-256": "sha256",
-  "sha2-256": "sha256",
-  "rsa-sha384": "sha384",
-  "sha-384": "sha384",
-  "sha2-384": "sha384",
-  "rsa-sha512": "sha512",
-  "sha-512": "sha512",
-  "sha2-512": "sha512",
-  "sha512/224": "sha512-224",
-  "sha-512/224": "sha512-224",
-  "rsa-sha512/224": "sha512-224",
-  "sha512/256": "sha512-256",
-  "sha-512/256": "sha512-256",
-  "rsa-sha512/256": "sha512-256",
-};
-
-/** Node's lowercase name of a supported hash, or undefined. */
-function hashName(algorithm: unknown): string | undefined {
-  if (typeof algorithm !== "string") {
-    return undefined;
-  }
-  const lower = algorithm.toLowerCase();
-  const name = hashAliases[lower] ?? lower;
-  return hashes.includes(name) ? name : undefined;
-}
 
 export function getHashes(): string[] {
   return [...hashes];
@@ -481,17 +406,7 @@ export function hkdfSync(
   if (infoBytes.byteLength > 1024) {
     throw outOfRange("info", "must not contain more than 1024 bytes", infoBytes.byteLength);
   }
-  const outputs: Record<string, number> = {
-    md5: 16,
-    sha1: 20,
-    sha224: 28,
-    "sha512-224": 28,
-    sha256: 32,
-    "sha512-256": 32,
-    sha384: 48,
-    sha512: 64,
-  };
-  if (keylen > 255 * outputs[algorithm]) {
+  if (keylen > 255 * hashLengths[algorithm]) {
     throw nodeError(RangeError, "ERR_CRYPTO_INVALID_KEYLEN", "Invalid key length");
   }
   const bytes = host("nodeCrypto.hkdf", {
@@ -600,32 +515,35 @@ export function scrypt(
   deferred(done, () => scryptSync(password, salt, keylen, options));
 }
 
-export const constants = {};
-
-function notProvided(name: string) {
-  return () => {
-    throw nodeError(
-      Error,
-      "ERR_METHOD_NOT_IMPLEMENTED",
-      `crypto.${name} is not available in fetchlet`,
-    );
-  };
-}
-
-// Tier 2 of the Node compatibility layer; see docs/research/node-compat.md.
-export const createCipheriv = notProvided("createCipheriv");
-export const createDecipheriv = notProvided("createDecipheriv");
-export const createSign = notProvided("createSign");
-export const createVerify = notProvided("createVerify");
-export const sign = notProvided("sign");
-export const verify = notProvided("verify");
-export const createPrivateKey = notProvided("createPrivateKey");
-export const createPublicKey = notProvided("createPublicKey");
-export const createSecretKey = notProvided("createSecretKey");
-export const generateKeyPair = notProvided("generateKeyPair");
-export const generateKeyPairSync = notProvided("generateKeyPairSync");
-export const getCiphers = () => [] as string[];
-export const getCurves = () => [] as string[];
+export {
+  KeyObject,
+  createPrivateKey,
+  createPublicKey,
+  createSecretKey,
+  generateKey,
+  generateKeyPair,
+  generateKeyPairSync,
+  generateKeySync,
+  getCurves,
+  Sign,
+  Verify,
+  constants,
+  createSign,
+  createVerify,
+  diffieHellman,
+  privateDecrypt,
+  privateEncrypt,
+  publicDecrypt,
+  publicEncrypt,
+  sign,
+  verify,
+  Cipheriv,
+  Decipheriv,
+  createCipheriv,
+  createDecipheriv,
+  getCipherInfo,
+  getCiphers,
+};
 
 export default {
   createHash,
@@ -651,17 +569,30 @@ export default {
   scrypt,
   scryptSync,
   constants,
-  createCipheriv,
-  createDecipheriv,
+  KeyObject,
+  createSecretKey,
+  createPublicKey,
+  createPrivateKey,
+  generateKey,
+  generateKeySync,
+  generateKeyPair,
+  generateKeyPairSync,
+  getCurves,
+  Sign,
+  Verify,
   createSign,
   createVerify,
   sign,
   verify,
-  createPrivateKey,
-  createPublicKey,
-  createSecretKey,
-  generateKeyPair,
-  generateKeyPairSync,
+  publicEncrypt,
+  privateDecrypt,
+  privateEncrypt,
+  publicDecrypt,
+  diffieHellman,
+  Cipheriv,
+  Decipheriv,
+  createCipheriv,
+  createDecipheriv,
+  getCipherInfo,
   getCiphers,
-  getCurves,
 };

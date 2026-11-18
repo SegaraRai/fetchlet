@@ -209,7 +209,7 @@ test("timingSafeEqual matches Node", () => {
 });
 
 test("APIs outside the subset throw a clear error", () => {
-  expect(() => crypto.createCipheriv()).toThrow(
-    "crypto.createCipheriv is not available in fetchlet",
+  expect(() => crypto.privateEncrypt()).toThrow(
+    "crypto.privateEncrypt is not available in fetchlet",
   );
 });

@@ -49,7 +49,7 @@ export function invalidArgValue(name: string, value: unknown, reason = "is inval
   return nodeError(
     TypeError,
     "ERR_INVALID_ARG_VALUE",
-    `The argument '${name}' ${reason}. Received ${describe(value)}`,
+    `The ${name.includes(".") ? "property" : "argument"} '${name}' ${reason}. Received ${describe(value)}`,
   );
 }
 

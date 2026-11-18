@@ -3,6 +3,7 @@
 // inspect follows Node's notation for the common value kinds; it does not
 // reproduce every option and line-breaking rule of Node's implementation.
 
+import { isDeepEqual } from "./comparisons.ts";
 import { invalidArgType, validateFunction } from "./errors.ts";
 import { emitWarning } from "./warnings.ts";
 
@@ -69,8 +70,9 @@ export const types = {
   isSymbolObject: (value: unknown) => typeof value === "object" && tag(value) === "Symbol",
   isProxy: (_value: unknown) => false,
   isModuleNamespaceObject: (value: unknown) => tag(value) === "Module",
+  isExternal: (_value: unknown) => false,
   isArgumentsObject: (value: unknown) => tag(value) === "Arguments",
-  isKeyObject: (_value: unknown) => false,
+  isKeyObject: (value: unknown) => tag(value) === "KeyObject",
   isCryptoKey: (value: unknown) => tag(value) === "CryptoKey",
 };
 
@@ -658,132 +660,8 @@ export function format(...args: unknown[]): string {
   return formatWithOptions({}, ...args);
 }
 
-function deepEqual(a: unknown, b: unknown, memo: Map<object, object>): boolean {
-  if (Object.is(a, b)) {
-    return true;
-  }
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) {
-    return false;
-  }
-  if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b) || tag(a) !== tag(b)) {
-    return false;
-  }
-  if (memo.get(a) === b) {
-    return true;
-  }
-  memo.set(a, b);
-  if (a instanceof Date) {
-    return Object.is(a.getTime(), (b as Date).getTime()) && sameKeys(a, b, memo);
-  }
-  if (a instanceof RegExp) {
-    const other = b as RegExp;
-    return a.source === other.source && a.flags === other.flags && a.lastIndex === other.lastIndex;
-  }
-  if (a instanceof Error) {
-    const other = b as Error;
-    if (a.message !== other.message || a.name !== other.name) {
-      return false;
-    }
-  }
-  if (types.isBoxedPrimitive(a)) {
-    if (
-      !Object.is((a as { valueOf(): unknown }).valueOf(), (b as { valueOf(): unknown }).valueOf())
-    ) {
-      return false;
-    }
-  }
-  if (ArrayBuffer.isView(a)) {
-    const left = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
-    const view = b as ArrayBufferView;
-    const right = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
-    if (left.length !== right.length || left.some((byte, index) => byte !== right[index])) {
-      return false;
-    }
-    return sameKeys(a, b, memo, true);
-  }
-  if (a instanceof ArrayBuffer) {
-    return deepEqual(new Uint8Array(a), new Uint8Array(b as ArrayBuffer), memo);
-  }
-  if (a instanceof Map) {
-    const other = b as Map<unknown, unknown>;
-    if (a.size !== other.size) {
-      return false;
-    }
-    for (const [key, item] of a) {
-      if (other.has(key)) {
-        if (!deepEqual(item, other.get(key), memo)) {
-          return false;
-        }
-        continue;
-      }
-      if (typeof key !== "object" || key === null) {
-        return false;
-      }
-      let matched = false;
-      for (const [otherKey, otherItem] of other) {
-        if (deepEqual(key, otherKey, memo) && deepEqual(item, otherItem, memo)) {
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        return false;
-      }
-    }
-    return sameKeys(a, b, memo);
-  }
-  if (a instanceof Set) {
-    const other = b as Set<unknown>;
-    if (a.size !== other.size) {
-      return false;
-    }
-    for (const item of a) {
-      if (other.has(item)) {
-        continue;
-      }
-      if (typeof item !== "object" || item === null) {
-        return false;
-      }
-      if (![...other].some((candidate) => deepEqual(item, candidate, memo))) {
-        return false;
-      }
-    }
-    return sameKeys(a, b, memo);
-  }
-  return sameKeys(a, b, memo);
-}
-
-function sameKeys(a: object, b: object, memo: Map<object, object>, skipIndices = false): boolean {
-  const keysOf = (value: object) =>
-    Reflect.ownKeys(value).filter(
-      (key) =>
-        Object.getOwnPropertyDescriptor(value, key)?.enumerable &&
-        !(skipIndices && typeof key === "string" && /^\d+$/.test(key)),
-    );
-  const left = keysOf(a);
-  const right = keysOf(b);
-  if (left.length !== right.length) {
-    return false;
-  }
-  for (const key of left) {
-    if (!Object.prototype.propertyIsEnumerable.call(b, key)) {
-      return false;
-    }
-    if (
-      !deepEqual(
-        (a as Record<PropertyKey, unknown>)[key],
-        (b as Record<PropertyKey, unknown>)[key],
-        memo,
-      )
-    ) {
-      return false;
-    }
-  }
-  return true;
-}
-
 export function isDeepStrictEqual(a: unknown, b: unknown): boolean {
-  return deepEqual(a, b, new Map());
+  return isDeepEqual(a, b, true);
 }
 
 export function debuglog(_section: string) {

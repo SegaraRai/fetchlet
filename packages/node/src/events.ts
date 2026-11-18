@@ -105,7 +105,7 @@ function onceWrapper(emitter: EventEmitter, type: EventName, listener: Listener)
   return wrapper;
 }
 
-export class EventEmitter {
+class EventEmitterClass {
   static EventEmitter: typeof EventEmitter;
   static errorMonitor = errorMonitor;
   static captureRejectionSymbol = captureRejectionSymbol;
@@ -285,6 +285,34 @@ export class EventEmitter {
   }
 }
 
+/**
+ * EventEmitter as Node defines it: a function, so that older libraries can
+ * initialize their subclasses with EventEmitter.call(this), which a class
+ * does not allow. It shares the class's prototype and static members.
+ */
+export const EventEmitter = function EventEmitter(
+  this: object,
+  _options?: { captureRejections?: boolean },
+) {
+  table(this);
+} as unknown as typeof EventEmitterClass;
+export type EventEmitter = EventEmitterClass;
+
+for (const key of Reflect.ownKeys(EventEmitterClass)) {
+  if (key !== "prototype" && key !== "length" && key !== "name") {
+    Object.defineProperty(
+      EventEmitter,
+      key,
+      Object.getOwnPropertyDescriptor(EventEmitterClass, key)!,
+    );
+  }
+}
+EventEmitter.prototype = EventEmitterClass.prototype;
+Object.defineProperty(EventEmitterClass.prototype, "constructor", {
+  value: EventEmitter,
+  writable: true,
+  configurable: true,
+});
 EventEmitter.EventEmitter = EventEmitter;
 
 interface EventTargetLike {
