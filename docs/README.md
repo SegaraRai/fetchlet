@@ -55,3 +55,5 @@
   behind moving URL parsing to Rust.
 - [Ahead-of-time compilation](research/native-aot.md): a concluded
   investigation of Perry and scriptc.
+- [Async context propagation](research/async-context.md): the design for
+  isolating concurrent `AsyncLocalStorage` runs on every engine.

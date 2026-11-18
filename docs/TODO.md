@@ -60,9 +60,11 @@ documented refusal, and a check in a framework example:
   through unctx, SolidStart and TanStack Start keep the request in
   `AsyncLocalStorage`. `asyncContext: "serialized"` shares the last started
   store between concurrent `run` calls (see
-  [Asynchronous SvelteKit SSR](#asynchronous-sveltekit-ssr)). Investigate
-  per-engine promise hooks or an AsyncContext implementation under
-  `docs/research/` first.
+  [Asynchronous SvelteKit SSR](#asynchronous-sveltekit-ssr)). The
+  [async context design](research/async-context.md) propagates the context
+  through promise reactions in each engine: V8's continuation-preserved
+  embedder data, Boa's job callback hooks and a QuickJS change. Implement it
+  in the order of its rollout section.
 - A shared Node compatibility layer in `fetchlet/build`: `Buffer`,
   `process.env`, `process.nextTick`, `setImmediate` and `node:events`. Only
   the vinext adapter replaces Node modules today, inside its own
