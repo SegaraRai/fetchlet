@@ -4,8 +4,10 @@
 // queue, so a port's listeners run after the current task and its
 // microtasks, which is what schedulers that yield through a MessageChannel
 // rely on. Ports cannot be transferred, as there is no other agent to send
-// them to.
+// them to. Listeners run in the context in which the channel was created,
+// as in Node.
 
+import { Snapshot } from "./async-context";
 import { EventImpl, EventTargetImpl, defineEventHandler, dispatchTrusted } from "./events";
 import { dictionary, domString, exposeAttributes } from "./idl";
 import { runtime } from "./runtime";
@@ -23,6 +25,8 @@ interface PortState {
   closed: boolean;
   /** Whether a task to deliver the next message is queued. */
   scheduled: boolean;
+  /** The context of the channel's creation, in which listeners run. */
+  snapshot: Snapshot;
 }
 
 const ports = new WeakMap<object, PortState>();
@@ -118,7 +122,9 @@ function deliver(state: PortState) {
   }
   const data = state.queue.shift();
   try {
-    dispatchTrusted(state.port, new MessageEventImpl("message", { data }));
+    state.snapshot.run(() =>
+      dispatchTrusted(state.port, new MessageEventImpl("message", { data })),
+    );
   } catch (error) {
     reportTaskException(error);
   }
@@ -144,8 +150,8 @@ function transferList(options: unknown): unknown[] {
 }
 
 class MessagePortImpl extends EventTargetImpl {
-  constructor(token?: symbol) {
-    if (token !== CREATE) {
+  constructor(token?: symbol, snapshot?: Snapshot) {
+    if (token !== CREATE || !snapshot) {
       throw new TypeError("Illegal constructor");
     }
     super();
@@ -156,6 +162,7 @@ class MessagePortImpl extends EventTargetImpl {
       started: false,
       closed: false,
       scheduled: false,
+      snapshot,
     });
   }
 
@@ -224,8 +231,9 @@ class MessageChannelImpl {
   #port2: MessagePortImpl;
 
   constructor() {
-    this.#port1 = new MessagePortImpl(CREATE);
-    this.#port2 = new MessagePortImpl(CREATE);
+    const snapshot = new Snapshot();
+    this.#port1 = new MessagePortImpl(CREATE, snapshot);
+    this.#port2 = new MessagePortImpl(CREATE, snapshot);
     const first = port(this.#port1);
     const second = port(this.#port2);
     first.entangled = second;

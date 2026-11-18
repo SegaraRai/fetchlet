@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./async-context": "./src/async-context.ts",
     "./wire": "./src/wire.ts"
   },
   "dependencies": {

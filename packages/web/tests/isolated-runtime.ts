@@ -49,3 +49,20 @@ export const fetchGlobals = [
   "EventTarget",
   "CustomEvent",
 ];
+
+/**
+ * An engine async context slot on Node: AsyncLocalStorage over Node's
+ * AsyncContextFrame carries the mapping through promise reactions, as V8's
+ * continuation-preserved embedder data does in an engine.
+ */
+export async function nodeAsyncContextSlot(): Promise<{
+  get(): unknown;
+  set(mapping: unknown): void;
+}> {
+  const { AsyncLocalStorage } = await import("node:async_hooks");
+  const storage = new AsyncLocalStorage<unknown>();
+  return {
+    get: () => storage.getStore(),
+    set: (mapping) => storage.enterWith(mapping),
+  };
+}

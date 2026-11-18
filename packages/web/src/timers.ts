@@ -1,3 +1,4 @@
+import { Snapshot } from "./async-context";
 import { runtime } from "./runtime";
 
 /** Reports an exception that a task threw, through reportError where installed. */
@@ -19,6 +20,8 @@ if (!runtime.setTimeout) {
       due: number;
       callback: Function;
       args: any[];
+      /** The context of the call that scheduled it, for every repetition. */
+      snapshot: Snapshot;
       /** The repeat delay of an interval; undefined for a timeout. */
       repeat?: number;
     }
@@ -36,6 +39,7 @@ if (!runtime.setTimeout) {
       due: Date.now() + milliseconds,
       callback,
       args,
+      snapshot: new Snapshot(),
       repeat: repeat ? milliseconds : undefined,
     });
     return id;
@@ -75,7 +79,7 @@ if (!runtime.setTimeout) {
         });
       }
       try {
-        timer.callback(...timer.args);
+        timer.snapshot.run(timer.callback as (...args: any[]) => unknown, ...timer.args);
       } catch (error) {
         // An exception ends this task only (HTML "report an exception").
         reportTaskException(error);

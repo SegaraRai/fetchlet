@@ -7,6 +7,7 @@
 // its HostPromiseRejectionTracker, and calls `__fetchletFlushRejections`
 // after each microtask checkpoint of the host event loop.
 
+import { Snapshot } from "./async-context";
 import {
   EventImpl,
   EventTargetImpl,
@@ -237,13 +238,20 @@ runtime.reportError ??= function reportError(error: unknown) {
   reportException(error);
 };
 
+// A rejection's reason, and the context in which the promise was rejected.
+// Both rejection events run in that context, as in Node, Deno and Workers.
+interface Rejection {
+  reason: unknown;
+  snapshot: Snapshot;
+}
+
 // Rejected promises without a handler, in rejection order, until the next
 // checkpoint notifies them.
-const aboutToBeNotified = new Map<object, unknown>();
-// Notified promises that may still gain a handler, with their reasons.
-const outstanding = new WeakMap<object, unknown>();
+const aboutToBeNotified = new Map<object, Rejection>();
+// Notified promises that may still gain a handler.
+const outstanding = new WeakMap<object, Rejection>();
 // Notified promises that gained a handler, for rejectionhandled.
-const handledLater: Array<[object, unknown]> = [];
+const handledLater: Array<[object, Rejection]> = [];
 
 function hidden(name: string, value: Function) {
   Object.defineProperty(runtime, name, {
@@ -256,44 +264,56 @@ function hidden(name: string, value: Function) {
 
 hidden("__fetchletPromiseRejection", (promise: object, reason: unknown, handled: boolean) => {
   if (!handled) {
-    aboutToBeNotified.set(promise, reason);
+    aboutToBeNotified.set(promise, {
+      reason,
+      snapshot: new Snapshot(),
+    });
   } else if (aboutToBeNotified.has(promise)) {
     aboutToBeNotified.delete(promise);
   } else if (outstanding.has(promise)) {
-    handledLater.push([promise, outstanding.get(promise)]);
+    handledLater.push([promise, outstanding.get(promise)!]);
     outstanding.delete(promise);
   }
 });
 
+function notifyUnhandled(promise: object, reason: unknown) {
+  let notHandled = true;
+  if (globalEvents) {
+    try {
+      notHandled = dispatchTrusted(
+        runtime,
+        new PromiseRejectionEventImpl("unhandledrejection", {
+          promise,
+          reason,
+          cancelable: true,
+        }),
+      );
+    } catch (error) {
+      reportException(error);
+    }
+  }
+  if (notHandled) {
+    runtime.console?.error?.("Uncaught (in promise)", reason);
+  }
+}
+
 hidden("__fetchletFlushRejections", () => {
   const rejected = [...aboutToBeNotified];
   aboutToBeNotified.clear();
-  for (const [promise, reason] of rejected) {
-    let notHandled = true;
+  for (const [promise, rejection] of rejected) {
+    rejection.snapshot.run(notifyUnhandled, promise, rejection.reason);
+    outstanding.set(promise, rejection);
+  }
+  for (const [promise, { reason, snapshot }] of handledLater.splice(0)) {
     if (globalEvents) {
-      try {
-        notHandled = dispatchTrusted(
+      snapshot.run(() =>
+        dispatchTrusted(
           runtime,
-          new PromiseRejectionEventImpl("unhandledrejection", {
+          new PromiseRejectionEventImpl("rejectionhandled", {
             promise,
             reason,
-            cancelable: true,
           }),
-        );
-      } catch (error) {
-        reportException(error);
-      }
-    }
-    if (notHandled) {
-      runtime.console?.error?.("Uncaught (in promise)", reason);
-    }
-    outstanding.set(promise, reason);
-  }
-  for (const [promise, reason] of handledLater.splice(0)) {
-    if (globalEvents) {
-      dispatchTrusted(
-        runtime,
-        new PromiseRejectionEventImpl("rejectionhandled", { promise, reason }),
+        ),
       );
     }
   }
