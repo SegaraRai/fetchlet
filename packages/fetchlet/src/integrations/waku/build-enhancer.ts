@@ -1,9 +1,9 @@
 import { existsSync, renameSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { IMMUTABLE } from "../build/asset-entries.ts";
-import { archiveArtifactAssets, frameworkAssets } from "../build/asset-option.ts";
-import { buildArtifact } from "../build/index.ts";
+import { IMMUTABLE } from "../../build/asset-entries.ts";
+import { archiveArtifactAssets, frameworkAssets } from "../../build/asset-option.ts";
+import { buildArtifact } from "../../build/index.ts";
 import type { FetchletWakuOptions } from "./adapter.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");

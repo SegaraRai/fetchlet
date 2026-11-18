@@ -3,9 +3,9 @@ import { join, resolve } from "node:path";
 
 import type { Plugin } from "vite";
 
-import { IMMUTABLE } from "../build/asset-entries.ts";
-import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
-import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { IMMUTABLE } from "../../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
+import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
 
 export type { FetchletBindings, FetchletRequestContext } from "./context.ts";
 

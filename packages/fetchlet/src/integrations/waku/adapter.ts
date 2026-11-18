@@ -3,8 +3,8 @@ import { Hono } from "hono/tiny";
 import { unstable_createServerEntryAdapter as createServerEntryAdapter } from "waku/adapter-builders";
 import { unstable_honoMiddleware as honoMiddleware } from "waku/internals";
 
-import type { AssetsOption } from "../build/asset-option.ts";
-import type { BuildBackend, IntlOptions } from "../build/index.ts";
+import type { AssetsOption } from "../../build/asset-option.ts";
+import type { BuildBackend, IntlOptions } from "../../build/index.ts";
 import type { FetchletRequestContext } from "./context.ts";
 import { contextKey } from "./symbol.ts";
 

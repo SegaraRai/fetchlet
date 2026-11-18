@@ -3,9 +3,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { AstroIntegration } from "astro";
 
-import { IMMUTABLE } from "../build/asset-entries.ts";
-import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
-import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { IMMUTABLE } from "../../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
+import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
 
 export interface FetchletAstroOptions {
   /**

@@ -21,7 +21,7 @@ export interface FetchletNitroOptions {
    * `maxAge`; settings adjust that and add entries, and a function returns
    * every entry. See docs/asset-archive.md.
    */
-  assets?: import("../build/asset-option.ts").AssetsOption;
+  assets?: import("../../build/asset-option.ts").AssetsOption;
 }
 
 declare module "nitropack/types" {

@@ -4,9 +4,9 @@ import { join, resolve } from "node:path";
 import type { Adapter } from "@sveltejs/kit";
 import type { Plugin } from "rolldown";
 
-import { IMMUTABLE } from "../build/asset-entries.ts";
-import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
-import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { IMMUTABLE } from "../../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
+import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
 
 export interface FetchletSvelteKitOptions {
   /** The artifact directory. Defaults to "build". */

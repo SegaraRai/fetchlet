@@ -4,9 +4,9 @@ import { join } from "node:path";
 import type { Nitro } from "nitropack/types";
 import type { Plugin } from "rolldown";
 
-import { type CacheRule } from "../build/asset-entries.ts";
-import { frameworkAssets } from "../build/asset-option.ts";
-import { buildArtifact } from "../build/index.ts";
+import { type CacheRule } from "../../build/asset-entries.ts";
+import { frameworkAssets } from "../../build/asset-option.ts";
+import { buildArtifact } from "../../build/index.ts";
 import type {} from "./types.d.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");

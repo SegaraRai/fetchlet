@@ -2,9 +2,9 @@ import { join } from "node:path";
 
 import type { Preset } from "@react-router/dev/config";
 
-import { IMMUTABLE } from "../build/asset-entries.ts";
-import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
-import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { IMMUTABLE } from "../../build/asset-entries.ts";
+import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
+import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 

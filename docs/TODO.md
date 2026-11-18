@@ -33,9 +33,9 @@ and add an example on a framework that runs on Nitro 3. Widen the `h3` peer to
 TanStack Start already use h3 2 internally; their adapters do not import h3,
 so they are unaffected.
 
-Sources: [SolidStart adapter](../packages/fetchlet/src/solid-start/index.ts),
-[Nitro runtime](../packages/fetchlet/src/nitro/runtime/nitro.ts),
-[Nitro declarations](../packages/fetchlet/src/nitro/types.d.ts),
+Sources: [SolidStart adapter](../packages/fetchlet/src/integrations/solid-start/index.ts),
+[Nitro runtime](../packages/fetchlet/src/integrations/nitro/runtime/nitro.ts),
+[Nitro declarations](../packages/fetchlet/src/integrations/nitro/types.d.ts),
 [workspace catalog](../pnpm-workspace.yaml).
 
 ## Runtime

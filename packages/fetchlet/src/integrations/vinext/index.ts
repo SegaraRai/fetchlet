@@ -3,13 +3,13 @@ import { join, resolve } from "node:path";
 
 import type { Plugin } from "vite";
 
-import { IMMUTABLE } from "../build/asset-entries.ts";
+import { IMMUTABLE } from "../../build/asset-entries.ts";
 import {
   archiveArtifactAssets,
   frameworkAssets,
   type AssetsOption,
-} from "../build/asset-option.ts";
-import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+} from "../../build/asset-option.ts";
+import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
 import { vinextNodeCompat, vinextNodeDefines } from "./node-compat.ts";
 
 export type { FetchletBindings, FetchletRequestContext, ServiceBinding } from "./context.ts";

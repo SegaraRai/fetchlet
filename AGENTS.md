@@ -27,7 +27,7 @@ Use Vite+ with pnpm. Define tasks in `vite.config.ts`. Use `vp i` for dependenci
 - Resolve paths from the repository root exported by `tools/workspace/paths.ts`, not from the working directory. Run Cargo through `tools/workspace/cargo.ts` so the native compiler environment is consistent.
 - Write package sources, example scripts and tests in TypeScript too. Code that runs inside the engines as written, such as `crates/fetchlet/js/` and engine fixtures, stays JavaScript.
 - When code needs another module of the package as a file, publish that module as a subpath and resolve it with `createRequire(import.meta.url).resolve`; do not build paths relative to `import.meta.url`.
-- Publish JavaScript as the single npm package `fetchlet` (`packages/fetchlet`), with one subpath per framework. Name private workspace packages `@fetchlet-internal/*`; keep `@fetchlet/*` free for future publishable packages.
+- Publish JavaScript as the single npm package `fetchlet` (`packages/fetchlet`), with one subpath per framework and the integrations under `src/integrations/<framework>/`. Name private workspace packages `@fetchlet-internal/*`; keep `@fetchlet/*` free for future publishable packages.
 
 ## Documentation
 

@@ -1,4 +1,4 @@
-import { createFetchHandler, getBindings, waitUntil } from "../runtime/handler.ts";
+import { createFetchHandler, getBindings, waitUntil } from "../../runtime/handler.ts";
 import { createApp } from "astro/app/entrypoint";
 import { setGetEnv } from "astro/env/setup";
 

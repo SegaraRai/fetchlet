@@ -3,8 +3,8 @@ import { join, resolve } from "node:path";
 import buildPlugin from "@hono/vite-build";
 import type { Plugin } from "vite";
 
-import { frameworkAssets, type AssetsOption } from "../build/asset-option.ts";
-import { buildArtifact, type BuildBackend, type IntlOptions } from "../build/index.ts";
+import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
+import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
