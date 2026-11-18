@@ -1,0 +1,29 @@
+{
+  "name": "@fetchlet/node",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Node.js built-in modules for code that runs inside a fetchlet engine, over the Web API profile and the host operations of fetchlet-web",
+  "type": "module",
+  "exports": {
+    "./async-hooks": "./src/async-hooks.ts",
+    "./async-hooks/serialized": "./src/async-hooks-serialized.ts",
+    "./buffer": "./src/buffer.ts",
+    "./crypto": "./src/crypto.ts",
+    "./events": "./src/events.ts",
+    "./path": "./src/path.ts",
+    "./process": "./src/process.ts",
+    "./timers": "./src/timers.ts",
+    "./timers/promises": "./src/timers-promises.ts",
+    "./util": "./src/util.ts"
+  },
+  "devDependencies": {
+    "@fetchlet/web": "workspace:*",
+    "@types/node": "catalog:",
+    "buffer": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@fetchlet/web": "workspace:*",
+    "buffer": "catalog:"
+  }
+}

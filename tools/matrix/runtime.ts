@@ -3,6 +3,7 @@
 // `vp run test:matrix`.
 
 import assert from "node:assert/strict";
+import * as crypto from "node:crypto";
 import { resolve } from "node:path";
 
 import { hostBackends, startHost, type HostBackend } from "@fetchlet-internal/tools-workspace/lab";
@@ -43,6 +44,41 @@ const request = (path: string, init: Record<string, unknown> = {}) => ({
 });
 const text = (response: WireResponse) => new TextDecoder().decode(new Uint8Array(response.body));
 const bytes = (value: string) => [...new TextEncoder().encode(value)];
+
+const nodeCryptoHashes = [
+  "md5",
+  "sha1",
+  "sha224",
+  "sha256",
+  "sha384",
+  "sha512",
+  "sha512-224",
+  "sha512-256",
+];
+
+/** What fixtures/node-crypto.ts returns, computed by Node. */
+function expectedNodeCrypto() {
+  return {
+    hash: Object.fromEntries(
+      nodeCryptoHashes.map((name) => [
+        name,
+        crypto.createHash(name).update("fetchlet").update("\u00e9").digest("hex"),
+      ]),
+    ),
+    hmac: Object.fromEntries(
+      nodeCryptoHashes.map((name) => [
+        name,
+        crypto.createHmac(name, "key").update("message").digest("base64"),
+      ]),
+    ),
+    pbkdf2: crypto.pbkdf2Sync("password", "salt", 2, 40, "sha256").toString("hex"),
+    hkdf: Buffer.from(crypto.hkdfSync("sha512", "ikm", "salt", "info", 80)).toString("hex"),
+    scrypt: crypto.scryptSync("password", "salt", 32, { N: 1024, r: 8, p: 1 }).toString("hex"),
+    timingSafeEqual: true,
+    randomBytes: 100_000,
+    randomUUID: true,
+  };
+}
 
 async function check(
   backend: HostBackend,
@@ -145,6 +181,13 @@ for (const backend of hostBackends) {
             MessagePort: "created",
             unhandledrejection: "rejected",
           },
+    ),
+  );
+  // node:crypto computes in the host; Node's crypto gives the expected values.
+  await check(backend, "node", "crypto", async () =>
+    assert.deepEqual(
+      await app.call("nodeCryptoResults"),
+      backend === "node-reference" ? null : expectedNodeCrypto(),
     ),
   );
   await check(backend, "web-api", "probe", async () => {

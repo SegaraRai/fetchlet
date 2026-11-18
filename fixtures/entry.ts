@@ -5,6 +5,7 @@ export * from "./async-context";
 export * from "./functions";
 export { handle } from "./hono";
 export * from "./host";
+export * from "./node-crypto";
 
 export async function probe() {
   return globalThis.fetchletProbe({

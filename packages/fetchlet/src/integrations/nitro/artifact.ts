@@ -14,8 +14,9 @@ const modulePath = (file: string): string => file.replaceAll("\\", "/");
 const environmentId = "\0fetchlet:nitro-environment";
 
 /**
- * Nitro's process.env reads globalThis.__env__, also while it initializes the
- * runtime config, so this module runs before Nitro's server bundle.
+ * Nitro reads its runtime config from process.env, and unenv-based code from
+ * globalThis.__env__, also while the runtime initializes, so this module
+ * fills both with the string bindings before Nitro's server bundle runs.
  */
 function nitroEnvironment(): Plugin {
   return {
@@ -28,11 +29,13 @@ function nitroEnvironment(): Plugin {
     load(id) {
       if (id === environmentId) {
         return `
+          import process from "node:process";
           import { getBindings } from "fetchlet/runtime/adapter";
 
           globalThis.__env__ = Object.fromEntries(
             Object.entries(getBindings()).filter(([, value]) => typeof value === "string"),
           );
+          Object.assign(process.env, globalThis.__env__);
         `;
       }
     },
@@ -78,6 +81,7 @@ export async function writeArtifact(nitro: Nitro): Promise<void> {
     outDir: nitro.options.output.dir,
     framework: nitro.options.framework.name || "nitro",
     rendering: "buffered",
+    asyncContext: "serialized",
     backend,
     intl,
     ...(assets

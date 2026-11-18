@@ -7,9 +7,12 @@
     "noEmit": true,
     "types": ["node"],
     // TypeScript emits no declarations for a file it reaches through
-    // node_modules, so the packed declarations reach @fetchlet/web's sources
-    // by path.
+    // node_modules, so the packed declarations reach the sources of
+    // @fetchlet/web and @fetchlet/node by path.
     "paths": {
+      "@fetchlet/node/*": ["../node/src/*.ts"],
+      "@fetchlet/node/async-hooks/serialized": ["../node/src/async-hooks-serialized.ts"],
+      "@fetchlet/node/timers/promises": ["../node/src/timers-promises.ts"],
       "@fetchlet/web": ["../web/src/index.ts"],
       "@fetchlet/web/*": ["../web/src/*.ts"]
     }

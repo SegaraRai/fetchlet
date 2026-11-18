@@ -108,3 +108,96 @@ export class AsyncLocalStorage<Store> {
     outside.delete(this);
   }
 }
+
+let nextAsyncId = 1;
+
+/** A callback scope that runs with the stores current at its creation. */
+export class AsyncResource {
+  readonly #run = AsyncLocalStorage.snapshot();
+  readonly #asyncId = nextAsyncId++;
+  readonly #triggerAsyncId: number;
+
+  constructor(_type: string, options?: { triggerAsyncId?: number } | number) {
+    this.#triggerAsyncId = typeof options === "number" ? options : (options?.triggerAsyncId ?? 0);
+  }
+
+  static bind<Args extends unknown[], Result, This>(
+    callback: (this: This, ...args: Args) => Result,
+    type?: string,
+    thisArg?: This,
+  ): (...args: Args) => Result {
+    return new AsyncResource(type ?? (callback.name || "bound-anonymous-fn")).bind(
+      callback,
+      thisArg,
+    );
+  }
+
+  runInAsyncScope<Args extends unknown[], Result, This>(
+    callback: (this: This, ...args: Args) => Result,
+    thisArg?: This,
+    ...args: Args
+  ): Result {
+    return this.#run(() => callback.apply(thisArg as This, args));
+  }
+
+  bind<Args extends unknown[], Result, This>(
+    callback: (this: This, ...args: Args) => Result,
+    thisArg?: This,
+  ): (...args: Args) => Result {
+    const resource = this;
+    if (thisArg !== undefined) {
+      return (...args: Args) => resource.runInAsyncScope(callback, thisArg, ...args);
+    }
+    return function (this: This, ...args: Args) {
+      return resource.runInAsyncScope(callback, this, ...args);
+    };
+  }
+
+  emitDestroy(): this {
+    return this;
+  }
+
+  asyncId(): number {
+    return this.#asyncId;
+  }
+
+  triggerAsyncId(): number {
+    return this.#triggerAsyncId;
+  }
+}
+// The low-level hooks API tracks resources the engines do not expose; these
+// members keep libraries that probe it loading.
+export function executionAsyncId(): number {
+  return 0;
+}
+
+export function triggerAsyncId(): number {
+  return 0;
+}
+
+export function executionAsyncResource(): object {
+  return {};
+}
+
+export function createHook(_callbacks: object) {
+  return {
+    enable() {
+      return this;
+    },
+    disable() {
+      return this;
+    },
+  };
+}
+
+export const asyncWrapProviders = Object.freeze({});
+
+export default {
+  AsyncLocalStorage,
+  AsyncResource,
+  executionAsyncId,
+  triggerAsyncId,
+  executionAsyncResource,
+  createHook,
+  asyncWrapProviders,
+};

@@ -98,7 +98,6 @@ catalog:
   "@formatjs/intl-pluralrules": 7.0.4
   "@hey-api/openapi-ts": 0.99.0
   "@hono/vite-build": 1.11.1
-  "@noble/hashes": 2.4.0
   "@react-router/dev": 8.5.1
   "@solidjs/meta": 0.29.8
   "@solidjs/router": 1.0.3

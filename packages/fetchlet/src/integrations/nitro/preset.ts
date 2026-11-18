@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 
 import type { NitroPreset, NitroPresetMeta } from "nitropack/types";
 
+import { implementedNodeBuiltins, nodeGlobals } from "../../build/node-builtins.ts";
 import { writeArtifact } from "./artifact.ts";
 
 /**
@@ -28,6 +29,21 @@ const preset: NitroPreset & { _meta: NitroPresetMeta } = {
     dir: "{{ rootDir }}/build",
     publicDir: "{{ output.dir }}/client",
     serverDir: "{{ buildDir }}/fetchlet/server",
+  },
+  // The Node built-ins fetchlet implements stay imports for fetchlet/build to
+  // resolve, in place of unenv's, and so do the globals that reference them.
+  unenv: {
+    meta: {
+      name: "fetchlet:node-builtins",
+    },
+    external: implementedNodeBuiltins.filter((name) => name.startsWith("node:")),
+    alias: Object.fromEntries(
+      implementedNodeBuiltins.map((name) => [
+        name,
+        name.startsWith("node:") ? name : `node:${name}`,
+      ]),
+    ),
+    inject: nodeGlobals,
   },
   // fetchlet/build bundles this module again after the Web API profile.
   rollupConfig: {

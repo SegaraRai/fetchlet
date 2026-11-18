@@ -1,11 +1,11 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { createRequire, isBuiltin } from "node:module";
+import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 
 import { build, type Plugin } from "rolldown";
 
 import { archiveArtifactAssets, type AssetsOption } from "./asset-option.ts";
-import { type AsyncContextMode, asyncContextPlugin } from "./async-context.ts";
+import { type AsyncContextMode, nodeBuiltins, nodeGlobals } from "./node-builtins.ts";
 import { nativeCapabilityCheck } from "./polyfills/bootstrap.ts";
 import {
   planPolyfills,
@@ -43,7 +43,7 @@ export {
   type AssetSettings,
   type AssetsOption,
 } from "./asset-option.ts";
-export type { AsyncContextMode } from "./async-context.ts";
+export { implementedNodeBuiltins, type AsyncContextMode } from "./node-builtins.ts";
 export type { BuildBackend, IntlOptions } from "./polyfills/plan.ts";
 
 /** An entry module given as source instead of a file. */
@@ -78,7 +78,7 @@ export interface BuildArtifactOptions {
    * Provides `node:async_hooks`. `"propagated"` carries the context through
    * promise reactions on engines with an async context slot (V8 and Boa);
    * `"serialized"` keeps one context at a time and runs on every engine.
-   * Recorded in fetchlet.json.
+   * Without it, node:async_hooks throws when used. Recorded in fetchlet.json.
    */
   asyncContext?: AsyncContextMode;
   /** Extra resolve conditions for dependencies a framework left external. */
@@ -104,7 +104,6 @@ const entryId = "\0fetchlet:entry";
 // The file name of an entry given as source; it is never read or written.
 const sourceEntryName = "fetchlet-entry.js";
 const nativeCheckId = "\0fetchlet:native-check";
-const nodeBuiltinPrefix = "\0fetchlet:node-builtin:";
 
 /**
  * The artifact entry as virtual modules: it imports the Web API profile, the
@@ -142,43 +141,6 @@ function artifactEntry(input: string, plan: PolyfillPlan, source?: string): Plug
   };
 }
 
-/**
- * Node built-ins that neither an adapter shim nor an npm package of the same
- * name provides become empty CommonJS modules, as Vite's browser build makes
- * them: engines have no Node APIs, so code that only references them on paths
- * fetchlet never takes still loads, and code that calls them fails where it
- * runs.
- */
-function emptyNodeBuiltins(): Plugin {
-  return {
-    name: "fetchlet:empty-node-builtins",
-    async resolveId(id, importer, options) {
-      if (!isBuiltin(id)) {
-        return;
-      }
-      // Bare names such as "buffer" may be npm packages of the same name.
-      if (!id.startsWith("node:")) {
-        const resolved = await this.resolve(id, importer, {
-          ...options,
-          skipSelf: true,
-        });
-        if (resolved && !resolved.external) {
-          return resolved;
-        }
-      }
-      return nodeBuiltinPrefix + id;
-    },
-    load(id) {
-      if (id.startsWith(nodeBuiltinPrefix)) {
-        return {
-          code: "module.exports = {};",
-          moduleType: "js",
-        };
-      }
-    },
-  };
-}
-
 /** Initialize the Web API profile before evaluating framework modules. */
 export async function buildArtifact({
   entry,
@@ -210,12 +172,12 @@ export async function buildArtifact({
       typeof entry === "string"
         ? artifactEntry(resolve(entry), plan)
         : artifactEntry(join(resolve(entry.resolveDir), sourceEntryName), plan, entry.source),
-      ...(asyncContext ? [asyncContextPlugin(asyncContext)] : []),
       ...plugins,
-      emptyNodeBuiltins(),
+      nodeBuiltins(asyncContext),
     ],
     transform: {
       target: "es2022",
+      inject: nodeGlobals,
       define: {
         "process.env.NODE_ENV": JSON.stringify("production"),
         ...define,

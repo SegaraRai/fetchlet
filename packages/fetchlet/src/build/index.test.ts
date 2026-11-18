@@ -108,11 +108,12 @@ describe("buildArtifact", () => {
     expect(server).not.toMatch(/^\s*(import|export)\s/m);
   });
 
-  test("Node built-ins become empty modules, but npm packages of the same name win", async () => {
+  test("Node built-ins are fetchlet's or stubs, but npm packages of the same name win", async () => {
     const { server } = await build(
       `import fs from "node:fs";
+       import { createHash } from "node:crypto";
        import { marker } from "punycode";
-       export const handle = () => [typeof fs.readFileSync, marker];`,
+       export const handle = () => [typeof fs.readFileSync, createHash, marker];`,
       {},
       {
         "node_modules/punycode/package.json": JSON.stringify({
@@ -123,7 +124,8 @@ describe("buildArtifact", () => {
         "node_modules/punycode/index.js": 'export const marker = "npm punycode";',
       },
     );
-    expect(server).toContain("module.exports = {}");
+    expect(server).toContain("is not available in fetchlet");
+    expect(server).toContain("nodeCrypto.hash");
     expect(server).toContain("npm punycode");
     expect(server).not.toMatch(/require\(["']node:fs["']\)/);
   });
@@ -168,7 +170,7 @@ describe("buildArtifact", () => {
     });
   });
 
-  test("the adapter's plugins run after fetchlet's own and before the empty built-ins", async () => {
+  test("the adapter's plugins run after fetchlet's own and before the Node built-ins", async () => {
     const seen: string[] = [];
     const plugin: Plugin = {
       name: "adapter",

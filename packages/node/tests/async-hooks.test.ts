@@ -13,7 +13,7 @@ const frame = new node.AsyncLocalStorage<unknown>();
   get: () => frame.getStore(),
   set: (mapping: unknown) => frame.enterWith(mapping),
 };
-const fetchlet = await import("fetchlet/build/propagated-async-hooks");
+const fetchlet = await import("@fetchlet/node/async-hooks");
 
 type Hooks = Pick<typeof node, "AsyncLocalStorage" | "AsyncResource">;
 
@@ -132,7 +132,7 @@ test("refuses to load on an engine without an async context slot", async () => {
   delete (globalThis as any).__fetchletAsyncContext;
   vi.resetModules();
   try {
-    await expect(import("fetchlet/build/propagated-async-hooks")).rejects.toThrow(
+    await expect(import("@fetchlet/node/async-hooks")).rejects.toThrow(
       'build with asyncContext: "serialized"',
     );
   } finally {

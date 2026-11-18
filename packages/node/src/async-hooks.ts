@@ -135,3 +135,40 @@ export class AsyncResource {
     return this.#triggerAsyncId;
   }
 }
+
+// The low-level hooks API tracks resources the engines do not expose; these
+// members keep libraries that probe it loading.
+export function executionAsyncId(): number {
+  return 0;
+}
+
+export function triggerAsyncId(): number {
+  return 0;
+}
+
+export function executionAsyncResource(): object {
+  return {};
+}
+
+export function createHook(_callbacks: object) {
+  return {
+    enable() {
+      return this;
+    },
+    disable() {
+      return this;
+    },
+  };
+}
+
+export const asyncWrapProviders = Object.freeze({});
+
+export default {
+  AsyncLocalStorage,
+  AsyncResource,
+  executionAsyncId,
+  triggerAsyncId,
+  executionAsyncResource,
+  createHook,
+  asyncWrapProviders,
+};

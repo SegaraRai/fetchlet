@@ -1,6 +1,6 @@
 // The serialized AsyncLocalStorage that artifacts use in place of node:async_hooks.
 
-import { AsyncLocalStorage } from "fetchlet/build/async-hooks";
+import { AsyncLocalStorage } from "@fetchlet/node/async-hooks/serialized";
 import { expect, test } from "vite-plus/test";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));

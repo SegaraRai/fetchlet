@@ -1,0 +1,16 @@
+{
+  // The modules run inside the engines, so Node's own types stay out: a
+  // reference to a Node global must come from this package.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "types": [],
+    // Newer members are used only behind feature checks.
+    "lib": ["ESNext", "DOM"],
+    "paths": {
+      "@fetchlet/web/*": ["../web/src/*.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -55,6 +55,7 @@ export default defineConfig({
   test: {
     projects: [
       "packages/fetchlet/vite.config.ts",
+      "packages/node/vite.config.ts",
       "packages/web/vite.config.ts",
       "tools/conformance/vite.config.ts",
     ],
@@ -77,7 +78,7 @@ export default defineConfig({
       // check
       "check:types": {
         command:
-          "tsc --noEmit && tsc --noEmit -p tools && tsc --noEmit -p packages/fetchlet/tsconfig.json && vp run --filter @fetchlet-internal/example-* check:types",
+          "tsc --noEmit && tsc --noEmit -p tools && tsc --noEmit -p packages/node/tsconfig.json && tsc --noEmit -p packages/fetchlet/tsconfig.json && vp run --filter @fetchlet-internal/example-* check:types",
         cache: false,
       },
       "check:format": {

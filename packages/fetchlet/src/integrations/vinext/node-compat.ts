@@ -6,13 +6,9 @@ const require = createRequire(import.meta.url);
 
 const shim = (name: string): string => require.resolve("fetchlet/vinext/node/" + name);
 
-// Bare "buffer" stays the npm package that the buffer shim builds on.
 const shims: Record<string, string> = {
   "node:fs": shim("fs"),
   fs: shim("fs"),
-  "node:buffer": shim("buffer"),
-  "node:crypto": shim("crypto"),
-  crypto: shim("crypto"),
 };
 
 const moduleModule = "\0fetchlet:vinext-module";
@@ -31,8 +27,8 @@ export const vinextNodeDefines = {
  * - `node:path` is pathe, which implements posix and win32 paths in plain JS.
  * - `node:fs` reports that no file exists: the artifact reads no files, and
  *   vinext falls back to its in-memory caches without them.
- * - `node:buffer` is the `buffer` package with `isUtf8`, and `node:crypto`
- *   provides the SHA-256 `createHash` vinext uses for cache keys.
+ * - `node:buffer` and `node:crypto`, which vinext uses for cache keys, are
+ *   fetchlet's own, as for every artifact.
  * - `node:module` creates a `require` for the React entries, which vinext
  *   keeps external in its SSR build and requires from CommonJS modules. Other
  *   specifiers throw.
