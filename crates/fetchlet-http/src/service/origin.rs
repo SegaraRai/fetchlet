@@ -54,3 +54,68 @@ impl PublicOrigin {
         self.apply(Uri::from_parts(parts).map_err(Error::InvalidRequestUri)?)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_an_http_or_https_scheme_and_authority() {
+        for value in [
+            "https://app.test",
+            "https://app.test/",
+            "http://127.0.0.1:8080",
+            "http://[::1]:3000/",
+        ] {
+            assert!(PublicOrigin::parse(value).is_ok(), "{value}");
+        }
+    }
+
+    #[test]
+    fn refuses_anything_beyond_an_origin() {
+        for value in [
+            "app.test",
+            "/path",
+            "ftp://app.test",
+            "https://user@app.test",
+            "https://app.test/base",
+            "https://app.test/?query",
+            "https://app.test/#fragment",
+            "https://",
+            "",
+        ] {
+            assert!(
+                matches!(PublicOrigin::parse(value), Err(Error::InvalidOrigin)),
+                "{value}"
+            );
+        }
+    }
+
+    #[test]
+    fn applies_the_origin_and_keeps_the_path_and_query() {
+        let origin = PublicOrigin::parse("https://app.test:8443").unwrap();
+        let uri: Uri = "http://client-chosen.example/a/b?c=d".parse().unwrap();
+        assert_eq!(
+            origin.apply(uri).unwrap().to_string(),
+            "https://app.test:8443/a/b?c=d"
+        );
+        let authority_only: Uri = "client-chosen.example".parse().unwrap();
+        assert_eq!(
+            origin.apply(authority_only).unwrap().to_string(),
+            "https://app.test:8443/"
+        );
+    }
+
+    #[test]
+    fn resolves_request_targets() {
+        let origin = PublicOrigin::parse("http://localhost:3000/").unwrap();
+        assert_eq!(
+            origin.resolve("/search?q=1").unwrap().to_string(),
+            "http://localhost:3000/search?q=1"
+        );
+        assert!(matches!(
+            origin.resolve("/with space"),
+            Err(Error::InvalidRequest(_))
+        ));
+    }
+}

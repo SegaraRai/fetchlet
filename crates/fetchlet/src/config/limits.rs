@@ -88,3 +88,78 @@ pub(crate) fn check_limit(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_limit_allows_its_own_value_and_refuses_more() {
+        assert!(check_limit(Some(10), 10, "bytes").is_ok());
+        assert!(check_limit(Some(0), 0, "bytes").is_ok());
+        assert!(matches!(
+            check_limit(Some(10), 11, "request body bytes"),
+            Err(Error::LimitExceeded("request body bytes"))
+        ));
+        assert!(check_limit(None, usize::MAX, "bytes").is_ok());
+    }
+
+    #[test]
+    fn timeouts_must_fit_the_platform_clock() {
+        assert!(Limits::default().validate().is_ok());
+        let limits = Limits {
+            timeout: Some(Duration::from_secs(30)),
+            background_timeout: Some(Duration::ZERO),
+            ..Limits::default()
+        };
+        assert!(limits.validate().is_ok());
+        for (limits, name) in [
+            (
+                Limits {
+                    timeout: Some(Duration::MAX),
+                    ..Limits::default()
+                },
+                "timeout",
+            ),
+            (
+                Limits {
+                    background_timeout: Some(Duration::MAX),
+                    ..Limits::default()
+                },
+                "background_timeout",
+            ),
+        ] {
+            match limits.validate() {
+                Err(Error::Configuration(message)) => {
+                    assert_eq!(message, format!("{name} exceeds the platform clock range"));
+                }
+                other => panic!("expected a configuration error, got {other:?}"),
+            }
+        }
+    }
+
+    #[cfg(feature = "web")]
+    #[test]
+    fn web_operations_receive_their_budgets() {
+        let limits = Limits {
+            digest_bytes: Some(1),
+            compression_streams: Some(2),
+            decompressed_bytes: Some(3),
+            rsa_modulus_bits: Some(4),
+            pbkdf2_iterations: Some(5),
+            request_body_bytes: Some(6),
+            ..Limits::default()
+        };
+        let web = limits.web();
+        assert_eq!(
+            (
+                web.digest_bytes,
+                web.compression_streams,
+                web.decompressed_bytes,
+                web.rsa_modulus_bits,
+                web.pbkdf2_iterations,
+            ),
+            (Some(1), Some(2), Some(3), Some(4), Some(5))
+        );
+    }
+}

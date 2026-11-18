@@ -313,3 +313,326 @@ fn u32_at(bytes: &[u8], offset: usize) -> u32 {
 fn u64_at(bytes: &[u8], offset: usize) -> u64 {
     u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// One entry of an archive the tests write field by field.
+    struct EntrySpec {
+        path: &'static str,
+        data: Vec<u8>,
+        raw_size: u64,
+        set: u32,
+        status: u16,
+        flags: u16,
+    }
+
+    fn entry(path: &'static str, data: &[u8]) -> EntrySpec {
+        EntrySpec {
+            path,
+            data: data.to_vec(),
+            raw_size: data.len() as u64,
+            set: 0,
+            status: 200,
+            flags: 0,
+        }
+    }
+
+    /// An archive in the layout `writeAssetArchive` produces: header, entry,
+    /// header set and pair tables, strings, then data.
+    struct Spec {
+        entries: Vec<EntrySpec>,
+        sets: Vec<(u32, u32)>,
+        pairs: Vec<(&'static str, &'static str)>,
+    }
+
+    impl Spec {
+        fn new() -> Self {
+            Self {
+                entries: vec![entry("/a.txt", b"alpha"), entry("/b.txt", b"beta")],
+                sets: vec![(0, 1)],
+                pairs: vec![("content-type", "text/plain")],
+            }
+        }
+
+        fn write(&self) -> Vec<u8> {
+            let mut strings = Vec::new();
+            let mut string = |text: &str| {
+                let offset = strings.len() as u32;
+                strings.extend_from_slice(text.as_bytes());
+                (offset, text.len() as u32)
+            };
+            let mut data = Vec::new();
+            let mut entry_table = Vec::new();
+            for entry in &self.entries {
+                let (offset, length) = string(entry.path);
+                entry_table.extend_from_slice(&offset.to_le_bytes());
+                entry_table.extend_from_slice(&length.to_le_bytes());
+                entry_table.extend_from_slice(&(data.len() as u64).to_le_bytes());
+                entry_table.extend_from_slice(&(entry.data.len() as u64).to_le_bytes());
+                entry_table.extend_from_slice(&entry.raw_size.to_le_bytes());
+                entry_table.extend_from_slice(&entry.set.to_le_bytes());
+                entry_table.extend_from_slice(&entry.status.to_le_bytes());
+                entry_table.extend_from_slice(&entry.flags.to_le_bytes());
+                entry_table.extend_from_slice(&[7; 16]);
+                entry_table.extend_from_slice(&[0; 8]);
+                data.extend_from_slice(&entry.data);
+            }
+            let mut set_table = Vec::new();
+            for (first, count) in &self.sets {
+                set_table.extend_from_slice(&first.to_le_bytes());
+                set_table.extend_from_slice(&count.to_le_bytes());
+            }
+            let mut pair_table = Vec::new();
+            for (name, value) in &self.pairs {
+                for (offset, length) in [string(name), string(value)] {
+                    pair_table.extend_from_slice(&offset.to_le_bytes());
+                    pair_table.extend_from_slice(&length.to_le_bytes());
+                }
+            }
+
+            let mut bytes = vec![0; HEADER_SIZE];
+            bytes[..4].copy_from_slice(MAGIC);
+            bytes[4..6].copy_from_slice(&VERSION.to_le_bytes());
+            let counts = [self.entries.len(), self.sets.len(), self.pairs.len()];
+            for (index, count) in counts.into_iter().enumerate() {
+                bytes[8 + index * 4..][..4].copy_from_slice(&(count as u32).to_le_bytes());
+            }
+            for (offset, table) in [(24, &entry_table), (32, &set_table), (40, &pair_table)] {
+                let start = bytes.len() as u64;
+                put_u64(&mut bytes, offset, start);
+                bytes.extend_from_slice(table);
+            }
+            for (offset, section) in [(48, &strings), (64, &data)] {
+                let start = bytes.len() as u64;
+                put_u64(&mut bytes, offset, start);
+                put_u64(&mut bytes, offset + 8, section.len() as u64);
+                bytes.extend_from_slice(section);
+            }
+            bytes
+        }
+    }
+
+    fn reason(bytes: Vec<u8>) -> &'static str {
+        match AssetArchive::new(bytes) {
+            Err(AssetArchiveError::Invalid(reason)) => reason,
+            other => panic!("expected an invalid archive, got {other:?}"),
+        }
+    }
+
+    fn put_u64(bytes: &mut [u8], offset: usize, value: u64) {
+        bytes[offset..offset + 8].copy_from_slice(&value.to_le_bytes());
+    }
+
+    #[test]
+    fn a_written_archive_reads_back() {
+        let archive = AssetArchive::new(Spec::new().write()).unwrap();
+        assert_eq!(archive.len(), 2);
+        assert!(!archive.is_empty());
+        let asset = archive.get("/b.txt").unwrap();
+        assert_eq!(asset.status(), StatusCode::OK);
+        assert_eq!(asset.stored(), "beta");
+        assert_eq!(asset.decompressed().unwrap(), "beta");
+        assert_eq!(asset.raw_size(), 4);
+        assert_eq!(asset.hash(), &[7; 16]);
+        assert!(!asset.is_brotli() && !asset.keeps_query());
+        let headers: Vec<_> = asset.headers().collect();
+        assert_eq!(headers.len(), 1);
+        assert_eq!(headers[0].0, http::header::CONTENT_TYPE);
+        assert!(archive.get("/c.txt").is_none());
+        assert!(archive.get("a.txt").is_none());
+    }
+
+    #[test]
+    fn an_empty_archive_has_no_entries() {
+        let spec = Spec {
+            entries: vec![],
+            sets: vec![],
+            pairs: vec![],
+        };
+        let archive = AssetArchive::new(spec.write()).unwrap();
+        assert!(archive.is_empty());
+        assert!(archive.get("/").is_none());
+    }
+
+    #[test]
+    fn redirects_keep_their_status_and_query_flag() {
+        let mut spec = Spec::new();
+        spec.pairs.push(("location", "/b.txt"));
+        spec.sets.push((1, 1));
+        spec.entries[0].data.clear();
+        spec.entries[0].raw_size = 0;
+        spec.entries[0].set = 1;
+        spec.entries[0].status = 308;
+        spec.entries[0].flags = FLAG_KEEP_QUERY;
+        let archive = AssetArchive::new(spec.write()).unwrap();
+        let redirect = archive.get("/a.txt").unwrap();
+        assert_eq!(redirect.status(), StatusCode::PERMANENT_REDIRECT);
+        assert!(redirect.keeps_query());
+        assert_eq!(redirect.headers().next().unwrap().1, "/b.txt");
+    }
+
+    #[test]
+    fn the_header_must_match_this_version() {
+        let mut bytes = Spec::new().write();
+        bytes[6] = 1;
+        assert_eq!(reason(bytes), "unknown header flags");
+        let mut bytes = Spec::new().write();
+        bytes[20] = 1;
+        assert_eq!(reason(bytes), "unknown header flags");
+        assert_eq!(reason(vec![0; HEADER_SIZE - 1]), "truncated header");
+    }
+
+    #[test]
+    fn tables_outside_the_archive_are_refused() {
+        for (offset, expected) in [
+            (24, "entry table out of bounds"),
+            (32, "header set table out of bounds"),
+            (40, "header pair table out of bounds"),
+            (48, "string table out of bounds"),
+            (64, "data out of bounds"),
+            (72, "data out of bounds"),
+        ] {
+            let mut bytes = Spec::new().write();
+            put_u64(&mut bytes, offset, u64::MAX);
+            assert_eq!(reason(bytes), expected, "offset {offset}");
+        }
+        // A count whose table size overflows is refused, not wrapped.
+        let mut bytes = Spec::new().write();
+        bytes[8..12].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert_eq!(reason(bytes), "entry table out of bounds");
+    }
+
+    #[test]
+    fn header_pairs_must_be_lowercase_valid_and_not_derived() {
+        for (name, value, expected) in [
+            (
+                "Content-Type",
+                "text/plain",
+                "header name is not a lowercase token",
+            ),
+            ("bad name", "x", "header name is not a lowercase token"),
+            (
+                "etag",
+                "\"x\"",
+                "header set names a header the server derives",
+            ),
+            (
+                "content-length",
+                "5",
+                "header set names a header the server derives",
+            ),
+            ("x-value", "line\nbreak", "invalid header value"),
+        ] {
+            let mut spec = Spec::new();
+            spec.pairs = vec![(name, value)];
+            assert_eq!(reason(spec.write()), expected, "{name}");
+        }
+    }
+
+    #[test]
+    fn header_sets_must_lie_inside_the_pairs() {
+        for set in [(0, 2), (1, 1), (u32::MAX, 2)] {
+            let mut spec = Spec::new();
+            spec.sets = vec![set];
+            assert_eq!(reason(spec.write()), "header set out of bounds", "{set:?}");
+        }
+        let mut spec = Spec::new();
+        spec.entries[1].set = 1;
+        assert_eq!(reason(spec.write()), "entry names a missing header set");
+    }
+
+    #[test]
+    fn paths_must_be_absolute_sorted_and_unique() {
+        let mut spec = Spec::new();
+        spec.entries[0].path = "a.txt";
+        assert_eq!(reason(spec.write()), "path is not an absolute UTF-8 path");
+        let mut spec = Spec::new();
+        spec.entries.swap(0, 1);
+        assert_eq!(reason(spec.write()), "paths are not sorted and unique");
+        let mut spec = Spec::new();
+        spec.entries[1].path = "/a.txt";
+        assert_eq!(reason(spec.write()), "paths are not sorted and unique");
+    }
+
+    #[test]
+    fn entries_must_have_valid_status_flags_and_sizes() {
+        for status in [100, 99, 1000] {
+            let mut spec = Spec::new();
+            spec.entries[0].status = status;
+            assert_eq!(reason(spec.write()), "invalid status code", "{status}");
+        }
+        let mut spec = Spec::new();
+        spec.entries[0].flags = 4;
+        assert_eq!(reason(spec.write()), "unknown entry flags");
+        let mut spec = Spec::new();
+        spec.entries[0].raw_size = 6;
+        assert_eq!(reason(spec.write()), "identity entry sizes differ");
+    }
+
+    #[test]
+    fn entry_data_must_lie_inside_the_data_section() {
+        let mut bytes = Spec::new().write();
+        // The second entry's stored size, in the entry table after the header.
+        put_u64(&mut bytes, HEADER_SIZE + ENTRY_SIZE + 16, 100);
+        assert_eq!(reason(bytes), "entry data out of bounds");
+    }
+
+    #[test]
+    fn brotli_entries_must_decode_to_their_recorded_size() {
+        let mut spec = Spec::new();
+        // 0x06 is a complete Brotli stream: one empty last metablock.
+        for (entry, raw_size) in spec.entries.iter_mut().zip([0, 3]) {
+            entry.data = vec![0x06];
+            entry.raw_size = raw_size;
+            entry.flags = FLAG_BROTLI;
+        }
+        let archive = AssetArchive::new(spec.write()).unwrap();
+        let empty = archive.get("/a.txt").unwrap();
+        assert!(empty.is_brotli());
+        assert_eq!(empty.decompressed().unwrap(), "");
+        let short = archive.get("/b.txt").unwrap();
+        assert_eq!(
+            short.decompressed().unwrap_err().kind(),
+            std::io::ErrorKind::InvalidData
+        );
+    }
+
+    #[test]
+    fn the_server_derives_representation_headers() {
+        use http::header::*;
+        for name in [
+            ETAG,
+            CONTENT_LENGTH,
+            CONTENT_ENCODING,
+            CONTENT_RANGE,
+            ACCEPT_RANGES,
+            TRANSFER_ENCODING,
+        ] {
+            assert!(is_derived(&name), "{name}");
+        }
+        for name in [CONTENT_TYPE, CACHE_CONTROL, LOCATION, VARY] {
+            assert!(!is_derived(&name), "{name}");
+        }
+    }
+
+    #[test]
+    fn sections_reject_overflowing_ranges() {
+        let bytes = [0; 8];
+        assert_eq!(section(&bytes, 2, 6), Some(2..8));
+        assert_eq!(section(&bytes, 8, 0), Some(8..8));
+        assert_eq!(section(&bytes, 2, 7), None);
+        assert_eq!(section(&bytes, u64::MAX, 1), None);
+        assert_eq!(section(&bytes, 1, u64::MAX), None);
+    }
+
+    #[test]
+    fn opening_a_missing_file_names_it() {
+        let path = std::env::temp_dir().join("fetchlet-missing-archive.flpk");
+        match AssetArchive::open(&path) {
+            Err(AssetArchiveError::Read { path: named, .. }) => assert_eq!(named, path),
+            other => panic!("expected a read error, got {other:?}"),
+        }
+    }
+}

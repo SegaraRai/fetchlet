@@ -93,3 +93,88 @@ impl From<fetchlet_web::Error> for Error {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn every_kind() -> Vec<Error> {
+        vec![
+            Error::Configuration("secret path /etc/app".into()),
+            Error::InvalidRequest("secret header value".into()),
+            Error::PermissionDenied,
+            Error::LimitExceeded("request body bytes"),
+            Error::InvocationClosed,
+            Error::DeadlineExceeded,
+            Error::InstanceUnavailable,
+            Error::JavaScript("secret stack".into()),
+            Error::WorkerClosed,
+            Error::WorkerFailed("secret panic".into()),
+            Error::Transport("secret upstream".into()),
+            Error::Reentrant,
+        ]
+    }
+
+    #[test]
+    fn guests_see_fixed_messages_without_host_details() {
+        for error in every_kind() {
+            let message = error.guest_message();
+            assert!(!message.contains("secret"), "{error}: {message}");
+            assert!(
+                !message.contains("request body bytes"),
+                "{error}: {message}"
+            );
+        }
+    }
+
+    #[test]
+    fn each_kind_has_its_own_code() {
+        let codes: Vec<_> = every_kind().iter().map(Error::code).collect();
+        let mut unique = codes.clone();
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(unique.len(), codes.len(), "{codes:?}");
+        assert!(codes.iter().all(|code| {
+            code.bytes()
+                .all(|byte| byte.is_ascii_uppercase() || byte == b'_')
+        }));
+    }
+
+    #[test]
+    fn rust_messages_keep_the_details() {
+        assert_eq!(
+            Error::LimitExceeded("URL bytes").to_string(),
+            "resource limit exceeded: URL bytes"
+        );
+        assert_eq!(
+            Error::Configuration("bad".into()).to_string(),
+            "invalid configuration: bad"
+        );
+    }
+
+    #[cfg(feature = "web")]
+    #[test]
+    fn web_api_errors_map_onto_host_errors() {
+        use fetchlet_web::Error as Web;
+        assert!(matches!(
+            Error::from(Web::InvalidRequest("x".into())),
+            Error::InvalidRequest(message) if message == "x"
+        ));
+        assert!(matches!(
+            Error::from(Web::LimitExceeded("digest bytes")),
+            Error::LimitExceeded("digest bytes")
+        ));
+        assert!(matches!(
+            Error::from(Web::UnknownOperation),
+            Error::PermissionDenied
+        ));
+        assert!(matches!(
+            Error::from(Web::NoInvocation),
+            Error::InvocationClosed
+        ));
+        assert!(matches!(
+            Error::from(Web::Unavailable("random source")),
+            Error::Transport(message) if message == "random source"
+        ));
+    }
+}

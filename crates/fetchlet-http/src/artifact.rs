@@ -234,3 +234,103 @@ macro_rules! include_artifact {
         )
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn manifest(fields: &str) -> Vec<u8> {
+        format!(r#"{{"format":"fetchlet-iife","formatVersion":1,"handler":"handle",{fields}}}"#)
+            .into_bytes()
+    }
+
+    fn reason(source: &[u8]) -> String {
+        match parse_manifest(source, Path::new("fetchlet.json")) {
+            Err(ArtifactError::Unsupported { reason, .. }) => reason,
+            other => panic!("expected an unsupported manifest, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn manifest_paths_stay_inside_the_artifact() {
+        for path in ["server.js", "./server.js", "nested/server.js", "a/./b"] {
+            assert!(is_contained(Path::new(path)), "{path}");
+        }
+        for path in ["../server.js", "a/../b", "/server.js"] {
+            assert!(!is_contained(Path::new(path)), "{path}");
+        }
+        #[cfg(windows)]
+        for path in [r"C:\server.js", r"\\host\share\server.js", r"C:server.js"] {
+            assert!(!is_contained(Path::new(path)), "{path}");
+        }
+    }
+
+    #[test]
+    fn every_named_file_is_checked() {
+        assert_eq!(
+            reason(&manifest(
+                r#""server":"server.js","assets":"../assets.flpk""#
+            )),
+            "../assets.flpk is outside the artifact"
+        );
+        assert_eq!(
+            reason(&manifest(r#""server":"server.js","client":"/srv/public""#)),
+            "/srv/public is outside the artifact"
+        );
+    }
+
+    #[test]
+    fn the_format_and_its_version_must_match() {
+        let other = br#"{"format":"esm","formatVersion":1,"handler":"handle","server":"s.js"}"#;
+        assert_eq!(
+            reason(other),
+            "format esm version 1; expected fetchlet-iife version 1"
+        );
+    }
+
+    #[test]
+    fn required_fields_are_checked_and_optional_ones_may_be_absent() {
+        assert!(matches!(
+            parse_manifest(
+                &manifest(r#""client":"client""#),
+                Path::new("fetchlet.json")
+            ),
+            Err(ArtifactError::Manifest { .. })
+        ));
+        let parsed = parse_manifest(
+            &manifest(r#""server":"server.js","framework":"astro""#),
+            Path::new("fetchlet.json"),
+        )
+        .unwrap();
+        assert_eq!(parsed.server, "server.js");
+        assert!(parsed.client.is_none() && parsed.assets.is_none() && parsed.backend.is_none());
+    }
+
+    #[test]
+    fn an_embedded_artifact_needs_the_archive_its_manifest_names() {
+        let source = manifest(r#""server":"server.js","assets":"assets.flpk""#);
+        match Artifact::embedded(&source, "export const handle = 1;", None) {
+            Err(ArtifactError::Unsupported { reason, .. }) => {
+                assert_eq!(
+                    reason,
+                    "the manifest names assets.flpk, which was not embedded"
+                );
+            }
+            other => panic!("expected a missing archive, got {other:?}"),
+        }
+        let artifact = Artifact::embedded(
+            &manifest(r#""server":"server.js","client":"client""#),
+            "export const handle = 1;",
+            Some(Bytes::from_static(b"ignored without a manifest entry")),
+        )
+        .unwrap();
+        assert!(artifact.asset_archive().is_none());
+        assert!(artifact.directory().is_none());
+        assert!(artifact.client_directory().is_none());
+        assert!(artifact.server_path().is_none());
+        assert_eq!(
+            artifact.server_source().unwrap(),
+            "export const handle = 1;"
+        );
+    }
+}
