@@ -38,7 +38,7 @@ export default defineConfig({
         cache: false,
       },
       "generate:api": {
-        command: `${cargo} run --locked -p example-sveltekit-axum-tauri --no-default-features -- openapi --output openapi.json && openapi-ts && vp fmt web/lib/api`,
+        command: `${cargo} run --locked -p example-sveltekit-axum-tauri --no-default-features -- openapi --output examples/sveltekit-axum-tauri/openapi.json && openapi-ts && vp fmt openapi.json web/lib/api`,
         cache: false,
       },
       "check:types": {
