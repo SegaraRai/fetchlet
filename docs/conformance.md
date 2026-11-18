@@ -6,12 +6,12 @@ describe that pinned selection, not a whole API or upstream suite.
 
 ## Layers
 
-| Suite             | Covers                                                                                                | Selection                                                                        |
-| ----------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| WPT               | Fetch, Headers, Blob, FormData, Encoding, Events, Abort, Streams, Compression and URLPattern behavior | 114 files                                                                        |
-| Test262           | The engine's ECMAScript behavior                                                                      | `Array.prototype.at`, `Promise.resolve` and `throw`: 44 files, strict and sloppy |
-| Regressions       | Reproductions of fixed bugs                                                                           | Body, ownership, validation, Blob, FormData, Encoding, URL                       |
-| Runner self-tests | The runner itself                                                                                     | Assertion failures, async completion, modes, global code, expectations, timeouts |
+| Suite             | Covers                                                                                                            | Selection                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| WPT               | Fetch, Headers, Blob, FormData, Encoding, Events, Abort, Streams, Compression, URLPattern and Web Crypto behavior | 178 files                                                                        |
+| Test262           | The engine's ECMAScript behavior                                                                                  | `Array.prototype.at`, `Promise.resolve` and `throw`: 44 files, strict and sloppy |
+| Regressions       | Reproductions of fixed bugs                                                                                       | Body, ownership, validation, Blob, FormData, Encoding, URL                       |
+| Runner self-tests | The runner itself                                                                                                 | Assertion failures, async completion, modes, global code, expectations, timeouts |
 
 Framework end-to-end tests, Rust HTTP conversion, permissions, streaming
 backpressure and host fuzzing are separate suites ([security](security.md)).
@@ -48,8 +48,9 @@ the engines use fetchlet's profile. Test262 runs without the Web API bundle,
 on the engine and fetchlet's base host environment.
 
 Results go to [conformance.json](../results/conformance.json): source
-commits, the toolchain and engine versions, the profile hash, test names, actual
-status, diagnostics and whether each matches its expectation.
+commits, the toolchain and engine versions, the profile hash, the passing
+subtests counted per file and engine, and every other outcome by test name with
+its status, diagnostics and whether it matches its expectation.
 
 After the binary is built, runs can be narrowed or made strict:
 
@@ -113,7 +114,18 @@ options), DOM Abort, Streams (constructors, tee, cancel, async iteration,
 the default reader, byte stream tee), Compression (every format, chunk
 validation, corrupt, split and trailing input, detached buffers) and
 URLPattern (the shared pattern data, the constructor and
-`hasRegExpGroups`). `compression-stream` and
+`hasRegExpGroups`) and the Web Cryptography API (`WebCryptoAPI/`: digests,
+key generation, import and export, signatures, encryption, derivation,
+wrapping, `getRandomValues` and `randomUUID`). The `modern-algos/` and
+`secure-curves/` directories (ML-KEM, ML-DSA, ChaCha20-Poly1305, Ed448,
+X448 and others), `serialization/` (structured cloning of keys across
+realms), the IDL harness tests and the crash test are not selected, nor are
+`historical` (it checks a non-secure context, which a server runtime does
+not model; Node fails it too) and `sharedarraybuffer` (it creates shared
+memory with `WebAssembly.Memory` at the top level, so it cannot load on
+QuickJS or Boa; it passes on V8). The
+runner gives files marked `timeout=long` six times the normal deadline, as
+the WPT runner does. `compression-stream` and
 `compression-output-length` fetch binary media from the WPT server and are
 not selected; `compression-large-flush-output` inflates its output with pako
 and exceeds the 30-second process deadline on Boa debug builds, while

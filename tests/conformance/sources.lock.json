@@ -17,6 +17,70 @@
         "FileAPI/blob/Blob-textStream.any.js",
         "FileAPI/file/File-constructor-endings.any.js",
         "FileAPI/file/File-constructor.any.js",
+        "WebCryptoAPI/crypto_key_cached_slots.https.any.js",
+        "WebCryptoAPI/derive_bits_keys/cfrg_curves_bits_curve25519.https.any.js",
+        "WebCryptoAPI/derive_bits_keys/cfrg_curves_keys_curve25519.https.any.js",
+        "WebCryptoAPI/derive_bits_keys/derive_key_and_encrypt.https.any.js",
+        "WebCryptoAPI/derive_bits_keys/derived_bits_length.https.any.js",
+        "WebCryptoAPI/derive_bits_keys/ecdh_bits.https.any.js",
+        "WebCryptoAPI/derive_bits_keys/ecdh_keys.https.any.js",
+        "WebCryptoAPI/derive_bits_keys/hkdf.https.any.js",
+        "WebCryptoAPI/derive_bits_keys/pbkdf2.https.any.js",
+        "WebCryptoAPI/digest/digest.https.any.js",
+        "WebCryptoAPI/encrypt_decrypt/aes_cbc.https.any.js",
+        "WebCryptoAPI/encrypt_decrypt/aes_cbc_invalid_length.https.any.js",
+        "WebCryptoAPI/encrypt_decrypt/aes_ctr.https.any.js",
+        "WebCryptoAPI/encrypt_decrypt/aes_gcm.https.any.js",
+        "WebCryptoAPI/encrypt_decrypt/aes_gcm_256_iv.https.any.js",
+        "WebCryptoAPI/encrypt_decrypt/rsa_oaep.https.any.js",
+        "WebCryptoAPI/export-key-error-order.https.any.js",
+        "WebCryptoAPI/generateKey/failures_AES-CBC.https.any.js",
+        "WebCryptoAPI/generateKey/failures_AES-CTR.https.any.js",
+        "WebCryptoAPI/generateKey/failures_AES-GCM.https.any.js",
+        "WebCryptoAPI/generateKey/failures_AES-KW.https.any.js",
+        "WebCryptoAPI/generateKey/failures_ECDH.https.any.js",
+        "WebCryptoAPI/generateKey/failures_ECDSA.https.any.js",
+        "WebCryptoAPI/generateKey/failures_Ed25519.https.any.js",
+        "WebCryptoAPI/generateKey/failures_HMAC.https.any.js",
+        "WebCryptoAPI/generateKey/failures_RSA-OAEP.https.any.js",
+        "WebCryptoAPI/generateKey/failures_RSA-PSS.https.any.js",
+        "WebCryptoAPI/generateKey/failures_RSASSA-PKCS1-v1_5.https.any.js",
+        "WebCryptoAPI/generateKey/failures_X25519.https.any.js",
+        "WebCryptoAPI/generateKey/failures_bad_algorithm.https.any.js",
+        "WebCryptoAPI/generateKey/successes_AES-CBC.https.any.js",
+        "WebCryptoAPI/generateKey/successes_AES-CTR.https.any.js",
+        "WebCryptoAPI/generateKey/successes_AES-GCM.https.any.js",
+        "WebCryptoAPI/generateKey/successes_AES-KW.https.any.js",
+        "WebCryptoAPI/generateKey/successes_ECDH.https.any.js",
+        "WebCryptoAPI/generateKey/successes_ECDSA.https.any.js",
+        "WebCryptoAPI/generateKey/successes_Ed25519.https.any.js",
+        "WebCryptoAPI/generateKey/successes_HMAC.https.any.js",
+        "WebCryptoAPI/generateKey/successes_RSA-OAEP.https.any.js",
+        "WebCryptoAPI/generateKey/successes_RSA-PSS.https.any.js",
+        "WebCryptoAPI/generateKey/successes_RSASSA-PKCS1-v1_5.https.any.js",
+        "WebCryptoAPI/generateKey/successes_X25519.https.any.js",
+        "WebCryptoAPI/getRandomValues.any.js",
+        "WebCryptoAPI/import_export/ec_importKey.https.any.js",
+        "WebCryptoAPI/import_export/ec_importKey_failures_ECDH.https.any.js",
+        "WebCryptoAPI/import_export/ec_importKey_failures_ECDSA.https.any.js",
+        "WebCryptoAPI/import_export/okp_fixed_length.https.any.js",
+        "WebCryptoAPI/import_export/okp_importKey_Ed25519.https.any.js",
+        "WebCryptoAPI/import_export/okp_importKey_X25519.https.any.js",
+        "WebCryptoAPI/import_export/okp_importKey_failures_Ed25519.https.any.js",
+        "WebCryptoAPI/import_export/okp_importKey_failures_X25519.https.any.js",
+        "WebCryptoAPI/import_export/okp_malformed_asn1.https.any.js",
+        "WebCryptoAPI/import_export/rsa_importKey.https.any.js",
+        "WebCryptoAPI/import_export/symmetric_importKey.https.any.js",
+        "WebCryptoAPI/normalize-algorithm-name.https.any.js",
+        "WebCryptoAPI/randomUUID.https.any.js",
+        "WebCryptoAPI/sign_verify/ecdsa.https.any.js",
+        "WebCryptoAPI/sign_verify/eddsa_curve25519.https.any.js",
+        "WebCryptoAPI/sign_verify/eddsa_small_order_points.https.any.js",
+        "WebCryptoAPI/sign_verify/hmac.https.any.js",
+        "WebCryptoAPI/sign_verify/rsa_pkcs.https.any.js",
+        "WebCryptoAPI/sign_verify/rsa_pss.https.any.js",
+        "WebCryptoAPI/wrapKey_unwrapKey/aes_kw_unwrapKey_failures.https.any.js",
+        "WebCryptoAPI/wrapKey_unwrapKey/wrapKey_unwrapKey.https.any.js",
         "compression/compression-bad-chunks.any.js",
         "compression/compression-constructor-error.any.js",
         "compression/compression-including-empty-chunk.any.js",
@@ -128,6 +192,10 @@
         {
           "path": "common/sab.js",
           "sha256": "7f684ef9aaf7ad29822cbf2ab110463836387da97d230665fa2693c894478047"
+        },
+        {
+          "path": "common/subset-tests.js",
+          "sha256": "72643af8e7b9e580a754dd7201179e104437da2265d4a20a898eaa15c5d7cb32"
         },
         {
           "path": "compression/compression-bad-chunks.any.js",
@@ -632,6 +700,482 @@
         {
           "path": "urlpattern/urlpattern.any.js",
           "sha256": "8e8f63551402b0b14ffedaba165c7d103430e705a335d744bd540db83348d174"
+        },
+        {
+          "path": "WebCryptoAPI/crypto_key_cached_slots.https.any.js",
+          "sha256": "13879e3b7d244e2fd7fc2cfe36331dd4766dc0c9568f05e69e6c9eba0c431364"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/cfrg_curves_bits_curve25519.https.any.js",
+          "sha256": "eb2d183465903da7f9d1cad5a19430360518caf60102efa81ed0ab1b45f95f29"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/cfrg_curves_bits_fixtures.js",
+          "sha256": "1a8043165de6e7f20c6259a137ffd77b52ff30dda29da39c2fbd73a03104fe4a"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/cfrg_curves_bits.js",
+          "sha256": "a10b7f60ebba828d277fbe9c417aaf5c991ca061cb3cadc13d03b8f4ad9ba8bd"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/cfrg_curves_keys_curve25519.https.any.js",
+          "sha256": "1794fd4c644c3762da8600735c441406876dbb227bfbd52246b04e3c10a7e511"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/cfrg_curves_keys.js",
+          "sha256": "8abfea53f3f467358f9f3ddf7f9a26abd69016199a142316646c6ffd1f1f80c2"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/cfrg_curves.js",
+          "sha256": "6af405fb9c68647c8e4437dab9d7a4503d8e44da485ccf29216c3befcd5337b3"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/derive_key_and_encrypt.https.any.js",
+          "sha256": "b45b11318f586bc07834e029aa1225c0f0b3c51b6b8d626f368b4de4a110ad76"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/derive_key_and_encrypt.js",
+          "sha256": "fde8ba2610cdc23d4fab73637261c54da0b61bfc7828e059b0c75468b3a3c6a2"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/derive.js",
+          "sha256": "ad4f4ab9f8c6df22cb44ea7f2834e482ae18a7c656b54562eae22064604b9039"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/derived_bits_length_testcases.js",
+          "sha256": "380028ec02ffe7c728d5dc9345c9b8004ed225ef602af4bca55b95eb6b6b3ecf"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/derived_bits_length_vectors.js",
+          "sha256": "d816b0ad68eb4cdc2866b74f35244081a9ac2f67fa42cb56ca7dda9870eb8f30"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/derived_bits_length.https.any.js",
+          "sha256": "5363cfd8ff063e5699b6f53eca97990bbea6f8ed8e142d9f5842c9d7d709e6a5"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/derived_bits_length.js",
+          "sha256": "3eaf18e3097a64827bc45169260969026e25986673c8dc8c0030fd10801c1c25"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/ecdh_bits.https.any.js",
+          "sha256": "72f7c2a286bd068017d917ebc4551086808e658a5d985b2ba28d6dd20faec355"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/ecdh_bits.js",
+          "sha256": "7366ac17ad387f0c3ffe414f8469c94274b75332346dde7115ef2f2aac4f5cac"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/ecdh_fixtures.js",
+          "sha256": "5864a1cbb94d8387660b0ac18cc6643d0e64608cd431a693574626a931c440f6"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/ecdh_keys.https.any.js",
+          "sha256": "c6415913628487a7c6a35666158f5acae4287643fcaaef3fe640966cd038c719"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/ecdh_keys.js",
+          "sha256": "302f390622dc1476f1419d0bdce908f2fd027fec9da874f4c184f2418b4dfcf3"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/ecdh.js",
+          "sha256": "944f79f9257abbb75f5cbec0aa2d4680570a9e7f3e241ec82b1ed4779a4794d9"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/hkdf_vectors.js",
+          "sha256": "6ae0b9b75525020e897d06b07219f257c6a823afec4243658207b33ddc5ea800"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/hkdf.https.any.js",
+          "sha256": "7c66459c925c6c5c863940cc4b073c2e4c3d2bd05d53de811df21de31bbbce8a"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/hkdf.js",
+          "sha256": "a58d856816e283187129baefc659e97754e7835949a7d0aa546d26f7e79642d5"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/kdf.js",
+          "sha256": "6326c303cc630d55f815e0e5ce414df9d5eeb345d1943687cbe2f509a5656786"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/pbkdf2_vectors.js",
+          "sha256": "69b064b17954ad2626a6db32e38461b8f4bdf607a19cf8db34537c9aedcebd82"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/pbkdf2.https.any.js",
+          "sha256": "8d9f12945123e1cc4a8ca872d8e35a2bd55f56ee6560091cd8b91cc7e94d7c5a"
+        },
+        {
+          "path": "WebCryptoAPI/derive_bits_keys/pbkdf2.js",
+          "sha256": "635666b590e56fd873752ec1b4730e5b524b23900e1248bdddba9e0eb7411e7b"
+        },
+        {
+          "path": "WebCryptoAPI/digest/digest_test_data.js",
+          "sha256": "1f35502231a757e70ff3eab3dde74e557a2551cc4a013a9c82cfc40cde2fd1c3"
+        },
+        {
+          "path": "WebCryptoAPI/digest/digest.https.any.js",
+          "sha256": "2d5cbf35749acf7ce96542c2d09303d06249611c803807319da3a29e05e54312"
+        },
+        {
+          "path": "WebCryptoAPI/digest/digest.js",
+          "sha256": "5cceef9267744cd461d6002cc20a9bb375e8cb169bbf71ca5dc8b88560fd367d"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_cbc_invalid_length.https.any.js",
+          "sha256": "f67509b8b89b9211d3323203af5cbf58d4064a4099b487f96df438cabf6e5db1"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_cbc_vectors.js",
+          "sha256": "2f7e357dc923bdf75815803ff99b85a3cf06939f818740d3df6296a007ba365d"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_cbc.https.any.js",
+          "sha256": "a80d1af894918e82e81a69c45a54eda1dddf323802c5c7ce5e8aff56b75a0bb3"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_common_fixtures.js",
+          "sha256": "9b6198f380eb867adabb94a4e8dee9b46d6058a622d42f1884ce5c13a1d08f6f"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_ctr_vectors.js",
+          "sha256": "651a789cc0070b72d060b185513f89dfa6ac76e1034d925d99ef265ae68f6031"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_ctr.https.any.js",
+          "sha256": "7eba88115d9a39ad60fe5503ea411c6b4bd568fd721e161f568a03de7073b1a2"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_gcm_256_iv_fixtures.js",
+          "sha256": "342fc26a0ef59de8d24a5d2108d81614bfe8015d30e325837b0f72deebdb63ae"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_gcm_256_iv.https.any.js",
+          "sha256": "899e6e0b49c6f05fd4e12d483312bd6c97bce54a1e30184fa7ed2ba550a7fe1f"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_gcm_96_iv_fixtures.js",
+          "sha256": "11b8e9d73efad16332f3f0e6baca50621f6224b570fb8baebb8400ab960e3376"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_gcm_vectors.js",
+          "sha256": "9004d32bd2f0e1107ef09257744a40a780c65d8740c1a4e9845ebfb4fc86e655"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes_gcm.https.any.js",
+          "sha256": "da85e248fdb9d37cc73a80f7ac516454e3145c56d3adeb1ae4b7f5d9b7393974"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/aes.js",
+          "sha256": "7b0c9a5eb0358e5bf87afaf1cd11e944951b3933825a6ac83180567a6f1aebab"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/rsa_oaep.https.any.js",
+          "sha256": "61c47c4775e4d613d780e4280101d97e47da18823f09964e0914d1bb7c36ec18"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/rsa_vectors.js",
+          "sha256": "bb80ead433b6218305c825a0d7cce7bb2b26e9d99db14bf639cc6dcc1d36d0c1"
+        },
+        {
+          "path": "WebCryptoAPI/encrypt_decrypt/rsa.js",
+          "sha256": "386de1a7859fb9394109a2eeadf0f4bef77cdcecaa7d6713b225392b80c3da2e"
+        },
+        {
+          "path": "WebCryptoAPI/export-key-error-order.https.any.js",
+          "sha256": "1d5701ad87ea94937190b8163480f7cf0602aad08df083a5f1ffaa2ea1561bb5"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/algorithm_registry.js",
+          "sha256": "3fa5f8fc3b98a163a7008432c882002e5ddb04e91d504f58acb27a2674a5f68c"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_AES-CBC.https.any.js",
+          "sha256": "dbbd225ca2e85fb6ff46f82ab04fb92d21f5bf14683bd507e4cc20dee07659ea"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_AES-CTR.https.any.js",
+          "sha256": "af666c9caa973597ebe2504539b42a623bceba727ebb4f8368f8b851f6c0aacb"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_AES-GCM.https.any.js",
+          "sha256": "8e73b3eca6687cdf35f87f83299d87391e1a1ac8b9b27df114b39db2dadf3880"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_AES-KW.https.any.js",
+          "sha256": "acfbcb90fdf83453f4a107503d9ac4d9953bf02b615bd0fe4d8b7fdb17520378"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_bad_algorithm.https.any.js",
+          "sha256": "824da6f0ba041e74f4c22d084b1799ca74329fd746db2daf7fe8b06277848ad6"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_ECDH.https.any.js",
+          "sha256": "9580fecb17d94c34e119c91650e69ec31d97084b0bc4d45fe7e0e4795bc2f081"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_ECDSA.https.any.js",
+          "sha256": "7a21f87fc4771359aa3153e17bcb98002fbc140dc75d5e21f8ba1deac298f6d8"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_Ed25519.https.any.js",
+          "sha256": "a22a2ac353e6ed0df480ce509742dd1e2dcd6fde3fd351eace55aea000034f8d"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_HMAC.https.any.js",
+          "sha256": "4937c3585799ab9449ea21126b1b705a8fc273c15837d14ab2aa71e0c1d216de"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_RSA-OAEP.https.any.js",
+          "sha256": "37a47186012fa40c8d83345e6d29de4f36c7b9d53673a5744482d78381578c03"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_RSA-PSS.https.any.js",
+          "sha256": "0eb091a6ee602a4a9fe52d1c514df08d4bd1c40b51d385436cd4b9e158e1fba8"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_RSASSA-PKCS1-v1_5.https.any.js",
+          "sha256": "2fcfd2f620cdba710bbab3b9256d2989a92b8e3c04f10b01edd75f529443ca5b"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures_X25519.https.any.js",
+          "sha256": "15b512959d61e440715a83530b3e4094d59dffe57ccee8a2285e5271094b5478"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/failures.js",
+          "sha256": "070ff54911a1d747996c4381b1193b15d36ed1f8438c288b87210b61148f788d"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_AES-CBC.https.any.js",
+          "sha256": "99aae7c3ed474fa1bd73ff5ee812e4a5f9f24fdaeabcece124ba347be52d8960"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_AES-CTR.https.any.js",
+          "sha256": "ccd20df948277e880dec09a369c70eb5ce6d0407af025a451ee34e60f3c67436"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_AES-GCM.https.any.js",
+          "sha256": "711dd4d6e756cfde94269ca5d753665311dbbc0de2a525e0d3fa75652669cce9"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_AES-KW.https.any.js",
+          "sha256": "90556725e159ebed231b74bde4b2e39e05255fe601b50b926e67096b46fd48f8"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_ECDH.https.any.js",
+          "sha256": "30a37474f4f76e081cab2b19b3f0b3a10dd58adf57548e289db4578fa5e945ef"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_ECDSA.https.any.js",
+          "sha256": "b060d1cd59fdb34b9bc7cbc8dfef7343c387ccde6726c33483cb6ffee8c8701a"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_Ed25519.https.any.js",
+          "sha256": "4c3e604dff898bb0e78dbdf1952c1cba81b20fcee628b22343b87407508a54ab"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_HMAC.https.any.js",
+          "sha256": "cb713e71893ad8691fbfcbec925888be471a6fc148f6550c77bc4f3ada5a275c"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_RSA-OAEP.https.any.js",
+          "sha256": "46952cc8e341e00f1e90040f5ce605ea7354eeb1718e44600376f92483de7899"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_RSA-PSS.https.any.js",
+          "sha256": "9161a2dc93ea8f4fe70ea1e5d0f2b685bc0685fce28473c846e7c39ae5e43ce2"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_RSASSA-PKCS1-v1_5.https.any.js",
+          "sha256": "659028ff9b322d1a645dd3db15a3d5d5388905e770a3ca0c9b7f759c87f0428c"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes_X25519.https.any.js",
+          "sha256": "23a2648bcc1ab5b13eeada774c55d8847a9d3faa3c71bcbff1191873d65ed9da"
+        },
+        {
+          "path": "WebCryptoAPI/generateKey/successes.js",
+          "sha256": "ffe652492496003fe3762d7cd0a9d5b01fc15e0014acdbee9e183de723f00e68"
+        },
+        {
+          "path": "WebCryptoAPI/getRandomValues.any.js",
+          "sha256": "e74df8320534db600e4a22c7238f80f9d7d6eb5bb86e0cced15559eeb9d67526"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/ec_importKey_failures_ECDH.https.any.js",
+          "sha256": "5188124f8628e65d3917d5be28a0dba597ec49352234ba4b185f4046c10878f9"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/ec_importKey_failures_ECDSA.https.any.js",
+          "sha256": "8bf30f2364cd5439ad6192e6624cce7ac5780c0a50e6fb4f810d52d42b973e97"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/ec_importKey_failures_fixtures.js",
+          "sha256": "9a320a36f5a142d06eeffc4a8b29382819d839a72de2541a407e12464c13458e"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/ec_importKey.https.any.js",
+          "sha256": "ba3c3212c139ba277f9fe2409d6598591722b6b5c0961dfb0745bf486a4f4c96"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/importKey_failures.js",
+          "sha256": "2f5b329ac887d4410516f072dd71b7f56c542b86e59fb21d0ce431a604a95569"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_fixed_length.https.any.js",
+          "sha256": "48d8a759b6185dc5026bd996fdb42121cc6422167565d205c426eae97a53954c"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_importKey_Ed25519.https.any.js",
+          "sha256": "29773689baff9f4edc5935b7a8494904cec40fa902cc6f53eecf0eb29c411928"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_importKey_failures_Ed25519.https.any.js",
+          "sha256": "d9606db5cbc53dd8bd7eed002e2317ce5c2a4606428f79f6859639187866156b"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_importKey_failures_fixtures.js",
+          "sha256": "92dae2d5e87dbf31374cb35025f5a990d6c4c7549ed62b0a374bc24b674c4067"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_importKey_failures_X25519.https.any.js",
+          "sha256": "4ccc2c82ddf30d73ab4ee89897a61802a2d7be93da1718f2c5d073db794a0974"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_importKey_fixtures.js",
+          "sha256": "ddad596bc2888870a6d168e7f064925045b245ae7e6ae45642b9db9c906015cd"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_importKey_X25519.https.any.js",
+          "sha256": "1a197867bce8e07f6e54882e7030400fab99120e2bd89d3cf1f01aedacd36da8"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_importKey.js",
+          "sha256": "0e10fca264b0c85f10dd98f0e6e38faa7201f19d416ee8e15e63e63302dad009"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/okp_malformed_asn1.https.any.js",
+          "sha256": "ef0ba5eb21ef0e9e66782261453503dee99a573c319107d9c6cf7c615a1209ec"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/rsa_importKey.https.any.js",
+          "sha256": "43e40e5e45338b4487e8651572a61220b7366c2e964afb7324f4f940fd19843e"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/symmetric_importKey.https.any.js",
+          "sha256": "0b50423abd7c975e2b58ab6f6793d95ff8ec7a1c9365d7016eb418b36429dfe5"
+        },
+        {
+          "path": "WebCryptoAPI/import_export/symmetric_importKey.js",
+          "sha256": "758a2d93b40decc42d2c1f2544809f9a5dc95668acd93e808a9a73bcec590b80"
+        },
+        {
+          "path": "WebCryptoAPI/normalize-algorithm-name.https.any.js",
+          "sha256": "30c25a2876fe7722dc37775181ffc3640b3e750ba6817b3da60f25fd272f8b4d"
+        },
+        {
+          "path": "WebCryptoAPI/randomUUID.https.any.js",
+          "sha256": "e23fb613b2b1494f8a8dc7156c874df9ee2129e8e2f2ed327f0e4cdfafad5842"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/ecdsa_vectors.js",
+          "sha256": "67e47c27b1aada50ceb62689b149bc7aa0dfa273f3dd122f91fd6eb5daa78426"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/ecdsa.https.any.js",
+          "sha256": "e69ac315ff8f73aba02b1c4a48d31d6a987423d543f577599083ed79a025aa46"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/ecdsa.js",
+          "sha256": "c688814e87d92289d34ad374decc29f65434f1e14cf7e36222a107f94200e744"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/eddsa_curve25519.https.any.js",
+          "sha256": "19ed793dc775bed9fdb48d3ba68477153e32ec381cdfe2ae88fac7e8fe113cdb"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/eddsa_small_order_points.https.any.js",
+          "sha256": "dafaa9008bd1ff1645a050da4d939a7e1ee6ce11acf387dc3d5ddcab18f3bf31"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/eddsa_small_order_points.js",
+          "sha256": "59f9401b1258f2da9fb31d6af6111930ccacd1d6fa6b0f6ddd741703a6e16cbf"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/eddsa_vectors.js",
+          "sha256": "74fa523933c1b6f461f98876eb864df20a703cc60c26be9ab7666da484671040"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/eddsa.js",
+          "sha256": "b0155826033feb10fef4504b7ec4019a2cd54a50087d0dd530dafb25a6babed1"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/hmac_vectors.js",
+          "sha256": "88a14ad2a5cd8eb6c4e5087bf08ac11aa9801d7eaa3d65f64ec7693e60b1788f"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/hmac.https.any.js",
+          "sha256": "41d1a8035c598e2a7cc21d513c9e72a38a805c65b7a48008074c5c179a886361"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/hmac.js",
+          "sha256": "c3ca8075ba6bffe2ed33fc103e45240c13bbb4593b15849930b399ad44ec8746"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/mac.js",
+          "sha256": "5b4aaeefcfa532b61b9c71334858d42cea8058ea270d58d7cdd39f012032f3e9"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/rsa_pkcs_vectors.js",
+          "sha256": "423a4291ff6a1529bc0692e242c067ec688629c3236deb1f49631d6eefd14835"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/rsa_pkcs.https.any.js",
+          "sha256": "9d66dcf07ef5722bba49640769646cb770cda8e1f30a9a34404089d6f9d434e9"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/rsa_pss_vectors.js",
+          "sha256": "e7d676efa80781a33caf9cc7edcec50226c6046ad1d80c81d270e0c948c35856"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/rsa_pss.https.any.js",
+          "sha256": "617969211716b27154576a2a55766eb55ed824d677a8b1632b5894f07cf8594f"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/rsa.js",
+          "sha256": "6dfa4da9cab460cb3251270260df09babebeff55c36fc0801d2a4fc1c40c183a"
+        },
+        {
+          "path": "WebCryptoAPI/sign_verify/signature.js",
+          "sha256": "a1b7c28f7a9330e2114e0d556de8cde448696bf278b401a5ca5c320fe67129eb"
+        },
+        {
+          "path": "WebCryptoAPI/util/ec_key_fixtures.js",
+          "sha256": "af42b5b0ba57d0bdbc2919fedd57bb32b732f94392c60fbf9be70a12a0594cdc"
+        },
+        {
+          "path": "WebCryptoAPI/util/helpers.js",
+          "sha256": "9dfd282f2bb5255ece417b7815a36ad4b16a91c67bc194a052ae58756843d11a"
+        },
+        {
+          "path": "WebCryptoAPI/util/okp_key_fixtures.js",
+          "sha256": "f04882a29723aa50de3a68fb7e77e04029d3fea201e29cce914e0db96a7b3f0e"
+        },
+        {
+          "path": "WebCryptoAPI/util/rsa_key_fixtures.js",
+          "sha256": "4b755a11ce4cfc161103e4269423d5d025ab04aec39c4d1bd3df773503906d50"
+        },
+        {
+          "path": "WebCryptoAPI/wrapKey_unwrapKey/aes_kw_unwrapKey_failures.https.any.js",
+          "sha256": "a0e877c11143368439241d248ba769561564e827393ed5882099634dc3d3bca4"
+        },
+        {
+          "path": "WebCryptoAPI/wrapKey_unwrapKey/wrapKey_unwrapKey_vectors.js",
+          "sha256": "4f3aa56e3946f96bfa558a3f7313c237c562178f09ba0d88979e47bb19fdbe9d"
+        },
+        {
+          "path": "WebCryptoAPI/wrapKey_unwrapKey/wrapKey_unwrapKey.https.any.js",
+          "sha256": "58dddcc23e738aebdb1eabd04310b6f1b1336ab9bd119048f5bd906e11953550"
         },
         {
           "path": "xhr/formdata/append.any.js",

@@ -4,7 +4,7 @@
     "wpt": {
       "repository": "web-platform-tests/wpt",
       "revision": "c43f14b481a9960c6bc553c68e2e489bf6f95ac9",
-      "selectedFiles": 114
+      "selectedFiles": 178
     },
     "test262": {
       "repository": "tc39/test262",

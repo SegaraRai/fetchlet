@@ -12,7 +12,7 @@ import { build } from "vite-plus";
 
 import { runProcess } from "./process.ts";
 import { evaluate, type Result, type Verdict } from "./report.ts";
-import { lock, root, suites, verifySources } from "./sources.ts";
+import { lock, root, source, suites, verifySources } from "./sources.ts";
 import { test262Program, test262Variants } from "./test262.ts";
 import { wptProgram, wptScript } from "./wpt.ts";
 
@@ -23,6 +23,8 @@ interface Case {
   unsupported?: string | null;
   program: string | null;
   bundle?: string;
+  /** WPT's `timeout=long`, which gives the test six times the normal timeout. */
+  long?: boolean;
 }
 
 const { values } = parseArgs({
@@ -82,9 +84,28 @@ for (const suite of ["wpt", "test262"] as const) {
   if (values.suite !== "all" && values.suite !== suite) continue;
   for (const file of lock.suites[suite].tests) {
     if (!file.includes(values.filter)) continue;
-    if (suite === "wpt")
-      cases.push({ suite, file, mode: "shell", program: prelude + "\n" + wptProgram(file) });
-    else
+    if (suite === "wpt") {
+      const text = source("wpt", file);
+      // Each `variant` runs as its own test file, as the WPT runner does;
+      // common/subset-tests.js selects the subtests from location.search.
+      const variants = [...text.matchAll(/^\/\/ META: variant=(.*)$/gm)].map((match) =>
+        match[1]!.trim(),
+      );
+      for (const variant of variants.length > 0 ? variants : [""]) {
+        const location = {
+          href: "https://wpt.invalid/" + file + variant,
+          search: variant,
+          hash: "",
+        };
+        cases.push({
+          suite,
+          file: file + variant,
+          mode: "shell",
+          program: `${prelude}\nglobalThis.location = ${JSON.stringify(location)};\n${wptProgram(file)}`,
+          long: /^\/\/ META: timeout=long$/m.test(text),
+        });
+      }
+    } else
       for (const variant of test262Variants(file)) {
         cases.push({
           suite,
@@ -131,7 +152,12 @@ async function worker(): Promise<void> {
       });
       continue;
     }
-    const execution = await runProcess(task.backend, task.bundle!, timeoutMs, task.suite);
+    const execution = await runProcess(
+      task.backend,
+      task.bundle!,
+      task.long ? timeoutMs * 6 : timeoutMs,
+      task.suite,
+    );
     if (execution.status !== "complete") {
       results.push({
         ...identity,
@@ -209,6 +235,17 @@ for (const result of results) {
   } else if (result.status === "unsupported") count.unsupported++;
   else count.errors++;
 }
+function passedPerFile(results: Result[]): Record<string, Record<string, number>> {
+  const passed: Record<string, Record<string, number>> = {};
+  for (const result of results) {
+    if (result.status !== "pass") continue;
+    const group = (passed[result.suite + "/" + result.backend] ??= {});
+    const file = result.file + (result.mode === "shell" ? "" : ` (${result.mode})`);
+    group[file] = (group[file] ?? 0) + 1;
+  }
+  return passed;
+}
+
 const report = {
   scope: "Pinned, selected upstream tests; WPT shell and Test262 script subsets",
   sources: Object.fromEntries(
@@ -235,7 +272,10 @@ const report = {
   },
   verdict,
   summary,
-  results,
+  // Passing subtests are counted per file; the other outcomes are listed
+  // one by one, which keeps the record reviewable as selections grow.
+  passed: passedPerFile(results),
+  results: results.filter((result) => result.status !== "pass"),
 };
 const output = resolve(workspaceRoot, values.output);
 mkdirSync(dirname(output), { recursive: true });

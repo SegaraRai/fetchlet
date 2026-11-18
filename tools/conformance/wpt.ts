@@ -57,6 +57,8 @@ export function wptScript(scripts: string[], data: Record<string, string> = {}):
     })();`;
   return [
     "globalThis.self ??= globalThis;",
+    // WPT's common/subset-tests.js reads location.search, as in a worker.
+    `globalThis.location ??= { href: "https://wpt.invalid/", search: "", hash: "" };`,
     served,
     source("wpt", "resources/testharness.js"),
     `const fetchletWptReport = new Promise(resolve => {
