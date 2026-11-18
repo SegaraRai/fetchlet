@@ -158,5 +158,7 @@ Next:
 - `@fetchlet/web` classes that install as globals, such as Headers, Body and
   URL with a fake host parser, tested directly once the modules export their
   implementations.
-- Rust: archive and artifact manifest parsing in `fetchlet-http`, and limit and
-  error mapping in `fetchlet`, as module tests beside the code.
+- Rust module tests for the request and response conversion of
+  `fetchlet-http`'s server integrations and for `fetchlet`'s wire codec and
+  byte store edge cases. Asset archive and manifest validation, public
+  origins, error statuses, limits and error codes have module tests.
