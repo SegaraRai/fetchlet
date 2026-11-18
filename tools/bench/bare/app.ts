@@ -1,5 +1,6 @@
 // The examples' endpoints as one plain fetch handler with no framework. The
 // fetchlet entry and the Node server both call it with the same bindings.
+
 export interface Bindings {
   MESSAGE: string;
   RUST: { fetch(input: string): Promise<Response> };

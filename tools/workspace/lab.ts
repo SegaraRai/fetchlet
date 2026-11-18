@@ -1,6 +1,7 @@
 // The line protocol of fetchlet-lab and the Node reference host: each stdin
 // line is `{ "export": name, "args": [...] }`, and each reply is one stdout
 // line `FETCHLET_REPLY {"ok":true,"value":...}` or `{"ok":false,"error":...}`.
+
 import { spawn, spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";

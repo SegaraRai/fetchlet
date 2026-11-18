@@ -1,6 +1,7 @@
 // Builds Intl artifacts for each backend with fetchlet/build and checks the
 // selected polyfills, their locale data and the native capability catalog.
 // Records results/polyfill-matrix.json: `vp run test:polyfills`.
+
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";

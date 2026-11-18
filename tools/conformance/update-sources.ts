@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname, relative, isAbsolute, posix } from "node:path";
 import { parseArgs } from "node:util";
+
 import { parse } from "yaml";
+
 import { lock, root, type Suite } from "./sources.ts";
 import { fetchedData } from "./wpt.ts";
 

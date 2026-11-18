@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
-import vm from "node:vm";
-
 // The Node reference host for one conformance case: evaluates the bundle as
 // a global script, runs its `run` export and replies once.
 //
 //   node tools/conformance/node-host.ts <bundle.js> <suite>
+
+import { readFileSync } from "node:fs";
+import vm from "node:vm";
+
 function reply(value: unknown): void {
   console.log("FETCHLET_REPLY " + JSON.stringify(value));
 }

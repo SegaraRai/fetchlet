@@ -1,4 +1,5 @@
 // Formats, lints and tests the Rust workspace: `vp run test:rust`.
+
 import { cargoAll } from "@fetchlet-internal/tools-workspace/cargo";
 
 const httpFeatures = ["hyper", "axum", "actix"];

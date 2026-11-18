@@ -16,6 +16,7 @@
 // - the Rust server serves `/api/rust` and `/health.txt`;
 // - with `streaming`, `/deferred` sends `Loading…` first and
 //   `A value that arrived late` about 200 ms later, in the same response.
+
 import assert from "node:assert/strict";
 
 import type { ExampleSuite } from "./suite.ts";

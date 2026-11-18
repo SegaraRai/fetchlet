@@ -7,6 +7,7 @@
 // its Rust server with the engine's feature, then runs every suite in its
 // tests/ directory (e2e, and desktop for an example with a window). QuickJS
 // runs last, so the examples' build/ directories end on the default engine.
+
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";

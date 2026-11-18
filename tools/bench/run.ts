@@ -13,6 +13,7 @@
 // to .cache/bench/bench.json and bench.md, which are not committed. With
 // --merge, the measured pairs replace their rows in the existing results and
 // the others stay.
+
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";

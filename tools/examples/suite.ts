@@ -1,6 +1,7 @@
 // The end-to-end harness of a framework example: starts the example's Rust
 // server with a test configuration, registers checks with node:test, opens
 // Playwright pages on demand and records results/example-<name>.json.
+
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { mkdir, readFile, writeFile } from "node:fs/promises";

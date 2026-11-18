@@ -2,6 +2,7 @@
 // records the outcome in results/fuzz-smoke.json: `vp run test:fuzz`.
 //
 //   node tools/rust/fuzz.ts [--runs 1000000] [--seconds 30]
+
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

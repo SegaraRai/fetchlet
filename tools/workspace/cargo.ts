@@ -1,6 +1,7 @@
 // Runs Cargo with the C compiler this workspace builds native dependencies with.
 //
 //   node tools/workspace/cargo.ts <cargo arguments>
+
 import { existsSync } from "node:fs";
 
 import { run, type RunOptions } from "./process.ts";

@@ -2,6 +2,7 @@
 // Node's native Web APIs, and answers the line protocol described in lab.ts.
 //
 //   node tools/workspace/node-host.ts <bundle.js>
+
 import { readFileSync } from "node:fs";
 import readline from "node:readline";
 import vm from "node:vm";

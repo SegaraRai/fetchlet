@@ -1,4 +1,5 @@
 // Runs inside the consumer project against the installed tarball.
+
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";

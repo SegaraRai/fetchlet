@@ -4,6 +4,7 @@
 // The data comes from the url crate the host parser uses (its package ships
 // the WPT files with tests/expected_failures.txt). A fetchlet backend passes
 // when its failures are a subset of that list.
+
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";

@@ -1,6 +1,7 @@
 // Renders the recorded results in results/ into docs/reference/README.md:
 // `vp run build:reference`. With --check it fails instead of writing when the
 // page differs from what the results produce, which `vp run check` runs.
+
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 

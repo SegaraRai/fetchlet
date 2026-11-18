@@ -1,5 +1,6 @@
 // Builds a benchmark entry as a fetchlet artifact for one backend:
 //   node tools/bench/build-artifact.ts <bare|probe> <outDir> <backend>
+
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { buildArtifact, type BuildBackend } from "fetchlet/build";

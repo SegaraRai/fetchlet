@@ -1,6 +1,7 @@
 // Checks host services through each backend: outbound fetch policy, Rust
 // transports, bindings, abort and retirement. Records results/host-matrix.json:
 // `vp run test:host`.
+
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 
