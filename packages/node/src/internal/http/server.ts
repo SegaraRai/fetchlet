@@ -2,7 +2,8 @@
 // through its fetch handler.
 
 import { invalidArgValue, nodeError } from "../errors/errors.ts";
-import { Writable } from "../stream/stream.ts";
+
+export { Writable as OutgoingMessage } from "../stream/stream.ts";
 
 const serverUnavailable = (name: string) => () => {
   throw nodeError(
@@ -15,7 +16,6 @@ const serverUnavailable = (name: string) => () => {
 export const createServer = serverUnavailable("createServer");
 export const Server = serverUnavailable("Server");
 export const ServerResponse = serverUnavailable("ServerResponse");
-export const OutgoingMessage = Writable;
 
 export function setMaxIdleHTTPParsers(max: number) {
   if (!Number.isInteger(max) || max < 1) {

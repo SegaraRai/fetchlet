@@ -89,6 +89,7 @@ export class StringDecoder {
         }
         break;
       }
+
       case "base64":
       case "base64url":
         if (!flush) {

@@ -348,7 +348,13 @@ export function format(pathObject: Partial<ParsedPath>): string {
 
 export function parse(path: string): ParsedPath {
   validateString(path, "path");
-  const result: ParsedPath = { root: "", dir: "", base: "", ext: "", name: "" };
+  const result: ParsedPath = {
+    root: "",
+    dir: "",
+    base: "",
+    ext: "",
+    name: "",
+  };
   if (path.length === 0) {
     return result;
   }

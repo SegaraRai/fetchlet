@@ -88,7 +88,6 @@ export {
   pbkdf2Sync,
   privateDecrypt,
   privateEncrypt,
-  pseudoRandomBytes,
   publicDecrypt,
   publicEncrypt,
   randomBytes,

@@ -50,7 +50,10 @@ export class ClientRequest extends Writable {
     input: string | URL | RequestOptions,
     options?: RequestOptions | ((response: IncomingMessage) => void),
     callback?: (response: IncomingMessage) => void,
-    defaults: { protocol: string; port: number } = {
+    defaults: {
+      protocol: string;
+      port: number;
+    } = {
       protocol: "http:",
       port: 80,
     },

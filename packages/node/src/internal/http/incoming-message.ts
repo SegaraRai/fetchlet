@@ -7,21 +7,22 @@ import { STATUS_CODES } from "./constants.ts";
 
 /** A response: a Readable of the body with Node's view of the status and headers. */
 export class IncomingMessage extends Readable {
-  httpVersion = "1.1";
-  httpVersionMajor = 1;
-  httpVersionMinor = 1;
+  readonly #reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+
+  readonly httpVersion = "1.1";
+  readonly httpVersionMajor = 1;
+  readonly httpVersionMinor = 1;
   complete = false;
-  statusCode: number | undefined;
-  statusMessage: string | undefined;
-  headers: Record<string, string | string[]> = {};
-  headersDistinct: Record<string, string[]> = {};
-  rawHeaders: string[] = [];
-  trailers: Record<string, string> = {};
-  rawTrailers: string[] = [];
+  readonly statusCode: number | undefined;
+  readonly statusMessage: string | undefined;
+  readonly headers: Record<string, string | string[]> = {};
+  readonly headersDistinct: Record<string, string[]> = {};
+  readonly rawHeaders: string[] = [];
+  readonly trailers: Record<string, string> = {};
+  readonly rawTrailers: string[] = [];
   url = "";
   method: string | null = null;
   socket = null;
-  #reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
   constructor(response?: Response) {
     super();

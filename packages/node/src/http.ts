@@ -1,12 +1,7 @@
 // node:http client requests over the profile's fetch.
 
 import { Agent, globalAgent } from "./internal/http/agent.ts";
-import {
-  ClientRequest,
-  get,
-  request,
-  type RequestOptions,
-} from "./internal/http/client-request.ts";
+import { ClientRequest, get, request } from "./internal/http/client-request.ts";
 import { maxHeaderSize, METHODS, STATUS_CODES } from "./internal/http/constants.ts";
 import { validateHeaderName, validateHeaderValue } from "./internal/http/headers.ts";
 import { IncomingMessage } from "./internal/http/incoming-message.ts";
@@ -17,6 +12,8 @@ import {
   ServerResponse,
   setMaxIdleHTTPParsers,
 } from "./internal/http/server.ts";
+
+export type { RequestOptions } from "./internal/http/client-request.ts";
 
 export {
   Agent,
@@ -29,7 +26,6 @@ export {
   METHODS,
   OutgoingMessage,
   request,
-  type RequestOptions,
   Server,
   ServerResponse,
   setMaxIdleHTTPParsers,

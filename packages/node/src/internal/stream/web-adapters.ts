@@ -124,7 +124,11 @@ export function readableToWeb(
 /** A Writable that writes to a Web WritableStream. */
 export function writableFromWeb(
   writableStream: WritableStream,
-  options: { decodeStrings?: boolean; highWaterMark?: number; objectMode?: boolean } = {},
+  options: {
+    decodeStrings?: boolean;
+    highWaterMark?: number;
+    objectMode?: boolean;
+  } = {},
 ): NodeWritable {
   if (!(writableStream instanceof WritableStream)) {
     throw invalidArgType("writableStream", "an instance of WritableStream", writableStream);
@@ -185,7 +189,10 @@ export function writableToWeb(streamWritable: NodeWritable): WritableStream {
 
 /** A Duplex over a pair of Web streams. */
 export function duplexFromWeb(
-  pair: { readable: ReadableStream; writable: WritableStream },
+  pair: {
+    readable: ReadableStream;
+    writable: WritableStream;
+  },
   options: ReadableOptions & { decodeStrings?: boolean } = {},
 ) {
   if (pair === null || typeof pair !== "object") {
@@ -198,7 +205,10 @@ export function duplexFromWeb(
   const writable = writableFromWeb(pair.writable, options) as NodeWritable & {
     on(event: string, listener: (...args: never[]) => void): void;
   };
-  return Stream.Duplex.from({ readable, writable });
+  return Stream.Duplex.from({
+    readable,
+    writable,
+  });
 }
 
 export function duplexToWeb(duplex: NodeReadable & NodeWritable) {

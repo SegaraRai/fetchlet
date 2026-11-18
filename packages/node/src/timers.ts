@@ -4,23 +4,12 @@ import {
   clearImmediate,
   clearInterval,
   clearTimeout,
-  Immediate,
   setImmediate,
   setInterval,
   setTimeout,
-  Timeout,
 } from "./internal/timers/timers.ts";
 
-export {
-  clearImmediate,
-  clearInterval,
-  clearTimeout,
-  Immediate,
-  setImmediate,
-  setInterval,
-  setTimeout,
-  Timeout,
-};
+export { clearImmediate, clearInterval, clearTimeout, setImmediate, setInterval, setTimeout };
 
 export default {
   setTimeout,
@@ -29,6 +18,4 @@ export default {
   clearTimeout,
   clearInterval,
   clearImmediate,
-  Timeout,
-  Immediate,
 };

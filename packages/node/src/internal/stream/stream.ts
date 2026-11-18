@@ -42,4 +42,5 @@ export const isReadable = Stream.isReadable;
 export const isWritable = Stream.isWritable;
 export const getDefaultHighWaterMark = Stream.getDefaultHighWaterMark;
 export const setDefaultHighWaterMark = Stream.setDefaultHighWaterMark;
+
 export { Stream, promises };

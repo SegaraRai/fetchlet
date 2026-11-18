@@ -1,37 +1,15 @@
 // node:assert and node:assert/strict.
 
-import {
-  AssertionError,
-  deepEqual,
-  deepStrictEqual,
-  doesNotMatch,
-  doesNotReject,
-  doesNotThrow,
-  equal,
-  ifError,
-  legacy,
-  match,
-  notDeepEqual,
-  notDeepStrictEqual,
-  notEqual,
-  notStrictEqual,
-  ok,
-  rejects,
-  strict,
-  strictEqual,
-  throws,
-  fail,
-} from "./internal/assert/assert.ts";
-
 export {
-  fail,
   AssertionError,
   deepEqual,
   deepStrictEqual,
+  legacy as default,
   doesNotMatch,
   doesNotReject,
   doesNotThrow,
   equal,
+  fail,
   ifError,
   match,
   notDeepEqual,
@@ -43,6 +21,4 @@ export {
   strict,
   strictEqual,
   throws,
-};
-
-export default legacy;
+} from "./internal/assert/assert.ts";

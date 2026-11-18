@@ -7,7 +7,6 @@ import * as bufferModule from "buffer/index.js";
 
 // The package's typings declare Buffer only.
 const bufferPackage = bufferModule as typeof bufferModule & {
-  SlowBuffer: typeof bufferModule.Buffer;
   INSPECT_MAX_BYTES: number;
   kMaxLength: number;
 };
@@ -53,7 +52,6 @@ bufferMethods["toString"] = function (this: unknown, encoding?: unknown, ...rest
     .replace(/=+/, "");
 };
 
-export const SlowBuffer = bufferPackage.SlowBuffer;
 export const INSPECT_MAX_BYTES = bufferPackage.INSPECT_MAX_BYTES;
 export const kMaxLength = bufferPackage.kMaxLength;
 export const kStringMaxLength = 2 ** 29 - 24;

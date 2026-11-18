@@ -2,51 +2,23 @@
 // libraries read, for an instance that has no operating-system process of its
 // own.
 
-import {
-  arch,
-  argv,
-  argv0,
-  config,
-  cpuUsage,
-  cwd,
-  emitWarning,
-  env,
-  execArgv,
-  execPath,
-  exit,
-  features,
-  memoryUsage,
-  pid,
-  platform,
-  ppid,
-  process,
-  release,
-  stderr,
-  stdout,
-  title,
-  uptime,
-  version,
-  versions,
-  hrtime,
-  nextTick,
-} from "./internal/process/process.ts";
-
 export {
-  hrtime,
-  nextTick,
   arch,
   argv,
   argv0,
   config,
   cpuUsage,
   cwd,
+  process as default,
   emitWarning,
   env,
   execArgv,
   execPath,
   exit,
   features,
+  hrtime,
   memoryUsage,
+  nextTick,
   pid,
   platform,
   ppid,
@@ -57,6 +29,4 @@ export {
   uptime,
   version,
   versions,
-};
-
-export default process;
+} from "./internal/process/process.ts";

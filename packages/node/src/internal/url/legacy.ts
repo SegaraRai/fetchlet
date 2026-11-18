@@ -161,6 +161,7 @@ export class Url {
               nonHost = index;
             }
             break;
+
           case "#":
           case "/":
           case "?":
@@ -169,6 +170,7 @@ export class Url {
             }
             hostEnd = index;
             break;
+
           case "@":
             atSign = index;
             nonHost = -1;

@@ -1,17 +1,16 @@
 // node:diagnostics_channel: named channels that libraries publish to and tools
-// subscribe to, with Node's TracingChannel and store bindings.
+// subscribe to, with tracing channels and store bindings.
 
 import {
   Channel,
   channel,
   hasSubscribers,
   subscribe,
-  TracingChannel,
   tracingChannel,
   unsubscribe,
 } from "./internal/diagnostics-channel/channels.ts";
 
-export { Channel, channel, hasSubscribers, subscribe, TracingChannel, tracingChannel, unsubscribe };
+export { Channel, channel, hasSubscribers, subscribe, tracingChannel, unsubscribe };
 
 export default {
   Channel,

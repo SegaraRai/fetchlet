@@ -1,10 +1,10 @@
 // node:https client requests: node:http's over fetch with https: defaults.
 
-import { URL } from "../url/whatwg.ts";
 import { Agent as HttpAgent } from "./agent.ts";
 import { ClientRequest, type RequestOptions } from "./client-request.ts";
 import { IncomingMessage } from "./incoming-message.ts";
-import { createServer, Server } from "./server.ts";
+
+export { createServer, Server } from "./server.ts";
 
 const defaults = {
   protocol: "https:",
@@ -36,5 +36,3 @@ export function get(
   outgoing.end();
   return outgoing;
 }
-
-export { createServer, Server };

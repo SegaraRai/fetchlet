@@ -13,7 +13,6 @@ import {
   isUtf8,
   kMaxLength,
   kStringMaxLength,
-  SlowBuffer,
 } from "./internal/buffer/buffer.ts";
 
 export {
@@ -28,12 +27,10 @@ export {
   isUtf8,
   kMaxLength,
   kStringMaxLength,
-  SlowBuffer,
 };
 
 export default {
   Buffer,
-  SlowBuffer,
   INSPECT_MAX_BYTES,
   kMaxLength,
   kStringMaxLength,
