@@ -5,7 +5,7 @@
 import { runtime } from "./runtime";
 
 /** The fetchlet-web protocol this profile speaks. */
-const PROTOCOL_VERSION = 1;
+const PROTOCOL_VERSION = 2;
 
 let provided: Set<string> | undefined;
 

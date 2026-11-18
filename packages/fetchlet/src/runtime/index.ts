@@ -2,7 +2,7 @@
 
 import "./web/abort";
 import "./web/compression";
-import "./web/crypto";
+import "./web/crypto/install";
 import "./web/events";
 import "./web/foundation";
 import "./web/global-scope";

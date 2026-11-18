@@ -22,8 +22,12 @@ pub struct Limits {
     pub url_bytes: Option<usize>,
     /// Bytes in each JSON input to a native host callback.
     pub bridge_message_bytes: Option<usize>,
-    /// Input bytes for one host SHA-256 operation.
+    /// Input bytes of one `crypto.subtle.digest` call.
     pub digest_bytes: Option<usize>,
+    /// Modulus length, in bits, of an RSA key that `crypto.subtle` generates.
+    pub rsa_modulus_bits: Option<usize>,
+    /// Iterations of one PBKDF2 derivation in `crypto.subtle`.
+    pub pbkdf2_iterations: Option<usize>,
     /// `CompressionStream` and `DecompressionStream` instances open at once
     /// in one invocation.
     pub compression_streams: Option<usize>,
@@ -67,6 +71,8 @@ impl Limits {
             digest_bytes: self.digest_bytes,
             compression_streams: self.compression_streams,
             decompressed_bytes: self.decompressed_bytes,
+            rsa_modulus_bits: self.rsa_modulus_bits,
+            pbkdf2_iterations: self.pbkdf2_iterations,
         }
     }
 }

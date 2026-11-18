@@ -309,6 +309,44 @@ globalThis.fetchletProbe = async function fetchletProbe(options = {}) {
     ).join("");
     equal(hex, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
   });
+  await check("webcrypto-ecdsa-sign-verify", async () => {
+    const algorithm = { name: "ECDSA", namedCurve: "P-256", hash: "SHA-256" };
+    const pair = await crypto.subtle.generateKey(algorithm, true, ["sign", "verify"]);
+    equal([pair.publicKey.usages, pair.privateKey.usages], [["verify"], ["sign"]]);
+    const data = new TextEncoder().encode("fetchlet");
+    const signature = await crypto.subtle.sign(algorithm, pair.privateKey, data);
+    equal(await crypto.subtle.verify(algorithm, pair.publicKey, signature, data), true);
+    const jwk = await crypto.subtle.exportKey("jwk", pair.publicKey);
+    equal([jwk.kty, jwk.crv, jwk.alg, jwk.ext], ["EC", "P-256", undefined, true]);
+  });
+  await check("webcrypto-pbkdf2-aes-gcm", async () => {
+    const encoder = new TextEncoder();
+    const password = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode("secret"),
+      "PBKDF2",
+      false,
+      ["deriveKey"],
+    );
+    const key = await crypto.subtle.deriveKey(
+      { name: "PBKDF2", hash: "SHA-256", salt: encoder.encode("salt"), iterations: 1000 },
+      password,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt", "decrypt"],
+    );
+    equal([key.algorithm.name, key.algorithm.length, key.extractable], ["AES-GCM", 256, false]);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const sealed = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      encoder.encode("fetchlet"),
+    );
+    equal(sealed.byteLength, 8 + 16);
+    const opened = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, sealed);
+    equal(new TextDecoder().decode(opened), "fetchlet");
+    await rejects(() => crypto.subtle.exportKey("raw", key));
+  });
   await check("compression-gzip-round-trip", async () => {
     const text = "fetchlet ".repeat(100);
     const compressed = new Response(text).body.pipeThrough(new CompressionStream("gzip"));

@@ -151,6 +151,14 @@
       "status": "pass"
     },
     {
+      "id": "webcrypto-ecdsa-sign-verify",
+      "status": "pass"
+    },
+    {
+      "id": "webcrypto-pbkdf2-aes-gcm",
+      "status": "pass"
+    },
+    {
       "id": "compression-gzip-round-trip",
       "status": "pass"
     },
@@ -164,8 +172,8 @@
     }
   ],
   "summary": {
-    "total": 29,
-    "passed": 29,
+    "total": 31,
+    "passed": 31,
     "failed": 0
   }
 }

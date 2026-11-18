@@ -5,12 +5,20 @@ Host implementations of Web APIs for fetchlet guests. The guest runtime
 and byte-store handles. They depend on no JavaScript engine, so QuickJS, Boa
 and V8 share one implementation of each API.
 
-| Feature                 | API                                                     | Provider            |
-| ----------------------- | ------------------------------------------------------- | ------------------- |
-| (always)                | `URL` parsing and setters                               | `url`               |
-| `url-pattern` (default) | `URLPattern`                                            | `urlpattern`        |
-| `compression` (default) | `CompressionStream`, `DecompressionStream`              | `flate2`, `brotli`  |
-| `crypto` (default)      | `crypto.getRandomValues`, `randomUUID`, SHA-256 digests | `getrandom`, `sha2` |
+| Feature                 | API                                                     | Provider                       |
+| ----------------------- | ------------------------------------------------------- | ------------------------------ |
+| (always)                | `URL` parsing and setters                               | `url`                          |
+| `url-pattern` (default) | `URLPattern`                                            | `urlpattern`                   |
+| `compression` (default) | `CompressionStream`, `DecompressionStream`              | `flate2`, `brotli`             |
+| `crypto` (default)      | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` | RustCrypto crates, `getrandom` |
+
+The `crypto.*` operations are stateless: the guest's `CryptoKey` holds the
+key material (raw bytes for secret keys, SubjectPublicKeyInfo and PKCS #8 DER
+for key pairs) and passes it with each call, so keys created while a module
+is evaluated work like the others. The guest normalizes algorithms and checks
+key usages and JWK members; the host converts formats and does the
+cryptography. AES-GCM is implemented over `aes` and `ghash` so that any iv
+length and every tag length the specification allows work.
 
 The `fetchlet` crate enables it with every engine and forwards the optional
 APIs through its `url-pattern`, `compression` and `web-crypto` features
@@ -41,6 +49,7 @@ The guest runtime installs only those globals, and none when the protocol
 version differs from its own.
 
 `WebLimits` carries the caller budgets these operations enforce
-(`digest_bytes`, `compression_streams`, `decompressed_bytes`). The embedder
+(`digest_bytes`, `rsa_modulus_bits`, `pbkdf2_iterations`,
+`compression_streams`, `decompressed_bytes`). The embedder
 owns their values; fetchlet takes them from its `Limits`
 ([resource policy](../../docs/resource-policy.md)).

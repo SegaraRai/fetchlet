@@ -22,3 +22,45 @@ anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["rt", "macros", "time", "sync"] }
+
+# Hashing, big-integer and elliptic-curve arithmetic is orders of magnitude
+# slower unoptimized; RSA key generation or a 100,000-iteration PBKDF2
+# derivation in a debug build would take seconds.
+[profile.dev.package.sha1]
+opt-level = 3
+
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.dev.package.hmac]
+opt-level = 3
+
+[profile.dev.package.pbkdf2]
+opt-level = 3
+
+[profile.dev.package.hkdf]
+opt-level = 3
+
+[profile.dev.package.crypto-bigint]
+opt-level = 3
+
+[profile.dev.package.crypto-primes]
+opt-level = 3
+
+[profile.dev.package.rsa]
+opt-level = 3
+
+[profile.dev.package.primeorder]
+opt-level = 3
+
+[profile.dev.package.p256]
+opt-level = 3
+
+[profile.dev.package.p384]
+opt-level = 3
+
+[profile.dev.package.p521]
+opt-level = 3
+
+[profile.dev.package.curve25519-dalek]
+opt-level = 3

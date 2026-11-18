@@ -39,7 +39,7 @@ kept.
 | Encoding            | UTF-8, UTF-16 and single-byte encodings, streaming and fatal modes, `TextEncoderStream`, `TextDecoderStream`                                                                 |
 | Events              | `Event`, `CustomEvent` and `EventTarget` with `once`, `passive`, `signal`, `handleEvent` objects and cancellation; dispatch reaches only the target, as there is no tree     |
 | Abort               | `AbortSignal` is an `EventTarget`; `abort`, `timeout` and `any`, DOMException reasons, aborting body reads and host fetches                                                  |
-| Crypto              | Secure random values, UUID v4, SHA-256                                                                                                                                       |
+| Crypto              | `getRandomValues`, UUID v4 and every `SubtleCrypto` method: SHA digests, HMAC, RSA, ECDSA, ECDH, Ed25519, X25519, AES, HKDF and PBKDF2; key material stays in the guest      |
 | Compression         | Four formats over any BufferSource chunks; truncated, corrupt or trailing input errors the stream; the `decompressed_bytes` limit bounds the output                          |
 | URLPattern          | Patterns, base URLs, `ignoreCase`, `test` and `exec`; component regular expressions run in the engine's own `RegExp`                                                         |
 | Timers and jobs     | Promises, `setTimeout`, `setInterval` and their clear functions, driven by host future notifications                                                                         |
@@ -74,7 +74,7 @@ fetchlet's status for each:
 | HTML events and messages | `ErrorEvent`, `PromiseRejectionEvent`, `MessageChannel`, `MessagePort` and `MessageEvent` are missing                                                                |
 | WebIDL                   | `DOMException`                                                                                                                                                       |
 | Compression              | `CompressionStream` and `DecompressionStream` with `gzip`, `deflate`, `deflate-raw` and `brotli`                                                                     |
-| Web Crypto               | `crypto.getRandomValues`, `randomUUID` and `subtle.digest` with SHA-256; the `Crypto`, `CryptoKey` and `SubtleCrypto` interfaces and other algorithms are missing    |
+| Web Crypto               | `Crypto`, `SubtleCrypto` and `CryptoKey` with the algorithms of the Web Cryptography API Level 2 and Ed25519 and X25519; `QuotaExceededError`                        |
 | Performance              | `performance.now` and `timeOrigin`; the `Performance` interface is not exposed                                                                                       |
 | WebAssembly              | Native on V8; QuickJS and Boa have none                                                                                                                              |
 | Globals                  | `globalThis`, `self`, `atob`, `btoa`, `console`, `queueMicrotask`, `structuredClone`, timers, `navigator.userAgent` (`"fetchlet"`), `reportError`                    |

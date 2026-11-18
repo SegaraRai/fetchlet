@@ -5,7 +5,7 @@ use crate::{Error, WebLimits, WebState};
 
 /// The version of the operation names and messages. The guest runtime uses
 /// host implementations only when it was built for the same version.
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 
 /// The embedder's byte store for the current invocation, which carries
 /// binary data between the guest and the host by handle.
@@ -60,7 +60,11 @@ pub fn dispatch<B: ByteHandles>(
         #[cfg(feature = "url-pattern")]
         "urlpattern.parse" | "urlpattern.match" => crate::url_pattern::dispatch(operation, input),
         #[cfg(feature = "crypto")]
-        "random" | "sha256" => crate::crypto::dispatch(operation, input, limits),
+        "crypto.random" | "crypto.digest" | "crypto.generateKey" | "crypto.importKey"
+        | "crypto.exportKey" | "crypto.sign" | "crypto.verify" | "crypto.encrypt"
+        | "crypto.decrypt" | "crypto.deriveBits" => {
+            crate::crypto::dispatch(operation, input, limits)
+        }
         #[cfg(feature = "compression")]
         "compression.open" | "compression.write" | "compression.finish" | "compression.read"
         | "compression.close" => {
@@ -122,7 +126,7 @@ mod tests {
     #[test]
     fn omitted_apis_are_neither_reported_nor_served() {
         assert_eq!(capabilities()["apis"], json!(["url"]));
-        for operation in ["urlpattern.parse", "compression.open", "random"] {
+        for operation in ["urlpattern.parse", "compression.open", "crypto.random"] {
             assert!(dispatch::<Store>(operation, "null", &WebLimits::default(), None).is_none());
         }
     }

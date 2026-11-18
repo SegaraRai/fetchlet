@@ -45,9 +45,6 @@ Sources: [SolidStart adapter](../packages/fetchlet/src/solid-start/index.ts),
 The [WinterTC table](web-api.md#wintertc-minimum-common-api) lists what the
 profile lacks. In rough order of how often server code needs them:
 
-- Web Crypto beyond SHA-256: `CryptoKey`, HMAC sign and verify, the other
-  SHA digests, then key import for JWT verification. Each algorithm needs WPT
-  `WebCryptoAPI/` coverage.
 - Global error events: make the global scope an `EventTarget`, dispatch
   `ErrorEvent` from `reportError` and `PromiseRejectionEvent` for
   unhandled rejections where each engine exposes a rejection tracker.

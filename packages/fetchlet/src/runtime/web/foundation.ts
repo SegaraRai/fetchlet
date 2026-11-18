@@ -14,6 +14,7 @@ import URLSearchParamsImpl from "core-js-pure/actual/url-search-params/index.js"
 import URLImpl from "core-js-pure/actual/url/index.js";
 import * as streams from "web-streams-polyfill";
 
+import { createQuotaExceededError } from "./quota-exceeded-error";
 import { runtime } from "./runtime";
 import { conformAsyncIteratorPrototype } from "./stream-state";
 import { URLImpl as HostURLImpl, hostHasUrlParser } from "./url";
@@ -25,6 +26,7 @@ runtime.btoa ??= btoaImpl;
 runtime.atob ??= atobImpl;
 runtime.structuredClone ??= cloneImpl;
 runtime.DOMException ??= DOMExceptionImpl;
+runtime.QuotaExceededError ??= createQuotaExceededError(runtime.DOMException);
 for (const [name, value] of Object.entries(streams)) {
   runtime[name] ??= value;
 }

@@ -16,12 +16,12 @@ Every engine includes URL parsing from [fetchlet-web](../fetchlet-web/README.md)
 These features add its optional Web APIs; the guest runtime installs only the
 globals of the enabled ones.
 
-| Feature              | Adds                                                   |
-| -------------------- | ------------------------------------------------------ |
-| `web-apis` (default) | All three below                                        |
-| `url-pattern`        | `URLPattern`                                           |
-| `compression`        | `CompressionStream`, `DecompressionStream`             |
-| `web-crypto`         | `crypto.getRandomValues`, `randomUUID`, SHA-256 digest |
+| Feature              | Adds                                                    |
+| -------------------- | ------------------------------------------------------- |
+| `web-apis` (default) | All three below                                         |
+| `url-pattern`        | `URLPattern`                                            |
+| `compression`        | `CompressionStream`, `DecompressionStream`              |
+| `web-crypto`         | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` |
 
 ## Shared handle
 

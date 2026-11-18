@@ -8,18 +8,55 @@ description = "Engine-independent host implementations of Web APIs for fetchlet 
 # Each feature adds the host operations of one Web API; the guest runtime
 # installs the matching globals only when the host reports them.
 [features]
-default = ["url-pattern", "compression", "crypto"]
+default = ["compression", "crypto", "url-pattern"]
+compression = ["dep:brotli", "dep:flate2"]
+crypto = [
+  "dep:serde",
+  "dep:getrandom",
+  "dep:base64",
+  "dep:sha1",
+  "dep:sha2",
+  "dep:hmac",
+  "dep:hkdf",
+  "dep:pbkdf2",
+  "dep:rsa",
+  "dep:p256",
+  "dep:p384",
+  "dep:p521",
+  "dep:ed25519-dalek",
+  "dep:x25519-dalek",
+  "dep:aes",
+  "dep:ghash",
+  "dep:aes-kw",
+  "dep:pkcs8",
+  "dep:spki",
+]
 url-pattern = ["dep:urlpattern"]
-compression = ["dep:flate2", "dep:brotli"]
-crypto = ["dep:getrandom", "dep:sha2"]
 
 [dependencies]
 bytes = "1"
+serde = { workspace = true, optional = true }
 serde_json.workspace = true
 thiserror.workspace = true
 url = "2"
 urlpattern = { version = "0.6", optional = true }
 flate2 = { version = "1", optional = true }
 brotli = { version = "9", optional = true }
-getrandom = { version = "0.4", optional = true }
-sha2 = { version = "0.11", optional = true }
+getrandom = { version = "0.4", optional = true, features = ["sys_rng"] }
+base64 = { version = "0.23", optional = true }
+sha1 = { version = "0.11", optional = true, features = ["oid"] }
+sha2 = { version = "0.11", optional = true, features = ["oid"] }
+hmac = { version = "0.13", optional = true }
+hkdf = { version = "0.13", optional = true }
+pbkdf2 = { version = "0.13", optional = true, default-features = false, features = ["hmac"] }
+rsa = { version = "0.10", optional = true, features = ["getrandom", "pkcs1v15"] }
+p256 = { version = "0.14", optional = true, features = ["ecdsa", "ecdh", "pkcs8", "getrandom"] }
+p384 = { version = "0.14", optional = true, features = ["ecdsa", "ecdh", "pkcs8", "getrandom"] }
+p521 = { version = "0.14", optional = true, features = ["ecdsa", "ecdh", "pkcs8", "getrandom"] }
+ed25519-dalek = { version = "3", optional = true, features = ["pkcs8", "rand_core"] }
+x25519-dalek = { version = "3", optional = true, features = ["static_secrets", "getrandom"] }
+aes = { version = "0.9", optional = true }
+ghash = { version = "0.6", optional = true }
+aes-kw = { version = "0.3", optional = true }
+pkcs8 = { version = "0.11", optional = true, features = ["alloc"] }
+spki = { version = "0.8", optional = true, features = ["alloc"] }

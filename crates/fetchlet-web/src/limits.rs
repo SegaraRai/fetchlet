@@ -11,6 +11,11 @@ pub struct WebLimits {
     pub compression_streams: Option<usize>,
     /// Bytes one `DecompressionStream` produces.
     pub decompressed_bytes: Option<usize>,
+    /// Modulus length of a generated RSA key, in bits, which bounds the
+    /// time key generation takes.
+    pub rsa_modulus_bits: Option<usize>,
+    /// Iterations of one PBKDF2 derivation.
+    pub pbkdf2_iterations: Option<usize>,
 }
 
 #[cfg_attr(
