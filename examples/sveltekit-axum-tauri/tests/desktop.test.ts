@@ -87,7 +87,7 @@ beforeAll(async () => {
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
-        WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: "--remote-debugging-port=" + port,
+        FETCHLET_DEVTOOLS_PORT: String(port),
       },
     },
   );

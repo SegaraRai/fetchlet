@@ -31,10 +31,14 @@ pub(crate) fn run(config: Config, workspace: &Path) -> Result<()> {
             });
         })
         .setup(move |desktop| {
-            WebviewWindowBuilder::new(desktop, "main", WebviewUrl::CustomProtocol(url))
-                .title(title)
-                .inner_size(1180.0, 800.0)
-                .build()?;
+            let mut window =
+                WebviewWindowBuilder::new(desktop, "main", WebviewUrl::CustomProtocol(url))
+                    .title(title)
+                    .inner_size(1180.0, 800.0);
+            if let Some(arguments) = devtools_browser_arguments() {
+                window = window.additional_browser_args(&arguments);
+            }
+            window.build()?;
             let handle = desktop.handle().clone();
             tauri::async_runtime::spawn(async move {
                 use tokio::sync::broadcast::error::RecvError;
@@ -65,4 +69,17 @@ pub(crate) fn run(config: Config, workspace: &Path) -> Result<()> {
         }
     });
     Ok(())
+}
+
+/// WebView2 browser arguments that open the DevTools protocol on the port in
+/// `FETCHLET_DEVTOOLS_PORT`, which the end-to-end tests drive the window
+/// through. `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` does not reach the browser
+/// on every WebView2 runtime, because wry also sets the arguments through the
+/// API. Setting them replaces wry's defaults, so they are repeated here.
+fn devtools_browser_arguments() -> Option<String> {
+    let port = std::env::var("FETCHLET_DEVTOOLS_PORT").ok()?;
+    Some(format!(
+        "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection \
+         --autoplay-policy=no-user-gesture-required --remote-debugging-port={port}"
+    ))
 }

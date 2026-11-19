@@ -89,7 +89,7 @@ beforeAll(async () => {
     stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
-      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: "--remote-debugging-port=" + port,
+      FETCHLET_DEVTOOLS_PORT: String(port),
     },
   });
   child = app;
@@ -116,9 +116,6 @@ beforeAll(async () => {
   await waitFor(
     async () => (await fetch(`http://127.0.0.1:${port}/json/version`)).ok,
     "DevTools endpoint",
-    // WebView2 creates its user data folder and starts its browser process on
-    // first use, which takes longer than 20 seconds on a fresh CI runner.
-    60000,
   );
   const connected = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
   browser = connected;

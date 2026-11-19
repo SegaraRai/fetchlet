@@ -108,8 +108,8 @@ vp run test:examples -- honox-tauri
 ```
 
 The task builds the frontend and the app, starts the app with
-`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` and
-connects with Playwright's `connectOverCDP`. Every request comes from inside
+`FETCHLET_DEVTOOLS_PORT=<port>`, which opens WebView2's DevTools protocol on
+that port, and connects with Playwright's `connectOverCDP`. Every request comes from inside
 the webview, so it goes through the URI scheme protocol. The checks cover
 SSR and escaping, the Rust service binding, JavaScript, CSS and public files
 and the refusal of files outside `client/`, JSON endpoints, context without
