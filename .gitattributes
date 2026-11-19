@@ -1,0 +1,3 @@
+# The formatter and the generated files expect LF on every platform, including
+# Windows checkouts where core.autocrlf would otherwise convert to CRLF.
+* text=auto eol=lf

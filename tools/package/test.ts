@@ -91,7 +91,9 @@ writeFileSync(
       .join(""),
 );
 
-step("install", run("vp", ["install", "--offline"], { cwd: consumer }));
+// Prefer the local store, but fetch what it lacks, such as the pinned pnpm on a
+// fresh CI runner.
+step("install", run("vp", ["install", "--prefer-offline"], { cwd: consumer }));
 step("exports and build", run(process.execPath, ["check.ts"], { cwd: consumer }));
 step(
   "types",
