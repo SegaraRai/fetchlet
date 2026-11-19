@@ -198,6 +198,7 @@ function exampleNames(): string[] {
     "tanstack-start-axum",
     "tanstack-start-axum-vite-dev",
     "solidstart-axum",
+    "solidstart-axum-vite-dev",
     "solid-axum",
     "qwik-city-axum",
     "waku-axum",

@@ -31,10 +31,11 @@ Each axum example also has a `dev` task: `tools/examples/dev.ts` runs the
 example's `build` task again whenever one of its source files changes, and
 the server, built with the example's `dev` Cargo feature, serves each new
 build through fetchlet-http's `DevReload` and reloads open pages. A full
-build takes one to five seconds for these examples. The vanilla example also
-has a `dev:vite` task, which runs its server module from `vite dev` without
-a build through fetchlet-http's `ViteDev`, which its `vite-dev` suite
-checks; `test:examples` builds an example with a `vite-dev` feature with it.
+build takes one to five seconds for these examples. The vanilla, TanStack
+Start and SolidStart examples also have a `dev:vite` task, which runs the
+server from `vite dev` without a build through fetchlet-http's `ViteDev`,
+and a `vite-dev` suite that checks it with edits;
+`test:examples` builds an example with a `vite-dev` feature with it.
 
 ## Shared boundaries
 

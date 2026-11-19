@@ -28,6 +28,11 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      // Runs the server entry from `vite dev` on the engine.
+      "dev:vite": {
+        command: "node ../../tools/examples/vite-dev.ts example-solidstart-axum 3601",
+        cache: false,
+      },
       "check:types": {
         command: "tsc --noEmit",
         dependsOn: ["build"],

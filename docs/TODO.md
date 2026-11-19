@@ -188,11 +188,12 @@ Three parts remain:
 
 ### Development from Vite per framework
 
-`ViteDev` serves `fetchlet/vite` and `fetchlet/tanstack-start`
-([development loop](research/dev-loop.md)). SolidStart and React Router
-also leave requests to a fetchable server environment
+`ViteDev` serves `fetchlet/vite`, `fetchlet/tanstack-start` and
+`fetchlet/solid-start` ([development loop](research/dev-loop.md)). React
+Router also leaves requests to another middleware when its server
+environment is not runnable
 ([framework table](research/dev-loop.md#how-frameworks-evaluate-their-server-in-development)):
-each needs `devServerPlugin` in its integration with the entry and request
+it needs `devServerPlugin` in its integration with the entry and request
 context of its artifact, and a `dev:vite` task and suite like
 tanstack-start-axum's.
 

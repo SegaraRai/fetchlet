@@ -134,6 +134,17 @@ call. V8 calls now run host futures on the caller's runtime. Debug builds of
 Boa take minutes to evaluate Start's development modules, so the suite skips
 Boa; built Start artifacts run on Boa in the example's main suite.
 
+SolidStart needed nothing beyond that: `fetchlet/solid-start` passes
+`solid-start:server-entry` and the request properties its artifact entry
+sets. Its development styles come from Vite's `/@manifest` modules through
+the runner. `examples/solidstart-axum/tests/vite-dev.test.ts` runs the same
+four checks; Solid's hot module replacement remounts the edited component,
+so its signals start over while the page stays loaded. On Boa, the page
+first failed to hydrate: functions made by Boa's `Function` constructor have
+no source text, and seroval writes the resolvers of streamed data into the
+page by their source. The runner now evaluates each module through indirect
+`eval`, whose functions keep it.
+
 ### C. JavaScript in Node, Rust services bridged
 
 The framework's own dev server runs the server code in Node; the Rust
@@ -157,7 +168,7 @@ cannot replace; "fetchable" means it hands requests to
 | Framework (version)              | Server environment in development                                                            | Option B                 |
 | -------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------ |
 | TanStack Start (1.169)           | Fetchable when the environment is not runnable                                               | Runs                     |
-| SolidStart (2.2.3)               | Fetchable when the environment is not runnable                                               | Fits                     |
+| SolidStart (2.2.3)               | Fetchable when the environment is not runnable                                               | Runs                     |
 | React Router (8.5.2)             | Skips its middleware when not runnable, leaving requests to another one                      | Fits                     |
 | Astro (7.4.13)                   | Falls back to its `astro` environment for content when `ssr` is not runnable, as for workerd | Likely                   |
 | vinext (1.4.6)                   | `createServerModuleRunner`, `ssrLoadModule` and `runner.import`                              | To investigate           |
@@ -191,6 +202,6 @@ the other frameworks' dev servers are unverified on a fetchlet environment.
   Rust log?
 - How does a release build guarantee the `vite-dev` and `dev` features are
   absent? Today it is the application's Cargo features.
-- Do SolidStart and React Router run on this path as TanStack Start does,
-  with their server environment non-runnable and the runner in the engine
-  dispatching their requests?
+- Does React Router run on this path as TanStack Start and SolidStart do,
+  with its server environment non-runnable and the runner in the engine
+  dispatching its requests?

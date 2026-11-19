@@ -1,5 +1,6 @@
 import type { Plugin } from "vite";
 
+import { devServerPlugin } from "../vite/dev-server.ts";
 import {
   importPath,
   serverEnvironmentPlugin,
@@ -18,8 +19,8 @@ export interface FetchletSolidStartOptions extends ViteArtifactOptions {}
  * A Vite plugin for SolidStart that builds the server environment into a
  * fetchlet artifact: server.js and fetchlet.json next to `client/`.
  */
-export default function fetchletSolidStart(options: FetchletSolidStartOptions = {}): Plugin {
-  return serverEnvironmentPlugin(
+export default function fetchletSolidStart(options: FetchletSolidStartOptions = {}): Plugin[] {
+  const build = serverEnvironmentPlugin(
     {
       name: "fetchlet/solid-start",
       framework: "solid-start",
@@ -69,4 +70,40 @@ export default function fetchletSolidStart(options: FetchletSolidStartOptions = 
     },
     options,
   );
+  return [
+    build,
+    devServerPlugin({
+      name: "fetchlet/solid-start:dev-server",
+      entry: "solid-start:server-entry",
+      framework: "solid-start",
+      rendering: "streaming",
+      asyncContext: "serialized",
+      dispatch: `(module, request, env, ctx) => {
+        Object.defineProperties(request, {
+          ip: {
+            value: ctx.clientAddress,
+            configurable: true,
+          },
+          waitUntil: {
+            value: ctx.waitUntil,
+            configurable: true,
+          },
+          runtime: {
+            value: {
+              name: "fetchlet",
+              fetchlet: {
+                clientAddress: ctx.clientAddress,
+                env,
+                waitUntil: ctx.waitUntil,
+              },
+            },
+            configurable: true,
+          },
+        });
+        return module.default.fetch(request);
+      }`,
+      ...(options.backend ? { backend: options.backend } : {}),
+      ...(options.intl ? { intl: options.intl } : {}),
+    }),
+  ];
 }

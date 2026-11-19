@@ -28,17 +28,31 @@ task again; the server's `DevReload` starts each new build and open pages
 reload. A failed build leaves the previous one serving. Changes to the Rust
 sources need a restart.
 
+## Develop from Vite
+
+```bash
+vp run @fetchlet-internal/example-solidstart-axum#dev:vite
+```
+
+The task starts `vite dev` on `127.0.0.1:3601`, then the server with the
+`vite-dev` feature, which runs SolidStart's server entry from Vite on
+QuickJS (`tools/examples/vite-dev.ts`). Open `http://127.0.0.1:3600`. A
+component edit is replaced in the open page by Solid's hot module
+replacement, which remounts the component, and renders on the next request;
+server functions and API routes run on the engine.
+
 ## Layout
 
-| Path                   | Role                                                                      |
-| ---------------------- | ------------------------------------------------------------------------- |
-| `src/routes/`          | Pages, API routes, the 404 route                                          |
-| `src/lib/completed.ts` | State shared between API route handlers                                   |
-| `vite.config.ts`       | SolidStart and fetchlet Vite plugins, Vite+ tasks                         |
-| `server/`              | Starting axum, bindings, routing                                          |
-| `config.json`          | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.test.ts`    | Checks over real HTTP in a real browser                                   |
-| `build/`               | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                     | Role                                                                      |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `src/routes/`            | Pages, API routes, the 404 route                                          |
+| `src/lib/completed.ts`   | State shared between API route handlers                                   |
+| `vite.config.ts`         | SolidStart and fetchlet Vite plugins, Vite+ tasks                         |
+| `server/`                | Starting axum, bindings, routing                                          |
+| `config.json`            | Listen address, queue, body budgets, deadline, background budgets, stacks |
+| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                   |
+| `tests/vite-dev.test.ts` | The `dev:vite` loop with in-place edits                                   |
+| `build/`                 | `server.js`, `client/`, `fetchlet.json`                                   |
 
 SolidStart builds each API route handler as its own module, so the state of
 `/api/background` lives in `src/lib/`. `[...404].tsx` answers unmatched paths
@@ -59,4 +73,8 @@ The shared ten checks (`tools/examples/common-checks.ts`) cover SSR and
 escaping, the Rust service binding, assets, JSON endpoints, client address
 and bindings, the axum route, body budgets, streaming uploads, `waitUntil`,
 concurrent requests, hydration and navigation. Results go to
-`results/example-solidstart-axum.json`.
+`results/example-solidstart-axum.json`. `tests/vite-dev.test.ts` runs the
+`dev:vite` loop (`tools/examples/vite-dev-suite.ts`): SSR with a server
+function calling Rust and Vite's development styles, API routes, hydration
+and navigation, and a component edit replaced in the open page, recorded in
+`results/example-solidstart-axum-vite-dev.json` and its engine variants.

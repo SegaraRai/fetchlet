@@ -57,3 +57,15 @@ builder's `asyncContext: "serialized"`.
 
 SolidStart builds each method handler of an API route (GET, POST, …) as its
 own module; keep state shared between handlers in a separate module.
+
+## Development serving
+
+`vite dev` with this plugin serves a Rust host that uses fetchlet-http's
+`ViteDev`, as [fetchlet/vite](vite.md#development-serving) does: the host
+runs SolidStart's server entry on its engine through Vite's module runner,
+with the same request context as the artifact, and Vite serves the browser
+modules with Solid's hot module replacement. The plugin marks the `ssr`
+environment fetchable, so SolidStart leaves requests to the host instead of
+rendering them in Node. The plugin returns an array of plugins.
+[examples/solidstart-axum](../../../examples/solidstart-axum/README.md#develop-from-vite)
+has a `dev:vite` task.

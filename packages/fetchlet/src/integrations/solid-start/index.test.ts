@@ -5,7 +5,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 
 import { buildArtifact } from "../../build/index.ts";
-import fetchletSolidStart from "./index.ts";
+import fetchletSolidStart, { type FetchletSolidStartOptions } from "./index.ts";
+
+const startPlugin = (options?: FetchletSolidStartOptions) => fetchletSolidStart(options)[0]!;
 
 vi.mock(import("../../build/index.ts"), () => ({
   buildArtifact: vi.fn(),
@@ -26,7 +28,7 @@ const hook = (plugin: object, name: string) => (plugin as Record<string, Hook>)[
 
 describe("fetchlet/solid-start", () => {
   test("bundles every SSR dependency with Solid's server conditions", () => {
-    const plugin = fetchletSolidStart();
+    const plugin = startPlugin();
     const config = hook(plugin, "config").call({}) as { environments: Record<string, any> };
     const ssr = config.environments.ssr;
     expect(ssr.resolve.noExternal).toBe(true);
@@ -36,7 +38,7 @@ describe("fetchlet/solid-start", () => {
 
   test("writeBundle uses the SSR output directory and sets h3's request fields", async () => {
     writeFileSync(join(directory, "entry.js"), "");
-    const plugin = fetchletSolidStart({
+    const plugin = startPlugin({
       outDir: "build",
       assets: true,
     });
@@ -105,7 +107,7 @@ describe("fetchlet/solid-start", () => {
   });
 
   test("writeBundle fails when the entry chunk is missing", async () => {
-    const plugin = fetchletSolidStart();
+    const plugin = startPlugin();
     await expect(
       hook(plugin, "writeBundle").call(
         {},

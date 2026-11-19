@@ -35,9 +35,12 @@ interface UpdateResult {
   reset: boolean;
 }
 
-const AsyncFunction = async function () {}.constructor as new (
-  ...parameters: string[]
-) => (...args: unknown[]) => Promise<unknown>;
+// Indirect eval runs the module's function as a script, so the functions a
+// module declares keep their source text: Boa's Function constructor gives
+// its functions none, and libraries such as seroval serialize functions by
+// their source.
+// eslint-disable-next-line no-eval -- The runner evaluates the modules Vite transformed.
+const evaluateScript = eval;
 
 /**
  * Evaluates the code Vite transformed for the server environment, as Vite's
@@ -75,7 +78,7 @@ class FetchletEvaluator implements ModuleEvaluator {
   }
 
   private async evaluate(context: ModuleRunnerContext, code: string): Promise<void> {
-    const run = new AsyncFunction(
+    const parameters = [
       ssrModuleExportsKey,
       ssrImportMetaKey,
       ssrImportKey,
@@ -83,9 +86,11 @@ class FetchletEvaluator implements ModuleEvaluator {
       ssrExportAllKey,
       ssrExportNameKey,
       ...this.globalNames,
-      // The block lets the module declare names the parameters also use.
-      '"use strict";{\n' + code + "\n}",
-    );
+    ].join(", ");
+    // The block lets the module declare names the parameters also use.
+    const run = evaluateScript(
+      `(async function (${parameters}) {"use strict";{\n${code}\n}\n})`,
+    ) as (...args: unknown[]) => Promise<unknown>;
     await run(
       context[ssrModuleExportsKey],
       context[ssrImportMetaKey],
