@@ -32,6 +32,7 @@ const results: {
 let child: ChildProcess | undefined;
 let browser: Browser | undefined;
 let page: Page;
+let stdout = "";
 let stderr = "";
 
 function freePort(): Promise<number> {
@@ -63,7 +64,7 @@ async function waitFor<T>(
       }
     }
     if (Date.now() > deadline) {
-      throw new Error(label + " deadline: " + stderr);
+      throw new Error(`${label} deadline\nstdout: ${stdout}\nstderr: ${stderr}`);
     }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
   }
@@ -101,6 +102,7 @@ beforeAll(async () => {
   });
   let ready = false;
   createInterface({ input: app.stdout }).on("line", (line) => {
+    stdout += line + "\n";
     if (line.startsWith("FETCHLET_TAURI_READY ")) {
       ready = true;
     }
@@ -114,6 +116,9 @@ beforeAll(async () => {
   await waitFor(
     async () => (await fetch(`http://127.0.0.1:${port}/json/version`)).ok,
     "DevTools endpoint",
+    // WebView2 creates its user data folder and starts its browser process on
+    // first use, which takes longer than 20 seconds on a fresh CI runner.
+    60000,
   );
   const connected = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
   browser = connected;
