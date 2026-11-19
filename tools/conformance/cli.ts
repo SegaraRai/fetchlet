@@ -36,7 +36,9 @@ const { values } = parseArgs({
     output: { type: "string", default: "results/conformance.json" },
     backend: { type: "string" },
     filter: { type: "string", default: "" },
-    timeout: { type: "string", default: "30000" },
+    // Boa debug builds run the slowest selected files (compression-with-detach)
+    // in 12 to 30 seconds on a development machine and over 30 on CI runners.
+    timeout: { type: "string", default: "60000" },
     jobs: { type: "string", default: "2" },
     strict: { type: "boolean", default: false },
     "keep-run": { type: "boolean", default: false },

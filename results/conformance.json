@@ -27,7 +27,7 @@
     "suite": "all",
     "backends": ["node-reference", "quickjs", "boa", "v8"],
     "filter": "",
-    "timeoutMs": 30000,
+    "timeoutMs": 60000,
     "jobs": 2,
     "strict": false
   },

@@ -61,7 +61,7 @@ node tools/conformance/cli.ts --strict --output results/conformance-strict.json
 ```
 
 `--suite` is `wpt`, `test262`, `regressions` or `all`; `--filter` matches
-part of the file path. `--timeout` is milliseconds per process (default 30000) and `--jobs` the concurrency (default 2). Each run bundles its cases
+part of the file path. `--timeout` is milliseconds per process (default 60000) and `--jobs` the concurrency (default 2). Each run bundles its cases
 in its own directory under `.cache/conformance/runs`, so concurrent runs are
 independent, and removes it when it ends; `--keep-run` keeps it for rerunning a
 case by hand. A different `--output` keeps narrowed results beside the full
@@ -130,7 +130,7 @@ runner gives files marked `timeout=long` six times the normal deadline, as
 the WPT runner does. `compression-stream` and
 `compression-output-length` fetch binary media from the WPT server and are
 not selected; `compression-large-flush-output` inflates its output with pako
-and exceeds the 30-second process deadline on Boa debug builds, while
+and exceeds the process deadline on Boa debug builds, while
 `compression-multiple-chunks` covers the same flushing. Files that need the
 WPT server (`header-values`, `json`, `response-cancel-stream`,
 `response-headers-guard`) are not selected. `request-disturbed`,
@@ -138,7 +138,7 @@ WPT server (`header-values`, `json`, `response-cancel-stream`,
 the top level, which fails the whole file, so they are excluded; the
 regression tests cover Request's Web IDL attributes instead.
 `encodeInto-tail-unmodified` iterates more than 60,000 times and exceeds the
-30-second process deadline on Boa debug builds; `encodeInto.any.js` covers
+process deadline on Boa debug builds; `encodeInto.any.js` covers
 the same behavior.
 
 ### URL
