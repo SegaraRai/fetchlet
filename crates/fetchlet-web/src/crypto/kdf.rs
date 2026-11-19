@@ -6,6 +6,7 @@ use serde_json::{Value, json};
 use super::digest::{Hash, with_hash};
 use super::message::{Algorithm, Failure, Key, Outcome};
 use super::secret::Format;
+use crate::limits::zeroed;
 
 /// Base keys import as raw bytes only.
 pub(super) fn import(format: Format, data: Vec<u8>) -> Outcome<(Key, Value)> {
@@ -26,7 +27,8 @@ pub(super) fn derive_bits(
         return Err(Failure::operation("the length is not whole bytes"));
     }
     let hash = Hash::parse(algorithm.hash.as_deref())?;
-    let mut output = vec![0; length as usize / 8];
+    let mut output = zeroed(length as usize / 8)
+        .map_err(|_| Failure::operation("the derived bits do not fit in memory"))?;
     if output.is_empty() {
         return Ok(output);
     }

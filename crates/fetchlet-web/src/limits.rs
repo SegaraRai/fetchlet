@@ -17,8 +17,9 @@ pub struct WebLimits {
     pub rsa_modulus_bits: Option<usize>,
     /// Iterations of one PBKDF2 derivation.
     pub pbkdf2_iterations: Option<usize>,
-    /// Working memory of one `node:crypto` scrypt derivation, 128 * N * r
-    /// bytes, which the host allocates.
+    /// Working memory of one `node:crypto` scrypt derivation, 128 * r *
+    /// (N + p + 2) bytes as OpenSSL counts it for `maxmem`, which the host
+    /// allocates.
     pub scrypt_memory_bytes: Option<usize>,
 }
 
@@ -35,4 +36,16 @@ pub(crate) fn check_limit(
         return Err(Error::LimitExceeded(resource));
     }
     Ok(())
+}
+
+/// A zeroed output buffer whose length a guest chose. A failed allocation
+/// becomes an error instead of aborting the host process.
+#[cfg_attr(not(feature = "crypto"), allow(dead_code))]
+pub(crate) fn zeroed(length: usize) -> Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(length)
+        .map_err(|_| Error::Unavailable("memory for the output"))?;
+    bytes.resize(length, 0);
+    Ok(bytes)
 }

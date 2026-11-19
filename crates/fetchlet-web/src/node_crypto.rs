@@ -11,8 +11,15 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use crate::crypto::Bytes;
-use crate::limits::check_limit;
+use crate::limits::{check_limit, zeroed};
 use crate::{Error, Result, WebLimits};
+
+/// Node's bound on derived key lengths (`keylen`), which `pbkdf2Sync` and
+/// `scryptSync` validate as an int32.
+const MAX_KEY_LENGTH: usize = i32::MAX as usize;
+
+/// scrypt's bound on its parameters, r * p < 2^30 (RFC 7914, section 2).
+const SCRYPT_MAX_BLOCKS: u64 = 1 << 30;
 
 /// The hash functions of `crypto.getHashes()` that fetchlet implements.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -128,8 +135,13 @@ impl Request {
     }
 
     fn length(&self) -> Result<usize> {
-        self.length
-            .ok_or_else(|| Error::InvalidRequest("the request has no length".into()))
+        let length = self
+            .length
+            .ok_or_else(|| Error::InvalidRequest("the request has no length".into()))?;
+        if length > MAX_KEY_LENGTH {
+            return Err(Error::InvalidRequest("the key length is too large".into()));
+        }
+        Ok(length)
     }
 }
 
@@ -180,7 +192,7 @@ fn pbkdf2(request: &Request, limits: &WebLimits) -> Result<Vec<u8>> {
         iterations as usize,
         "PBKDF2 iterations",
     )?;
-    let mut output = vec![0; request.length()?];
+    let mut output = zeroed(request.length()?)?;
     let password = Request::bytes(&request.key);
     let salt = Request::bytes(&request.salt);
     with_hash!(request.hash()?, D => pbkdf2::pbkdf2_hmac::<D>(password, salt, iterations, &mut output));
@@ -194,7 +206,7 @@ fn hkdf(request: &Request) -> Result<Vec<u8>> {
     if length > 255 * hash.output_bytes() {
         return Err(Error::InvalidRequest("the HKDF output is too long".into()));
     }
-    let mut output = vec![0; length];
+    let mut output = zeroed(length)?;
     let key = Request::bytes(&request.key);
     let salt = Request::bytes(&request.salt);
     let info = Request::bytes(&request.info);
@@ -213,21 +225,29 @@ fn scrypt(request: &Request, limits: &WebLimits) -> Result<Vec<u8>> {
     }
     let block_size = request.block_size.unwrap_or(0);
     let parallelization = request.parallelization.unwrap_or(0);
-    // The working memory is 128 * N * r bytes, as Node counts it for maxmem.
-    let memory = 128u128 * u128::from(cost) * u128::from(block_size);
-    let memory = usize::try_from(memory).unwrap_or(usize::MAX);
+    if block_size == 0
+        || parallelization == 0
+        || u64::from(block_size) * u64::from(parallelization) >= SCRYPT_MAX_BLOCKS
+    {
+        return Err(Error::InvalidRequest("invalid scrypt parameters".into()));
+    }
+    // The working memory as OpenSSL counts it for Node's maxmem: the p
+    // blocks B of 128 * r bytes and the table V of 128 * r * (N + 2) bytes.
+    let memory =
+        128u128 * u128::from(block_size) * (u128::from(cost) + u128::from(parallelization) + 2);
     if request
         .max_memory
-        .is_some_and(|max| memory as u128 > u128::from(max))
+        .is_some_and(|max| memory > u128::from(max))
     {
         return Err(Error::InvalidRequest(
             "the scrypt parameters exceed maxmem".into(),
         ));
     }
+    let memory = usize::try_from(memory).unwrap_or(usize::MAX);
     check_limit(limits.scrypt_memory_bytes, memory, "scrypt memory bytes")?;
     let params = scrypt::Params::new(cost.trailing_zeros() as u8, block_size, parallelization)
         .map_err(|_| Error::InvalidRequest("invalid scrypt parameters".into()))?;
-    let mut output = vec![0; request.length()?];
+    let mut output = zeroed(request.length()?)?;
     if output.is_empty() {
         return Ok(output);
     }
@@ -384,7 +404,7 @@ mod tests {
             dispatch("nodeCrypto.pbkdf2", &pbkdf2.to_string(), &limits),
             Err(Error::LimitExceeded("PBKDF2 iterations"))
         ));
-        // 128 * 2^14 * 8 bytes is 16 MiB.
+        // 128 * 8 * (2^14 + 1 + 2) bytes is just over 16 MiB.
         let scrypt = json!({
             "key": "",
             "salt": "",
@@ -407,5 +427,72 @@ mod tests {
             ),
             Err(Error::InvalidRequest(_))
         ));
+    }
+
+    #[test]
+    fn parallelization_counts_toward_the_memory_bound() {
+        // The blocks B take 128 * r * p bytes: 128 GiB here, with a table V
+        // of only 256 bytes.
+        let scrypt = json!({
+            "key": "",
+            "salt": "",
+            "cost": 2,
+            "blockSize": 1,
+            "parallelization": (1 << 30) - 1,
+            "length": 64,
+        });
+        let mut capped = scrypt.clone();
+        capped["maxMemory"] = json!(32 << 20);
+        assert!(matches!(
+            dispatch(
+                "nodeCrypto.scrypt",
+                &capped.to_string(),
+                &WebLimits::default()
+            ),
+            Err(Error::InvalidRequest(_))
+        ));
+        let budget = WebLimits {
+            scrypt_memory_bytes: Some(32 << 20),
+            ..WebLimits::default()
+        };
+        assert!(matches!(
+            dispatch("nodeCrypto.scrypt", &scrypt.to_string(), &budget),
+            Err(Error::LimitExceeded("scrypt memory bytes"))
+        ));
+        // r * p must stay below 2^30, also where the product overflows u32.
+        let mut overflow = scrypt.clone();
+        overflow["blockSize"] = json!(1 << 16);
+        overflow["parallelization"] = json!(1 << 16);
+        assert!(matches!(
+            dispatch(
+                "nodeCrypto.scrypt",
+                &overflow.to_string(),
+                &WebLimits::default()
+            ),
+            Err(Error::InvalidRequest(_))
+        ));
+    }
+
+    #[test]
+    fn derived_key_lengths_stay_within_nodes_bound() {
+        for operation in ["nodeCrypto.pbkdf2", "nodeCrypto.scrypt"] {
+            let request = json!({
+                "algorithm": "sha256",
+                "key": "",
+                "salt": "",
+                "iterations": 1,
+                "cost": 2,
+                "blockSize": 1,
+                "parallelization": 1,
+                "length": 1u64 << 42,
+            });
+            assert!(
+                matches!(
+                    dispatch(operation, &request.to_string(), &WebLimits::default()),
+                    Err(Error::InvalidRequest(_))
+                ),
+                "{operation}"
+            );
+        }
     }
 }

@@ -159,6 +159,30 @@ describe("key derivation", () => {
       expect.objectContaining({ code: "ERR_CRYPTO_INVALID_SCRYPT_PARAMS" }),
     );
   });
+
+  test("scrypt counts p toward maxmem as Node does", () => {
+    // 128 * r * (N + p + 2) bytes: the blocks B and the table V.
+    for (const options of [
+      { N: 2, r: 1, p: 1000 },
+      { N: 1024, r: 8, p: 16 },
+    ]) {
+      const exact = 128 * options.r * (options.N + options.p + 2);
+      for (const maxmem of [exact, exact - 1]) {
+        const run = (implementation: typeof node) => {
+          try {
+            implementation.scryptSync("p", "s", 16, {
+              ...options,
+              maxmem,
+            });
+            return "ok";
+          } catch (error) {
+            return (error as { code?: string }).code;
+          }
+        };
+        expect(run(crypto as unknown as typeof node)).toBe(run(node));
+      }
+    }
+  });
 });
 
 describe("random values", () => {

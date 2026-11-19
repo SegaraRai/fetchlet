@@ -24,7 +24,7 @@ services, concurrency and the process's total capacity.
 | `digest_bytes`         | Bytes of input to one `crypto.subtle.digest` call, or to one `node:crypto` hash or HMAC                                                   |
 | `rsa_modulus_bits`     | Modulus length of each RSA key `crypto.subtle.generateKey` creates, which bounds the time generation takes                                |
 | `pbkdf2_iterations`    | Iterations of each PBKDF2 derivation in `crypto.subtle` or `node:crypto`                                                                  |
-| `scrypt_memory_bytes`  | Working memory, 128 × N × r bytes, of each `node:crypto` scrypt derivation, which the host allocates                                      |
+| `scrypt_memory_bytes`  | Working memory, 128 * r * (N + p + 2) bytes as OpenSSL counts it for `maxmem`, of each `node:crypto` scrypt derivation                    |
 | `compression_streams`  | `CompressionStream` and `DecompressionStream` instances open at once in an invocation                                                     |
 | `decompressed_bytes`   | Bytes one `DecompressionStream` produces, which bounds highly compressed input                                                            |
 | `subrequests`          | Host fetches an invocation attempts to start; failed and aborted attempts still count                                                     |
@@ -47,6 +47,10 @@ for host fetch responses, so their number follows `subrequests`. JavaScript
 can leave at most one unclaimed buffer in the byte store at a time, so a
 guest cannot accumulate memory outside the engine heap; buffers from Rust are
 bounded by each body's budget.
+
+Output buffers whose size the guest chooses, such as derived keys, are
+allocated fallibly: a size the process cannot allocate fails the operation
+instead of aborting the process.
 
 Body, header and message checks apply at each boundary. Copies made during
 JSON conversion and buffering, and the engine's total heap, are managed
@@ -77,6 +81,7 @@ React Server Components rendering.
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `getRandomValues` at 65,536 bytes     | The [Web Crypto quota](https://www.w3.org/TR/webcrypto-2/#Crypto-method-getRandomValues)                   |
 | 20 redirects                          | The [Fetch HTTP-redirect fetch](https://fetch.spec.whatwg.org/#http-redirect-fetch); callers may set fewer |
+| `node:crypto` key length, 2^31 - 1    | Node's `keylen` bound for `pbkdf2Sync` and `scryptSync`, checked by the host as well                       |
 | `usize`, `u64` and clock ranges       | Checked arithmetic and validation of timeout configuration                                                 |
 | `http::HeaderMap` and engine capacity | The dependency's capacity, turned into errors where the boundary allows                                    |
 

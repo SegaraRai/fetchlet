@@ -29,8 +29,9 @@ pub struct Limits {
     pub rsa_modulus_bits: Option<usize>,
     /// Iterations of one PBKDF2 derivation in `crypto.subtle` or `node:crypto`.
     pub pbkdf2_iterations: Option<usize>,
-    /// Working memory, 128 * N * r bytes, of one `node:crypto` scrypt
-    /// derivation, which the host allocates.
+    /// Working memory, 128 * r * (N + p + 2) bytes as OpenSSL counts it for
+    /// `maxmem`, of one `node:crypto` scrypt derivation, which the host
+    /// allocates.
     pub scrypt_memory_bytes: Option<usize>,
     /// `CompressionStream` and `DecompressionStream` instances open at once
     /// in one invocation.

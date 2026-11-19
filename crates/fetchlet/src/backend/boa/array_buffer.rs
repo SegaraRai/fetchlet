@@ -9,14 +9,11 @@
 //! Limitation: a resizable buffer transfers to a fixed-length buffer.
 
 use boa_engine::object::FunctionObjectBuilder;
-use boa_engine::object::builtins::{AlignedVec, JsArrayBuffer};
+use boa_engine::object::builtins::JsArrayBuffer;
 use boa_engine::property::PropertyDescriptor;
 use boa_engine::{
     Context, JsArgs, JsNativeError, JsResult, JsString, JsValue, NativeFunction, js_string,
 };
-
-/// Alignment of Boa's ArrayBuffer data blocks.
-const BLOCK_ALIGNMENT: usize = 64;
 
 pub(super) fn install(context: &mut Context) -> JsResult<()> {
     let prototype = context
@@ -92,16 +89,21 @@ fn transfer(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult
             JsNativeError::range().with_message("ArrayBuffer transfer length is too large")
         })?,
     };
+    if buffer.data().is_none() {
+        return Err(JsNativeError::typ()
+            .with_message("ArrayBuffer transfer of a detached buffer")
+            .into());
+    }
+    // AllocateArrayBuffer comes before the detach, as in the specification:
+    // it applies the engine's maximum buffer size and reports a failed
+    // allocation as a RangeError, and a failure leaves the source intact.
+    let target = JsArrayBuffer::new(length, context)?;
     let data = buffer.detach(&JsValue::undefined())?;
     let copied = data.len().min(length);
-    let block = AlignedVec::from_iter(
-        BLOCK_ALIGNMENT,
-        data.iter()
-            .take(copied)
-            .copied()
-            .chain(std::iter::repeat_n(0, length - copied)),
-    );
-    Ok(JsArrayBuffer::from_byte_block(block, context)?.into())
+    if let Some(mut block) = target.data_mut() {
+        block[..copied].copy_from_slice(&data[..copied]);
+    }
+    Ok(target.into())
 }
 
 fn detached(this: &JsValue, _: &[JsValue], _: &mut Context) -> JsResult<JsValue> {

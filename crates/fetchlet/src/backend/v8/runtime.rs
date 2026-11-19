@@ -80,13 +80,21 @@ impl V8Runtime {
         // The async context slot is V8's continuation-preserved embedder
         // data, which V8 captures with each promise reaction and restores
         // when the reaction runs.
+        //
+        // `Deno.core` also carries deno_core's built-in ops, such as
+        // `op_panic`, which aborts the process, and `op_print`, which writes
+        // to its stdout. The guest receives only fetchlet's operations;
+        // deno_core reads `Deno.core` while the runtime is created, and Deno
+        // itself removes it after bootstrap in the same way.
         runtime
             .execute_script(
                 "fetchlet:host",
                 "globalThis.__fetchletHost=Deno.core.ops.op_fetchlet_host;\
                  globalThis.__fetchletTakeBytes=Deno.core.ops.op_fetchlet_take_bytes;\
                  globalThis.__fetchletPutBytes=Deno.core.ops.op_fetchlet_put_bytes;\
-                 globalThis.__fetchletAsyncContext={get:Deno.core.getAsyncContext,set:Deno.core.setAsyncContext};",
+                 globalThis.__fetchletAsyncContext={get:Deno.core.getAsyncContext,set:Deno.core.setAsyncContext};\
+                 delete globalThis.Deno;\
+                 delete globalThis.__bootstrap;",
             )
             .map_err(|error| anyhow!("{error}"))?;
         runtime

@@ -7,6 +7,7 @@ use super::digest::{Hash, with_hash};
 use super::message::{Algorithm, Failure, Key, Outcome};
 use super::random::fill;
 use super::secret::{Exported, Format, oct_jwk, read_oct_jwk};
+use crate::limits::zeroed;
 
 /// A random key of `length` bits, or of the hash's block size.
 pub(super) fn generate(algorithm: &Algorithm) -> Outcome<(Key, Value)> {
@@ -16,7 +17,8 @@ pub(super) fn generate(algorithm: &Algorithm) -> Outcome<(Key, Value)> {
         Some(length) => length,
         None => hash.block_bits(),
     };
-    let mut bytes = vec![0; length.div_ceil(8) as usize];
+    let mut bytes = zeroed(length.div_ceil(8) as usize)
+        .map_err(|_| Failure::operation("the HMAC key does not fit in memory"))?;
     fill(&mut bytes)?;
     Ok((Key::secret(bytes), json!({ "length": length })))
 }

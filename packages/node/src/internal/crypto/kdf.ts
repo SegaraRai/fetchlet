@@ -167,7 +167,9 @@ function scryptParams(options: ScryptOptions = {}) {
   if (blockSize < 1 || parallelization < 1) {
     throw invalid("r and p must be greater than 0");
   }
-  if (128 * cost * blockSize > maxmem) {
+  // OpenSSL, which Node uses, counts the p blocks B of 128 * r bytes and
+  // the table V of 128 * r * (N + 2) bytes against maxmem.
+  if (128 * blockSize * (cost + parallelization + 2) > maxmem) {
     throw invalid("memory limit exceeded");
   }
   return {
