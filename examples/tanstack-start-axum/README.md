@@ -24,7 +24,7 @@ QuickJS.
 | `src/routes/`       | Routes and server routes (`server.handlers`)                              |
 | `src/context.ts`    | Registers the request context type                                        |
 | `vite.config.ts`    | TanStack Start, React and fetchlet Vite plugins, Vite+ tasks              |
-| `src/`              | Starting axum, bindings, routing                                          |
+| `server/`           | Starting axum, bindings, routing                                          |
 | `config.json`       | Listen address, queue, body budgets, deadline, background budgets, stacks |
 | `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                   |
 | `build/`            | `server.js`, `client/`, `fetchlet.json`                                   |

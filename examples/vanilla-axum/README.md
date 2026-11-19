@@ -26,7 +26,7 @@ QuickJS.
 | `src/server.ts`     | The server module: pages, endpoints and the `greet` function              |
 | `src/client.ts`     | The browser entry, with `src/styles.css`                                  |
 | `vite.config.ts`    | The fetchlet Vite plugin and Vite+ tasks                                  |
-| `src/*.rs`          | Starting axum, bindings, routing, the `/api/greet` route                  |
+| `server/`           | Starting axum, bindings, routing, the `/api/greet` route                  |
 | `config.json`       | Listen address, queue, body budgets, deadline, background budgets, stacks |
 | `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                   |
 | `build/`            | `server.js`, `client/`, `assets.flpk`, `fetchlet.json`                    |

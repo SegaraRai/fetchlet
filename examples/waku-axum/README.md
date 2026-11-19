@@ -23,7 +23,7 @@ server on QuickJS.
 | `src/pages/`          | Pages, layouts, root, API routes (`_api/`)                                |
 | `src/waku.server.tsx` | fetchlet's server entry adapter                                           |
 | `vite.config.ts`      | Vite+ tasks (Waku builds with `waku build`)                               |
-| `src/`                | Starting axum, bindings, routing                                          |
+| `server/`             | Starting axum, bindings, routing                                          |
 | `config.json`         | Listen address, queue, body budgets, deadline, background budgets, stacks |
 | `tests/e2e.test.ts`   | Checks over real HTTP in a real browser                                   |
 | `build/`              | `server.js`, `client/`, `fetchlet.json`                                   |

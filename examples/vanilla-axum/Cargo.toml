@@ -5,6 +5,10 @@ edition.workspace = true
 publish.workspace = true
 description = "A Vite-built fetch handler and browser assets served by axum through fetchlet"
 
+[[bin]]
+name = "example-vanilla-axum"
+path = "server/main.rs"
+
 [features]
 boa = ["fetchlet/boa"]
 v8 = ["fetchlet/v8"]

@@ -28,7 +28,7 @@ QuickJS.
 | `src/middleware.ts`    | Serves the API routes ahead of page rendering                             |
 | `src/lib/completed.ts` | State shared between API route handlers                                   |
 | `vite.config.ts`       | Solid, file routes and fetchlet Vite plugins, Vite+ tasks                 |
-| `src/*.rs`             | Starting axum, bindings, routing                                          |
+| `server/`              | Starting axum, bindings, routing                                          |
 | `config.json`          | Listen address, queue, body budgets, deadline, background budgets, stacks |
 | `tests/e2e.test.ts`    | Checks over real HTTP in a real browser                                   |
 | `build/`               | `server.js`, `client/`, `assets.flpk`, `fetchlet.json`                    |

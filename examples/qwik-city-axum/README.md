@@ -23,7 +23,7 @@ build (`vp build --ssr`), then starts the server on QuickJS.
 | `src/routes/`            | Pages, layouts, endpoints (`onGet`, `onPost`)                             |
 | `src/entry.fetchlet.tsx` | fetchlet's server entry                                                   |
 | `vite.config.ts`         | Qwik, Qwik City and fetchlet Vite plugins, Vite+ tasks                    |
-| `src/`                   | Starting axum, bindings, routing                                          |
+| `server/`                | Starting axum, bindings, routing                                          |
 | `config.json`            | Listen address, queue, body budgets, deadline, background budgets, stacks |
 | `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                   |
 | `build/`                 | `server.js`, `client/`, `fetchlet.json`                                   |

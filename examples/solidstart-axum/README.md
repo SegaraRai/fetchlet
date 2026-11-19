@@ -23,7 +23,7 @@ QuickJS.
 | `src/routes/`          | Pages, API routes, the 404 route                                          |
 | `src/lib/completed.ts` | State shared between API route handlers                                   |
 | `vite.config.ts`       | SolidStart and fetchlet Vite plugins, Vite+ tasks                         |
-| `src/`                 | Starting axum, bindings, routing                                          |
+| `server/`              | Starting axum, bindings, routing                                          |
 | `config.json`          | Listen address, queue, body budgets, deadline, background budgets, stacks |
 | `tests/e2e.test.ts`    | Checks over real HTTP in a real browser                                   |
 | `build/`               | `server.js`, `client/`, `fetchlet.json`                                   |
