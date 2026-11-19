@@ -45,6 +45,6 @@ Describe the supported behavior, configuration and next work affirmatively. Stat
 - Put Rust libraries in `crates/<crate>/`, shared JS packages in `packages/<package>/`, and runnable applications in `examples/<framework>-<rust-server>/`.
 - Keep framework adapters independent from Rust HTTP integrations.
 - Give each example its own source, build output, run instructions and end-to-end checks.
-- Keep an example's Rust and JavaScript sources in separate directories. When the framework's convention puts its sources in `src/`, put the Rust host in `server/` and point Cargo at it with `[[bin]] path = "server/main.rs"`.
+- Keep an example's Rust and JavaScript sources in separate directories. When the framework's convention puts its sources in `src/`, put the Rust host in a directory named for its role, such as `server/` for an HTTP server or `cli/` for a command line program, and point Cargo at it with `[[bin]] path`.
 - Verify browser hydration and assets along with SSR, endpoints and actions.
 - Add framework examples as their actual supported profiles become usable.

@@ -31,6 +31,11 @@ export type Feature = keyof typeof features;
  * either covered by a recorded check or untested.
  */
 export const unsupported: Record<string, Partial<Record<Feature, string>>> = {
+  "vanilla-cli": Object.fromEntries(
+    (Object.keys(features) as Feature[])
+      .filter((feature) => !["functions", "bindings"].includes(feature))
+      .map((feature) => [feature, "A command line program calls functions without HTTP requests"]),
+  ),
   "nuxt-axum": {
     "streaming-ssr": "Nuxt renders with Vue's renderToString and buffers the response",
   },

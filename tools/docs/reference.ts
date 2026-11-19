@@ -197,9 +197,12 @@ function exampleNames(): string[] {
     "honox-tauri",
     "tanstack-start-axum",
     "solidstart-axum",
+    "solid-axum",
     "qwik-city-axum",
     "waku-axum",
     "vinext-axum",
+    "vanilla-axum",
+    "vanilla-cli",
   ];
 }
 
@@ -268,7 +271,7 @@ function examples(): string[] {
   return [
     "## Examples",
     "",
-    "`vp run test:examples` on QuickJS; `vp run test:examples -- --backends boa,v8` records the other engines. HTTP and browser checks per example; the feature table below shows the QuickJS run.",
+    "`vp run test:examples` on QuickJS; `vp run test:examples -- --backends boa,v8` records the other engines. HTTP and browser checks per example, and runs of the program for vanilla-cli; the feature table below shows the QuickJS run.",
     "",
     ...table(["Example", "QuickJS", "Boa", "V8", "Framework", "Browser"], rows),
   ];
@@ -321,6 +324,7 @@ function framework(result: { environment?: Environment }): string {
   const frameworkPackages = [
     "@sveltejs/kit",
     "@solidjs/start",
+    "solid-js",
     "@tanstack/react-start",
     "@builder.io/qwik-city",
     "@qwik.dev/router",
