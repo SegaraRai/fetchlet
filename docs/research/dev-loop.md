@@ -40,17 +40,21 @@ modification time, builds a new generation of the caller's services and
 links HTML responses to a long-poll reload script it serves under
 `/__fetchlet/`
 ([fetchlet-http](../../crates/fetchlet-http/README.md#reloading-during-development)).
-`examples/vanilla-axum` has a `dev` task that runs `vp build --watch` beside
-the server, checked by editing the server module and seeing an open page
-reload with the change.
+Every axum example has a `dev` task. `tools/examples/dev.ts` watches the
+example's source directories and runs its `build` task again when a file's
+content changes, so files a build rewrites unchanged, such as generated
+route tables, do not start another build. A full build is used rather than
+each framework's watch mode: the Astro, Nuxt, React Router and Waku command
+lines have none, HonoX and Qwik City build in two passes, and a full build
+produces exactly the release artifact. Editing a component in each example
+reloaded the server within 1.1 to 4.4 seconds, the build that followed
+caused no further reload, and the page answered 200.
 
-Whether a watch rebuild rewrites the artifact depends on the integration.
-With Vite's watch mode each environment rebuilds on its own: the vanilla
-plugin's server build now watches the client manifest, so a client change
-rebuilds the server with the new URLs. SvelteKit 3.4.0 rewrote the artifact
-when a page changed. The vinext and Waku integrations archive assets after
-`buildArtifact`, so they write the manifest twice and reload twice per
-build. Other frameworks are unverified under `--watch`.
+With `vite build --watch`, each environment rebuilds on its own, so a client
+change can leave a server that embeds the old client URLs. The `fetchlet/vite`
+server build watches the client manifest to avoid that; SvelteKit 3.4.0
+rewrote the artifact when a page changed; the other integrations are
+unverified under `--watch`.
 
 ### B. Vite's module runner on the fetchlet engine
 

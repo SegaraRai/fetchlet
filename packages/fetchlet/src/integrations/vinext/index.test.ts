@@ -4,7 +4,6 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 
-import { archiveArtifactAssets } from "../../build/asset-option.ts";
 import { buildArtifact } from "../../build/index.ts";
 import fetchletVinext, { type FetchletVinextOptions } from "./index.ts";
 
@@ -12,7 +11,6 @@ vi.mock(import("../../build/index.ts"), () => ({
   buildArtifact: vi.fn(),
 }));
 vi.mock(import("../../build/asset-option.ts"), () => ({
-  archiveArtifactAssets: vi.fn(),
   frameworkAssets: vi.fn((assets, defaults) => ({ assets, defaults }) as never),
 }));
 
@@ -20,7 +18,6 @@ let directory: string;
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), "fetchlet-vinext-"));
   vi.mocked(buildArtifact).mockClear();
-  vi.mocked(archiveArtifactAssets).mockClear();
 });
 afterEach(() => rmSync(directory, { recursive: true, force: true }));
 
@@ -91,15 +88,15 @@ describe("fetchlet/vinext", () => {
     expect(options.plugins?.map((plugin) => plugin.name)).toStrictEqual([
       "fetchlet/vinext:node-compat",
     ]);
-    expect(archiveArtifactAssets).not.toHaveBeenCalled();
+    expect(vi.mocked(buildArtifact).mock.lastCall![0]).not.toHaveProperty("assets");
   });
 
   test("assets archive the built client with _next/static cached", async () => {
     mkdirSync(join(directory, "dist", "server"), { recursive: true });
     writeFileSync(join(directory, "dist", "server", "index.js"), "");
     await buildApp({ assets: true });
-    expect(vi.mocked(buildArtifact).mock.lastCall![0]).not.toHaveProperty("assets");
-    expect(archiveArtifactAssets).toHaveBeenCalledWith({
+    // buildArtifact archives them before it writes the manifest, once.
+    expect(vi.mocked(buildArtifact).mock.lastCall![0]).toMatchObject({
       outDir: join(directory, "build"),
       assets: {
         assets: true,

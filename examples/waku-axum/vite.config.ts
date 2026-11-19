@@ -14,6 +14,12 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      // Rebuilds on source changes while the server reloads each build.
+      dev: {
+        command: "node ../../tools/examples/dev.ts example-waku-axum src public vite.config.ts",
+        dependsOn: ["build"],
+        cache: false,
+      },
       "check:types": {
         command: "tsc --noEmit",
         cache: false,

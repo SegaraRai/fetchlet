@@ -9,6 +9,12 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      // Rebuilds on source changes while the server reloads each build.
+      dev: {
+        command: "node ../../tools/examples/dev.ts example-astro-axum web astro.config.ts",
+        dependsOn: ["build"],
+        cache: false,
+      },
       "check:types": {
         command: "astro check",
         dependsOn: ["build"],

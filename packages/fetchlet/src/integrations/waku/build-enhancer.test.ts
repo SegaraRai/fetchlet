@@ -4,7 +4,6 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 
-import { archiveArtifactAssets } from "../../build/asset-option.ts";
 import { buildArtifact } from "../../build/index.ts";
 import type { FetchletWakuOptions } from "./adapter.ts";
 import buildEnhancer from "./build-enhancer.ts";
@@ -17,7 +16,6 @@ vi.mock(import("../../build/index.ts"), () => ({
   }),
 }));
 vi.mock(import("../../build/asset-option.ts"), () => ({
-  archiveArtifactAssets: vi.fn(),
   frameworkAssets: vi.fn((assets, defaults) => ({ assets, defaults }) as never),
 }));
 
@@ -26,7 +24,6 @@ beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), "fetchlet-waku-"));
   vi.spyOn(process, "cwd").mockReturnValue(directory);
   vi.mocked(buildArtifact).mockClear();
-  vi.mocked(archiveArtifactAssets).mockClear();
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -77,13 +74,20 @@ describe("fetchlet/waku build enhancer", () => {
     );
     expect(existsSync(join(directory, "build", "client", "stale.txt"))).toBe(false);
     expect(existsSync(join(directory, "dist", "public"))).toBe(false);
-    expect(archiveArtifactAssets).not.toHaveBeenCalled();
+    expect(vi.mocked(buildArtifact).mock.lastCall![0]).not.toHaveProperty("assets");
   });
 
   test("assets archive the moved client with /assets/ cached", async () => {
     wakuOutput();
+    let clientMoved = false;
+    vi.mocked(buildArtifact).mockImplementationOnce(async ({ outDir }) => {
+      clientMoved = existsSync(join(outDir, "client"));
+    });
     await build({ outDir: "out", assets: true });
-    expect(archiveArtifactAssets).toHaveBeenCalledWith({
+    // The client is in place when buildArtifact archives it and writes the
+    // manifest, once.
+    expect(clientMoved).toBe(true);
+    expect(vi.mocked(buildArtifact).mock.lastCall![0]).toMatchObject({
       outDir: join(directory, "out"),
       assets: {
         assets: true,

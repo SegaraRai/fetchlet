@@ -6,16 +6,18 @@ import { cargoAll } from "@fetchlet-internal/tools-workspace/cargo";
 
 const httpFeatures = ["hyper", "axum", "actix", "dev"];
 const axumExamples = [
-  "sveltekit-axum",
   "astro-axum",
-  "nuxt-axum",
-  "react-router-axum",
   "honox-axum",
-  "tanstack-start-axum",
-  "solidstart-axum",
+  "nuxt-axum",
   "qwik-city-axum",
-  "waku-axum",
+  "react-router-axum",
+  "solid-axum",
+  "solidstart-axum",
+  "sveltekit-axum",
+  "tanstack-start-axum",
+  "vanilla-axum",
   "vinext-axum",
+  "waku-axum",
 ];
 const engines = "quickjs,boa,v8";
 const enginesWithWebApis = `${engines},web-apis`;
@@ -57,6 +59,7 @@ cargoAll([
     ...[...axumExamples, "honox-tauri", "vanilla-cli"].flatMap((name) => ["-p", `example-${name}`]),
     "--all-targets",
   ),
-  // The reloading server of the examples' `dev` task.
-  clippy("-p", "example-vanilla-axum", "--features", "dev"),
+  // The reloading servers of the examples' `dev` tasks. Each package gets
+  // its own feature, so they are checked one at a time.
+  ...axumExamples.map((name) => clippy("-p", `example-${name}`, "--features", "dev")),
 ]);

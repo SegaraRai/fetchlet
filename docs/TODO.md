@@ -175,16 +175,22 @@ the result in its guide.
 
 ### Development reload per framework
 
-`DevReload` serves each build `vp build --watch` writes, and
-`examples/vanilla-axum` has a `dev` task for it
-([development loop](research/dev-loop.md)). For each other example, check
-that a watch rebuild of a page, a client-only file and a style rewrites the
-artifact, add the `dev` feature and task, and fix the integration where a
-rebuilt environment leaves the artifact stale. Write the manifest once in
-the vinext and Waku integrations, which archive assets after
-`buildArtifact`. The dev task's tool (`tools/examples/dev.ts`) is repository
-tooling; a command in the `fetchlet` package would give applications the
-same loop.
+Every axum example has a `dev` task that rebuilds on source changes while
+`DevReload` serves each build ([development loop](research/dev-loop.md)).
+Three parts remain:
+
+- The Tauri examples serve through a URI scheme, not axum. Their hosts need
+  a generation they can swap, and a webview reload in place of the injected
+  script where the scheme's responses cannot carry it.
+- `tools/examples/dev.ts` is repository tooling. A command in the `fetchlet`
+  package, such as `fetchlet dev --watch src -- cargo run --features dev`,
+  would give applications the same loop; it needs a `bin` and a check in
+  `test:package`.
+- Each change runs a full build, one to five seconds for the examples.
+  Incremental rebuilds through `vite build --watch` are faster where an
+  integration keeps the artifact consistent across environment rebuilds, as
+  `fetchlet/vite` does; the other integrations are unverified under
+  `--watch`.
 
 ### React Router
 

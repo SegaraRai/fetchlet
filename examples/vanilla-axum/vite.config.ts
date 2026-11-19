@@ -22,7 +22,7 @@ export default defineConfig({
         cache: false,
       },
       dev: {
-        command: "node ../../tools/examples/dev.ts example-vanilla-axum",
+        command: "node ../../tools/examples/dev.ts example-vanilla-axum src public vite.config.ts",
         dependsOn: ["build"],
         cache: false,
       },

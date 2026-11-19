@@ -18,6 +18,18 @@ FormatJS for Astro's `Intl.DateTimeFormat` requirement and its dependencies.
 The host uses the same `AppHandle` and fetchlet-http APIs as the SvelteKit
 example.
 
+## Develop
+
+```bash
+vp run @fetchlet-internal/example-astro-axum#dev
+```
+
+The task builds once and starts the server with the `dev` feature. Whenever
+a file in `web/` or `astro.config.ts` changes, it runs the `build` task
+again; the server's `DevReload` starts each new build and open pages reload.
+A failed build leaves the previous one serving. Changes to the Rust sources
+need a restart.
+
 ## Layout and configuration
 
 `web/` holds Astro's pages, endpoints, Svelte components and assets.

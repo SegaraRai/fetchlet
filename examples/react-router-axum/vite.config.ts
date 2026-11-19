@@ -14,6 +14,13 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      // Rebuilds on source changes while the server reloads each build.
+      dev: {
+        command:
+          "node ../../tools/examples/dev.ts example-react-router-axum app public react-router.config.ts vite.config.ts",
+        dependsOn: ["build"],
+        cache: false,
+      },
       "check:types": {
         command: "react-router typegen && tsc --noEmit",
         dependsOn: ["build"],

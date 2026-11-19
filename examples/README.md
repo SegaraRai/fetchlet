@@ -27,6 +27,12 @@ The framework examples share ten checks in `tools/examples/common-checks.ts`
 for the same application shape. Next.js itself (`next build` output), Qwik 2
 and SolidStart builds through Nitro are not covered.
 
+Each axum example also has a `dev` task: `tools/examples/dev.ts` runs the
+example's `build` task again whenever one of its source files changes, and
+the server, built with the example's `dev` Cargo feature, serves each new
+build through fetchlet-http's `DevReload` and reloads open pages. A full
+build takes one to five seconds for these examples.
+
 ## Shared boundaries
 
 Framework adapters produce the server bundle and client assets, and

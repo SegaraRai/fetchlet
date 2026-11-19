@@ -16,6 +16,18 @@ vp run @fetchlet-internal/example-nuxt-axum#serve
 Open `http://127.0.0.1:3200`. The task builds Nuxt and starts the Rust
 server on QuickJS.
 
+## Develop
+
+```bash
+vp run @fetchlet-internal/example-nuxt-axum#dev
+```
+
+The task builds once and starts the server with the `dev` feature. Whenever
+a file in `web/` or `nuxt.config.ts` changes, it runs the `build` task
+again; the server's `DevReload` starts each new build and open pages reload.
+A failed build leaves the previous one serving. Changes to the Rust sources
+need a restart.
+
 ## Layout
 
 | Path                | Role                                                                       |

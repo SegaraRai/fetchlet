@@ -9,6 +9,12 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      // Rebuilds on source changes while the server reloads each build.
+      dev: {
+        command: "node ../../tools/examples/dev.ts example-nuxt-axum web nuxt.config.ts",
+        dependsOn: ["build"],
+        cache: false,
+      },
       "check:types": {
         command: "nuxt typecheck",
         dependsOn: ["build"],

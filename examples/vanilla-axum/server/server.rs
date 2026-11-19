@@ -35,7 +35,7 @@ pub(crate) async fn run(config: Config) -> Result<()> {
     }
 }
 
-/// Serve each build `vp build --watch` writes, for development.
+/// Serve each build the `dev` task writes, for development.
 #[cfg(feature = "dev")]
 async fn run_reloading(listener: TcpListener, config: Config, origin: String) -> Result<()> {
     use std::sync::Arc;

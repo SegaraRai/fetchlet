@@ -36,6 +36,12 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      // Rebuilds on source changes while the server reloads each build.
+      dev: {
+        command: "node ../../tools/examples/dev.ts example-sveltekit-axum web vite.config.ts",
+        dependsOn: ["build"],
+        cache: false,
+      },
     },
   },
 });

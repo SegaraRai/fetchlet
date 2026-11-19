@@ -4,11 +4,7 @@ import { join, resolve } from "node:path";
 import type { Plugin } from "vite";
 
 import { IMMUTABLE } from "../../build/asset-entries.ts";
-import {
-  archiveArtifactAssets,
-  frameworkAssets,
-  type AssetsOption,
-} from "../../build/asset-option.ts";
+import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
 import { vinextNodeCompat, vinextNodeDefines } from "./node-compat.ts";
 
@@ -116,15 +112,14 @@ export default function fetchletVinext({
           define: vinextNodeDefines,
           backend,
           intl,
+          ...(assets
+            ? {
+                assets: frameworkAssets(assets, {
+                  cache: [{ prefix: "/_next/static/", cacheControl: IMMUTABLE }],
+                }),
+              }
+            : {}),
         });
-        if (assets) {
-          await archiveArtifactAssets({
-            outDir: output,
-            assets: frameworkAssets(assets, {
-              cache: [{ prefix: "/_next/static/", cacheControl: IMMUTABLE }],
-            }),
-          });
-        }
       },
     },
   };

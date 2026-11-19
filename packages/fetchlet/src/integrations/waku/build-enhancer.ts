@@ -1,8 +1,8 @@
-import { existsSync, renameSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { IMMUTABLE } from "../../build/asset-entries.ts";
-import { archiveArtifactAssets, frameworkAssets } from "../../build/asset-option.ts";
+import { frameworkAssets } from "../../build/asset-option.ts";
 import { buildArtifact } from "../../build/index.ts";
 import type { FetchletWakuOptions } from "./adapter.ts";
 
@@ -43,6 +43,13 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
       );
       `;
     const output = resolve(root, outDir);
+    const client = join(output, "client");
+    mkdirSync(output, { recursive: true });
+    rmSync(client, { recursive: true, force: true });
+    // Waku writes the client build and generated pages to distDir/public, a
+    // name it fixes, and needs nothing there after the build: move it before
+    // buildArtifact archives it and writes the manifest.
+    renameSync(resolve(root, distDir, "public"), client);
     await buildArtifact({
       entry: {
         source: entrySource,
@@ -54,20 +61,14 @@ export default async function buildEnhancer<Build extends (...args: never[]) => 
       asyncContext: "serialized",
       backend,
       intl,
+      ...(assets
+        ? {
+            assets: frameworkAssets(assets, {
+              cache: [{ prefix: "/assets/", cacheControl: IMMUTABLE }],
+            }),
+          }
+        : {}),
     });
-    const client = join(output, "client");
-    rmSync(client, { recursive: true, force: true });
-    // Waku writes the client build and generated pages to distDir/public, a
-    // name it fixes, and needs nothing there after the build: move it.
-    renameSync(resolve(root, distDir, "public"), client);
-    if (assets) {
-      await archiveArtifactAssets({
-        outDir: output,
-        assets: frameworkAssets(assets, {
-          cache: [{ prefix: "/assets/", cacheControl: IMMUTABLE }],
-        }),
-      });
-    }
   };
   return enhanced as unknown as Build;
 }
