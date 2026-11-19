@@ -93,9 +93,20 @@ export default defineConfig({
         command: "node tools/docs/reference.ts --check",
         cache: false,
       },
+      // Runs cargo metadata, whose inputs Vite+ cannot track.
+      "check:release": {
+        command: "node tools/release/check.ts && pnpm change check",
+        cache: false,
+      },
       check: {
         command: "",
-        dependsOn: ["check:types", "check:format", "check:lint", "check:generated"],
+        dependsOn: [
+          "check:types",
+          "check:format",
+          "check:lint",
+          "check:generated",
+          "check:release",
+        ],
       },
 
       // test

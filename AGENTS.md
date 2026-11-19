@@ -31,6 +31,16 @@ Use Vite+ with pnpm. Define tasks in `vite.config.ts`. Use `vp i` for dependenci
 - Publish JavaScript as the single npm package `fetchlet` (`packages/fetchlet`), with one subpath per framework and the integrations under `src/integrations/<framework>/`. Name private workspace packages `@fetchlet-internal/*`; keep `@fetchlet/*` for packages that could be published on their own.
 - Put the guest Web API implementations in `@fetchlet/web` (`packages/web`), the counterpart of `crates/fetchlet-web`. It stays private with subpaths pointing at its TypeScript sources; `fetchlet` lists it as a development dependency and compiles it into its own output.
 
+## Releases
+
+- Release the npm packages under `packages/` and the published crates under one version ([docs/releasing.md](docs/releasing.md)). Record each user-observable change with `pnpm change`, naming the npm package or the crate placeholder `@fetchlet-crates/<crate>`.
+- `crates/<crate>/package.json` is that placeholder: it holds the crate's version for pnpm change and is excluded from the crate package. Do not edit versions by hand; `pnpm version -r` and `tools/release/sync-version.ts` write them.
+- A new published crate needs `publish = true`, an entry in `publishedCrates` (`tools/release/versioning.ts`), a placeholder and a place in `versioning.fixed`; `vp run check:release` verifies them.
+
+## GitHub Actions
+
+- Refer to each action by an exact version tag and update `.github/workflows/actions.lock` with `gh actions-lock` whenever a workflow or a `uses:` value changes.
+
 ## Documentation
 
 Describe the supported behavior, configuration and next work affirmatively. State material compatibility and security limitations precisely, with their scope and evidence. Keep implementation notes, user documentation and research results appropriate to their audience.

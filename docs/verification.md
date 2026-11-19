@@ -77,6 +77,12 @@ records results with; the `dep` catalog holds the semver ranges `fetchlet`
 publishes for its runtime dependencies. CI runs the regular suites on Windows and Linux
 ([security](security.md#continuous-checks)).
 
+`.github/workflows/actions.lock` records the commit of each action the
+workflows use, and GitHub Actions runs those commits. After adding a workflow
+or changing a `uses:` value, run `gh actions-lock` (install it with
+`gh extension install github/gh-actions-lock`), review any change of a locked
+commit, and commit the lockfile with the workflow.
+
 ```bash
 vp install --frozen-lockfile
 vp run check

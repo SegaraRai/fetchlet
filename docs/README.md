@@ -46,6 +46,8 @@
 - [Verification](verification.md): test suites and environment.
 - [Reference](reference/README.md): measured results, generated from
   `results/`.
+- [Releasing](releasing.md): change intents, the shared version of the npm
+  packages and crates, and the release workflows.
 
 ## Planning and research
 

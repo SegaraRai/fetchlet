@@ -433,6 +433,12 @@ importers:
         specifier: catalog:dep
         version: 4.5.1
 
+  crates/fetchlet: {}
+
+  crates/fetchlet-http: {}
+
+  crates/fetchlet-web: {}
+
   examples/astro-axum:
     devDependencies:
       '@astrojs/check':
@@ -1207,6 +1213,15 @@ importers:
         version: 1.7.0(@astrojs/compiler-rs@0.5.3)(@types/node@26.6.6)(@vitest/ui@5.1.0)(@volar/typescript@2.4.31(typescript@6.0.3))(@vue/language-core@3.3.14)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.1)(svelte@5.58.0(@typescript-eslint/types@8.72.2))(terser@5.51.2)(typescript@6.0.3)(vue-tsc@3.3.14(typescript@6.0.3))(yaml@2.9.1)
 
   tools/package:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+
+  tools/release:
     devDependencies:
       '@fetchlet-internal/tools-workspace':
         specifier: workspace:*

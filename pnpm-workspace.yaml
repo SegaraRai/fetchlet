@@ -1,4 +1,6 @@
 packages:
+  # crates/<crate>/package.json carries the release version of a published crate.
+  - crates/*
   - fixtures/*
   - packages/*
   - examples/*
@@ -101,6 +103,21 @@ catalogs:
     "@solidjs/web": 2.0.1
     filesystem-routing: 0.5.0
     solid-js: 2.0.1
+
+# One version covers every published npm package and crate; see docs/releasing.md.
+# tools/release/check.ts keeps the fixed group in step with packages/ and the
+# published crates.
+versioning:
+  maxBump: minor
+  changelog:
+    storage: repository
+  fixed:
+    - - "@fetchlet-crates/fetchlet"
+      - "@fetchlet-crates/fetchlet-http"
+      - "@fetchlet-crates/fetchlet-web"
+      - "@fetchlet/node"
+      - "@fetchlet/web"
+      - "fetchlet"
 
 overrides:
   # Every package that asks for vite or vitest gets the versions Vite+ ships.

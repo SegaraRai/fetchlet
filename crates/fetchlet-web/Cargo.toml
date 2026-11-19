@@ -3,7 +3,11 @@ name = "fetchlet-web"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-publish.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = true
+# The version placeholder for pnpm change; see docs/releasing.md.
+exclude = ["package.json"]
 description = "Engine-independent host implementations of Web APIs for fetchlet guests"
 
 # Each feature adds the host operations of one Web API; the guest runtime

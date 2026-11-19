@@ -3,6 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "description": "Node.js built-in modules for code that runs inside a fetchlet engine, over the Web API profile and the host operations of fetchlet-web",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SegaraRai/fetchlet.git",
+    "directory": "packages/node"
+  },
   "type": "module",
   "exports": {
     "./assert": "./src/assert.ts",

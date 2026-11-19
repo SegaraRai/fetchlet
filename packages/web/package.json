@@ -3,6 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "description": "Web API implementations that run inside a fetchlet engine on the host operations of fetchlet-web",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SegaraRai/fetchlet.git",
+    "directory": "packages/web"
+  },
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

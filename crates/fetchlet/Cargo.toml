@@ -3,7 +3,11 @@ name = "fetchlet"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-publish.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = true
+# The version placeholder for pnpm change; see docs/releasing.md.
+exclude = ["package.json"]
 description = "Rust-hosted JavaScript functions and Fetch handlers with explicit host services"
 
 [features]

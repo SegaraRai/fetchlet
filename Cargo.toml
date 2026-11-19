@@ -7,12 +7,16 @@ resolver = "3"
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.100.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/SegaraRai/fetchlet"
+# Members are private unless their manifest says otherwise; the published
+# crates are publishedCrates in tools/release/versioning.ts.
 publish = false
 
 [workspace.dependencies]
-fetchlet = { path = "crates/fetchlet", default-features = false }
-fetchlet-http = { path = "crates/fetchlet-http" }
-fetchlet-web = { path = "crates/fetchlet-web", default-features = false }
+fetchlet = { path = "crates/fetchlet", version = "=0.0.0", default-features = false }
+fetchlet-http = { path = "crates/fetchlet-http", version = "=0.0.0" }
+fetchlet-web = { path = "crates/fetchlet-web", version = "=0.0.0", default-features = false }
 actix-web = { version = "4", default-features = false }
 axum = "0.8"
 hyper = { version = "1", features = ["http1", "server"] }

@@ -3,14 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "description": "Build JavaScript web frameworks into artifacts that Rust serves through fetchlet",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SegaraRai/fetchlet.git",
+    "directory": "packages/fetchlet"
+  },
   "files": [
     "dist",
     "docs"
   ],
   "type": "module",
-  "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
-  },
   "exports": {
     "./astro": "./src/integrations/astro/index.ts",
     "./astro/server": "./src/integrations/astro/server.ts",
@@ -229,5 +232,8 @@
     "waku": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   }
 }
