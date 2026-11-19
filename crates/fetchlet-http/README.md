@@ -39,6 +39,26 @@ axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>()
 
 Manifest paths that leave the artifact directory are refused. Client files answer GET and HEAD; other methods and missing files reach the application, so the framework handles its own routes, actions and 404 pages.
 
+## Reloading during development
+
+The `dev` feature adds `DevReload`, which serves an artifact while a build tool such as `vite build --watch` rewrites it. `fetchlet/build` writes `fetchlet.json` last, through a rename. When its modification time changes, `DevReload` opens the artifact again and builds a new `Generation` with the caller's function, serves it from then on and shuts the previous applications down after their accepted calls finish. A build that fails to open or start is reported, and the previous generation keeps serving.
+
+```rust,ignore
+use fetchlet_http::{DevReload, Generation};
+
+let reload = DevReload::watch("build")
+    .start(move |artifact| async move {
+        let (router, app) = application(&artifact).await?;
+        anyhow::Ok(Generation::new(router).with_app(app))
+    })
+    .await?;
+let router = axum::Router::new().fallback_service(reload.service());
+axum::serve(listener, router).await?;
+reload.shutdown().await?;
+```
+
+`DevService` answers two paths itself: `/__fetchlet/reload.js`, a module script that long-polls `/__fetchlet/reload` and reloads the page when a new generation starts or the server restarts, and that poll. Every other request reaches the current generation, and HTML responses get a `<script type="module" src="/__fetchlet/reload.js?token=…">` element appended. The script comes from the page's own origin, so a Content Security Policy that allows `'self'` scripts allows it. The service drops `Accept-Encoding` from requests, so asset archives answer uncompressed, and leaves responses that still carry a `Content-Encoding` unchanged. The manifest is checked every 200 ms by default (`poll_interval`); a file system whose modification times are coarser than the interval between two builds can miss the second build until the next one. Keep the feature out of release builds: it serves extra paths and changes HTML responses.
+
 ## Asset archives
 
 `archiveArtifactAssets` in `fetchlet/build` packs the client directory into
@@ -90,7 +110,7 @@ actix-web services are not `Send`, so there is no actix transport. Use `fetchlet
 
 ## Tests
 
-`tests/contract/` drives each integration with requests of its own server: Tower in memory, hyper over loopback TCP, axum through its router and actix through its test service. Each check runs on QuickJS, Boa and V8. `tests/axum_router.rs` covers one router serving public and in-process requests, and `tests/artifact.rs` covers artifact reading and asset serving.
+`tests/contract/` drives each integration with requests of its own server: Tower in memory, hyper over loopback TCP, axum through its router and actix through its test service. Each check runs on QuickJS, Boa and V8. `tests/axum_router.rs` covers one router serving public and in-process requests, `tests/artifact.rs` covers artifact reading and asset serving, and `tests/dev.rs` covers reloading, the reload poll and failed builds.
 
 ```bash
 vp run test:rust

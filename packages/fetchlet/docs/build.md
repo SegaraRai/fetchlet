@@ -158,6 +158,11 @@ actually selected, and the locale and time zone settings. Rust's `Module`
 takes source only, so selecting by this metadata on the Rust side is open
 work ([capability negotiation](../../../docs/TODO.md#capability-negotiation)).
 
+`fetchlet.json` is written last, after `server.js` and `assets.flpk`,
+through a temporary file and a rename. A reader that sees a new manifest
+sees a complete build; fetchlet-http's `DevReload` relies on this to start
+each build `vite build --watch` writes.
+
 The Web API layer stays shared by every backend. Selection by native
 capability, started with Intl, extends to other polyfills as their
 capability tables and conformance tests are in place. Selecting by native

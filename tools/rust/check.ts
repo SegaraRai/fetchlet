@@ -4,7 +4,7 @@
 
 import { cargoAll } from "@fetchlet-internal/tools-workspace/cargo";
 
-const httpFeatures = ["hyper", "axum", "actix"];
+const httpFeatures = ["hyper", "axum", "actix", "dev"];
 const axumExamples = [
   "sveltekit-axum",
   "astro-axum",
@@ -57,4 +57,6 @@ cargoAll([
     ...[...axumExamples, "honox-tauri", "vanilla-cli"].flatMap((name) => ["-p", `example-${name}`]),
     "--all-targets",
   ),
+  // The reloading server of the examples' `dev` task.
+  clippy("-p", "example-vanilla-axum", "--features", "dev"),
 ]);

@@ -21,6 +21,11 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      dev: {
+        command: "node ../../tools/examples/dev.ts example-vanilla-axum",
+        dependsOn: ["build"],
+        cache: false,
+      },
       "check:types": {
         command: "tsc --noEmit",
         cache: false,

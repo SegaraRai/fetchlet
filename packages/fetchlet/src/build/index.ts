@@ -1,11 +1,12 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 
 import { build, type Plugin } from "rolldown";
 
-import { archiveArtifactAssets, type AssetsOption } from "./asset-option.ts";
+import { archiveAssets, type AssetsOption } from "./asset-option.ts";
 import { exportedHandlerPlugin } from "./exported-handler.ts";
+import { writeManifest } from "./manifest.ts";
 import { type AsyncContextMode, nodeBuiltins, nodeGlobals } from "./node-builtins.ts";
 import { nativeCapabilityCheck } from "./polyfills/bootstrap.ts";
 import {
@@ -202,34 +203,27 @@ export async function buildArtifact({
   // The entry chunk's exports: the Fetch handler, when there is one, and the
   // functions Rust calls with App::call.
   const exports = chunks[0].exports;
-  writeFileSync(
-    join(output, "fetchlet.json"),
-    JSON.stringify(
-      {
-        format: "fetchlet-iife",
-        formatVersion: 1,
-        handler: exports.includes(HANDLER) ? HANDLER : null,
-        functions: exports.filter((name) => name !== HANDLER).sort(),
-        server: "server.js",
-        client: "client",
-        profile: "portable-web",
-        framework,
-        rendering,
-        ...(asyncContext ? { asyncContext } : {}),
-        requirements: plan.requirements,
-        backend: plan.backend,
-        nativeRequirements: plan.nativeRequirements,
-        polyfills: plan.polyfills,
-        intl: plan.intl,
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  const manifest = {
+    format: "fetchlet-iife",
+    formatVersion: 1,
+    handler: exports.includes(HANDLER) ? HANDLER : null,
+    functions: exports.filter((name) => name !== HANDLER).sort(),
+    server: "server.js",
+    client: "client",
+    profile: "portable-web",
+    framework,
+    rendering,
+    ...(asyncContext ? { asyncContext } : {}),
+    requirements: plan.requirements,
+    backend: plan.backend,
+    nativeRequirements: plan.nativeRequirements,
+    polyfills: plan.polyfills,
+    intl: plan.intl,
+  };
+  const manifestPath = join(output, "fetchlet.json");
   if (assets) {
-    await archiveArtifactAssets({
-      outDir: output,
-      assets,
-    });
+    await archiveAssets(output, manifest, assets, manifestPath);
   }
+  // Last, so the files it names are complete when a reader sees it.
+  writeManifest(manifestPath, manifest);
 }

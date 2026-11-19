@@ -19,6 +19,18 @@ vp run @fetchlet-internal/example-vanilla-axum#serve
 Open `http://127.0.0.1:3620`. The task builds, then starts the server on
 QuickJS.
 
+## Develop
+
+```bash
+vp run @fetchlet-internal/example-vanilla-axum#dev
+```
+
+The task builds once, then runs `vp build --watch` beside the server built
+with the `dev` feature. Each rebuild rewrites `build/`; the server's
+`DevReload` starts the new build, and open pages reload. A change to
+`src/client.ts` rebuilds the server module too, since it embeds the client
+entry's built URLs. Changes to the Rust sources need a restart.
+
 ## Layout
 
 | Path                | Role                                                                      |

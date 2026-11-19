@@ -125,20 +125,19 @@ describe("fetchlet/vite", () => {
         },
       },
     );
-    hook(app!, "buildStart").call({
-      environment: {
-        name: "ssr",
-      },
-    });
+    const watched: string[] = [];
     const id = hook(app!, "resolveId").call({}, "virtual:fetchlet/client-assets") as string;
     const source = hook(app!, "load").call(
       {
         environment: {
           mode: "build",
         },
+        addWatchFile: (file: string) => watched.push(file),
       },
       id,
     ) as string;
+    // A client rebuild under --watch rewrites the manifest and so the server.
+    expect(watched).toStrictEqual([join(client, ".vite", "manifest.json")]);
     expect(JSON.parse(source.replace(/^export default |;$/g, ""))).toStrictEqual({
       "src/client.ts": {
         script: "/base/assets/client-1.js",

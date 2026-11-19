@@ -30,12 +30,27 @@ fetchlet-http, notices the new `fetchlet.json` and `server.js`, starts an
 `App` from them, swaps it in and shuts the old one down after its calls
 drain. The page reloads through a small script injected in development.
 
-- Works for every supported framework without framework-specific code,
-  because it runs exactly what a release build produces.
+- Runs exactly what a release build produces, with no framework-specific
+  code in the Rust host.
 - No server-side HMR; each change costs a server build and a new instance.
-- Needs: an `Artifact` reload API and a handle that can replace its `App`
-  atomically, a development-only reload notification for the browser, and a
-  task that runs the watch build next to `cargo run`.
+
+Option A is implemented. `fetchlet/build` writes `fetchlet.json` last
+through a rename; `DevReload` in fetchlet-http (feature `dev`) polls its
+modification time, builds a new generation of the caller's services and
+links HTML responses to a long-poll reload script it serves under
+`/__fetchlet/`
+([fetchlet-http](../../crates/fetchlet-http/README.md#reloading-during-development)).
+`examples/vanilla-axum` has a `dev` task that runs `vp build --watch` beside
+the server, checked by editing the server module and seeing an open page
+reload with the change.
+
+Whether a watch rebuild rewrites the artifact depends on the integration.
+With Vite's watch mode each environment rebuilds on its own: the vanilla
+plugin's server build now watches the client manifest, so a client change
+rebuilds the server with the new URLs. SvelteKit 3.4.0 rewrote the artifact
+when a page changed. The vinext and Waku integrations archive assets after
+`buildArtifact`, so they write the manifest twice and reload twice per
+build. Other frameworks are unverified under `--watch`.
 
 ### B. Vite's module runner on the fetchlet engine
 
@@ -105,7 +120,7 @@ a fetchlet environment is unverified.
 
 1. Option A as the baseline for every framework. It is cheap, matches
    release builds exactly, and remains the fallback where option B cannot
-   apply.
+   apply. Extending it to each example is in [open work](../TODO.md#development-reload-per-framework).
 2. Option B as fetchlet's own development server, starting with vanilla
    `fetchlet/vite`, where fetchlet writes the entry, then TanStack Start,
    SolidStart and React Router. That replaces the Node module runner plan in

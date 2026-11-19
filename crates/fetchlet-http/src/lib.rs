@@ -4,6 +4,8 @@
 //! available. The `hyper`, `axum` and `actix` features add thin integrations
 //! for those servers. [`Artifact`] reads the output of `fetchlet/build`, and
 //! [`AssetService`] serves its client assets from an [`AssetArchive`].
+//! The `dev` feature adds `DevReload`, which serves an artifact while a
+//! build tool rewrites it.
 //! The JavaScript engine is chosen on the `fetchlet` crate.
 
 mod artifact;
@@ -14,6 +16,8 @@ mod service;
 mod actix_server;
 #[cfg(feature = "axum")]
 mod axum_server;
+#[cfg(feature = "dev")]
+mod dev;
 #[cfg(feature = "hyper")]
 mod hyper_server;
 
@@ -27,6 +31,11 @@ pub use service::{
 pub use actix_server::ActixService;
 #[cfg(feature = "axum")]
 pub use axum_server::{AxumService, artifact_router, connect_info, router_transport};
+#[cfg(feature = "dev")]
+pub use dev::{
+    DevBody, DevReload, DevReloadBuilder, DevService, Generation, RELOAD_POLL_PATH,
+    RELOAD_SCRIPT_PATH, ReloadError,
+};
 #[cfg(feature = "hyper")]
 pub use hyper_server::{HyperConnection, HyperService, PeerAddr, peer_addr};
 

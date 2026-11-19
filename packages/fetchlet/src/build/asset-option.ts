@@ -1,7 +1,7 @@
 // The `assets` option that buildArtifact and the adapters take, and how it
 // becomes the entries of an artifact's assets.flpk.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { writeAssetArchive, type AssetArchiveSummary, type AssetEntry } from "./asset-archive.ts";
@@ -12,6 +12,7 @@ import {
   type CacheRule,
   type DirectoryAssetOptions,
 } from "./asset-entries.ts";
+import { writeManifest } from "./manifest.ts";
 
 /** What an `assets` function receives. */
 export interface AssetContext {
@@ -109,12 +110,31 @@ export async function archiveArtifactAssets({
   assets = true,
 }: ArchiveArtifactAssetsOptions): Promise<AssetArchiveSummary> {
   const manifestPath = join(outDir, "fetchlet.json");
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
-    client?: string;
-    assets?: string;
-  };
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as ArtifactManifestAssets;
+  const summary = await archiveAssets(outDir, manifest, assets, manifestPath);
+  writeManifest(manifestPath, manifest);
+  return summary;
+}
+
+/** The fields of fetchlet.json that archiving reads and writes. */
+export interface ArtifactManifestAssets {
+  client?: string;
+  assets?: string;
+}
+
+/**
+ * Write `assets.flpk` from the client directory `manifest` names and record
+ * it in `manifest`, which the caller writes. `source` names the manifest in
+ * errors.
+ */
+export async function archiveAssets(
+  outDir: string,
+  manifest: ArtifactManifestAssets,
+  assets: Exclude<AssetsOption, false>,
+  source: string,
+): Promise<AssetArchiveSummary> {
   if (!manifest.client) {
-    throw new Error(`asset archive: ${manifestPath} names no client directory`);
+    throw new Error(`asset archive: ${source} names no client directory`);
   }
   const directory = join(outDir, manifest.client);
   const entries = await frameworkAssets(assets)({
@@ -126,6 +146,5 @@ export async function archiveArtifactAssets({
     out: join(outDir, "assets.flpk"),
   });
   manifest.assets = "assets.flpk";
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
   return summary;
 }

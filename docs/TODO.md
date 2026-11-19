@@ -173,6 +173,19 @@ The split between framework-internal fetches and host fetches is verified
 for SvelteKit's `event.fetch`. Verify it for each other adapter and record
 the result in its guide.
 
+### Development reload per framework
+
+`DevReload` serves each build `vp build --watch` writes, and
+`examples/vanilla-axum` has a `dev` task for it
+([development loop](research/dev-loop.md)). For each other example, check
+that a watch rebuild of a page, a client-only file and a style rewrites the
+artifact, add the `dev` feature and task, and fix the integration where a
+rebuilt environment leaves the artifact stale. Write the manifest once in
+the vinext and Waku integrations, which archive assets after
+`buildArtifact`. The dev task's tool (`tools/examples/dev.ts`) is repository
+tooling; a command in the `fetchlet` package would give applications the
+same loop.
+
 ### React Router
 
 Split server bundles, prerendering and RSC mode are not supported by

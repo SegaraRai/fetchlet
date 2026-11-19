@@ -45,13 +45,6 @@ export default function fetchlet({
 }: FetchletViteOptions = {}): Plugin[] {
   const clientEntries = typeof client === "string" ? [client] : client;
   let config: ResolvedConfig | undefined;
-  let clientAssets: Record<
-    string,
-    {
-      script: string;
-      styles: string[];
-    }
-  > = {};
   const app: Plugin = {
     name: "fetchlet/vite:app",
     config(userConfig) {
@@ -109,13 +102,14 @@ export default function fetchlet({
           ),
         )};`;
       }
-      return `export default ${JSON.stringify(clientAssets)};`;
-    },
-    buildStart() {
-      if (this.environment.name !== "ssr" || !config) {
-        return;
+      const manifestFile = config && clientManifestFile(config);
+      if (manifestFile) {
+        // Under `vite build --watch`, a client rebuild rewrites the manifest
+        // and so rebuilds the server with the new URLs.
+        this.addWatchFile(manifestFile);
       }
-      clientAssets = readClientAssets(config);
+      const clientAssets = manifestFile ? readClientAssets(config!, manifestFile) : {};
+      return `export default ${JSON.stringify(clientAssets)};`;
     },
   };
   return [
@@ -139,6 +133,21 @@ export default function fetchlet({
   ];
 }
 
+/** The manifest the client build writes, when there is a client environment. */
+function clientManifestFile(config: ResolvedConfig): string | undefined {
+  const clientConfig = config.environments.client;
+  if (!clientConfig) {
+    return undefined;
+  }
+  return resolve(
+    config.root,
+    clientConfig.build.outDir,
+    typeof clientConfig.build.manifest === "string"
+      ? clientConfig.build.manifest
+      : ".vite/manifest.json",
+  );
+}
+
 /**
  * The built URLs of the client build's entries, keyed by their source path
  * relative to the root, from the manifest Vite wrote. The asset archive
@@ -146,18 +155,8 @@ export default function fetchlet({
  */
 function readClientAssets(
   config: ResolvedConfig,
+  manifestFile: string,
 ): Record<string, { script: string; styles: string[] }> {
-  const clientConfig = config.environments.client;
-  if (!clientConfig) {
-    return {};
-  }
-  const clientDirectory = resolve(config.root, clientConfig.build.outDir);
-  const manifestFile = resolve(
-    clientDirectory,
-    typeof clientConfig.build.manifest === "string"
-      ? clientConfig.build.manifest
-      : ".vite/manifest.json",
-  );
   if (!existsSync(manifestFile)) {
     return {};
   }
