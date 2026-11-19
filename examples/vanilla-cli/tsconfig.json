@@ -1,0 +1,16 @@
+{
+  "include": ["src/**/*.ts", "vite.config.ts"],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["DOM", "ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    // fetchlet resolves to its TypeScript sources in the workspace.
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true
+  }
+}

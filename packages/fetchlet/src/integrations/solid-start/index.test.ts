@@ -100,7 +100,7 @@ describe("fetchlet/solid-start", () => {
     });
     const source = (options.entry as { source: string }).source;
     expect(source).toContain("entry.js");
-    expect(source).toMatch(/ip: \{ value: context\.clientAddress/);
+    expect(source).toMatch(/ip: \{\s*value: context\.clientAddress/);
     expect(source).toContain('name: "fetchlet"');
   });
 

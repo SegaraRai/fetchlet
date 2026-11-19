@@ -39,7 +39,8 @@ enum Source {
 struct Manifest {
     format: String,
     format_version: u32,
-    handler: String,
+    handler: Option<String>,
+    functions: Option<Vec<String>>,
     server: String,
     client: Option<String>,
     assets: Option<String>,
@@ -138,9 +139,17 @@ impl Artifact {
         }
     }
 
-    /// The export of the server module that handles Fetch requests.
-    pub fn handler(&self) -> &str {
-        &self.manifest.handler
+    /// The export of the server module that handles Fetch requests, for
+    /// `AppBuilder::fetch_handler`. `None` for an artifact of functions only,
+    /// whose App refuses `fetch` and serves `call`.
+    pub fn handler(&self) -> Option<&str> {
+        self.manifest.handler.as_deref()
+    }
+
+    /// The functions the server module exports for `App::call`, when the
+    /// manifest records them.
+    pub fn functions(&self) -> Option<&[String]> {
+        self.manifest.functions.as_deref()
     }
 
     /// The engine the server module was built for, such as `quickjs`.
@@ -304,6 +313,17 @@ mod tests {
         .unwrap();
         assert_eq!(parsed.server, "server.js");
         assert!(parsed.client.is_none() && parsed.assets.is_none() && parsed.backend.is_none());
+    }
+
+    #[test]
+    fn an_artifact_of_functions_only_has_no_handler() {
+        let source = br#"{"format":"fetchlet-iife","formatVersion":1,"handler":null,"functions":["greet"],"server":"server.js"}"#;
+        let artifact = Artifact::embedded(source, "", None).unwrap();
+        assert_eq!(artifact.handler(), None);
+        assert_eq!(artifact.functions(), Some(&["greet".to_owned()][..]));
+        let older = Artifact::embedded(&manifest(r#""server":"server.js""#), "", None).unwrap();
+        assert_eq!(older.handler(), Some("handle"));
+        assert_eq!(older.functions(), None);
     }
 
     #[test]

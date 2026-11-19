@@ -12,7 +12,7 @@ lifecycle.
 | ------------- | --------------------------------------------------------- | ---------------------------------------- |
 | Engine        | The `fetchlet` crate's `quickjs`, `boa` or `v8` feature   | Linked into the binary                   |
 | Server bundle | `server.js` from `fetchlet/build`                         | `Module::new(source)`                    |
-| Manifest      | `fetchlet.json`: handler name, backend, assets            | `Artifact::handler()`                    |
+| Manifest      | `fetchlet.json`: handler, functions, backend, assets      | `Artifact::handler()`                    |
 | Client assets | `assets.flpk`, a Brotli [asset archive](asset-archive.md) | `AssetArchive`, served by `AssetService` |
 
 `fetchlet_http::include_artifact!(dir)` embeds `fetchlet.json`, `server.js`

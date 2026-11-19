@@ -40,7 +40,11 @@ Cloudflare Workers module does. `env` holds the host bindings, and `ctx`
 has `waitUntil` and the client address. Named exports are functions that
 Rust calls with `App::call` or `AppHandle::call_json`, beside the Fetch
 handler. The export name `handle` is reserved for the handler the plugin
-generates.
+generates. A module without a default export builds an artifact of
+functions only, as described in
+[fetchlet/build](build.md#a-server-module-without-a-framework);
+[examples/vanilla-cli](../../../examples/vanilla-cli/README.md) calls one
+from a command line program.
 
 ```ts
 import type { ExportedHandler } from "fetchlet/runtime";
@@ -65,8 +69,9 @@ export function greet(name: string): string {
 does nothing and `props` is empty, since fetchlet has no origin to fall back
 to. `ctx.clientAddress` is fetchlet's addition, from the Rust request
 context. The SSR environment resolves dependencies with the `worker`
-condition and bundles every one of them; fetchlet/build then bundles the
-output again for the engine. `node:async_hooks` is not provided; build with
+condition and bundles every one of them except `fetchlet/runtime`, which
+fetchlet/build adds once before the application when it bundles the output
+again for the engine. `node:async_hooks` is not provided; build with
 [fetchlet/build](build.md) directly to choose `asyncContext`.
 
 ## Browser entries

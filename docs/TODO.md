@@ -12,7 +12,9 @@ resolve it.
 [fetchlet/vite](../packages/fetchlet/docs/vite.md) and `exportedHandler` in
 [fetchlet/build](../packages/fetchlet/docs/build.md#a-server-module-without-a-framework)
 build a server module in the Workers module shape, which
-`examples/vanilla-axum` checks. Three parts remain:
+`examples/vanilla-axum` checks; a module of functions only builds an
+artifact without a Fetch handler, which `examples/vanilla-cli` checks. Two
+parts remain:
 
 - Development serving. `vite dev` serves the browser entries but does not
   run the server module. Dispatch requests the client environment leaves
@@ -22,14 +24,6 @@ build a server module in the Workers module shape, which
 - A command line entry, `fetchlet build src/server.ts --backend quickjs
   --out build`, for projects without Vite. It needs a `bin` in the package
   and a check in `test:package` that runs the packed command.
-- Artifacts of functions only. A module without a default export builds
-  today, but `fetchlet.json` still names `handle`, which throws when Rust
-  calls it. Record `handler: null`, make `Artifact::handler` optional in
-  fetchlet-http, and have Rust refuse `fetch` on such an artifact with a
-  clear error, as the first entry of
-  [capability negotiation](#capability-negotiation). An example of this
-  shape has no HTTP server, so it needs a name outside the
-  `<framework>-<rust-server>` convention.
 
 ### Nitro 3 and h3 2
 
@@ -128,9 +122,10 @@ multi-byte encodings are tracked under
 
 ### Capability negotiation
 
-`fetchlet.json` records the target backend, required APIs and chosen
-polyfills, but `Module` takes only source, so Rust does not compare them with
-the engine it runs. Add a check at build time of the `App` that refuses an
+`fetchlet.json` records the target backend, required APIs, chosen polyfills,
+the Fetch handler and the exported functions. Rust reads the handler, so an
+App built from an artifact of functions only refuses `fetch`, but `Module`
+takes only source, so Rust does not compare the rest with the engine it runs. Add a check at build time of the `App` that refuses an
 artifact whose requirements the backend lacks, and extend the capability
 table beyond Intl as each polyfill gains conformance tests.
 

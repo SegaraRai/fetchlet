@@ -26,7 +26,7 @@ pub struct App {
     pub(super) engine: Engine,
     pub(super) host: HostBridge,
     pub(super) limits: Limits,
-    pub(super) handler: String,
+    pub(super) handler: Option<String>,
     pub(super) reusable: bool,
     /// An ended invocation whose `fetchlet.waitUntil` work has not settled.
     pub(super) background: Option<PendingBackground>,
@@ -45,7 +45,7 @@ impl App {
             module: None,
             hosts: HostServices::default(),
             limits: Limits::default(),
-            handler: "handle".into(),
+            handler: Some("handle".into()),
             key: None,
         }
     }
@@ -150,6 +150,11 @@ impl App {
         request: Request,
         context: Option<Value>,
     ) -> Result<(Response, Option<OpenResponseBody>)> {
+        if self.handler.is_none() {
+            return Err(Error::Configuration(
+                "the application has no Fetch handler".into(),
+            ));
+        }
         self.finish_background().await?;
         if !self.is_reusable() {
             return Err(Error::InstanceUnavailable);
@@ -225,7 +230,8 @@ impl App {
         .await??;
         let mut arguments = vec![serde_json::to_value(input).map_err(invalid_request)?];
         arguments.extend(context);
-        fetch_invocation(&self.handler, &arguments).map_err(invalid_request)
+        let handler = self.handler.as_deref().unwrap_or_default();
+        fetch_invocation(handler, &arguments).map_err(invalid_request)
     }
 
     pub(super) fn begin(&mut self, context: Option<Context>) -> Result<InvocationScope> {

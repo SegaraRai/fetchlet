@@ -169,6 +169,12 @@ export function serverEnvironmentPlugin(
               },
               build: {
                 outDir: cacheDirectory,
+                rolldownOptions: {
+                  // fetchlet/build adds the runtime once, before the
+                  // application; a copy bundled here would install the Web
+                  // API profile twice.
+                  external: [/^fetchlet\/runtime(\/|$)/],
+                },
               },
             },
             integration.serverEnvironment ?? {},

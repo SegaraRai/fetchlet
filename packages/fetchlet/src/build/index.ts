@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { build, type Plugin } from "rolldown";
 
 import { archiveArtifactAssets, type AssetsOption } from "./asset-option.ts";
+import { exportedHandlerPlugin } from "./exported-handler.ts";
 import { type AsyncContextMode, nodeBuiltins, nodeGlobals } from "./node-builtins.ts";
 import { nativeCapabilityCheck } from "./polyfills/bootstrap.ts";
 import {
@@ -57,10 +58,11 @@ export interface EntrySource {
 
 export interface BuildArtifactOptions {
   /**
-   * The server entry, which exports `handle` and any functions: a module
-   * path, or the module's source with the directory its imports resolve
-   * from. Adapters pass the glue around a framework's server build as
-   * source, so nothing is written to disk.
+   * The server entry, which exports the Fetch handler `handle` and any
+   * functions: a module path, or the module's source with the directory its
+   * imports resolve from. Adapters pass the glue around a framework's server
+   * build as source, so nothing is written to disk. An entry without
+   * `handle` builds an artifact of functions only.
    */
   entry: string | EntrySource;
   /** The artifact directory; `server.js` and `fetchlet.json` are written here. */
@@ -102,6 +104,8 @@ const runtimeEntry = createRequire(import.meta.url).resolve("fetchlet/runtime");
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
 const entryId = "\0fetchlet:entry";
+/** The export name of the artifact's Fetch handler. */
+const HANDLER = "handle";
 // The file name of an entry given as source; it is never read or written.
 const sourceEntryName = "fetchlet-entry.js";
 const nativeCheckId = "\0fetchlet:native-check";
@@ -160,7 +164,7 @@ export async function buildArtifact({
   const plan = planPolyfills({ backend, requirements, intl });
   const output = resolve(outDir);
   mkdirSync(output, { recursive: true });
-  await build({
+  const { output: chunks } = await build({
     input: entryId,
     platform: "neutral",
     resolve: {
@@ -173,6 +177,7 @@ export async function buildArtifact({
       typeof entry === "string"
         ? artifactEntry(resolve(entry), plan)
         : artifactEntry(join(resolve(entry.resolveDir), sourceEntryName), plan, entry.source),
+      exportedHandlerPlugin(),
       ...plugins,
       nodeBuiltins(asyncContext),
     ],
@@ -194,13 +199,17 @@ export async function buildArtifact({
       topLevelVar: true,
     },
   });
+  // The entry chunk's exports: the Fetch handler, when there is one, and the
+  // functions Rust calls with App::call.
+  const exports = chunks[0].exports;
   writeFileSync(
     join(output, "fetchlet.json"),
     JSON.stringify(
       {
         format: "fetchlet-iife",
         formatVersion: 1,
-        handler: "handle",
+        handler: exports.includes(HANDLER) ? HANDLER : null,
+        functions: exports.filter((name) => name !== HANDLER).sort(),
         server: "server.js",
         client: "client",
         profile: "portable-web",
@@ -218,6 +227,9 @@ export async function buildArtifact({
     ) + "\n",
   );
   if (assets) {
-    await archiveArtifactAssets({ outDir: output, assets });
+    await archiveArtifactAssets({
+      outDir: output,
+      assets,
+    });
   }
 }

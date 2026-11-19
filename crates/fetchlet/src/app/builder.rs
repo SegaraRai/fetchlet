@@ -9,7 +9,7 @@ pub struct AppBuilder {
     pub(super) module: Option<Module>,
     pub(super) hosts: HostServices,
     pub(super) limits: Limits,
-    pub(super) handler: String,
+    pub(super) handler: Option<String>,
     /// The identity a worker keeps across the instances it recreates.
     pub(super) key: Option<u64>,
 }
@@ -30,8 +30,12 @@ impl AppBuilder {
         self
     }
 
-    pub fn fetch_handler(mut self, export: impl Into<String>) -> Self {
-        self.handler = export.into();
+    /// The export that handles Fetch requests, `handle` by default. `None`
+    /// builds an application of functions only, whose `fetch` fails with
+    /// [`Error::Configuration`] before running any JavaScript; its exports
+    /// stay callable with `call` and `call_json`.
+    pub fn fetch_handler<'a>(mut self, export: impl Into<Option<&'a str>>) -> Self {
+        self.handler = export.into().map(str::to_owned);
         self
     }
 

@@ -71,7 +71,9 @@ to another thread or queue. Without a sink, console output is discarded.
 
 A module is a built IIFE that puts its exports on `fetchletExports`.
 `App::call` and `call_json` call any export; `fetch` calls the Fetch entry,
-`handle` unless `AppBuilder::fetch_handler` names another.
+`handle` unless `AppBuilder::fetch_handler` names another. With
+`fetch_handler(None)`, `fetch` fails with `Error::Configuration` before
+running JavaScript, for a module of functions only.
 
 The Fetch entry converts the URL, method, header pairs and body into a Web
 `Request` and converts the returned `Response` back.

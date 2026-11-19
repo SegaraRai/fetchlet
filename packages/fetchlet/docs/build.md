@@ -89,6 +89,25 @@ await buildArtifact({
 shape with Vite, together with browser entries. The types `ExportedHandler`
 and `ExecutionContext` come from `fetchlet/runtime`.
 
+A module without a default export builds an artifact of functions only:
+`fetchlet.json` records `"handler": null`, and an App built from it with
+`fetch_handler(artifact.handler())` fails `fetch` with a configuration error
+before running JavaScript, while `call` reaches every export. Such a module
+reads the host bindings with `getBindings()` and keeps work open past a call
+with `waitUntil()`, both from `fetchlet/runtime`:
+
+```ts
+import { getBindings } from "fetchlet/runtime";
+
+export function greet(name: string): string {
+  return `${getBindings<{ GREETING: string }>().GREETING}, ${name}`;
+}
+```
+
+Every artifact's manifest lists the exports Rust can call as `functions`,
+which `Artifact::functions()` returns. A server module that itself exports
+`handle` fails the build, since that name is reserved for the handler.
+
 ## Framework settings
 
 | Setting                      | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |

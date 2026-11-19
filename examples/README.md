@@ -2,7 +2,8 @@
 
 Each example has its own frontend build, Rust host, configuration, run
 instructions and end-to-end checks. The axum examples are checked over real
-HTTP in a browser; the Tauri examples in the webview.
+HTTP in a browser, the Tauri examples in the webview, and the command line
+example by running the program.
 
 | Example                                                    | Backend           | Checks                                                                                                                                                   |
 | ---------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -15,6 +16,7 @@ HTTP in a browser; the Tauri examples in the webview.
 | [SolidStart + axum](solidstart-axum/README.md)             | QuickJS           | Streaming SSR, assets, hydration, server functions, API routes, Rust service, client navigation                                                          |
 | [Solid + axum](solid-axum/README.md)                       | QuickJS           | Solid 2 without SolidStart: streaming SSR, assets, hydration, server functions, API routes, Rust service, client navigation                              |
 | [Vanilla JavaScript + axum](vanilla-axum/README.md)        | QuickJS           | A Vite-built fetch handler without a framework: streaming HTML, browser entries, endpoints, Rust service, named exports called from Rust                 |
+| [Vanilla JavaScript CLI](vanilla-cli/README.md)            | QuickJS           | A module of functions only, without a Fetch handler: a command line program calls its exports with bindings, JSON arguments and Web Crypto               |
 | [Qwik City + axum](qwik-city-axum/README.md)               | QuickJS           | SSR, assets, resumability, `routeLoader$`, endpoints, Rust service, client navigation                                                                    |
 | [Waku + axum](waku-axum/README.md)                         | QuickJS           | RSC, SSR, assets, hydration, API routes, Rust service, client navigation                                                                                 |
 | [vinext + axum](vinext-axum/README.md)                     | QuickJS           | App Router, RSC, SSR, assets, hydration, route handlers, Rust service, client navigation                                                                 |

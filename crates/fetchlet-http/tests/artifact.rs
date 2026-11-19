@@ -65,7 +65,7 @@ fn the_manifest_names_the_server_module_and_client_assets() -> anyhow::Result<()
         &[("server.js", SERVER), ("client/app.css", "body{}")],
     );
     let artifact = Artifact::open(&directory)?;
-    assert_eq!(artifact.handler(), "render");
+    assert_eq!(artifact.handler(), Some("render"));
     assert_eq!(artifact.backend(), Some("quickjs"));
     assert_eq!(artifact.server_source()?, SERVER);
     assert_eq!(artifact.client_directory(), Some(directory.join("client")));
@@ -255,7 +255,7 @@ fn embedded_artifacts_carry_their_server_and_assets() -> anyhow::Result<()> {
 #[test]
 fn include_artifact_embeds_a_build_directory() -> anyhow::Result<()> {
     let artifact = fetchlet_http::include_artifact!("fixtures/embedded")?;
-    assert_eq!(artifact.handler(), "handle");
+    assert_eq!(artifact.handler(), Some("handle"));
     assert!(artifact.server_source()?.contains("fetchletExports"));
     assert!(
         artifact

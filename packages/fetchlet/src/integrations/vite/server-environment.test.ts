@@ -67,6 +67,8 @@ describe("serverEnvironmentPlugin", () => {
     });
     expect(config.environments.ssr.build).toStrictEqual({
       outDir: "node_modules/.cache/fetchlet-test",
+      // fetchlet/build adds the runtime; a second copy would install it twice.
+      rolldownOptions: { external: [/^fetchlet\/runtime(\/|$)/] },
       minify: false,
     });
     expect(hook(plugin, "applyToEnvironment").call({}, { name: "ssr" })).toBe(true);

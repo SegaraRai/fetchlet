@@ -107,7 +107,7 @@ cargoAll([
   [
     "clippy",
     "--locked",
-    ...[...axumExamples, "honox-tauri"].flatMap((name) => ["-p", `example-${name}`]),
+    ...[...axumExamples, "honox-tauri", "vanilla-cli"].flatMap((name) => ["-p", `example-${name}`]),
     "--all-targets",
     "--",
     "-D",

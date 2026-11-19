@@ -1,0 +1,21 @@
+[package]
+name = "example-vanilla-cli"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "A command line program that calls the functions of a JavaScript module through fetchlet"
+
+[[bin]]
+name = "example-vanilla-cli"
+path = "cli/main.rs"
+
+[features]
+boa = ["fetchlet/boa"]
+v8 = ["fetchlet/v8"]
+
+[dependencies]
+fetchlet = { workspace = true, features = ["quickjs", "web-apis"] }
+fetchlet-http.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["rt", "macros"] }

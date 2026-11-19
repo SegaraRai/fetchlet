@@ -61,6 +61,7 @@ describe("buildArtifact", () => {
       format: "fetchlet-iife",
       formatVersion: 1,
       handler: "handle",
+      functions: [],
       server: "server.js",
       client: "client",
       profile: "portable-web",

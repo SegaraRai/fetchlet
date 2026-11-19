@@ -164,3 +164,49 @@ async fn console_reaches_the_host_sink() -> anyhow::Result<()> {
     console_output(Backend::v8()).await?;
     Ok(())
 }
+
+/// An application without a Fetch handler refuses `fetch` before running
+/// JavaScript and keeps its functions callable, on the App and on a worker.
+async fn functions_only(backend: Backend) -> anyhow::Result<()> {
+    let request = || {
+        http::Request::builder()
+            .uri("https://fetchlet.test/")
+            .body(Body::empty())
+    };
+    let mut app = App::builder(backend)
+        .module(Module::new(SOURCE))
+        .fetch_handler(None)
+        .build()?;
+    let error = app.fetch(request()?).await.unwrap_err();
+    assert!(
+        matches!(&error, Error::Configuration(message) if message.contains("no Fetch handler")),
+        "{error}"
+    );
+    assert!(app.is_reusable());
+    assert_eq!(app.call_json("echo", &[json!(1)]).await?, json!(1));
+
+    let handle = App::builder(backend)
+        .module(Module::new(SOURCE))
+        .fetch_handler(None)
+        .spawn(fetchlet::WorkerOptions::new(
+            std::num::NonZeroUsize::new(1).unwrap(),
+        ))
+        .await?;
+    assert!(matches!(
+        handle.fetch(request()?).await,
+        Err(Error::Configuration(_))
+    ));
+    assert_eq!(handle.call_json("echo", &[json!(2)]).await?, json!(2));
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn applications_of_functions_only() -> anyhow::Result<()> {
+    #[cfg(feature = "quickjs")]
+    functions_only(Backend::quickjs()).await?;
+    #[cfg(feature = "boa")]
+    functions_only(Backend::boa()).await?;
+    #[cfg(feature = "v8")]
+    functions_only(Backend::v8()).await?;
+    Ok(())
+}
