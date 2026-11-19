@@ -65,7 +65,9 @@ suite.check(
     await page.evaluate(() => Object.assign(window, { beforeEdit: true }));
     await suite.edit("src/components/Counter.tsx", "{`Clicks ${count()}`}", "{`Taps ${count()}`}");
     // Solid's hot module replacement remounts the component in the open page.
-    await expect.poll(() => page.locator("[data-counter]").textContent()).toBe("Taps 0");
+    await expect
+      .poll(() => page.locator("[data-counter]").textContent(), { timeout: suite.deadline })
+      .toBe("Taps 0");
     expect(await page.evaluate(() => "beforeEdit" in window)).toBe(true);
     await suite.until(
       async () => (await (await fetch(suite.base + "/")).text()).includes("Taps 0"),

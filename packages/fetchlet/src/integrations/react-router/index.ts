@@ -1,10 +1,12 @@
 import { join } from "node:path";
 
 import type { Preset } from "@react-router/dev/config";
+import type { Plugin } from "vite";
 
 import { IMMUTABLE } from "../../build/asset-entries.ts";
 import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
+import { devServerPlugin } from "../vite/dev-server.ts";
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
@@ -110,4 +112,65 @@ async function writeArtifact({
         }
       : {}),
   });
+}
+
+export interface FetchletDevServerOptions {
+  /** The engine the Rust host runs. */
+  backend?: BuildBackend;
+  /** Intl data for engines without native Intl, as in fetchlet/build. */
+  intl?: IntlOptions;
+}
+
+/** The development entry: React Router's server build with the preset's request context. */
+const DEV_ENTRY = "virtual:fetchlet/react-router-dev-entry";
+
+const devEntrySource = `
+  import { createRequestHandler, RouterContextProvider } from "react-router";
+  import { fetchletContext } from "fetchlet/react-router/context";
+  import * as build from "virtual:react-router/server-build";
+
+  const handler = createRequestHandler(build, "development");
+
+  export default {
+    fetch(request, env, ctx) {
+      const provider = new RouterContextProvider();
+      provider.set(fetchletContext, {
+        clientAddress: ctx.clientAddress,
+        env,
+        waitUntil: ctx.waitUntil,
+      });
+      return handler(request, provider);
+    },
+  };
+`;
+
+/**
+ * A Vite plugin, beside `reactRouter()`, that serves a fetchlet Rust host
+ * from `vite dev`: the host runs React Router's server build on its engine
+ * with the request context of `fetchletPreset`'s artifact. React Router
+ * renders in Node whenever its `ssr` environment is runnable, so this
+ * plugin makes it a plain environment that the engine's runner fetches from.
+ */
+export function fetchletDevServer(options: FetchletDevServerOptions = {}): Plugin[] {
+  return [
+    devServerPlugin({
+      name: "fetchlet/react-router:dev-server",
+      entry: DEV_ENTRY,
+      runnable: false,
+      framework: "react-router",
+      rendering: "streaming",
+      ...(options.backend ? { backend: options.backend } : {}),
+      ...(options.intl ? { intl: options.intl } : {}),
+    }),
+    {
+      name: "fetchlet/react-router:dev-entry",
+      apply: "serve",
+      resolveId(source) {
+        return source === DEV_ENTRY ? "\0" + DEV_ENTRY : undefined;
+      },
+      load(id) {
+        return id === "\0" + DEV_ENTRY ? devEntrySource : undefined;
+      },
+    },
+  ];
 }

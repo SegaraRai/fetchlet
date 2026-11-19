@@ -42,7 +42,7 @@ suite.check("a server module edit serves the next request and reloads pages", ["
       (await (await fetch(suite.base + "/")).text()).includes("<title>Edited, guest</title>"),
     "server edit",
   );
-  await expect.poll(() => page.title()).toBe("Edited, guest");
+  await expect.poll(() => page.title(), { timeout: suite.deadline }).toBe("Edited, guest");
   await page.close();
 });
 
@@ -53,7 +53,9 @@ suite.check("a stylesheet edit applies in place", ["assets"], async () => {
   await page.locator("[data-counter]").click();
   await suite.edit("src/styles.css", "margin: 2rem;", "margin: 3rem;");
   await expect
-    .poll(() => page.evaluate(() => getComputedStyle(document.body).marginTop))
+    .poll(() => page.evaluate(() => getComputedStyle(document.body).marginTop), {
+      timeout: suite.deadline,
+    })
     .toBe("48px");
   // The page kept its state, so it was not reloaded.
   expect(await page.locator("[data-counter]").textContent()).toBe("Clicks 1");

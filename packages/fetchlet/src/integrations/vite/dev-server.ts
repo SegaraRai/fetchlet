@@ -7,12 +7,13 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import { join, relative, resolve } from "node:path";
 
-import type {
+import {
+  createServerHotChannel,
   DevEnvironment,
-  EnvironmentModuleNode,
-  Plugin,
-  ResolvedConfig,
-  ViteDevServer,
+  type EnvironmentModuleNode,
+  type Plugin,
+  type ResolvedConfig,
+  type ViteDevServer,
 } from "vite";
 
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
@@ -54,6 +55,12 @@ export interface DevServerOptions {
   include?: string[];
   /** Make the entry's named function exports callable from Rust. */
   functions?: boolean;
+  /**
+   * `false` makes the server environment a plain, non-runnable
+   * `DevEnvironment`, for frameworks that render in Node whenever it is
+   * runnable rather than when it lacks `dispatchFetch`. Defaults to true.
+   */
+  runnable?: boolean;
   /** Pages come from the entry, so Vite serves no HTML of its own. */
   customApp?: boolean;
   /** Recorded in fetchlet.json. */
@@ -132,10 +139,27 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
       // The engine evaluates ES modules only, so CommonJS dependencies are
       // prebundled into ES modules, as Vite does for the browser.
       return {
+        // The engine loads only the modules Vite transforms.
+        resolve: {
+          noExternal: true,
+        },
         optimizeDeps: {
           noDiscovery: false,
           ...(options.include ? { include: options.include } : {}),
         },
+        ...(options.runnable === false
+          ? {
+              dev: {
+                // The engine's runner reaches the environment through
+                // `handleInvoke`, which a server hot channel provides.
+                createEnvironment: (name, resolvedConfig) =>
+                  new DevEnvironment(name, resolvedConfig, {
+                    hot: true,
+                    transport: createServerHotChannel(),
+                  }),
+              },
+            }
+          : {}),
       };
     },
     configResolved(resolved) {

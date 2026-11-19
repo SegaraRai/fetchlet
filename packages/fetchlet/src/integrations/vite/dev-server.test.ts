@@ -4,9 +4,10 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createServer, type ViteDevServer } from "vite";
+import { createServer, isRunnableDevEnvironment, type ViteDevServer } from "vite";
 import { afterAll, beforeAll, describe, expect, test } from "vite-plus/test";
 
+import { devServerPlugin } from "./dev-server.ts";
 import fetchlet from "./index.ts";
 
 let directory: string;
@@ -92,5 +93,53 @@ describe("fetchlet/vite development serving", () => {
   test("serves a browser entry with Vite's HMR client", async () => {
     const response = await fetch(`${origin}/@fetchlet/client?entry=src%2Fclient.ts`);
     expect(await response.text()).toBe('import "/@vite/client";\nimport "/src/client.ts";\n');
+  });
+});
+
+describe("a non-runnable server environment", () => {
+  test("is fetchable, keeps every module internal and still answers the runner", async () => {
+    const server = await createServer({
+      root: directory,
+      configFile: false,
+      logLevel: "silent",
+      server: {
+        middlewareMode: true,
+        ws: false,
+        watch: null,
+      },
+      plugins: [
+        devServerPlugin({
+          name: "test:dev-server",
+          entry: "src/server.ts",
+          runnable: false,
+          framework: "test",
+          rendering: "buffered",
+        }),
+      ],
+    });
+    try {
+      const ssr = server.environments.ssr!;
+      // Frameworks that render in Node whenever the environment is
+      // runnable, such as React Router, leave its requests to the host.
+      expect(isRunnableDevEnvironment(ssr)).toBe(false);
+      expect("dispatchFetch" in ssr).toBe(true);
+      expect(ssr.config.resolve.noExternal).toBe(true);
+      const result = (await ssr.hot.handleInvoke({
+        type: "custom",
+        event: "vite:invoke",
+        data: {
+          id: "send:1",
+          name: "fetchModule",
+          data: ["/src/server.ts", undefined, {}],
+        },
+      })) as {
+        result: {
+          code: string;
+        };
+      };
+      expect(result.result.code).toContain("__vite_ssr_exportName__");
+    } finally {
+      await server.close();
+    }
   });
 });

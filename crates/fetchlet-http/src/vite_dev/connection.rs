@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::fmt;
+use std::time::Duration;
 
 use bytes::Bytes;
 use fetchlet::{Body, FetchPolicy, FetchService, HostServices, transport_fn};
@@ -8,7 +9,8 @@ use http::{HeaderValue, Method, Request, StatusCode, Uri};
 use http_body_util::{BodyExt, Empty};
 use hyper_util::client::legacy::Client;
 use hyper_util::client::legacy::connect::HttpConnector;
-use hyper_util::rt::TokioExecutor;
+use hyper_util::rt::{TokioExecutor, TokioTimer};
+use tokio::runtime::Handle;
 
 use super::ViteProxy;
 use crate::{Artifact, ArtifactError};
@@ -16,6 +18,14 @@ use crate::{Artifact, ArtifactError};
 /// The binding name through which the development artifact reaches the Vite
 /// dev server; `fetchlet/vite/dev-runner` reads the same name.
 pub const VITE_BINDING: &str = "FETCHLET_VITE";
+
+/// How long an idle connection to the dev server is kept for reuse. Node's
+/// HTTP server, Vite's included, closes a keep-alive connection after 5
+/// seconds of idleness (`server.keepAliveTimeout`), and a request sent as it
+/// closes fails without a retry. The engine's runner can stay longer than
+/// that between requests while it evaluates a large module, so the client
+/// gives connections up first.
+const IDLE_CONNECTION: Duration = Duration::from_secs(2);
 
 /// The origin the development artifact addresses the binding with. It never
 /// resolves; the binding sends each request to the Vite dev server.
@@ -58,6 +68,8 @@ pub struct ViteDev {
     scheme: Scheme,
     authority: Authority,
     client: Client<HttpConnector, Body>,
+    /// The runtime the runner's requests go out on; see [`ViteDev::new`].
+    runtime: Option<Handle>,
 }
 
 impl fmt::Debug for ViteDev {
@@ -75,6 +87,12 @@ impl fmt::Debug for ViteDev {
 impl ViteDev {
     /// A connection to the Vite dev server at `url`, such as
     /// `http://localhost:5173`. Nothing is requested until it is used.
+    ///
+    /// The engine's requests to the dev server go out on the Tokio runtime
+    /// `new` is called on, such as the HTTP server's. A pooled connection
+    /// is a task on the runtime that opened it, and each application worker
+    /// runs its own runtime, which stalls while its engine evaluates; a
+    /// connection another worker reused would stall with it.
     pub fn new(url: &str) -> Result<Self, ViteDevError> {
         let invalid = || ViteDevError::Url(url.into());
         let uri: Uri = url.parse().map_err(|_| invalid())?;
@@ -87,7 +105,11 @@ impl ViteDev {
         Ok(Self {
             scheme: scheme.clone(),
             authority: authority.clone(),
-            client: Client::builder(TokioExecutor::new()).build_http(),
+            client: Client::builder(TokioExecutor::new())
+                .pool_timer(TokioTimer::new())
+                .pool_idle_timeout(IDLE_CONNECTION)
+                .build_http(),
+            runtime: Handle::try_current().ok(),
         })
     }
 
@@ -187,11 +209,17 @@ impl ViteDev {
         let (mut parts, body) = request.into_parts();
         parts.uri = self.uri(parts.uri.path_and_query());
         parts.headers.insert(http::header::HOST, self.host());
-        let response = self
-            .client
-            .request(Request::from_parts(parts, body))
-            .await
-            .map_err(|error| fetchlet::Error::Transport(format!("Vite dev server: {error}")))?;
+        let client = self.client.clone();
+        let request = Request::from_parts(parts, body);
+        let sent = async move { client.request(request).await };
+        let failed = |error: &dyn fmt::Display| {
+            fetchlet::Error::Transport(format!("Vite dev server: {error}"))
+        };
+        let response = match &self.runtime {
+            Some(runtime) => runtime.spawn(sent).await.map_err(|error| failed(&error))?,
+            None => sent.await,
+        }
+        .map_err(|error| failed(&error))?;
         Ok(response.map(Body::from_http_body))
     }
 }

@@ -67,7 +67,9 @@ suite.check(
     await page.locator("[data-counter]").click();
     await suite.edit("src/components/Counter.tsx", "      Clicks {count}", "      Taps {count}");
     // React Fast Refresh keeps the count, so the page was not reloaded.
-    await expect.poll(() => page.locator("[data-counter]").textContent()).toBe("Taps 1");
+    await expect
+      .poll(() => page.locator("[data-counter]").textContent(), { timeout: suite.deadline })
+      .toBe("Taps 1");
     await suite.until(
       async () => (await (await fetch(suite.base + "/")).text()).includes("Taps <!-- -->0"),
       "server render of the edit",

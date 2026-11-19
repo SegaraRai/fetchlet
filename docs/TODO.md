@@ -142,6 +142,16 @@ one application, tenant and authority configuration. Reentrancy under a
 pool (waiting for capacity) and calls from tasks spawned by host futures,
 which are not detected today, need defined behavior and tests.
 
+### Tasks that host transports spawn
+
+Each worker of an `AppHandle` runs its own current-thread runtime, and a
+task a host transport spawns there, such as the connection a pooled HTTP
+client keeps, runs only while that worker's engine yields. A connection
+another worker reuses then waits for the first worker's evaluation to end;
+fetchlet-http's `ViteDev` avoids it by sending on the server's runtime. A
+shared runtime for host futures, or guidance for transports, with a test
+that reuses a connection across a busy worker, remains.
+
 ### Streaming outbound request bodies
 
 Outbound request bodies are read in full in JavaScript because a redirect
@@ -188,14 +198,13 @@ Three parts remain:
 
 ### Development from Vite per framework
 
-`ViteDev` serves `fetchlet/vite`, `fetchlet/tanstack-start` and
-`fetchlet/solid-start` ([development loop](research/dev-loop.md)). React
-Router also leaves requests to another middleware when its server
-environment is not runnable
+`ViteDev` serves `fetchlet/vite`, `fetchlet/tanstack-start`,
+`fetchlet/solid-start` and `fetchlet/react-router`
+([development loop](research/dev-loop.md)). Astro may fit the same way
 ([framework table](research/dev-loop.md#how-frameworks-evaluate-their-server-in-development)):
-it needs `devServerPlugin` in its integration with the entry and request
-context of its artifact, and a `dev:vite` task and suite like
-tanstack-start-axum's.
+it falls back to its `astro` environment for content when `ssr` is not
+runnable, which needs checking before an integration plugin and a
+`dev:vite` suite like the others.
 
 ### React Router
 

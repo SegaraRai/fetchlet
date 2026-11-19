@@ -193,6 +193,7 @@ function exampleNames(): string[] {
     "astro-axum",
     "nuxt-axum",
     "react-router-axum",
+    "react-router-axum-vite-dev",
     "honox-axum",
     "honox-tauri",
     "tanstack-start-axum",

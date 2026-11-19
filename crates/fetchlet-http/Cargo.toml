@@ -20,7 +20,7 @@ actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
 # Serve an artifact while a build tool rewrites it, for development.
 dev = ["dep:tokio"]
 # Serve a Vite dev server's modules through the module runner, for development.
-vite-dev = ["dep:hyper", "hyper/client", "dep:hyper-util"]
+vite-dev = ["dep:hyper", "hyper/client", "dep:hyper-util", "dep:tokio"]
 
 [dependencies]
 fetchlet.workspace = true

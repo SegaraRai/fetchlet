@@ -145,6 +145,32 @@ no source text, and seroval writes the resolvers of streamed data into the
 page by their source. The runner now evaluates each module through indirect
 `eval`, whose functions keep it.
 
+React Router decides by `isRunnableDevEnvironment` rather than
+`dispatchFetch`, so `fetchletDevServer` replaces its `ssr` environment
+with a plain `DevEnvironment` over a server hot channel, which still
+answers the engine's runner through `handleInvoke`. Its entry is a virtual
+module that creates React Router's request handler over
+`virtual:react-router/server-build` with the preset's load context. React
+Router does not mark its dependencies `noExternal`, so the dev server plugin
+now keeps every module of the server environment internal: the engine
+loads nothing Vite does not transform. Critical CSS stays Vite's: the page
+links `/@react-router/critical.css`, which the proxy passes to Vite.
+`examples/react-router-axum/tests/vite-dev.test.ts` runs the same four
+checks, with React Fast Refresh keeping state.
+
+On Boa, the runner can spend longer than Node's 5-second keep-alive timeout
+evaluating one large module, such as the prebundled `react-dom/server.edge`,
+between two requests to Vite. Its next request then went out on a pooled
+connection Node had just closed and failed with `ConnectionAborted`;
+`ViteDev` now gives up idle connections after 2 seconds.
+
+A rarer stall had the same shape as V8's: a pooled connection to Vite is a
+task on the runtime of the worker that opened it, and a QuickJS worker's
+runtime stops while its engine evaluates. A page request on another worker
+that reused the connection waited, and about one TanStack Start run in four
+timed out. `ViteDev` now sends the runner's requests on the server's
+runtime; six runs in a row passed.
+
 ### C. JavaScript in Node, Rust services bridged
 
 The framework's own dev server runs the server code in Node; the Rust
@@ -169,7 +195,7 @@ cannot replace; "fetchable" means it hands requests to
 | -------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------ |
 | TanStack Start (1.169)           | Fetchable when the environment is not runnable                                               | Runs                     |
 | SolidStart (2.2.3)               | Fetchable when the environment is not runnable                                               | Runs                     |
-| React Router (8.5.2)             | Skips its middleware when not runnable, leaving requests to another one                      | Fits                     |
+| React Router (8.5.2)             | Skips its middleware when not runnable, leaving requests to another one                      | Runs                     |
 | Astro (7.4.13)                   | Falls back to its `astro` environment for content when `ssr` is not runnable, as for workerd | Likely                   |
 | vinext (1.4.6)                   | `createServerModuleRunner`, `ssrLoadModule` and `runner.import`                              | To investigate           |
 | SvelteKit (3.4.0)                | Requires a runnable `ssr` environment and errors otherwise                                   | Not without Kit changes  |
@@ -202,6 +228,5 @@ the other frameworks' dev servers are unverified on a fetchlet environment.
   Rust log?
 - How does a release build guarantee the `vite-dev` and `dev` features are
   absent? Today it is the application's Cargo features.
-- Does React Router run on this path as TanStack Start and SolidStart do,
-  with its server environment non-runnable and the runner in the engine
-  dispatching its requests?
+- Does Astro serve content from its `astro` environment, with `ssr` left to
+  the engine's runner?

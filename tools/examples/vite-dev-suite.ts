@@ -38,14 +38,22 @@ export interface ViteDevSuite {
   page(): Promise<Page>;
   /** Replaces `from` with `to` in a file of the example until the check ends. */
   edit(file: string, from: string, to: string): Promise<void>;
+  /** How long an edit may take to show, for `expect.poll`'s `timeout`. */
+  readonly deadline: number;
   /** Waits until `condition` holds, failing with the servers' output. */
   until(condition: () => Promise<boolean>, label: string): Promise<void>;
 }
 
 const windows = process.platform === "win32";
 
-/** How long an edit or startup may take to show. */
+/** How long an edit may take to show. */
 const deadlineMs = 30_000;
+
+/**
+ * How long the first page may take: its request evaluates every server
+ * module, which takes Boa's debug builds about half a minute for a framework.
+ */
+const startupMs = 150_000;
 
 function freePort(): Promise<number> {
   return new Promise((resolvePort, reject) => {
@@ -94,8 +102,12 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
   let base: string | undefined;
   let log = "";
 
-  async function until(condition: () => Promise<boolean>, label: string): Promise<void> {
-    const deadline = Date.now() + deadlineMs;
+  async function until(
+    condition: () => Promise<boolean>,
+    label: string,
+    timeoutMs = deadlineMs,
+  ): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
     while (!(await condition().catch(() => false))) {
       if (Date.now() > deadline) {
         throw new Error(`${label} deadline: ${log}`);
@@ -132,7 +144,7 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
     config.listen = "127.0.0.1:0";
     config.backend = backend;
     // The first request loads every module from Vite.
-    config.invocation_timeout_ms = Math.max(config.invocation_timeout_ms ?? 0, deadlineMs);
+    config.invocation_timeout_ms = Math.max(config.invocation_timeout_ms ?? 0, startupMs);
     const configPath = resolve(output, "config.json");
     await writeFile(configPath, JSON.stringify(config, null, 2));
     const started = spawn(exampleBinary(name), [configPath], {
@@ -154,8 +166,8 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
       });
     });
     // Vite optimizes the server's dependencies on the first request.
-    await until(async () => (await fetch(base + "/")).status < 500, "first page");
-  }, 120_000);
+    await until(async () => (await fetch(base + "/")).status < 500, "first page", startupMs);
+  }, startupMs + 60_000);
 
   afterAll(async () => {
     await restore();
@@ -172,6 +184,7 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
   });
 
   return {
+    deadline: deadlineMs,
     get base() {
       if (base === undefined) {
         throw new Error("The example server has not started");
@@ -228,6 +241,7 @@ function skippedSuite(reason: string): ViteDevSuite {
     throw new Error(reason);
   };
   return {
+    deadline: deadlineMs,
     get base(): string {
       return unavailable();
     },

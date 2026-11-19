@@ -68,6 +68,36 @@ happens even for small pages in Rust debug builds, not in release builds
 `QuickJsOptions::stack_limit_bytes` to 4 MiB and the worker thread stack to
 8 MiB, and its end-to-end checks assert that no fragment remains.
 
+## Development serving
+
+`fetchletDevServer`, added to `vite.config.ts` beside `reactRouter()`,
+serves a Rust host that uses fetchlet-http's `ViteDev`, as
+[fetchlet/vite](vite.md#development-serving) does:
+
+```ts
+import { reactRouter } from "@react-router/dev/vite";
+import { fetchletDevServer } from "fetchlet/react-router";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [
+    reactRouter(),
+    fetchletDevServer({
+      backend: "quickjs",
+    }),
+  ],
+});
+```
+
+The host runs React Router's development server build on its engine
+through Vite's module runner, with the same load context as the preset's
+artifact, and Vite serves the browser modules with React Fast Refresh and
+`/@react-router/critical.css`. React Router renders in Node whenever its
+`ssr` environment is runnable, so the plugin replaces it with a plain
+`DevEnvironment` that the engine's runner fetches from.
+[examples/react-router-axum](../../../examples/react-router-axum/README.md#develop-from-vite)
+has a `dev:vite` task.
+
 ## Tests and next work
 
 [examples/react-router-axum](../../../examples/react-router-axum/README.md)
