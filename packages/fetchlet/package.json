@@ -40,6 +40,7 @@
     "./vinext/node/fs": "./src/integrations/vinext/node/fs.ts",
     "./vite": "./src/integrations/vite/index.ts",
     "./vite/client-assets": "./src/integrations/vite/client-assets.d.ts",
+    "./vite/dev-runner": "./src/integrations/vite/dev-runner.ts",
     "./waku": "./src/integrations/waku/adapter.ts",
     "./waku/build-enhancer": "./src/integrations/waku/build-enhancer.ts",
     "./waku/context": "./src/integrations/waku/context.ts"
@@ -72,6 +73,7 @@
       "./vinext/node/fs": "./dist/integrations/vinext/node/fs.js",
       "./vite": "./dist/integrations/vite/index.js",
       "./vite/client-assets": "./dist/integrations/vite/client-assets.d.ts",
+      "./vite/dev-runner": "./dist/integrations/vite/dev-runner.js",
       "./waku": "./dist/integrations/waku/adapter.js",
       "./waku/build-enhancer": "./dist/integrations/waku/build-enhancer.js",
       "./waku/context": "./dist/integrations/waku/context.js"

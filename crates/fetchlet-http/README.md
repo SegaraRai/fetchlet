@@ -59,6 +59,27 @@ reload.shutdown().await?;
 
 `DevService` answers two paths itself: `/__fetchlet/reload.js`, a module script that long-polls `/__fetchlet/reload` and reloads the page when a new generation starts or the server restarts, and that poll. Every other request reaches the current generation, and HTML responses get a `<script type="module" src="/__fetchlet/reload.js?token=…">` element appended. The script comes from the page's own origin, so a Content Security Policy that allows `'self'` scripts allows it. The service drops `Accept-Encoding` from requests, so asset archives answer uncompressed, and leaves responses that still carry a `Content-Encoding` unchanged. The manifest is checked every 200 ms by default (`poll_interval`); a file system whose modification times are coarser than the interval between two builds can miss the second build until the next one. Keep the feature out of release builds: it serves extra paths and changes HTML responses.
 
+## Running from a Vite dev server
+
+The `vite-dev` feature adds `ViteDev`, which runs a server module from `vite dev` with `fetchlet/vite` instead of from a build. The dev server builds a development artifact whose server module runs Vite's module runner in the engine; the runner loads the app's server module and its imports from Vite, and reloads the modules a file change touched before the next call, so a server edit takes effect on the next request without a new instance. Browser modules keep Vite's hot module replacement.
+
+```rust,ignore
+use fetchlet_http::ViteDev;
+
+let vite = ViteDev::new("http://127.0.0.1:5173")?;
+let artifact = vite.artifact().await?;
+let services = vite.host_services(host_services()?)?;
+let (router, app) = application(&artifact, services).await?;
+let router = axum::Router::new().fallback_service(vite.proxy(router));
+axum::serve(listener, router).await?;
+```
+
+- `host_services` adds the `FETCHLET_VITE` binding, through which the runner reaches the dev server. Its policy allows only the binding's own origin, the application's services and their `FetchPolicy`s stay as they are, and the runner removes the binding from the `env` the server module sees.
+- `proxy` sends `GET` and `HEAD` requests to Vite first, which answers browser modules, its HMR client and public files; Vite's 404s and every other method go to the app. The runner's own endpoints under `/@fetchlet/` stay with the app. The browser opens Vite's HMR WebSocket on Vite's port.
+- The engine, the Web API profile, host services, in-process fetch and the `Context` are those of the application. What differs from a release build: modules are evaluated one by one with `AsyncFunction` instead of as one bundle, module state is lost when its module changes, and the named exports `App::call` reaches are those the server module had when the dev server built the development artifact.
+
+Keep the feature out of release builds: it runs whatever the dev server sends.
+
 ## Asset archives
 
 `archiveArtifactAssets` in `fetchlet/build` packs the client directory into
@@ -110,7 +131,7 @@ actix-web services are not `Send`, so there is no actix transport. Use `fetchlet
 
 ## Tests
 
-`tests/contract/` drives each integration with requests of its own server: Tower in memory, hyper over loopback TCP, axum through its router and actix through its test service. Each check runs on QuickJS, Boa and V8. `tests/axum_router.rs` covers one router serving public and in-process requests, `tests/artifact.rs` covers artifact reading and asset serving, and `tests/dev.rs` covers reloading, the reload poll and failed builds.
+`tests/contract/` drives each integration with requests of its own server: Tower in memory, hyper over loopback TCP, axum through its router and actix through its test service. Each check runs on QuickJS, Boa and V8. `tests/axum_router.rs` covers one router serving public and in-process requests, `tests/artifact.rs` covers artifact reading and asset serving, `tests/dev.rs` covers reloading, the reload poll and failed builds, and `tests/vite_dev.rs` covers the development artifact and the proxy against a stand-in dev server.
 
 ```bash
 vp run test:rust

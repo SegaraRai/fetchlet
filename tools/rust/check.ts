@@ -4,7 +4,7 @@
 
 import { cargoAll } from "@fetchlet-internal/tools-workspace/cargo";
 
-const httpFeatures = ["hyper", "axum", "actix", "dev"];
+const httpFeatures = ["hyper", "axum", "actix", "dev", "vite-dev"];
 const axumExamples = [
   "astro-axum",
   "honox-axum",
@@ -62,4 +62,6 @@ cargoAll([
   // The reloading servers of the examples' `dev` tasks. Each package gets
   // its own feature, so they are checked one at a time.
   ...axumExamples.map((name) => clippy("-p", `example-${name}`, "--features", "dev")),
+  // The server of vanilla-axum's `dev:vite` task.
+  clippy("-p", "example-vanilla-axum", "--features", "vite-dev"),
 ]);

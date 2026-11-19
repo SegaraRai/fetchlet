@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import type { Plugin, ResolvedConfig } from "vite";
 
 import { exportedHandlerSource } from "../../build/exported-handler.ts";
+import { devServerPlugin } from "./dev-server.ts";
 import { serverEnvironmentPlugin, type ViteArtifactOptions } from "./server-environment.ts";
 
 export interface FetchletViteOptions extends ViteArtifactOptions {
@@ -91,14 +92,16 @@ export default function fetchlet({
         return;
       }
       if (this.environment.mode === "dev") {
-        // Vite serves the sources themselves during development.
+        // Vite serves the sources themselves during development, behind an
+        // entry that also loads its HMR client; styles come with the modules.
         const base = config?.base ?? "/";
         return `export default ${JSON.stringify(
           Object.fromEntries(
-            (clientEntries ?? []).map((entry) => [
-              entry.replace(/^\.\//, ""),
-              { script: base + entry.replace(/^\.\//, ""), styles: [] },
-            ]),
+            (clientEntries ?? []).map((entry) => {
+              const source = entry.replace(/^\.\//, "");
+              const script = `${base}@fetchlet/client?entry=${encodeURIComponent(source)}`;
+              return [source, { script, styles: [] }];
+            }),
           ),
         )};`;
       }
@@ -130,6 +133,11 @@ export default function fetchlet({
       },
       options,
     ),
+    devServerPlugin({
+      server,
+      ...(options.backend ? { backend: options.backend } : {}),
+      ...(options.intl ? { intl: options.intl } : {}),
+    }),
   ];
 }
 

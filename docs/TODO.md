@@ -16,13 +16,13 @@ build a server module in the Workers module shape, which
 artifact without a Fetch handler, which `examples/vanilla-cli` checks. Two
 parts remain:
 
-- Development serving. `vite dev` serves the browser entries but does not
-  run the server module. Dispatch requests the client environment leaves
-  over to the server module through the SSR environment's module runner,
-  with bindings the app supplies for development, and check it with a test
-  that requests a page and an endpoint from the dev server.
-  [Development loop](research/dev-loop.md) proposes running that runner
-  on the fetchlet engine inside the Rust program instead of in Node.
+- Development serving end to end. `fetchlet/vite` with fetchlet-http's
+  `ViteDev` runs the server module from `vite dev` in the Rust program
+  ([development loop](research/dev-loop.md)), which
+  examples/vanilla-axum's `dev:vite` task was checked with by hand. Add
+  an end-to-end check that edits a server module and a stylesheet under the
+  task and asserts the next response and the in-place style update, and run
+  it on V8.
 - A command line entry, `fetchlet build src/server.ts --backend quickjs
   --out build`, for projects without Vite. It needs a `bin` in the package
   and a check in `test:package` that runs the packed command.
@@ -191,6 +191,14 @@ Three parts remain:
   integration keeps the artifact consistent across environment rebuilds, as
   `fetchlet/vite` does; the other integrations are unverified under
   `--watch`.
+
+### Development from Vite per framework
+
+`ViteDev` serves `fetchlet/vite` only. TanStack Start, SolidStart and React
+Router dispatch requests to a server environment that is not runnable
+([development loop](research/dev-loop.md#how-frameworks-evaluate-their-server-in-development));
+each needs its integration to make that environment's runner the engine's,
+and an example task like vanilla-axum's `dev:vite`.
 
 ### React Router
 

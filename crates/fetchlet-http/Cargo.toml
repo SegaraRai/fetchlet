@@ -19,6 +19,8 @@ axum = ["dep:axum", "dep:tower-http"]
 actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
 # Serve an artifact while a build tool rewrites it, for development.
 dev = ["dep:tokio"]
+# Serve a Vite dev server's modules through the module runner, for development.
+vite-dev = ["dep:hyper", "hyper/client", "dep:hyper-util"]
 
 [dependencies]
 fetchlet.workspace = true
@@ -37,6 +39,7 @@ tower-http = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 futures-core = { version = "0.3", optional = true }
 tokio = { workspace = true, optional = true }
+hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"], optional = true }
 
 [dev-dependencies]
 # The integration contract runs on every engine.
@@ -69,6 +72,10 @@ required-features = ["actix"]
 [[test]]
 name = "dev"
 required-features = ["dev", "axum"]
+
+[[test]]
+name = "vite_dev"
+required-features = ["vite-dev", "axum"]
 
 [[test]]
 name = "artifact"

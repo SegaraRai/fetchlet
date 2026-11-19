@@ -3,8 +3,8 @@
 Today an example runs by building the JavaScript (`vp build`) and starting
 the Rust program (`cargo run`); a source change needs both again. This note
 compares ways for fetchlet to give framework apps an edit-and-reload loop
-while the Rust host, its routes and its `HostServices` stay in place. It is a
-design investigation; nothing here is implemented.
+while the Rust host, its routes and its `HostServices` stay in place. Option A
+is implemented for every axum example, and option B for `fetchlet/vite`.
 
 ## Goal
 
@@ -81,6 +81,29 @@ artifact:
 This gives Vite's loop with production's engine and authority, but depends
 on how each framework evaluates its server in development (below).
 
+Option B is implemented for `fetchlet/vite`
+([development serving](../../packages/fetchlet/docs/vite.md#development-serving)),
+with fetchlet-http's `ViteDev` (feature `vite-dev`) on the Rust side and a
+`dev:vite` task in examples/vanilla-axum. It differs from the outline above
+in three places:
+
+- The plugin keeps Vite's default `ssr` environment and answers the runner's
+  `invoke` calls with `environment.hot.handleInvoke`; nothing configures the
+  environment as non-runnable, since no framework code asks for its runner.
+- File changes reach the runner without a long-poll: before each call it asks
+  the plugin for the server modules changed since its last call, which the
+  plugin records from `hotUpdate` with their importers, and invalidates
+  them. A change also sends the browser a full reload.
+- The runner reaches Vite through a host service binding, `FETCHLET_VITE`,
+  whose transport forwards to the dev server, rather than through a policy
+  that allows Vite's origin. The application's services and policies are
+  unchanged.
+
+On vanilla-axum, the module runner ran on QuickJS and Boa with the
+profile's polyfills; a server edit was served on the next request (16 to
+22 ms on QuickJS, 150 to 170 ms on Boa, debug builds), a stylesheet edit was
+applied in the open page without a reload, and a server edit reloaded it.
+
 ### C. JavaScript in Node, Rust services bridged
 
 The framework's own dev server runs the server code in Node; the Rust
@@ -134,13 +157,12 @@ a fetchlet environment is unverified.
 
 ## Open questions
 
-- Does `vite/module-runner` evaluate on QuickJS and Boa with the profile's
-  polyfills, and is `AsyncFunction` construction available in every engine
-  configuration fetchlet uses?
+- Does `vite/module-runner` evaluate on V8 the same way? QuickJS and Boa
+  were checked; V8 was not run.
 - How do source maps and stack traces from runner-evaluated code reach the
   Rust log?
-- How does the dev connection bypass `FetchPolicy` without widening what
-  production code may fetch? A development-only transport in Rust rather
-  than an allowed origin keeps the policy unchanged.
-- Which crate owns development mode (a `dev` feature of fetchlet-http), and
-  how does a release build guarantee it is absent?
+- How does a release build guarantee the `vite-dev` and `dev` features are
+  absent? Today it is the application's Cargo features.
+- Which frameworks run on this path: TanStack Start, SolidStart and React
+  Router need their server environment to be non-runnable, with the runner
+  in the engine dispatching their requests.

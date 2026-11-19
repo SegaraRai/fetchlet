@@ -97,11 +97,35 @@ the artifact has no client assets.
 hashed files under Vite's `build.assetsDir` (`assets/` by default) for a
 year ([asset archive](../../../docs/asset-archive.md)).
 
+## Development serving
+
+`vite dev` with this plugin serves a Rust host that uses fetchlet-http's
+`ViteDev` ([fetchlet-http](../../../crates/fetchlet-http/README.md#running-from-a-vite-dev-server)).
+The Rust program stays the front door and runs the server module on its own
+engine; Vite serves the browser modules with hot module replacement:
+
+- The plugin builds a development artifact for `backend` when the host first
+  asks for it. Its server module is `fetchlet/vite/dev-runner`: Vite's module
+  runner, which loads the server module from the `ssr` environment through
+  the host's `FETCHLET_VITE` binding and evaluates each module with
+  `AsyncFunction`. It runs on QuickJS and Boa.
+- Before each request or function call, the runner reloads the server
+  modules changed since the previous one, with the modules that import them.
+  A change to a server module also reloads open pages.
+- `virtual:fetchlet/client-assets` gives each browser entry the script
+  `/@fetchlet/client?entry=…`, which loads Vite's HMR client and the entry;
+  styles come with the modules. The HMR WebSocket connects to Vite's own
+  port, which the plugin fixes with `server.strictPort` and
+  `server.ws.clientPort` unless the project sets `server.ws`.
+- The plugin sets `appType: "custom"`: the server module renders the pages.
+
+The named exports the host can call are read when the development artifact
+is built; a function exported later needs a dev server restart.
+[examples/vanilla-axum](../../../examples/vanilla-axum/README.md#develop-from-vite)
+has a `dev:vite` task that starts both.
+
 ## Without Vite
 
 `exportedHandler` from [fetchlet/build](build.md#a-server-module-without-a-framework)
 builds the same server module shape without Vite and without browser
 entries.
-
-`vite dev` serves the browser entries but does not run the server module;
-[development serving](../../../docs/TODO.md#vanilla-javascript) is open work.

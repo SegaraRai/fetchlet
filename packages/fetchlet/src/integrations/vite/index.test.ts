@@ -146,7 +146,7 @@ describe("fetchlet/vite", () => {
     });
   });
 
-  test("serves the client sources during development", () => {
+  test("serves the client sources behind Vite's HMR client during development", () => {
     const [app] = fetchlet({
       client: "./src/client.ts",
     });
@@ -166,6 +166,8 @@ describe("fetchlet/vite", () => {
       },
       "\0virtual:fetchlet/client-assets",
     ) as string;
-    expect(source).toContain('"src/client.ts":{"script":"/src/client.ts","styles":[]}');
+    expect(source).toContain(
+      '"src/client.ts":{"script":"/@fetchlet/client?entry=src%2Fclient.ts","styles":[]}',
+    );
   });
 });

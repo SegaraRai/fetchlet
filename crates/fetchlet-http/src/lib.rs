@@ -5,7 +5,8 @@
 //! for those servers. [`Artifact`] reads the output of `fetchlet/build`, and
 //! [`AssetService`] serves its client assets from an [`AssetArchive`].
 //! The `dev` feature adds `DevReload`, which serves an artifact while a
-//! build tool rewrites it.
+//! build tool rewrites it, and the `vite-dev` feature adds `ViteDev`, which
+//! runs the server module from a Vite dev server through Vite's module runner.
 //! The JavaScript engine is chosen on the `fetchlet` crate.
 
 mod artifact;
@@ -20,6 +21,8 @@ mod axum_server;
 mod dev;
 #[cfg(feature = "hyper")]
 mod hyper_server;
+#[cfg(feature = "vite-dev")]
+mod vite_dev;
 
 pub use artifact::{Artifact, ArtifactError};
 pub use assets::{Asset, AssetArchive, AssetArchiveError, AssetBody, AssetFuture, AssetService};
@@ -38,6 +41,8 @@ pub use dev::{
 };
 #[cfg(feature = "hyper")]
 pub use hyper_server::{HyperConnection, HyperService, PeerAddr, peer_addr};
+#[cfg(feature = "vite-dev")]
+pub use vite_dev::{VITE_BINDING, ViteBody, ViteDev, ViteDevError, ViteProxy};
 
 #[doc(hidden)]
 pub mod __private {

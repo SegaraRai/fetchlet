@@ -26,6 +26,10 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      "dev:vite": {
+        command: "node ../../tools/examples/vite-dev.ts example-vanilla-axum 3621",
+        cache: false,
+      },
       "check:types": {
         command: "tsc --noEmit",
         cache: false,
