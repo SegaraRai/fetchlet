@@ -9,6 +9,9 @@ export const exe = process.platform === "win32" ? ".exe" : "";
 /** The debug build of the verification host, built by `vp run build:lab`. */
 export const labBinary = resolve(root, `target/debug/fetchlet-lab${exe}`);
 
+/** The optimized verification host for conformance, built by `vp run build:lab-release`. */
+export const releaseLabBinary = resolve(root, `target/release/fetchlet-lab${exe}`);
+
 /** The debug build of an example's Rust server. */
 export function exampleBinary(name: string, profile: "debug" | "release" = "debug"): string {
   return resolve(root, `target/${profile}/example-${name}${exe}`);

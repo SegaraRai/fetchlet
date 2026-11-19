@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 
-import { labBinary, root } from "@fetchlet-internal/tools-workspace/paths";
+import { releaseLabBinary, root } from "@fetchlet-internal/tools-workspace/paths";
 
 export type Execution =
   | { status: "timeout" | "runner-error"; message: string }
@@ -16,7 +16,7 @@ export function runProcess(
   suite: string,
 ): Promise<Execution> {
   const native = backend === "node-reference";
-  const executable = native ? process.execPath : labBinary;
+  const executable = native ? process.execPath : releaseLabBinary;
   const args = native
     ? [resolve(import.meta.dirname, "node-host.ts"), bundle, suite]
     : [backend, bundle];

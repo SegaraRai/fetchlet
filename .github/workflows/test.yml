@@ -10,8 +10,43 @@ on:
 permissions:
   contents: read
 
+# The gates run as parallel jobs. Each job restores its own Cargo dependency
+# cache; only main saves them, so branches do not evict main's caches from
+# the repository's cache quota.
 jobs:
-  test:
+  rust:
+    name: rust (${{ matrix.os }}, ${{ matrix.task }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Formatting and lints do not depend on the platform; tests run on both.
+          - { os: ubuntu-latest, task: "check:rust" }
+          - { os: ubuntu-latest, task: "test:rust" }
+          - { os: windows-latest, task: "test:rust" }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version: "26"
+          version: "1.7.0"
+          run-install: false
+      - run: vp install --frozen-lockfile
+      - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      # The Tauri examples link WebKitGTK and GTK on Linux.
+      # https://v2.tauri.app/start/prerequisites/#linux
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          key: ${{ matrix.task }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: vp run ${{ matrix.task }}
+
+  conformance:
     strategy:
       fail-fast: false
       matrix:
@@ -25,18 +60,48 @@ jobs:
           version: "1.7.0"
           run-install: false
       - run: vp install --frozen-lockfile
-      - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
-      # test:rust builds the Tauri examples, which link WebKitGTK and GTK on Linux.
-      # https://v2.tauri.app/start/prerequisites/#linux
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: vp run test:conformance
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: results-conformance-${{ matrix.os }}
+          path: results/
+
+  packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version: "26"
+          version: "1.7.0"
+          run-install: false
+      - run: vp install --frozen-lockfile
+      - run: rustup toolchain install stable --profile minimal
       - if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # Playwright installs only what the restored browser directory lacks.
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.os == 'Windows' && '~\AppData\Local\ms-playwright' || '~/.cache/ms-playwright' }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: playwright-${{ runner.os }}-
       - run: vp run build:fixtures
-      - run: vp run test:rust
       - run: vp run check:types
       - run: vp run check:format
-      - run: vp run test:conformance
       - run: vp run test:polyfills
       - run: vp run test:js
       - run: vp run test:package
@@ -48,7 +113,7 @@ jobs:
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
-          name: results-${{ matrix.os }}
+          name: results-packages-${{ matrix.os }}
           path: results/
 
   fuzz:

@@ -70,6 +70,12 @@ export default defineConfig({
         command: lab,
         cache: false,
       },
+      // Conformance runs thousands of short processes, and Boa in particular
+      // runs them several times faster optimized.
+      "build:lab-release": {
+        command: lab + " --release",
+        cache: false,
+      },
       "build:reference": {
         command: "node tools/docs/reference.ts",
         cache: false,
@@ -89,6 +95,10 @@ export default defineConfig({
         command: "vp lint",
         cache: false,
       },
+      "check:rust": {
+        command: "node tools/rust/check.ts",
+        cache: false,
+      },
       "check:generated": {
         command: "node tools/docs/reference.ts --check",
         cache: false,
@@ -104,6 +114,7 @@ export default defineConfig({
           "check:types",
           "check:format",
           "check:lint",
+          "check:rust",
           "check:generated",
           "check:release",
         ],
@@ -112,6 +123,7 @@ export default defineConfig({
       // test
       "test:rust": {
         command: "node tools/rust/test.ts",
+        dependsOn: ["build:fixtures"],
         cache: false,
       },
       "test:js": {
@@ -145,7 +157,7 @@ export default defineConfig({
       },
       "test:conformance": {
         command: "node tools/conformance/cli.ts",
-        dependsOn: ["build:lab"],
+        dependsOn: ["build:lab-release"],
         cache: false,
       },
       "test:examples": {

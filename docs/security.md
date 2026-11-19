@@ -105,9 +105,11 @@ last run is in [reference](reference/README.md#fuzzing).
 
 ## Continuous checks
 
-`.github/workflows/test.yml` runs the Rust tests on Windows and Linux, type
-and format checks, the framework and host matrices, the build and package
-tests, and AddressSanitizer fuzzing on Linux.
+`.github/workflows/test.yml` runs as parallel jobs: the Rust tests on
+Windows and Linux, rustfmt and clippy on Linux, conformance on both, the
+type and format checks, framework and host matrices, build, package and
+example tests on both, and AddressSanitizer fuzzing on Linux. Each job
+restores a Cargo dependency cache that only `main` saves.
 
 Shared-handle tests on all three engines cover cancelling started calls,
 queue backpressure, and refusing and draining work on shutdown. The HTTP
