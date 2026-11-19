@@ -66,8 +66,13 @@ await writeAssetArchive({
     ...(await directoryAssets("build/client", {
       cache: [{ prefix: "/_app/immutable/", cacheControl: IMMUTABLE }],
     })),
-    { path: "/robots.txt", headers: { "content-type": "text/plain" }, body: "User-agent: *
-" },
+    {
+      path: "/robots.txt",
+      headers: {
+        "content-type": "text/plain",
+      },
+      body: "User-agent: *\n",
+    },
     redirect("/old", "/new"),
   ],
 });

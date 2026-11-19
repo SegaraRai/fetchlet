@@ -98,10 +98,10 @@ allows only the registered origins. Internal routes receive the `Context`
 from the extensions of the request given to `App::fetch`. Internal origins
 are ordinary `https://` origins under the private `.internal` domain; the
 examples use `https://fetchlet.internal`, and an application can choose its
-own names or register several. `fetchlet_http::router_transport` lets one axum router serve both public
-HTTP and in-process fetches. Calling the same `AppHandle` while one of its
-host fetches is running fails with `Error::Reentrant`. [In-process
-fetch](in-process-fetch.md) has the details.
+own names or register several. `fetchlet_http::router_transport` lets one
+axum router serve both public HTTP and in-process fetches. Calling the same
+`AppHandle` while one of its host fetches is running fails with
+`Error::Reentrant`. [In-process fetch](in-process-fetch.md) has the details.
 
 ## Fetch processing order
 
@@ -191,7 +191,6 @@ servers; the same request handling contract runs against every layer.
 all three engines: permissions, binary POST, cookies, credentials,
 redirects, rewrites, env, named services, abort and instance retirement.
 Results are in [reference](reference/README.md#host-services). The
-implementation is in `crates/fetchlet/src/host/`,
-`crates/fetchlet/src/bridge/` and `crates/fetchlet/js/host-bridge.js`, with
-Web API operations in `crates/fetchlet-web/`; the
-runner is in `tools/lab/`.
+implementation is in `crates/fetchlet/src/host/`, `crates/fetchlet/src/bridge/`
+and `crates/fetchlet/js/host-bridge.js`, with Web API operations in
+`crates/fetchlet-web/`; the runner is in `tools/lab/`.

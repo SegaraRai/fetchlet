@@ -125,9 +125,10 @@ multi-byte encodings are tracked under
 `fetchlet.json` records the target backend, required APIs, chosen polyfills,
 the Fetch handler and the exported functions. Rust reads the handler, so an
 App built from an artifact of functions only refuses `fetch`, but `Module`
-takes only source, so Rust does not compare the rest with the engine it runs. Add a check at build time of the `App` that refuses an
-artifact whose requirements the backend lacks, and extend the capability
-table beyond Intl as each polyfill gains conformance tests.
+takes only source, so Rust does not compare the rest with the engine it runs.
+Add a check at build time of the `App` that refuses an artifact whose
+requirements the backend lacks, and extend the capability table beyond Intl as
+each polyfill gains conformance tests.
 
 ### Enforcement and isolation
 

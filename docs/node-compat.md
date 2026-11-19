@@ -125,4 +125,6 @@ against Node.
 - **path** has no `win32`, and `matchesGlob` throws.
 - **util.debuglog** returns a function that logs nothing.
 
-Other built-ins load as the stub above. [Open work](TODO.md#framework-runtime-needs-beyond-wintertc) tracks what remains for Node compatibility.
+Other built-ins load as the stub above.
+[Open work](TODO.md#framework-runtime-needs-beyond-wintertc) tracks what remains
+for Node compatibility.
