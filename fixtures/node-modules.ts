@@ -39,7 +39,7 @@ function cipherHex(name: string, keyLength: number, decrypt = false, input?: Uin
 
 /** What the engines compute, compared in tools/matrix/runtime.ts with Node. */
 export function nodeKeysResults(): Record<string, unknown> | null {
-  if (typeof (globalThis as { __fetchletHost?: unknown }).__fetchletHost !== "function") {
+  if (typeof (globalThis as { fetchlet?: unknown }).fetchlet !== "object") {
     return null;
   }
   const data = Buffer.from("fetchlet signs this");
@@ -104,7 +104,7 @@ export function nodeKeysResults(): Record<string, unknown> | null {
 }
 
 export async function nodeModulesResults(): Promise<Record<string, unknown> | null> {
-  if (typeof (globalThis as { __fetchletHost?: unknown }).__fetchletHost !== "function") {
+  if (typeof (globalThis as { fetchlet?: unknown }).fetchlet !== "object") {
     return null;
   }
   const text = "fetchlet compresses this text ".repeat(4);

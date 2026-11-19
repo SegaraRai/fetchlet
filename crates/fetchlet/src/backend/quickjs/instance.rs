@@ -11,8 +11,8 @@ use super::QuickJsOptions;
 use crate::Instance;
 use crate::bridge::HostBridge;
 use crate::execution::{
-    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation,
-    observed,
+    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
+    invocation, observed,
 };
 
 pub struct QuickJs {
@@ -86,6 +86,7 @@ impl QuickJs {
                 let exception = context.catch();
                 anyhow!("{error}: {exception:?}")
             })?;
+            context.eval::<(), _>(SEAL_HOST)?;
             Ok(())
         })?;
 

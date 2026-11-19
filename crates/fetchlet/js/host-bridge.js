@@ -1,4 +1,9 @@
-// Rust installs the host bindings before evaluating application code.
+// Rust installs the host bindings before evaluating this script. The bridge
+// takes them off the global object: the bundle claims them once, with
+// __fetchletClaimHost, while it is evaluated, and Rust deletes that function
+// after the bundle (SEAL_HOST in execution/script.rs). Application code then
+// reaches the host only through fetch, fetchlet.env and the APIs the bundle
+// built on the claimed functions.
 
 (() => {
   const nativeDispatch = globalThis.__fetchletHost;
@@ -6,6 +11,23 @@
   // JSON messages carry their handles.
   const takeBytes = globalThis.__fetchletTakeBytes;
   const putBytes = globalThis.__fetchletPutBytes;
+  delete globalThis.__fetchletHost;
+  delete globalThis.__fetchletTakeBytes;
+  delete globalThis.__fetchletPutBytes;
+
+  Object.defineProperty(globalThis, "__fetchletClaimHost", {
+    value() {
+      delete globalThis.__fetchletClaimHost;
+      return Object.freeze({
+        call: (operation, input) => nativeDispatch(operation, input),
+        putBytes: (bytes) => putBytes(bytes),
+        takeBytes: (handle) => takeBytes(handle),
+      });
+    },
+    writable: false,
+    enumerable: false,
+    configurable: true,
+  });
 
   const pendingFetches = new Map();
   // Outstanding reads of Rust bodies: ticket -> { id, resolve, reject }.
@@ -549,6 +571,120 @@
 
   Object.defineProperty(globalThis, "__fetchletBackground", {
     value: backgroundRegistry,
+    writable: false,
+    configurable: false,
+  });
+
+  function clearInvocation() {
+    responseBodyRegistry.closeAll();
+    // Background work keeps its timers until Rust settles it.
+    if (backgroundTasks.size === 0) {
+      globalThis.__fetchletClearTimers?.();
+      globalThis.__fetchletClearPerformanceEntries?.();
+    }
+  }
+
+  // Call an exported function. With streamResponseBody, it is a Fetch
+  // handler: its request body arrives through the byte store or as a Rust
+  // body source, and a response body it leaves open keeps the invocation,
+  // with its timers, open until Rust finishes or cancels that body.
+  async function invokeExport(exportName, argumentsList, streamResponseBody) {
+    // Each invocation starts in the empty async context, whatever the
+    // previous one left current.
+    globalThis.__fetchletAsyncContext?.set(undefined);
+    const exports = globalThis.fetchletExports;
+    let invocationRemainsOpen = false;
+    responseBodyRegistry.beginCall(streamResponseBody === true);
+
+    try {
+      if (!Object.hasOwn(exports, exportName)) {
+        throw new TypeError("Unknown function");
+      }
+
+      const exportedFunction = exports[exportName];
+      if (typeof exportedFunction !== "function") {
+        throw new TypeError("Unknown function");
+      }
+
+      if (streamResponseBody === true) {
+        const request = argumentsList[0];
+        if (typeof request?.body === "number") {
+          request.body = takeBytes(request.body);
+        } else if (typeof request?.stream === "number") {
+          request.body = hostBodyStream(request.stream);
+          delete request.stream;
+        }
+      }
+
+      let result = await exportedFunction(...argumentsList);
+      if (streamResponseBody === true) {
+        // Hand a typed-array response body to Rust through the byte store.
+        const body = result?.body;
+        if (ArrayBuffer.isView(body) || body instanceof ArrayBuffer) {
+          const bytes = ArrayBuffer.isView(body)
+            ? new Uint8Array(body.buffer, body.byteOffset, body.byteLength)
+            : new Uint8Array(body);
+          result = {
+            ...result,
+            body: putBytes(bytes),
+          };
+        }
+      }
+      const serializedResult = JSON.stringify(result);
+
+      if (serializedResult === undefined) {
+        throw new TypeError("Result is not JSON serializable");
+      }
+
+      // Only the body the result hands to the host stays open with the
+      // invocation.
+      if (streamResponseBody === true) {
+        invocationRemainsOpen = responseBodyRegistry.retain(result?.stream);
+      }
+      return serializedResult;
+    } finally {
+      responseBodyRegistry.endCall();
+      if (!invocationRemainsOpen) {
+        clearInvocation();
+      }
+    }
+  }
+
+  // Pull from or cancel the response body a Fetch invocation left open. The
+  // invocation ends with the body: on its last chunk, a cancel or an error.
+  async function invokeResponseBody(operation, bodyId) {
+    // Body pulls start in the empty async context; the stream's own promise
+    // reactions keep theirs.
+    globalThis.__fetchletAsyncContext?.set(undefined);
+    let invocationEnds = true;
+
+    try {
+      if (operation === "pull") {
+        const result = await responseBodyRegistry.pull(bodyId, true);
+        invocationEnds = result.done;
+        return JSON.stringify({
+          chunk: putBytes(result.chunk),
+          done: result.done,
+        });
+      }
+      if (operation === "cancel") {
+        await responseBodyRegistry.cancel(bodyId);
+        return "null";
+      }
+      throw new TypeError("Unknown response body operation");
+    } finally {
+      if (invocationEnds) {
+        clearInvocation();
+      }
+    }
+  }
+
+  // The entry points Rust evaluates (execution/script.rs).
+  Object.defineProperty(globalThis, "__fetchletInvocation", {
+    value: Object.freeze({
+      call: invokeExport,
+      responseBody: invokeResponseBody,
+    }),
     writable: false,
     configurable: false,
   });

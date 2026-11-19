@@ -9,8 +9,8 @@ use serde_json::Value;
 use crate::Instance;
 use crate::bridge::HostBridge;
 use crate::execution::{
-    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation,
-    observed,
+    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
+    invocation, observed,
 };
 
 pub(super) struct V8Runtime {
@@ -105,6 +105,9 @@ impl V8Runtime {
             .map_err(|error| anyhow!("{error}"))?;
         runtime
             .execute_script("fetchlet:bundle", source.to_owned())
+            .map_err(|error| anyhow!("{error}"))?;
+        runtime
+            .execute_script("fetchlet:seal", SEAL_HOST)
             .map_err(|error| anyhow!("{error}"))?;
         Ok(Self {
             runtime,

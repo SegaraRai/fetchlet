@@ -3,6 +3,8 @@
 // invocation, and the host's decompressed byte budget applies. Levels,
 // window sizes and strategies are accepted and not applied.
 
+import { hostFunctions } from "@fetchlet/web/host";
+
 import { Buffer, kMaxLength } from "../buffer/buffer.ts";
 import { invalidArgType, nodeError } from "../errors/errors.ts";
 import { constants } from "./constants.ts";
@@ -17,23 +19,16 @@ export interface ZlibOptions {
   [option: string]: unknown;
 }
 
-interface Runtime {
-  __fetchletHost?: (operation: string, input: string) => string;
-  __fetchletPutBytes(bytes: Uint8Array): number;
-  __fetchletTakeBytes(handle: number): Uint8Array;
-}
-
-const runtime = globalThis as unknown as Runtime;
-
 function host(operation: string, input: unknown): unknown {
-  if (typeof runtime.__fetchletHost !== "function") {
+  const functions = hostFunctions();
+  if (functions === null) {
     throw nodeError(
       Error,
       "ERR_METHOD_NOT_IMPLEMENTED",
       `node:zlib needs the fetchlet host for ${operation}`,
     );
   }
-  const reply = JSON.parse(runtime.__fetchletHost(operation, JSON.stringify(input))) as {
+  const reply = JSON.parse(functions.call(operation, JSON.stringify(input))) as {
     ok: boolean;
     value?: unknown;
     error?: {
@@ -73,7 +68,7 @@ export class Codec {
 
   write(bytes: Uint8Array): Uint8Array[] {
     if (bytes.byteLength > 0) {
-      host("compression.write", [this.#open(), runtime.__fetchletPutBytes(bytes.slice())]);
+      host("compression.write", [this.#open(), hostFunctions()!.putBytes(bytes.slice())]);
     }
     return this.#drain();
   }
@@ -97,7 +92,7 @@ export class Codec {
       if (handle === null) {
         return pieces;
       }
-      pieces.push(runtime.__fetchletTakeBytes(handle));
+      pieces.push(hostFunctions()!.takeBytes(handle));
     }
   }
 }

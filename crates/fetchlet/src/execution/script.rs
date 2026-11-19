@@ -1,8 +1,3 @@
-const INVOKE_EXPORT: &str = include_str!("../../js/invoke.js");
-
-#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
-const RESPONSE_BODY: &str = include_str!("../../js/response-body.js");
-
 /// Call an exported function. The invocation ends when its Promise settles.
 pub(crate) fn invocation(export: &str, args: &[serde_json::Value]) -> anyhow::Result<String> {
     export_invocation(export, args, false)
@@ -23,7 +18,7 @@ fn export_invocation(
     let arguments = serde_json::to_string(args)?;
 
     Ok(format!(
-        "({INVOKE_EXPORT})({export_name}, {arguments}, {stream_response_body})"
+        "globalThis.__fetchletInvocation.call({export_name}, {arguments}, {stream_response_body})"
     ))
 }
 
@@ -34,7 +29,7 @@ pub(crate) fn response_body_operation(operation: ResponseBodyOperation, body: u6
         ResponseBodyOperation::Pull => "pull",
         ResponseBodyOperation::Cancel => "cancel",
     };
-    format!("({RESPONSE_BODY})({operation:?}, {body})")
+    format!("globalThis.__fetchletInvocation.responseBody({operation:?}, {body})")
 }
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
@@ -49,6 +44,12 @@ pub(crate) const PRELUDE: &str = include_str!("../../js/runtime.js");
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) const HOST_BOOTSTRAP: &str = include_str!("../../js/host-bridge.js");
+
+/// Remove the bridge's one-time host claim once the bundle is evaluated. The
+/// bundle's runtime claims the host functions while it loads; code that runs
+/// later finds neither the claim nor the functions.
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) const SEAL_HOST: &str = "delete globalThis.__fetchletClaimHost;";
 
 pub(crate) const LOOP_STEP: &str = include_str!("../../js/event-loop.js");
 

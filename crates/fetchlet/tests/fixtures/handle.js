@@ -1,10 +1,11 @@
 let sequence = 0;
+const host = globalThis.__fetchletClaimHost();
 
 // Acknowledge entry through the private bridge so cancellation tests can wait
 // for actual execution instead of relying on a scheduling delay.
 function acknowledgeStart() {
   const started = JSON.parse(
-    __fetchletHost(
+    host.call(
       "fetch.start",
       JSON.stringify({
         service: "SIGNAL",
@@ -21,7 +22,7 @@ function acknowledgeStart() {
   if (!started.ok) {
     throw new Error("Signal service was not installed");
   }
-  __fetchletHost("fetch.poll", "null");
+  host.call("fetch.poll", "null");
 }
 
 globalThis.fetchletExports = {

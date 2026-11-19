@@ -351,18 +351,16 @@ const compressionOperations: Partial<Record<string, (input: unknown) => unknown>
 };
 
 type Runtime = {
-  __fetchletHost?: unknown;
-  __fetchletPutBytes?: unknown;
-  __fetchletTakeBytes?: unknown;
+  __fetchletClaimHost?: unknown;
 };
 
-/** Installs the stand-in as globalThis.__fetchletHost and returns its operation log. */
+/**
+ * Offers the stand-in as fetchlet's bridge offers the host functions, through
+ * globalThis.__fetchletClaimHost, and returns its operation log.
+ */
 export function installHost(): string[] {
   const calls: string[] = [];
-  const runtime = globalThis as Runtime;
-  runtime.__fetchletPutBytes = putBytes;
-  runtime.__fetchletTakeBytes = takeBytes;
-  runtime.__fetchletHost = (operation: string, input: string) => {
+  const call = (operation: string, input: string) => {
     calls.push(operation);
     const web = webOperations[operation];
     if (web) {
@@ -417,5 +415,10 @@ export function installHost(): string[] {
       value: run(JSON.parse(input)).toString("base64"),
     });
   };
+  (globalThis as Runtime).__fetchletClaimHost = () => ({
+    call,
+    putBytes,
+    takeBytes,
+  });
   return calls;
 }

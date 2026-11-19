@@ -7,6 +7,11 @@
 //! [`OUTPUT_PIECE`] bytes, so one small input never has to inflate into one
 //! large message. Decompressed output counts toward
 //! [`WebLimits::decompressed_bytes`](crate::WebLimits::decompressed_bytes).
+//!
+//! The codec holds at most one write of input that is still to be processed:
+//! a write is refused until reads have drained the previous one, and a gzip
+//! header is consumed as it arrives. So the host keeps no more of the guest's
+//! bytes than one bridge message, plus a few bytes of incomplete framing.
 
 use brotli::enc::StandardAlloc;
 use brotli::enc::encode::{
@@ -58,6 +63,8 @@ pub(super) struct Codec {
     output: Vec<u8>,
     finishing: bool,
     done: bool,
+    /// Whether input was written since a read last returned None.
+    undrained: bool,
     /// Decompressed bytes produced so far, and the budget for them.
     produced: usize,
     limit: Option<usize>,
@@ -83,8 +90,114 @@ enum Engine {
 
 /// The framing of a gzip member around its deflate data.
 struct GzipInput {
-    header_read: bool,
+    header: GzipHeader,
     crc: Crc,
+}
+
+/// A gzip member header (RFC 1952, section 2.3), consumed as it arrives so
+/// that a long file name or comment is never buffered.
+struct GzipHeader {
+    flags: u8,
+    stage: HeaderStage,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum HeaderStage {
+    Fixed,
+    ExtraLength,
+    Extra(usize),
+    Name,
+    Comment,
+    Checksum,
+    Done,
+}
+
+impl GzipHeader {
+    const FHCRC: u8 = 2;
+    const FEXTRA: u8 = 4;
+    const FNAME: u8 = 8;
+    const FCOMMENT: u8 = 16;
+
+    fn new() -> Self {
+        Self {
+            flags: 0,
+            stage: HeaderStage::Fixed,
+        }
+    }
+
+    fn is_done(&self) -> bool {
+        self.stage == HeaderStage::Done
+    }
+
+    /// The first stage from `stage` on that the flags call for.
+    fn present(&self, stage: HeaderStage) -> HeaderStage {
+        let wanted = |flag: u8| self.flags & flag != 0;
+        match stage {
+            HeaderStage::ExtraLength if !wanted(Self::FEXTRA) => self.present(HeaderStage::Name),
+            HeaderStage::Name if !wanted(Self::FNAME) => self.present(HeaderStage::Comment),
+            HeaderStage::Comment if !wanted(Self::FCOMMENT) => self.present(HeaderStage::Checksum),
+            HeaderStage::Checksum if !wanted(Self::FHCRC) => HeaderStage::Done,
+            stage => stage,
+        }
+    }
+
+    /// Consume header bytes from `input`; returns how many it used.
+    fn consume(&mut self, input: &[u8]) -> Result<usize> {
+        let mut used = 0;
+        loop {
+            let rest = &input[used..];
+            match self.stage {
+                HeaderStage::Fixed => {
+                    let Some(fixed) = rest.get(..10) else {
+                        return Ok(used);
+                    };
+                    if fixed[0] != 0x1f || fixed[1] != 0x8b || fixed[2] != 8 || fixed[3] & 0xe0 != 0
+                    {
+                        return Err(invalid("the gzip header is invalid"));
+                    }
+                    self.flags = fixed[3];
+                    used += 10;
+                    self.stage = self.present(HeaderStage::ExtraLength);
+                }
+                HeaderStage::ExtraLength => {
+                    let Some(size) = rest.get(..2) else {
+                        return Ok(used);
+                    };
+                    used += 2;
+                    let size = usize::from(u16::from_le_bytes([size[0], size[1]]));
+                    self.stage = HeaderStage::Extra(size);
+                }
+                HeaderStage::Extra(remaining) => {
+                    let skipped = remaining.min(rest.len());
+                    used += skipped;
+                    if skipped < remaining {
+                        self.stage = HeaderStage::Extra(remaining - skipped);
+                        return Ok(used);
+                    }
+                    self.stage = self.present(HeaderStage::Name);
+                }
+                HeaderStage::Name | HeaderStage::Comment => {
+                    let Some(end) = rest.iter().position(|&byte| byte == 0) else {
+                        return Ok(used + rest.len());
+                    };
+                    used += end + 1;
+                    self.stage = if self.stage == HeaderStage::Name {
+                        self.present(HeaderStage::Comment)
+                    } else {
+                        self.present(HeaderStage::Checksum)
+                    };
+                }
+                HeaderStage::Checksum => {
+                    if rest.len() < 2 {
+                        return Ok(used);
+                    }
+                    used += 2;
+                    self.stage = HeaderStage::Done;
+                }
+                HeaderStage::Done => return Ok(used),
+            }
+        }
+    }
 }
 
 impl Codec {
@@ -119,7 +232,7 @@ impl Codec {
             Format::Deflate | Format::DeflateRaw | Format::Gzip => Engine::Inflate {
                 stream: Decompress::new(format == Format::Deflate),
                 gzip: (format == Format::Gzip).then(|| GzipInput {
-                    header_read: false,
+                    header: GzipHeader::new(),
                     crc: Crc::new(),
                 }),
                 ended: false,
@@ -136,6 +249,7 @@ impl Codec {
             output: Vec::new(),
             finishing: false,
             done: false,
+            undrained: false,
             produced: 0,
             limit,
             failure: None,
@@ -145,6 +259,9 @@ impl Codec {
     pub(super) fn write(&mut self, bytes: &[u8]) -> Result<()> {
         if self.finishing {
             return Err(invalid("write after close"));
+        }
+        if self.undrained {
+            return Err(invalid("the previous input has not been read"));
         }
         if self.done
             && matches!(
@@ -160,6 +277,7 @@ impl Codec {
         self.input.drain(..self.consumed);
         self.consumed = 0;
         self.input.extend_from_slice(bytes);
+        self.undrained = !bytes.is_empty();
         Ok(())
     }
 
@@ -185,6 +303,7 @@ impl Codec {
             }
         }
         if self.output.is_empty() {
+            self.undrained = false;
             return Ok(None);
         }
         let take = self.output.len().min(OUTPUT_PIECE);
@@ -276,13 +395,10 @@ impl Codec {
             unreachable!()
         };
         let input = &self.input[self.consumed..];
-        if let Some(framing) = gzip.as_mut().filter(|framing| !framing.header_read) {
-            let Some(length) = gzip_header_length(input)? else {
-                return Ok(false);
-            };
-            framing.header_read = true;
-            self.consumed += length;
-            return Ok(true);
+        if let Some(framing) = gzip.as_mut().filter(|framing| !framing.header.is_done()) {
+            let used = framing.header.consume(input)?;
+            self.consumed += used;
+            return Ok(used > 0);
         }
         if *ended {
             // The gzip trailer: CRC-32 and size modulo 2^32, little-endian.
@@ -397,44 +513,6 @@ impl Codec {
     }
 }
 
-/// The length of a complete gzip member header (RFC 1952 §2.3), None while
-/// it is incomplete.
-fn gzip_header_length(input: &[u8]) -> Result<Option<usize>> {
-    const FHCRC: u8 = 2;
-    const FEXTRA: u8 = 4;
-    const FNAME: u8 = 8;
-    const FCOMMENT: u8 = 16;
-    if input.len() < 10 {
-        return Ok(None);
-    }
-    if input[0] != 0x1f || input[1] != 0x8b || input[2] != 8 || input[3] & 0xe0 != 0 {
-        return Err(invalid("the gzip header is invalid"));
-    }
-    let flags = input[3];
-    let mut length = 10;
-    if flags & FEXTRA != 0 {
-        let Some(size) = input.get(length..length + 2) else {
-            return Ok(None);
-        };
-        length += 2 + u16::from_le_bytes([size[0], size[1]]) as usize;
-    }
-    for flag in [FNAME, FCOMMENT] {
-        if flags & flag != 0 {
-            let Some(end) = input
-                .get(length..)
-                .and_then(|rest| rest.iter().position(|&byte| byte == 0))
-            else {
-                return Ok(None);
-            };
-            length += end + 1;
-        }
-    }
-    if flags & FHCRC != 0 {
-        length += 2;
-    }
-    Ok((input.len() >= length).then_some(length))
-}
-
 fn invalid(message: &str) -> Error {
     Error::InvalidRequest(message.into())
 }
@@ -541,5 +619,61 @@ mod tests {
         )
         .unwrap_err();
         assert!(matches!(error, Error::LimitExceeded("decompressed bytes")));
+    }
+
+    #[test]
+    fn a_write_waits_for_reads_to_drain_the_previous_one() {
+        let mut codec = Codec::compressor(Format::Gzip);
+        codec.write(b"first").unwrap();
+        assert!(matches!(
+            codec.write(b"second"),
+            Err(Error::InvalidRequest(_))
+        ));
+        while codec.read().unwrap().is_some() {}
+        codec.write(b"second").unwrap();
+    }
+
+    #[test]
+    fn a_long_gzip_header_is_consumed_as_it_arrives() {
+        // A file name of 1 MiB arrives in 1 KiB writes; the codec keeps at
+        // most one write of it.
+        let mut member = vec![
+            0x1f,
+            0x8b,
+            8,
+            GzipHeader::FNAME | GzipHeader::FEXTRA,
+            0,
+            0,
+            0,
+            0,
+            0,
+            255,
+        ];
+        member.extend_from_slice(&3u16.to_le_bytes());
+        member.extend_from_slice(b"xyz");
+        member.extend(std::iter::repeat_n(b'n', 1 << 20));
+        member.push(0);
+        let body = run(&mut Codec::compressor(Format::DeflateRaw), &[b"fetchlet"]).unwrap();
+        member.extend_from_slice(&body);
+        let mut crc = Crc::new();
+        crc.update(b"fetchlet");
+        member.extend_from_slice(&crc.sum().to_le_bytes());
+        member.extend_from_slice(&crc.amount().to_le_bytes());
+
+        let mut codec = Codec::decompressor(Format::Gzip, None);
+        let mut output = Vec::new();
+        for chunk in member.chunks(1024) {
+            codec.write(chunk).unwrap();
+            assert!(codec.pending().len() <= 1024);
+            while let Some(piece) = codec.read().unwrap() {
+                output.extend(piece);
+            }
+            assert!(codec.pending().len() < 10);
+        }
+        codec.finish();
+        while let Some(piece) = codec.read().unwrap() {
+            output.extend(piece);
+        }
+        assert_eq!(output, b"fetchlet");
     }
 }

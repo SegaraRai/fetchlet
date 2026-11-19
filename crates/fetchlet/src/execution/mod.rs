@@ -30,7 +30,7 @@ pub(crate) use scheduler::WakeSignal;
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) use script::{
     BACKGROUND_SETTLE, FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, PRELUDE, ResponseBodyOperation,
-    fetch_invocation, invocation, observed, response_body_operation,
+    SEAL_HOST, fetch_invocation, invocation, observed, response_body_operation,
 };
 
 #[cfg(test)]

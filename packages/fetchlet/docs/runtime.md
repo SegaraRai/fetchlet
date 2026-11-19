@@ -55,7 +55,7 @@ constructor, `URL.parse`, `URL.canParse` and each setter make one `url.parse`
 or `url.set` host call and keep every returned component, so getters do not
 cross the bridge. `searchParams` is the profile's URLSearchParams, updated in
 both directions as the standard requires. Host call input and output count
-against `bridge_message_bytes`. Hosts without `__fetchletHost`, such as
+against `bridge_message_bytes`. Hosts without fetchlet's host functions, such as
 Node, use core-js's URL, and environments with native URL keep it.
 URLSearchParams is core-js everywhere.
 

@@ -15,12 +15,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./async-context": "./src/async-context.ts",
+    "./host": "./src/host.ts",
     "./wire": "./src/wire.ts"
   },
   "publishConfig": {
     "exports": {
       ".": "./dist/index.js",
       "./async-context": "./dist/async-context.js",
+      "./host": "./dist/host.js",
       "./wire": "./dist/wire.js"
     }
   },

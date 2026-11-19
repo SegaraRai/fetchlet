@@ -5,7 +5,7 @@ use crate::{Error, WebLimits, WebState};
 
 /// The version of the operation names and messages. The guest runtime uses
 /// host implementations only when it was built for the same version.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 /// The embedder's byte store for the current invocation, which carries
 /// binary data between the guest and the host by handle.
@@ -185,9 +185,19 @@ mod tests {
         let id = step("compression.open", r#"["gzip", false]"#).to_string();
         step("compression.finish", &id);
         let handle = step("compression.read", &id);
-        step("compression.close", &id);
         let piece = store.take(handle.as_u64().unwrap()).unwrap();
         assert_eq!(&piece[..2], &[0x1f, 0x8b]);
+        let mut step = |operation: &str, input: &str| {
+            run(
+                operation,
+                input,
+                Some(Invocation {
+                    state: &mut state,
+                    bytes: &mut store,
+                }),
+            )
+        };
+        step("compression.close", &id);
         // A fresh state, as for the next invocation, has no codec under that id.
         let mut next = WebState::default();
         let reply = dispatch(
@@ -200,5 +210,51 @@ mod tests {
             }),
         );
         assert!(matches!(reply, Some(Err(Error::InvalidRequest(_)))));
+    }
+
+    #[cfg(feature = "compression")]
+    #[test]
+    fn output_the_guest_did_not_take_is_dropped_and_stops_the_stream() {
+        let mut state = WebState::default();
+        let mut store = Store::default();
+        let mut step = |store: &mut Store, operation: &str, input: &str| {
+            dispatch(
+                operation,
+                input,
+                &WebLimits::default(),
+                Some(Invocation {
+                    state: &mut state,
+                    bytes: store,
+                }),
+            )
+            .expect("a Web API operation")
+        };
+        let id = step(&mut store, "compression.open", r#"["deflate-raw", false]"#)
+            .unwrap()
+            .to_string();
+        // Input that does not compress gives several pieces of output.
+        let mut state32 = 0x9e37_79b9u32;
+        let input: Vec<u8> = (0..300_000)
+            .map(|_| {
+                state32 ^= state32 << 13;
+                state32 ^= state32 >> 17;
+                state32 ^= state32 << 5;
+                state32 as u8
+            })
+            .collect();
+        let handle = store.put(Bytes::from(input)).unwrap();
+        step(
+            &mut store,
+            "compression.write",
+            &format!("[{id}, {handle}]"),
+        )
+        .unwrap();
+        let first = step(&mut store, "compression.read", &id).unwrap();
+        assert!(first.is_u64());
+        assert!(matches!(
+            step(&mut store, "compression.read", &id),
+            Err(Error::InvalidRequest(_))
+        ));
+        assert!(store.take(first.as_u64().unwrap()).is_err());
     }
 }

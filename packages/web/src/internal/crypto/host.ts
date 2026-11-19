@@ -2,6 +2,7 @@
 // travel as standard base64; Web Cryptography API errors come back as
 // `{error: {name, message}}` and are thrown as DOMExceptions.
 
+import { hostFunctions } from "../runtime/host";
 import { runtime } from "../runtime/runtime";
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -40,7 +41,7 @@ export function domException(name: string, message: string): Error {
 }
 
 function call(operation: string, input: unknown): any {
-  const reply = JSON.parse(runtime.__fetchletHost(operation, JSON.stringify(input)));
+  const reply = JSON.parse(hostFunctions()!.call(operation, JSON.stringify(input)));
   if (!reply.ok) {
     if (reply.error.code === "INVALID_REQUEST") {
       throw new TypeError(reply.error.message);

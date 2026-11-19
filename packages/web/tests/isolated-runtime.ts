@@ -23,9 +23,20 @@ export function isolatedRuntime(hidden: readonly string[], host?: Host): { runti
     });
   }
   if (host) {
-    runtime.__fetchletHost = host;
+    // As fetchlet's bridge hands the host functions to the bundle.
+    runtime.__fetchletClaimHost = () => ({
+      call: host,
+      putBytes: () => {
+        throw new TypeError("The stand-in host has no byte store");
+      },
+      takeBytes: () => {
+        throw new TypeError("The stand-in host has no byte store");
+      },
+    });
   }
-  return { runtime };
+  return {
+    runtime,
+  };
 }
 
 /**

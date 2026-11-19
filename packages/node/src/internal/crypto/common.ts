@@ -3,6 +3,8 @@
 // derivations and `crypto.*` for the Web Crypto algorithms that keys,
 // signatures and ciphers use.
 
+import { hostFunctions } from "@fetchlet/web/host";
+
 import { Buffer } from "../buffer/buffer.ts";
 import { invalidArgType, nodeError } from "../errors/errors.ts";
 
@@ -31,19 +33,15 @@ interface HostReply {
 }
 
 function callHost(operation: string, input: object): unknown {
-  const call = (
-    globalThis as {
-      __fetchletHost?: (operation: string, input: string) => string;
-    }
-  ).__fetchletHost;
-  if (typeof call !== "function") {
+  const host = hostFunctions();
+  if (host === null) {
     throw nodeError(
       Error,
       "ERR_METHOD_NOT_IMPLEMENTED",
       `node:crypto needs the fetchlet host for ${operation}`,
     );
   }
-  const reply = JSON.parse(call(operation, JSON.stringify(input))) as HostReply;
+  const reply = JSON.parse(host.call(operation, JSON.stringify(input))) as HostReply;
   if (!reply.ok) {
     throw nodeError(Error, reply.error!.code, reply.error!.message);
   }

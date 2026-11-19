@@ -2,10 +2,10 @@
 // installs only globals the host can serve. A host with another protocol
 // version provides none of them, and the profile keeps its fallbacks.
 
-import { runtime } from "./runtime";
+import { hostFunctions } from "./host";
 
 /** The fetchlet-web protocol this profile speaks. */
-const PROTOCOL_VERSION = 2;
+const PROTOCOL_VERSION = 3;
 
 let provided: Set<string> | undefined;
 
@@ -16,11 +16,12 @@ export function hostProvides(api: string): boolean {
 }
 
 function capabilities(): Set<string> {
-  if (typeof runtime.__fetchletHost !== "function") {
+  const host = hostFunctions();
+  if (host === null) {
     return new Set();
   }
   try {
-    const reply = JSON.parse(runtime.__fetchletHost("web.capabilities", "null"));
+    const reply = JSON.parse(host.call("web.capabilities", "null"));
     if (reply.ok && reply.value.protocol === PROTOCOL_VERSION) {
       return new Set(reply.value.apis);
     }

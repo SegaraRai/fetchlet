@@ -8,7 +8,7 @@ import crypto from "@fetchlet/node/crypto";
 const hashes = ["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512-224", "sha512-256"];
 
 export function nodeCryptoResults(): Record<string, unknown> | null {
-  if (typeof (globalThis as { __fetchletHost?: unknown }).__fetchletHost !== "function") {
+  if (typeof (globalThis as { fetchlet?: unknown }).fetchlet !== "object") {
     return null;
   }
   return {

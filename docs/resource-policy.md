@@ -46,7 +46,10 @@ when it ends. Body sources are opened by Rust for the incoming request and
 for host fetch responses, so their number follows `subrequests`. JavaScript
 can leave at most one unclaimed buffer in the byte store at a time, so a
 guest cannot accumulate memory outside the engine heap; buffers from Rust are
-bounded by each body's budget.
+bounded by each body's budget. A compression codec takes more input only
+after its output was read to the end, and output the guest did not take
+before the next read is dropped and fails that read, so a codec holds at most
+one write of input and one piece of output.
 
 Output buffers whose size the guest chooses, such as derived keys, are
 allocated fallibly: a size the process cannot allocate fails the operation

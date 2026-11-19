@@ -5,6 +5,7 @@
 // read those strings without crossing the bridge. searchParams is the
 // profile's URLSearchParams, linked both ways as the URL Standard specifies.
 
+import { hostFunctions } from "../runtime/host";
 import { runtime } from "../runtime/runtime";
 import { hostProvides } from "../runtime/web-host";
 import { usvString } from "../webidl/idl";
@@ -26,7 +27,7 @@ const enum Part {
 type Parts = string[];
 
 function host(operation: string, input: unknown): any {
-  const reply = JSON.parse(runtime.__fetchletHost(operation, JSON.stringify(input)));
+  const reply = JSON.parse(hostFunctions()!.call(operation, JSON.stringify(input)));
   if (!reply.ok) {
     const error = new TypeError(reply.error?.message ?? "URL host operation failed");
     (error as any).code = reply.error?.code;

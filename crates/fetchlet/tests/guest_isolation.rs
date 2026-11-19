@@ -1,6 +1,7 @@
 #![cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 
-//! Guest code reaches the host only through fetchlet's operations, and a
+//! Guest code reaches the host only through fetchlet's operations, the
+//! raw host functions only through the bundle's one-time claim, and a
 //! guest-chosen size cannot abort the host process.
 
 use serde_json::{Value, json};
@@ -8,7 +9,21 @@ use serde_json::{Value, json};
 use fetchlet::{App, Backend, Module};
 
 const SOURCE: &str = r#"
+const claimed = globalThis.__fetchletClaimHost();
+const claimedAgain = typeof globalThis.__fetchletClaimHost;
+const hostGlobals = () =>
+  ["__fetchletHost", "__fetchletPutBytes", "__fetchletTakeBytes", "__fetchletClaimHost"].map(
+    (name) => typeof globalThis[name],
+  );
+const atLoad = hostGlobals();
 globalThis.fetchletExports = {
+  host: () => ({
+    claimed: Object.keys(claimed).sort(),
+    bindings: JSON.parse(claimed.call("bindings", "null")).ok,
+    claimedAgain,
+    atLoad,
+    atCall: hostGlobals(),
+  }),
   engineGlobals: () => ({
     deno: typeof globalThis.Deno,
     bootstrap: typeof globalThis.__bootstrap,
@@ -62,6 +77,28 @@ async fn engine_internals_are_not_guest_globals() -> anyhow::Result<()> {
         assert_eq!(
             globals,
             json!({ "deno": "undefined", "bootstrap": "undefined" })
+        );
+    }
+    Ok(())
+}
+
+/// The host functions leave the global object before the bundle runs; the
+/// bundle claims them once while it is evaluated, and code that runs later
+/// finds neither them nor the claim.
+#[tokio::test(flavor = "current_thread")]
+async fn host_functions_are_claimed_once_by_the_bundle() -> anyhow::Result<()> {
+    for backend in backends() {
+        let mut app = app(backend);
+        let host: Value = app.call("host", &json!(null)).await?;
+        assert_eq!(
+            host,
+            json!({
+                "claimed": ["call", "putBytes", "takeBytes"],
+                "bindings": true,
+                "claimedAgain": "undefined",
+                "atLoad": ["undefined", "undefined", "undefined", "undefined"],
+                "atCall": ["undefined", "undefined", "undefined", "undefined"],
+            })
         );
     }
     Ok(())

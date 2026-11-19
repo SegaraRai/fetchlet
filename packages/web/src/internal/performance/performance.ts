@@ -5,6 +5,7 @@
 // that serves many requests does not accumulate them.
 
 import { EventTargetImpl } from "../dom/events";
+import { hostFunctions } from "../runtime/host";
 import { runtime } from "../runtime/runtime";
 import { dictionary, domString, exposeAttributes } from "../webidl/idl";
 
@@ -14,7 +15,7 @@ function readClock(): {
   timeOrigin: number;
   now: number;
 } {
-  const reply = JSON.parse(runtime.__fetchletHost("clock", "null"));
+  const reply = JSON.parse(hostFunctions()!.call("clock", "null"));
   if (!reply.ok) {
     throw new Error(reply.error.message);
   }
@@ -339,10 +340,7 @@ for (const [constructor, name] of [
 
 // QuickJS has a performance object with `now` only; this profile replaces
 // any performance object without User Timing.
-if (
-  typeof runtime.performance?.mark !== "function" &&
-  typeof runtime.__fetchletHost === "function"
-) {
+if (typeof runtime.performance?.mark !== "function" && hostFunctions() !== null) {
   timeOrigin = readClock().timeOrigin;
   clock = () => readClock().now;
   runtime.Performance = PerformanceImpl;

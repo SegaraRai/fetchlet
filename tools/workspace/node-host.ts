@@ -50,7 +50,7 @@ const exports = (globalThis as any).fetchletExports as Record<string, (...args: 
 for await (const line of readline.createInterface({ input: process.stdin })) {
   try {
     const { export: name, args = [] } = JSON.parse(line) as { export: string; args?: unknown[] };
-    // Each invocation starts in the empty async context, as invoke.js does.
+    // Each invocation starts in the empty async context, as fetchlet's invocation entry point does.
     frame.enterWith(undefined);
     const exported = exports[name];
     if (typeof exported !== "function") {

@@ -41,18 +41,18 @@ impl BridgeHarness {
             .is_some_and(InvocationScope::has_pending)
     }
 
-    /// `__fetchletHost(operation, input)`: the parsed reply.
+    /// The claimed host's `call(operation, input)`: the parsed reply.
     pub fn dispatch(&self, operation: &str, input: &str) -> Value {
         let reply = self.bridge.dispatch(operation.into(), input.into());
         serde_json::from_str(&reply).expect("replies are JSON")
     }
 
-    /// `__fetchletPutBytes(view)`.
+    /// The claimed host's `putBytes(view)`.
     pub fn put_guest_bytes(&self, bytes: &[u8]) -> Result<u64> {
         self.bridge.put_guest_bytes(bytes)
     }
 
-    /// `__fetchletTakeBytes(handle)`.
+    /// The claimed host's `takeBytes(handle)`.
     pub fn take_guest_bytes(&self, handle: f64) -> Result<Bytes> {
         self.bridge.take_guest_bytes(handle)
     }

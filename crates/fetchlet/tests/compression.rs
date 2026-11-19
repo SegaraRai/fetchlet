@@ -11,7 +11,8 @@ use serde_json::json;
 use fetchlet::{App, Backend, Limits, Module};
 
 const SOURCE: &str = r#"
-const host = (operation, input) => JSON.parse(globalThis.__fetchletHost(operation, JSON.stringify(input)));
+const functions = globalThis.__fetchletClaimHost();
+const host = (operation, input) => JSON.parse(functions.call(operation, JSON.stringify(input)));
 let previous;
 globalThis.fetchletExports = {
   open(count) {
@@ -28,7 +29,7 @@ globalThis.fetchletExports = {
     const opened = host("compression.open", ["gzip", true]);
     const written = host("compression.write", [
       opened.value,
-      globalThis.__fetchletPutBytes(new Uint8Array(bytes)),
+      functions.putBytes(new Uint8Array(bytes)),
     ]);
     host("compression.finish", opened.value);
     let total = 0;
@@ -36,8 +37,27 @@ globalThis.fetchletExports = {
       const read = host("compression.read", opened.value);
       if (!read.ok) return [written.ok, read.error.code];
       if (read.value === null) return [written.ok, total];
-      total += globalThis.__fetchletTakeBytes(read.value).length;
+      total += functions.takeBytes(read.value).length;
     }
+  },
+  // Input and output the guest leaves in the codec or the byte store.
+  hoard() {
+    let seed = 0x9e3779b9;
+    const noise = new Uint8Array(300000).map(() => {
+      seed ^= seed << 13;
+      seed ^= seed >>> 17;
+      seed ^= seed << 5;
+      return seed;
+    });
+    const code = (reply) => (reply.ok ? "ok" : reply.error.code);
+    const unread = host("compression.open", ["deflate-raw", false]).value;
+    const writes = [1, 2].map(() =>
+      code(host("compression.write", [unread, functions.putBytes(noise)])),
+    );
+    const untaken = host("compression.open", ["deflate-raw", false]).value;
+    host("compression.write", [untaken, functions.putBytes(noise)]);
+    const reads = [1, 2].map(() => code(host("compression.read", untaken)));
+    return [writes, reads];
   },
 };
 "#;
@@ -78,6 +98,29 @@ async fn budgets(backend: Backend) -> anyhow::Result<()> {
             .await?,
         json!([true, "LIMIT_EXCEEDED"])
     );
+    Ok(())
+}
+
+/// A codec takes more input only after its output was read, and the byte
+/// store holds at most one piece of output the guest did not take, so the
+/// guest cannot hold host memory outside the budgets through a codec.
+async fn hoarding(backend: Backend) -> anyhow::Result<()> {
+    let mut app = App::builder(backend).module(Module::new(SOURCE)).build()?;
+    assert_eq!(
+        app.call_json("hoard", &[]).await?,
+        json!([["ok", "INVALID_REQUEST"], ["ok", "INVALID_REQUEST"]])
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn codecs_hold_only_what_the_guest_reads() -> anyhow::Result<()> {
+    #[cfg(feature = "quickjs")]
+    hoarding(Backend::quickjs()).await?;
+    #[cfg(feature = "boa")]
+    hoarding(Backend::boa()).await?;
+    #[cfg(feature = "v8")]
+    hoarding(Backend::v8()).await?;
     Ok(())
 }
 

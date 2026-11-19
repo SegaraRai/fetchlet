@@ -19,8 +19,8 @@ use super::{BoaOptions, array_buffer};
 use crate::Instance;
 use crate::bridge::HostBridge;
 use crate::execution::{
-    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, WakeSignal, invocation,
-    observed,
+    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
+    invocation, observed,
 };
 
 pub struct Boa {
@@ -88,6 +88,9 @@ impl Boa {
             .map_err(|error| anyhow!("{error}"))?;
         context
             .eval(Source::from_bytes(source))
+            .map_err(|error| anyhow!("{error}"))?;
+        context
+            .eval(Source::from_bytes(SEAL_HOST))
             .map_err(|error| anyhow!("{error}"))?;
         Ok(Self {
             context,

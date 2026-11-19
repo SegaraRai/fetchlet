@@ -2,6 +2,7 @@
 // The host owns the codecs: flate2 for deflate, deflate-raw and gzip, and
 // the brotli crate for brotli. Codecs belong to the current invocation.
 
+import { hostFunctions } from "../runtime/host";
 import { runtime } from "../runtime/runtime";
 import { hostProvides } from "../runtime/web-host";
 
@@ -9,7 +10,7 @@ if (!runtime.CompressionStream && hostProvides("compression")) {
   const formats = new Set(["deflate", "deflate-raw", "gzip", "brotli"]);
 
   const host = (operation: string, input: unknown) => {
-    const reply = JSON.parse(runtime.__fetchletHost(operation, JSON.stringify(input)));
+    const reply = JSON.parse(hostFunctions()!.call(operation, JSON.stringify(input)));
     if (!reply.ok) {
       if (reply.error.code === "INVALID_REQUEST") {
         throw new TypeError(reply.error.message);
@@ -50,7 +51,7 @@ if (!runtime.CompressionStream && hostProvides("compression")) {
         if (handle === null) {
           return;
         }
-        controller.enqueue(runtime.__fetchletTakeBytes(handle));
+        controller.enqueue(hostFunctions()!.takeBytes(handle));
       }
     };
     const close = () => {
@@ -73,7 +74,7 @@ if (!runtime.CompressionStream && hostProvides("compression")) {
         guarded((controller) => {
           const bytes = chunkBytes(chunk);
           if (bytes.byteLength > 0) {
-            host("compression.write", [open(), runtime.__fetchletPutBytes(bytes)]);
+            host("compression.write", [open(), hostFunctions()!.putBytes(bytes)]);
             drain(controller);
           }
         })(controller),

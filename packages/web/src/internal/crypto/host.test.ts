@@ -2,12 +2,27 @@ import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 
 import { cryptoCall, domException, fromBase64, randomBytes, toBase64 } from "./host.ts";
 
-type Global = typeof globalThis & { __fetchletHost?: (operation: string, input: string) => string };
+// The bridge's claim, offered before the modules load. Each test sets the
+// operation function it delegates to.
+const stand = vi.hoisted(() => {
+  const stand: {
+    call?: (operation: string, input: string) => string;
+  } = {};
+  const missing = () => {
+    throw new TypeError("No host in this test");
+  };
+  (globalThis as { __fetchletClaimHost?: unknown }).__fetchletClaimHost = () => ({
+    call: (operation: string, input: string) => (stand.call ?? missing)(operation, input),
+    putBytes: missing,
+    takeBytes: missing,
+  });
+  return stand;
+});
 
 /** A fake host that answers every call with `reply` and records the calls. */
 function host(reply: unknown) {
   const calls: [string, unknown][] = [];
-  (globalThis as Global).__fetchletHost = (operation, input) => {
+  stand.call = (operation, input) => {
     calls.push([operation, JSON.parse(input)]);
     return JSON.stringify(reply);
   };
@@ -15,7 +30,7 @@ function host(reply: unknown) {
 }
 
 afterEach(() => {
-  delete (globalThis as Global).__fetchletHost;
+  delete stand.call;
 });
 
 describe("base64", () => {
@@ -136,7 +151,7 @@ describe("hostProvides", () => {
     const calls = host({
       ok: true,
       value: {
-        protocol: 2,
+        protocol: 3,
         apis: ["url", "crypto"],
       },
     });
@@ -165,7 +180,7 @@ describe("hostProvides", () => {
       },
     });
     expect((await load())("url")).toBe(false);
-    (globalThis as Global).__fetchletHost = () => "not json";
+    stand.call = () => "not json";
     expect((await load())("url")).toBe(false);
   });
 });

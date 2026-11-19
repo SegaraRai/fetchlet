@@ -2,6 +2,7 @@
 // and canonicalizes inputs with the urlpattern crate; the component regular
 // expressions run in this engine's RegExp.
 
+import { hostFunctions } from "../runtime/host";
 import { runtime } from "../runtime/runtime";
 import { hostProvides } from "../runtime/web-host";
 import { dictionary, exposeAttributes, usvString } from "../webidl/idl";
@@ -40,7 +41,7 @@ if (!runtime.URLPattern && hostProvides("url-pattern")) {
   };
 
   const host = (operation: string, input: unknown) => {
-    const reply = JSON.parse(runtime.__fetchletHost(operation, JSON.stringify(input)));
+    const reply = JSON.parse(hostFunctions()!.call(operation, JSON.stringify(input)));
     if (!reply.ok) {
       const error: any = new Error(reply.error.message);
       error.name = "FetchletHostError";

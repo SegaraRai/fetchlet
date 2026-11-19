@@ -11,6 +11,7 @@ that fits the deployment, and tests and fuzzing that keep checking them.
 | Rewrites, redirects | The final destination is authorized on every send; credentials are bound to their destination                                                                              |
 | Env and services    | Bindings Rust chose, fixed before the module is evaluated                                                                                                                  |
 | Engine globals      | Only fetchlet's host operations; V8 builds remove deno_core's `Deno` and `__bootstrap`, whose built-in ops include `op_panic` and `op_print`                               |
+| Host functions      | Off the global object; the bundle's runtime claims them once while the bundle is evaluated, and later code reaches the host only through the APIs built on them            |
 | JavaScript state    | Reused within an app; assign one app per application, tenant and authority configuration                                                                                   |
 | Async resources     | The invocation owns transport futures and drops them when it ends                                                                                                          |
 | Tickets             | Bound to the invocation's generation; each completion is delivered once within the call                                                                                    |
@@ -49,7 +50,8 @@ vp run test:host
 ```
 
 `crates/fetchlet/tests/guest_isolation.rs` checks on every engine that no
-engine internals are guest globals and that an impossible `ArrayBuffer`
+engine internals are guest globals, that the host functions are claimed
+once and are not globals afterwards, and that an impossible `ArrayBuffer`
 transfer throws instead of aborting. The Rust tests also cover exact origin
 matching, the authorization order of rewrites and redirects, credential
 lifetime, body and header budgets, invalid headers and statuses, future drop,
