@@ -202,8 +202,32 @@ async fn the_deadline_covers_the_whole_streamed_body() -> anyhow::Result<()> {
         let response = handle.fetch(get("/forever?wait=10")).await?;
         let frames = frames(response).await;
         assert!(frames.len() > 1);
-        assert!(matches!(frames.last(), Some(Err(Error::DeadlineExceeded))));
+        assert!(
+            matches!(frames.last(), Some(Err(Error::DeadlineExceeded))),
+            "{backend:?}: the body ended with {:?}",
+            frames.last()
+        );
         // A fresh instance serves the next call.
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_consumer_that_stalls_past_the_deadline_reads_deadline_exceeded() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn(backend, limits(Duration::from_millis(150), None)).await?;
+        let response = handle.fetch(get("/forever?wait=10")).await?;
+        // The queue fills while nothing reads, so the deadline passes while the
+        // worker waits for room rather than while JavaScript produces a chunk.
+        tokio::time::sleep(Duration::from_millis(400)).await;
+        let frames = frames(response).await;
+        assert!(
+            matches!(frames.last(), Some(Err(Error::DeadlineExceeded))),
+            "{backend:?}: the body ended with {:?}",
+            frames.last()
+        );
         assert_eq!(number(&handle, "sequence").await?, 1);
         handle.shutdown().await?;
     }

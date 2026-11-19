@@ -1,8 +1,8 @@
 use std::time::Instant;
 
-use crate::App;
 use crate::app::OpenResponseBody;
 use crate::fetch::BodySender;
+use crate::{App, Error};
 
 /// Pump a JavaScript response body into a Rust body channel.
 ///
@@ -18,13 +18,22 @@ pub(super) async fn stream_response_body(
 ) {
     loop {
         let permit = tokio::select! {
-            permit = sender.reserve() => permit,
-            () = sleep_until(open.deadline()) => {
-                // The consumer stalled past the deadline. Ending without a last
-                // chunk reports the body as aborted (Error::InvocationClosed).
-                app.cancel_response_body(open).await;
-                return;
-            }
+            permit = sender.reserve() => Some(permit),
+            () = sleep_until(open.deadline()) => None,
+        };
+        let Some(permit) = permit else {
+            // The consumer stalled past the deadline with the queue full. The
+            // instance is released now; the consumer receives DeadlineExceeded
+            // after the chunks queued before it, or InvocationClosed if the
+            // worker stops first.
+            app.cancel_response_body(open).await;
+            let sender = sender.clone();
+            tokio::spawn(async move {
+                if let Ok(permit) = sender.reserve().await {
+                    permit.send(Err(Error::DeadlineExceeded));
+                }
+            });
+            return;
         };
         let Ok(permit) = permit else {
             app.cancel_response_body(open).await;

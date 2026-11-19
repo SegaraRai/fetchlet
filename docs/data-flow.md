@@ -77,7 +77,10 @@ JS Response body ──pull on demand──▶ bounded queue ──▶ Rust Body
   bridge message; that is backpressure granularity, not a budget.
 - While the body is unfinished the invocation keeps its scope, deadline and
   instance, and the worker starts no other call.
-- `timeout` covers the call until the body completes. `response_body_bytes`
+- `timeout` covers the call until the body completes, including time the
+  worker waits for the consumer to make room. When it passes, the body ends
+  with `DeadlineExceeded` after the chunks already queued, and the worker
+  releases the instance without waiting for the consumer. `response_body_bytes`
   is checked against the running total; exceeding it cancels the JavaScript
   stream.
 - Dropping the Rust body between pulls cancels the JavaScript stream
