@@ -31,6 +31,8 @@ interface ViteBinding {
 interface UpdateResult {
   version: number;
   invalidated: string[];
+  /** Every evaluated module is stale. */
+  reset: boolean;
 }
 
 const AsyncFunction = async function () {}.constructor as new (
@@ -39,11 +41,40 @@ const AsyncFunction = async function () {}.constructor as new (
 
 /**
  * Evaluates the code Vite transformed for the server environment, as Vite's
- * ESModulesEvaluator does. Every dependency is transformed by Vite, so there
- * are no external modules to import natively.
+ * ESModulesEvaluator does. Every dependency is transformed by Vite; the only
+ * external modules are Node built-ins, which come from the development
+ * artifact's own implementations.
  */
 class FetchletEvaluator implements ModuleEvaluator {
-  async runInlinedModule(context: ModuleRunnerContext, code: string): Promise<void> {
+  private readonly globalNames: string[];
+  private readonly globalValues: unknown[];
+
+  constructor(
+    private readonly builtins: Readonly<Record<string, unknown>>,
+    globals: Readonly<Record<string, unknown>>,
+  ) {
+    this.globalNames = Object.keys(globals);
+    this.globalValues = Object.values(globals);
+  }
+
+  async runInlinedModule(
+    context: ModuleRunnerContext,
+    code: string,
+    module: Readonly<EvaluatedModuleNode>,
+  ): Promise<void> {
+    try {
+      await this.evaluate(context, code);
+    } catch (error) {
+      // The engines' stacks name no file for evaluated code, so the error
+      // names the module whose evaluation failed.
+      if (error instanceof Error && !error.message.includes(" (evaluating ")) {
+        error.message += ` (evaluating ${module.id})`;
+      }
+      throw error;
+    }
+  }
+
+  private async evaluate(context: ModuleRunnerContext, code: string): Promise<void> {
     const run = new AsyncFunction(
       ssrModuleExportsKey,
       ssrImportMetaKey,
@@ -51,7 +82,9 @@ class FetchletEvaluator implements ModuleEvaluator {
       ssrDynamicImportKey,
       ssrExportAllKey,
       ssrExportNameKey,
-      '"use strict";\n' + code,
+      ...this.globalNames,
+      // The block lets the module declare names the parameters also use.
+      '"use strict";{\n' + code + "\n}",
     );
     await run(
       context[ssrModuleExportsKey],
@@ -60,15 +93,18 @@ class FetchletEvaluator implements ModuleEvaluator {
       context[ssrDynamicImportKey],
       context[ssrExportAllKey],
       context[ssrExportNameKey],
+      ...this.globalValues,
     );
     Object.seal(context[ssrModuleExportsKey]);
   }
 
-  runExternalModule(file: string): Promise<never> {
-    return Promise.reject(
-      new Error(
-        `${file} is external to the Vite server environment; fetchlet/vite transforms every dependency`,
-      ),
+  async runExternalModule(file: string): Promise<unknown> {
+    const name = file.startsWith("node:") ? file.slice("node:".length) : file;
+    if (Object.hasOwn(this.builtins, name)) {
+      return this.builtins[name];
+    }
+    throw new Error(
+      `${file} is external to the Vite server environment; the engine loads only modules Vite transforms and the Node built-ins fetchlet implements`,
     );
   }
 }
@@ -88,7 +124,9 @@ function vite(): ViteBinding {
 async function post<T>(path: string, body: unknown): Promise<T> {
   const response = await vite().fetch(VITE_ORIGIN + path, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+    },
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -103,6 +141,50 @@ function applicationBindings(): Record<string, unknown> {
   return env;
 }
 
+/** What the request context of the Rust host carries. */
+export interface DevRequestContext {
+  clientAddress?: string;
+}
+
+/** The server module's handling of one request. */
+export type DevDispatch = (
+  module: Record<string, unknown>,
+  request: Request,
+  env: Record<string, unknown>,
+  ctx: DevRequestContext & { waitUntil(promise: unknown): void },
+) => Response | Promise<Response>;
+
+export interface DevServerOptions {
+  /**
+   * Calls the server module for a request. Defaults to the Workers module
+   * shape: `default.fetch(request, env, ctx)`.
+   */
+  dispatch?: DevDispatch;
+  /** Node built-in modules by name without `node:`, for external imports. */
+  builtins?: Readonly<Record<string, unknown>>;
+  /**
+   * Node globals the Web API profile lacks, such as `process` and `Buffer`,
+   * in scope of every module without being installed on `globalThis`, as
+   * fetchlet/build injects them.
+   */
+  globals?: Readonly<Record<string, unknown>>;
+}
+
+/** The Workers module shape: the default export's `fetch(request, env, ctx)`. */
+const workersDispatch: DevDispatch = (module, request, env, ctx) => {
+  const server = module.default as
+    | { fetch?: (request: Request, env: unknown, ctx: unknown) => Response | Promise<Response> }
+    | undefined;
+  if (typeof server?.fetch !== "function") {
+    throw new TypeError("The server module's default export has no fetch method");
+  }
+  return server.fetch(request, env, {
+    ...ctx,
+    passThroughOnException() {},
+    props: {},
+  });
+};
+
 /**
  * The exports of a development artifact: a Fetch handler and a caller of
  * named exports, both over the server module `entry` as the Vite dev server
@@ -110,7 +192,10 @@ function applicationBindings(): Record<string, unknown> {
  * one are invalidated with their importers, so the next import evaluates
  * them again.
  */
-export function devServer(entry: string) {
+export function devServer(
+  entry: string,
+  { dispatch = workersDispatch, builtins = {}, globals = {} }: DevServerOptions = {},
+) {
   let runner: ModuleRunner | undefined;
   let version: number | undefined;
 
@@ -123,10 +208,13 @@ export function devServer(entry: string) {
         hmr: false,
         sourcemapInterceptor: false,
       },
-      new FetchletEvaluator(),
+      new FetchletEvaluator(builtins, globals),
     );
     const update = await post<UpdateResult>("/@fetchlet/updates", { since: version ?? null });
-    if (version !== undefined) {
+    if (version !== undefined && update.reset) {
+      // Vite reloaded the environment, as when it optimized dependencies again.
+      runner.clearCache();
+    } else if (version !== undefined) {
       for (const id of update.invalidated) {
         for (const node of modulesWithId(runner, id)) {
           runner.evaluatedModules.invalidateModule(node);
@@ -134,24 +222,26 @@ export function devServer(entry: string) {
       }
     }
     version = update.version;
-    return (await runner.import(entry)) as Record<string, unknown>;
+    try {
+      return (await runner.import(entry)) as Record<string, unknown>;
+    } catch (error) {
+      // Vite optimizes dependencies it discovers while the modules load and
+      // then reloads the environment; the modules load again once.
+      const retry = await post<UpdateResult>("/@fetchlet/updates", { since: version });
+      if (!retry.reset) {
+        throw error;
+      }
+      version = retry.version;
+      runner.clearCache();
+      return (await runner.import(entry)) as Record<string, unknown>;
+    }
   }
 
-  const handle = createFetchHandler(
-    async (request, context: { clientAddress?: string } | undefined) => {
-      const server = (await load()).default as
-        | { fetch?: (request: Request, env: unknown, ctx: unknown) => Response | Promise<Response> }
-        | undefined;
-      if (typeof server?.fetch !== "function") {
-        throw new TypeError("The server module's default export has no fetch method");
-      }
-      return server.fetch(request, applicationBindings(), {
-        waitUntil,
-        passThroughOnException() {},
-        props: {},
-        clientAddress: context?.clientAddress,
-      });
-    },
+  const handle = createFetchHandler(async (request, context: DevRequestContext | undefined) =>
+    dispatch(await load(), request, applicationBindings(), {
+      clientAddress: context?.clientAddress,
+      waitUntil,
+    }),
   );
 
   async function call(name: string, args: unknown[]): Promise<unknown> {
@@ -162,7 +252,10 @@ export function devServer(entry: string) {
     return exported(...args);
   }
 
-  return { handle, call };
+  return {
+    handle,
+    call,
+  };
 }
 
 function modulesWithId(runner: ModuleRunner, id: string): EvaluatedModuleNode[] {

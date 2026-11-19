@@ -33,7 +33,8 @@ the server, built with the example's `dev` Cargo feature, serves each new
 build through fetchlet-http's `DevReload` and reloads open pages. A full
 build takes one to five seconds for these examples. The vanilla example also
 has a `dev:vite` task, which runs its server module from `vite dev` without
-a build through fetchlet-http's `ViteDev`.
+a build through fetchlet-http's `ViteDev`, which its `vite-dev` suite
+checks; `test:examples` builds an example with a `vite-dev` feature with it.
 
 ## Shared boundaries
 

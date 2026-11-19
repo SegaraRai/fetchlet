@@ -32,12 +32,13 @@ const viteUrl = `http://127.0.0.1:${port}`;
 /** How long Vite may take to start listening. */
 const startTimeoutMs = 30_000;
 
-// `vp` is a `.cmd` shim on Windows, which only a shell can start.
-const vite: ChildProcess = spawn(
-  "vp",
-  ["dev", "--host", "127.0.0.1", "--port", port, "--strictPort"],
-  { stdio: "inherit", shell: windows },
-);
+// `vp` is a `.cmd` shim on Windows, which only a shell can start; the
+// command is one string, since a shell does not escape separate arguments,
+// and `port` was checked to be digits.
+const vite: ChildProcess = spawn(`vp dev --host 127.0.0.1 --port ${port} --strictPort`, {
+  stdio: "inherit",
+  shell: true,
+});
 
 /** Vite, then the Rust server once Vite listens. */
 const children: ChildProcess[] = [vite];

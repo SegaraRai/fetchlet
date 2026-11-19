@@ -9,7 +9,8 @@
     "./command": "./command.ts",
     "./common-checks": "./common-checks.ts",
     "./features": "./features.ts",
-    "./suite": "./suite.ts"
+    "./suite": "./suite.ts",
+    "./vite-dev-suite": "./vite-dev-suite.ts"
   },
   "devDependencies": {
     "@fetchlet-internal/tools-workspace": "workspace:*",

@@ -77,7 +77,12 @@ async fn run_vite(listener: TcpListener, config: Config, origin: String, url: &s
         .artifact()
         .await
         .with_context(|| format!("start the dev:vite task's Vite dev server at {url}"))?;
-    let services = vite.host_services(host_services(&config.message)?)?;
+    // Development shows what the server module logs.
+    let services = vite
+        .host_services(host_services(&config.message)?)?
+        .console(|level, message| {
+            eprintln!("[{level:?}] {message}");
+        });
     let (router, app) = application(&config, &origin, &artifact, services).await?;
     let result = serve(listener, Router::new().fallback_service(vite.proxy(router))).await;
     app.shutdown().await?;

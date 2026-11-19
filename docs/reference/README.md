@@ -88,38 +88,40 @@ Unexpected results: 0.
 | honox-axum                   | 11 / 11 | 11 / 11 | 11 / 11 | honox 0.1.62                  | 159.0.8154.6  |
 | honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 157.0.4341.60 |
 | tanstack-start-axum          | 11 / 11 | 11 / 11 | 11 / 11 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
+| tanstack-start-axum-vite-dev | 4 / 4   | —       | 4 / 4   | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
 | solidstart-axum              | 11 / 11 | 11 / 11 | 11 / 11 | @solidjs/start 2.2.3          | 159.0.8154.6  |
 | solid-axum                   | 11 / 11 | 11 / 11 | 11 / 11 | solid-js 2.0.1                | 159.0.8154.6  |
 | qwik-city-axum               | 11 / 11 | 11 / 11 | 11 / 11 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
 | waku-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | waku 1.0.0-rc.5               | 159.0.8154.6  |
 | vinext-axum                  | 11 / 11 | 11 / 11 | 11 / 11 | vinext 1.4.6                  | 159.0.8154.6  |
 | vanilla-axum                 | 13 / 13 | 13 / 13 | 13 / 13 | —                             | 159.0.8154.6  |
+| vanilla-axum-vite-dev        | 5 / 5   | 5 / 5   | 5 / 5   | —                             | 159.0.8154.6  |
 | vanilla-cli                  | 5 / 5   | 5 / 5   | 5 / 5   | —                             | —             |
 
 ## Framework features
 
 Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n/a unsupported by design. The checks name their features; [features.ts](../../tools/examples/features.ts) declares what cannot apply.
 
-| Feature             | sveltekit | sveltekit-tauri | sveltekit desktop | astro | nuxt    | react-router | honox | honox-tauri | tanstack-start | solidstart | solid | qwik-city | waku | vinext | vanilla | vanilla-cli |
-| ------------------- | --------- | --------------- | ----------------- | ----- | ------- | ------------ | ----- | ----------- | -------------- | ---------- | ----- | --------- | ---- | ------ | ------- | ----------- |
-| SSR                 | ✓         | ✓               | ✓                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| Streaming SSR       | ✓         | —               | n/a (2)           | ✓     | n/a (3) | ✓            | ✓     | n/a (2)     | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| Hydration           | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| Client navigation   | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| Assets              | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| JSON endpoints      | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| Form posts          | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | —     | —           | —              | —          | —     | —         | —    | —      | —       | n/a (1)     |
-| Cookies             | ✓         | —               | —                 | ✓     | ✓       | ✓            | —     | —           | —              | —          | —     | —         | —    | —      | —       | n/a (1)     |
-| Server functions    | —         | ✓               | ✓                 | —     | —       | ✓            | —     | —           | —              | —          | —     | —         | —    | —      | —       | n/a (1)     |
-| Bindings            | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | ✓           |
-| Client address      | ✓         | —               | n/a (4)           | ✓     | ✓       | ✓            | ✓     | n/a (4)     | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| In-process Rust API | ✓         | ✓               | ✓                 | —     | —       | —            | —     | —           | —              | —          | —     | —         | —    | —      | —       | n/a (1)     |
-| Function calls      | —         | —               | —                 | —     | —       | —            | —     | —           | —              | —          | —     | —         | —    | —      | ✓       | ✓           |
-| Rust routes         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| Body budget         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| Streaming uploads   | —         | —               | n/a (5)           | ✓     | ✓       | ✓            | ✓     | n/a (5)     | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| waitUntil           | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
-| Concurrency         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | n/a (1)     |
+| Feature             | sveltekit | sveltekit-tauri | sveltekit desktop | astro | nuxt    | react-router | honox | honox-tauri | tanstack-start | tanstack-start dev:vite | solidstart | solid | qwik-city | waku | vinext | vanilla | vanilla dev:vite | vanilla-cli |
+| ------------------- | --------- | --------------- | ----------------- | ----- | ------- | ------------ | ----- | ----------- | -------------- | ----------------------- | ---------- | ----- | --------- | ---- | ------ | ------- | ---------------- | ----------- |
+| SSR                 | ✓         | ✓               | ✓                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | ✓                | n/a (1)     |
+| Streaming SSR       | ✓         | —               | n/a (2)           | ✓     | n/a (3) | ✓            | ✓     | n/a (2)     | ✓              | —                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| Hydration           | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | ✓                | n/a (1)     |
+| Client navigation   | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| Assets              | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | —                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | ✓                | n/a (1)     |
+| JSON endpoints      | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| Form posts          | ✓         | ✓               | —                 | ✓     | ✓       | ✓            | —     | —           | —              | —                       | —          | —     | —         | —    | —      | —       | —                | n/a (1)     |
+| Cookies             | ✓         | —               | —                 | ✓     | ✓       | ✓            | —     | —           | —              | —                       | —          | —     | —         | —    | —      | —       | —                | n/a (1)     |
+| Server functions    | —         | ✓               | ✓                 | —     | —       | ✓            | —     | —           | —              | ✓                       | —          | —     | —         | —    | —      | —       | —                | n/a (1)     |
+| Bindings            | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | ✓                | ✓           |
+| Client address      | ✓         | —               | n/a (4)           | ✓     | ✓       | ✓            | ✓     | n/a (4)     | ✓              | ✓                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| In-process Rust API | ✓         | ✓               | ✓                 | —     | —       | —            | —     | —           | —              | —                       | —          | —     | —         | —    | —      | —       | —                | n/a (1)     |
+| Function calls      | —         | —               | —                 | —     | —       | —            | —     | —           | —              | —                       | —          | —     | —         | —    | —      | ✓       | ✓                | ✓           |
+| Rust routes         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | —                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| Body budget         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | —                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| Streaming uploads   | —         | —               | n/a (5)           | ✓     | ✓       | ✓            | ✓     | n/a (5)     | ✓              | —                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| waitUntil           | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | —                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| Concurrency         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | —                       | ✓          | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
 
 1. A command line program calls functions without HTTP requests.
 2. Tauri's UriSchemeResponder takes a complete body.

@@ -73,4 +73,7 @@ escaping, the Rust service binding, assets, JSON endpoints, client address
 and bindings, the axum route, body budgets, streaming uploads, `waitUntil`,
 concurrent requests, the browser entry, document navigation and streaming.
 Two more checks call `greet` from Rust and request an unknown path. Results
-go to `results/example-vanilla-axum.json`.
+go to `results/example-vanilla-axum.json`. `tests/vite-dev.test.ts` runs the
+`dev:vite` loop (`tools/examples/vite-dev-suite.ts`): it starts `vite dev` and the server with the `vite-dev`
+feature, edits `src/server.ts` and `src/styles.css` in place and restores
+them, and records `results/example-vanilla-axum-vite-dev.json`.

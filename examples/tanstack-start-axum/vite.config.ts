@@ -30,6 +30,11 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
+      // Runs the server entry from `vite dev` on the engine, without a build.
+      "dev:vite": {
+        command: "node ../../tools/examples/vite-dev.ts example-tanstack-start-axum 3501",
+        cache: false,
+      },
       "check:types": {
         command: "tsc --noEmit",
         dependsOn: ["build"],

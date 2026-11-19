@@ -134,7 +134,12 @@ export default function fetchlet({
       options,
     ),
     devServerPlugin({
-      server,
+      name: "fetchlet/vite:dev-server",
+      entry: server,
+      functions: true,
+      customApp: true,
+      framework: "vite",
+      rendering: "streaming",
       ...(options.backend ? { backend: options.backend } : {}),
       ...(options.intl ? { intl: options.intl } : {}),
     }),

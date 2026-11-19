@@ -99,10 +99,40 @@ in three places:
   that allows Vite's origin. The application's services and policies are
   unchanged.
 
-On vanilla-axum, the module runner ran on QuickJS and Boa with the
-profile's polyfills; a server edit was served on the next request (16 to
-22 ms on QuickJS, 150 to 170 ms on Boa, debug builds), a stylesheet edit was
-applied in the open page without a reload, and a server edit reloaded it.
+On vanilla-axum, the module runner ran on QuickJS, Boa and V8 with the
+profile's polyfills. `tests/vite-dev.test.ts` checks it on each engine:
+pages, a named export and hydration from Vite's modules, a server edit
+served on the next request and reloading an open page, and a stylesheet
+edit applied in the open page without a reload. By hand, a server edit was
+served 16 to 22 ms after it was saved on QuickJS and 150 to 170 ms on Boa
+(debug builds).
+
+TanStack Start runs the same way through `fetchlet/tanstack-start`. Start's
+dev plugin leaves requests alone when the `ssr` environment has
+`dispatchFetch`, and the runner imports `virtual:tanstack-start-server-entry`
+in the engine. Start's development modules needed more than vanilla:
+
+- Its dependencies resolve with the `development` condition and
+  `NODE_ENV=development`, since React's development JSX runtime is what
+  Start's development transforms emit.
+- The server environment prebundles CommonJS dependencies, including
+  `react-dom/server.edge`, and takes the client environment's
+  `optimizeDeps` exclusions, which keep Start's server function resolver out
+  of the prebundle.
+- Evaluated modules see `process`, `Buffer`, `setImmediate` and
+  `clearImmediate` from the artifact's Node profile as free variables.
+- When Vite re-optimizes dependencies, the runner clears its cache and loads
+  the entry again.
+
+`examples/tanstack-start-axum/tests/vite-dev.test.ts` checks it on QuickJS
+and V8: server rendering with a server function calling the Rust service,
+API routes, hydration and client navigation, and a component edit applied
+by React Fast Refresh without losing state and rendered by the next request.
+On V8 the suite first stalled on a page request: the pooled connection to
+Vite was a task on another isolate thread's runtime, which ran only during a
+call. V8 calls now run host futures on the caller's runtime. Debug builds of
+Boa take minutes to evaluate Start's development modules, so the suite skips
+Boa; built Start artifacts run on Boa in the example's main suite.
 
 ### C. JavaScript in Node, Rust services bridged
 
@@ -126,7 +156,7 @@ cannot replace; "fetchable" means it hands requests to
 
 | Framework (version)              | Server environment in development                                                            | Option B                 |
 | -------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------ |
-| TanStack Start (1.169)           | Fetchable when the environment is not runnable                                               | Fits                     |
+| TanStack Start (1.169)           | Fetchable when the environment is not runnable                                               | Runs                     |
 | SolidStart (2.2.3)               | Fetchable when the environment is not runnable                                               | Fits                     |
 | React Router (8.5.2)             | Skips its middleware when not runnable, leaving requests to another one                      | Fits                     |
 | Astro (7.4.13)                   | Falls back to its `astro` environment for content when `ssr` is not runnable, as for workerd | Likely                   |
@@ -135,13 +165,13 @@ cannot replace; "fetchable" means it hands requests to
 | Waku (1.0.0-rc.5)                | Imports its entry through `environments.rsc.runner`                                          | Not without Waku changes |
 | Nuxt 4.6.4 / Nitro 2.13.6        | Nitro's own Node dev server                                                                  | No                       |
 | Qwik City (1.20), HonoX (0.1.62) | `ssrLoadModule` in Node                                                                      | No                       |
-| Vanilla (`fetchlet/vite`)        | fetchlet's own plugin decides                                                                | Fits                     |
+| Vanilla (`fetchlet/vite`)        | fetchlet's own plugin decides                                                                | Runs                     |
 
 The checks were for `isRunnableDevEnvironment`, `isFetchableDevEnvironment`,
 `dispatchFetch`, `runner.import`, `createServerModuleRunner` and
 `ssrLoadModule` in each package's distributed sources, then reading the
-branches around them. Whether each framework's dev server actually works on
-a fetchlet environment is unverified.
+branches around them. "Runs" means an example's `dev:vite` suite passes;
+the other frameworks' dev servers are unverified on a fetchlet environment.
 
 ## Direction
 
@@ -157,12 +187,10 @@ a fetchlet environment is unverified.
 
 ## Open questions
 
-- Does `vite/module-runner` evaluate on V8 the same way? QuickJS and Boa
-  were checked; V8 was not run.
 - How do source maps and stack traces from runner-evaluated code reach the
   Rust log?
 - How does a release build guarantee the `vite-dev` and `dev` features are
   absent? Today it is the application's Cargo features.
-- Which frameworks run on this path: TanStack Start, SolidStart and React
-  Router need their server environment to be non-runnable, with the runner
-  in the engine dispatching their requests.
+- Do SolidStart and React Router run on this path as TanStack Start does,
+  with their server environment non-runnable and the runner in the engine
+  dispatching their requests?

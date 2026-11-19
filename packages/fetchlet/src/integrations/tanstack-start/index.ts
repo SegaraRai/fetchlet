@@ -1,5 +1,6 @@
 import type { Plugin } from "vite";
 
+import { devServerPlugin } from "../vite/dev-server.ts";
 import {
   importPath,
   serverEnvironmentPlugin,
@@ -27,8 +28,8 @@ const conditions = ["worker", "edge-light", "module", "import", "production", "d
  * A Vite plugin for TanStack Start that builds the server environment into a
  * fetchlet artifact: server.js and fetchlet.json next to `client/`.
  */
-export default function fetchletStart(options: FetchletStartOptions = {}): Plugin {
-  return {
+export default function fetchletStart(options: FetchletStartOptions = {}): Plugin[] {
+  const build: Plugin = {
     ...serverEnvironmentPlugin(
       {
         name: "fetchlet/tanstack-start",
@@ -78,4 +79,28 @@ export default function fetchletStart(options: FetchletStartOptions = {}): Plugi
       }
     },
   };
+  return [
+    build,
+    // `vite dev` serves the Rust host, which runs Start's server entry on
+    // its engine with the same request context as the artifact.
+    devServerPlugin({
+      name: "fetchlet/tanstack-start:dev-server",
+      entry: "virtual:tanstack-start-server-entry",
+      framework: "tanstack-start",
+      rendering: "streaming",
+      asyncContext: "serialized",
+      // CommonJS, and resolved by the hook above, so it is named up front.
+      include: ["react-dom/server.edge"],
+      dispatch: `(module, request, env, ctx) =>
+        module.default.fetch(request, {
+          context: {
+            clientAddress: ctx.clientAddress,
+            env,
+            waitUntil: ctx.waitUntil,
+          },
+        })`,
+      ...(options.backend ? { backend: options.backend } : {}),
+      ...(options.intl ? { intl: options.intl } : {}),
+    }),
+  ];
 }

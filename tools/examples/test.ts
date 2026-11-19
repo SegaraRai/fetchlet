@@ -8,7 +8,7 @@
 // tests/ directory (e2e, and desktop for an example with a window). QuickJS
 // runs last, so the examples' build/ directories end on the default engine.
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -48,7 +48,11 @@ for (const name of positionals.length ? positionals : examples) {
   for (const backend of backends) {
     console.log(`[examples] ${name} on ${backend}`);
     const env = { ...process.env, FETCHLET_BACKEND: backend };
-    const features = backend === "quickjs" ? [] : ["--features", backend];
+    // An example with a `vite-dev` feature also checks its `dev:vite` loop;
+    // the server runs from Vite only when FETCHLET_VITE_URL is set.
+    const viteDev = /^vite-dev = /m.test(readFileSync(resolve(example, "Cargo.toml"), "utf8"));
+    const enabled = [...(backend === "quickjs" ? [] : [backend]), ...(viteDev ? ["vite-dev"] : [])];
+    const features = enabled.length ? ["--features", enabled.join(",")] : [];
     const steps = [
       () => run("vp", ["run", "--filter", `@fetchlet-internal/example-${name}`, "build"], { env }),
       () => cargo(["build", "--locked", "--package", `example-${name}`, ...features], { env }),

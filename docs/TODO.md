@@ -13,16 +13,10 @@ resolve it.
 [fetchlet/build](../packages/fetchlet/docs/build.md#a-server-module-without-a-framework)
 build a server module in the Workers module shape, which
 `examples/vanilla-axum` checks; a module of functions only builds an
-artifact without a Fetch handler, which `examples/vanilla-cli` checks. Two
-parts remain:
+artifact without a Fetch handler, which `examples/vanilla-cli` checks.
+`vite dev` serves the same module through fetchlet-http's `ViteDev`
+([development loop](research/dev-loop.md)). One part remains:
 
-- Development serving end to end. `fetchlet/vite` with fetchlet-http's
-  `ViteDev` runs the server module from `vite dev` in the Rust program
-  ([development loop](research/dev-loop.md)), which
-  examples/vanilla-axum's `dev:vite` task was checked with by hand. Add
-  an end-to-end check that edits a server module and a stylesheet under the
-  task and asserts the next response and the in-place style update, and run
-  it on V8.
 - A command line entry, `fetchlet build src/server.ts --backend quickjs
   --out build`, for projects without Vite. It needs a `bin` in the package
   and a check in `test:package` that runs the packed command.
@@ -194,11 +188,13 @@ Three parts remain:
 
 ### Development from Vite per framework
 
-`ViteDev` serves `fetchlet/vite` only. TanStack Start, SolidStart and React
-Router dispatch requests to a server environment that is not runnable
-([development loop](research/dev-loop.md#how-frameworks-evaluate-their-server-in-development));
-each needs its integration to make that environment's runner the engine's,
-and an example task like vanilla-axum's `dev:vite`.
+`ViteDev` serves `fetchlet/vite` and `fetchlet/tanstack-start`
+([development loop](research/dev-loop.md)). SolidStart and React Router
+also leave requests to a fetchable server environment
+([framework table](research/dev-loop.md#how-frameworks-evaluate-their-server-in-development)):
+each needs `devServerPlugin` in its integration with the entry and request
+context of its artifact, and a `dev:vite` task and suite like
+tanstack-start-axum's.
 
 ### React Router
 

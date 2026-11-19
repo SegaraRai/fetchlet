@@ -196,12 +196,14 @@ function exampleNames(): string[] {
     "honox-axum",
     "honox-tauri",
     "tanstack-start-axum",
+    "tanstack-start-axum-vite-dev",
     "solidstart-axum",
     "solid-axum",
     "qwik-city-axum",
     "waku-axum",
     "vinext-axum",
     "vanilla-axum",
+    "vanilla-axum-vite-dev",
     "vanilla-cli",
   ];
 }
@@ -236,7 +238,11 @@ function frameworkFeatures(): string[] {
       return covering.every((row) => row.status === "pass") ? "✓" : "✗";
     }),
   ]);
-  const short = (name: string) => name.replace(/-axum/, "").replace("-tauri-desktop", " desktop");
+  const short = (name: string) =>
+    name
+      .replace(/-axum/, "")
+      .replace("-tauri-desktop", " desktop")
+      .replace("-vite-dev", " dev:vite");
   return [
     "## Framework features",
     "",

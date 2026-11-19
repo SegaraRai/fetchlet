@@ -5,12 +5,18 @@ fetchlet artifact. Supports `@tanstack/react-start` 1;
 [examples/tanstack-start-axum](../../../examples/tanstack-start-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 // vite.config.ts
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import fetchletStart from "fetchlet/tanstack-start";
 
 export default defineConfig({
-  plugins: [tanstackStart(), react(), fetchletStart({ backend: "quickjs" })],
+  plugins: [
+    tanstackStart(),
+    react(),
+    fetchletStart({
+      backend: "quickjs",
+    }),
+  ],
 });
 ```
 
@@ -48,10 +54,35 @@ import type { FetchletRequestContext } from "fetchlet/tanstack-start";
 
 declare module "@tanstack/react-start" {
   interface Register {
-    server: { requestContext: FetchletRequestContext<Bindings> };
+    server: {
+      requestContext: FetchletRequestContext<Bindings>;
+    };
   }
 }
 ```
+
+## Development serving
+
+`vite dev` with this plugin serves a Rust host that uses fetchlet-http's
+`ViteDev`, as [fetchlet/vite](vite.md#development-serving) does: the host
+runs Start's server entry on its engine through Vite's module runner, with
+the same request context as the artifact, and Vite serves the browser
+modules with React Fast Refresh.
+
+- The plugin marks the `ssr` environment fetchable, so Start leaves requests
+  to the host instead of rendering them in Node.
+- Server dependencies resolve with the `development` condition in place of
+  `production`. Vite prebundles their CommonJS modules, such as React and
+  `react-dom/server.edge`, and leaves out the Start packages the browser
+  build also leaves out, whose virtual modules Start's plugins provide.
+- Node built-ins come from the development artifact's own implementations,
+  and `process.env.NODE_ENV` is `"development"`.
+- The first request makes Vite optimize the server's dependencies; it takes
+  a few seconds, and the runner loads the modules again after Vite reloads
+  the environment.
+
+[examples/tanstack-start-axum](../../../examples/tanstack-start-axum/README.md#develop-from-vite)
+has a `dev:vite` task.
 
 ## Tests and next work
 
