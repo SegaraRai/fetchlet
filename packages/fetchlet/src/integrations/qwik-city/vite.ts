@@ -1,31 +1,45 @@
-import { existsSync } from "node:fs";
-import { join, parse, resolve } from "node:path";
+import { parse, resolve } from "node:path";
 
 import type { Plugin } from "vite";
 
 import { IMMUTABLE } from "../../build/asset-entries.ts";
-import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
-import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
+import {
+  findServerEntry,
+  importPath,
+  writeServerArtifact,
+  type ArtifactIntegration,
+  type ViteArtifactOptions,
+} from "../vite/server-environment.ts";
 
-const modulePath = (file: string): string => file.replaceAll("\\", "/");
-
-export interface FetchletQwikCityOptions {
-  /**
-   * Also pack the client assets into `assets.flpk` for fetchlet-http to
-   * serve or embed. `true` uses Qwik's: hashed files under `build/` and `assets/`
-   * are cached for a year; settings adjust those defaults and add entries, and
-   * a function returns every entry. See docs/asset-archive.md.
-   */
-  assets?: AssetsOption;
+/**
+ * `assets: true` caches Qwik's hashed files under `build/` and `assets/` for
+ * a year. `outDir` also holds the client build, in `client/`.
+ */
+export interface FetchletQwikCityOptions extends ViteArtifactOptions {
   /** The server entry that default-exports `createQwikCity(...)`. Defaults to "src/entry.fetchlet.tsx". */
   entry?: string;
-  /** Where server.js and fetchlet.json are written, next to the client build in `client/`. Defaults to "build". */
-  outDir?: string;
-  /** The engine the artifact targets. */
-  backend?: BuildBackend;
-  /** Intl data for engines without native Intl, as in fetchlet/build. */
-  intl?: IntlOptions;
 }
+
+const serverDirectory = "node_modules/.cache/fetchlet-qwik-city";
+
+const integration: ArtifactIntegration = {
+  name: "fetchlet/qwik-city",
+  framework: "qwik-city",
+  rendering: "streaming",
+  asyncContext: "serialized",
+  entrySource: (serverModule) => `
+    import { createFetchHandler } from "fetchlet/runtime/adapter";
+    import handler from ${importPath(serverModule)};
+
+    export const handle = createFetchHandler(handler);
+  `,
+  assetDefaults: {
+    cache: [
+      { prefix: "/assets/", cacheControl: IMMUTABLE },
+      { prefix: "/build/", cacheControl: IMMUTABLE },
+    ],
+  },
+};
 
 /**
  * A Vite plugin for Qwik City. In the SSR build (`vp build --ssr`) it builds
@@ -34,10 +48,7 @@ export interface FetchletQwikCityOptions {
  */
 export function fetchletAdapter({
   entry = "src/entry.fetchlet.tsx",
-  outDir = "build",
-  backend = "portable",
-  intl = {},
-  assets = false,
+  ...fetchletOptions
 }: FetchletQwikCityOptions = {}): Plugin {
   let root = process.cwd();
   let ssr = false;
@@ -61,7 +72,7 @@ export function fetchletAdapter({
         publicDir: false,
         build: {
           ssr: true,
-          outDir: "node_modules/.cache/fetchlet-qwik-city",
+          outDir: serverDirectory,
           rollupOptions: {
             input: [entry, "@qwik-city-plan"],
             // fetchlet/build adds the runtime once, before the framework;
@@ -90,46 +101,23 @@ export function fetchletAdapter({
       root = config.root;
       ssr = Boolean(config.build.ssr);
     },
-    async writeBundle(options, bundle) {
+    async writeBundle(outputOptions, bundle) {
       if (!ssr) {
         return;
       }
       const name = parse(entry).name;
-      const entryChunk = Object.values(bundle).find(
-        (chunk) => chunk.type === "chunk" && chunk.isEntry && chunk.name === name,
+      const directory = outputOptions.dir ?? resolve(root, serverDirectory);
+      const serverModule = findServerEntry(
+        integration,
+        bundle,
+        directory,
+        (chunk) => chunk.name === name,
+        `"${name}" entry`,
       );
-      const directory = options.dir ?? resolve(root, "node_modules/.cache/fetchlet-qwik-city");
-      const serverModule = entryChunk && join(directory, entryChunk.fileName);
-      if (!serverModule || !existsSync(serverModule)) {
-        throw new Error(`fetchlet/qwik-city found no "${name}" entry in ${directory}`);
-      }
-      const entrySource = `
-        import { createFetchHandler } from "fetchlet/runtime/adapter";
-        import handler from ${JSON.stringify(modulePath(serverModule))};
-
-        export const handle = createFetchHandler(handler);
-        `;
-      await buildArtifact({
-        entry: {
-          source: entrySource,
-          resolveDir: directory,
-        },
-        outDir: resolve(root, outDir),
-        framework: "qwik-city",
-        rendering: "streaming",
-        asyncContext: "serialized",
-        backend,
-        intl,
-        ...(assets
-          ? {
-              assets: frameworkAssets(assets, {
-                cache: [
-                  { prefix: "/assets/", cacheControl: IMMUTABLE },
-                  { prefix: "/build/", cacheControl: IMMUTABLE },
-                ],
-              }),
-            }
-          : {}),
+      await writeServerArtifact(integration, fetchletOptions, {
+        root,
+        serverModule,
+        resolveDir: directory,
       });
     },
   };

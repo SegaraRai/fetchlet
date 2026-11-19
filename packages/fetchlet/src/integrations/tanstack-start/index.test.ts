@@ -51,7 +51,9 @@ describe("fetchlet/tanstack-start", () => {
     expect(await resolveId.call({ resolve }, "react-dom/server", "/app.js", {})).toStrictEqual({
       id: "react-dom/server.edge",
     });
-    expect(resolve).toHaveBeenCalledWith("react-dom/server.edge", "/app.js", { skipSelf: true });
+    expect(resolve).toHaveBeenCalledWith("react-dom/server.edge", "/app.js", {
+      skipSelf: true,
+    });
     expect(resolveId.call({ resolve }, "react", "/app.js", {})).toBeUndefined();
   });
 
@@ -61,11 +63,25 @@ describe("fetchlet/tanstack-start", () => {
       outDir: join(directory, "build"),
       assets: true,
     });
-    hook(plugin, "configResolved").call({}, { root: directory });
+    hook(plugin, "configResolved").call(
+      {},
+      {
+        root: directory,
+        base: "/",
+        build: {
+          assetsDir: "assets",
+        },
+      },
+    );
     await hook(plugin, "writeBundle").call(
       {},
-      { dir: directory },
-      { a: chunk("other.js", "other"), b: chunk("server-abc.js", "server") },
+      {
+        dir: directory,
+      },
+      {
+        a: chunk("other.js", "other"),
+        b: chunk("server-abc.js", "server"),
+      },
     );
     const options = vi.mocked(buildArtifact).mock.lastCall![0];
     expect(options).toMatchObject({
@@ -93,9 +109,15 @@ describe("fetchlet/tanstack-start", () => {
 
   test("writeBundle fails without a server entry", async () => {
     const plugin = fetchletStart();
-    await expect(hook(plugin, "writeBundle").call({}, { dir: directory }, {})).rejects.toThrow(
-      /found no server entry/,
-    );
+    await expect(
+      hook(plugin, "writeBundle").call(
+        {},
+        {
+          dir: directory,
+        },
+        {},
+      ),
+    ).rejects.toThrow(/found no server entry/);
     expect(buildArtifact).not.toHaveBeenCalled();
   });
 });

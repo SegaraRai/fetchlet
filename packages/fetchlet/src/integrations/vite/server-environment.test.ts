@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/tes
 
 import { buildArtifact } from "../../build/index.ts";
 import {
+  findServerEntry,
   serverEnvironmentPlugin,
+  writeServerArtifact,
   type ServerEnvironmentIntegration,
 } from "./server-environment.ts";
 
@@ -158,5 +160,113 @@ describe("serverEnvironmentPlugin", () => {
         },
       ),
     ).rejects.toThrow(/fetchlet\/test found no server entry/);
+  });
+
+  test("takes the hashed asset directory from the client environment", async () => {
+    writeFileSync(join(directory, "entry.js"), "");
+    const plugin = serverEnvironmentPlugin(integration, {
+      assets: true,
+    });
+    hook(plugin, "configResolved").call(
+      {},
+      {
+        root: directory,
+        base: "/",
+        build: {
+          assetsDir: "assets",
+        },
+        environments: {
+          client: {
+            build: {
+              assetsDir: "_build/assets",
+            },
+          },
+        },
+      },
+    );
+    await hook(plugin, "writeBundle").call(
+      {},
+      {
+        dir: directory,
+      },
+      {
+        entry: chunk("entry.js", "x"),
+      },
+    );
+    expect(vi.mocked(buildArtifact).mock.lastCall![0].assets).toMatchObject({
+      defaults: {
+        cache: [{ prefix: "/_build/assets/" }],
+      },
+    });
+  });
+});
+
+describe("findServerEntry", () => {
+  test("names the integration and what it looked for when the entry is missing", () => {
+    writeFileSync(join(directory, "main.js"), "");
+    const bundle = {
+      main: chunk("main.js", "main"),
+      other: chunk("other.js", "other"),
+    } as never;
+    expect(findServerEntry(integration, bundle, directory, (c) => c.name === "main")).toBe(
+      join(directory, "main.js"),
+    );
+    expect(() =>
+      findServerEntry(integration, bundle, directory, (c) => c.name === "app", '"app" entry'),
+    ).toThrow(`fetchlet/test found no "app" entry in ${directory}`);
+  });
+});
+
+describe("writeServerArtifact", () => {
+  test("adds the hashed asset prefix after the framework's cache rules", async () => {
+    await writeServerArtifact(
+      {
+        ...integration,
+        assetDefaults: {
+          cache: [{ prefix: "/build/", cacheControl: "public" }],
+        },
+      },
+      {
+        assets: true,
+      },
+      {
+        root: directory,
+        serverModule: join(directory, "server", "index.js"),
+        hashedAssets: "/a/",
+      },
+    );
+    const options = vi.mocked(buildArtifact).mock.lastCall![0];
+    expect(options.entry).toMatchObject({
+      resolveDir: join(directory, "server"),
+    });
+    expect(options.outDir).toBe(join(directory, "build"));
+    expect(options.assets).toMatchObject({
+      defaults: {
+        cache: [
+          {
+            prefix: "/build/",
+            cacheControl: "public",
+          },
+          { prefix: "/a/" },
+        ],
+      },
+    });
+  });
+
+  test("passes the framework defaults unchanged without cache rules", async () => {
+    await writeServerArtifact(
+      integration,
+      {
+        assets: true,
+      },
+      {
+        root: directory,
+        serverModule: join(directory, "index.js"),
+      },
+    );
+    expect(vi.mocked(buildArtifact).mock.lastCall![0].assets).toStrictEqual({
+      assets: true,
+      defaults: {},
+    });
   });
 });

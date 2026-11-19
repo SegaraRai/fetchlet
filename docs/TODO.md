@@ -31,17 +31,6 @@ build a server module in the Workers module shape, which
   shape has no HTTP server, so it needs a name outside the
   `<framework>-<rust-server>` convention.
 
-### Shared Vite integration
-
-`fetchlet/vite` and `fetchlet/solid` share `serverEnvironmentPlugin`
-(`src/integrations/vite/server-environment.ts`): client output under
-`<outDir>/client`, the server environment in a cache directory, the server
-entry wrapped by the integration's glue, and hashed assets cached for a
-year. The SolidStart, TanStack Start, Qwik City and Hono plugins repeat
-these steps with their own code. Move each onto the shared plugin, keeping
-its framework's glue, conditions and cache rules, with its unit tests and
-example passing unchanged.
-
 ### Nitro 3 and h3 2
 
 `fetchlet/nitro` is a Nitro 2 preset. Its runtime imports `toWebHandler` from

@@ -7,7 +7,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/tes
 import { buildArtifact } from "../../build/index.ts";
 import fetchletSolidStart from "./index.ts";
 
-vi.mock(import("../../build/index.ts"), () => ({ buildArtifact: vi.fn() }));
+vi.mock(import("../../build/index.ts"), () => ({
+  buildArtifact: vi.fn(),
+}));
 vi.mock(import("../../build/asset-option.ts"), () => ({
   frameworkAssets: vi.fn((assets, defaults) => ({ assets, defaults }) as never),
 }));
@@ -26,18 +28,10 @@ describe("fetchlet/solid-start", () => {
   test("bundles every SSR dependency with Solid's server conditions", () => {
     const plugin = fetchletSolidStart();
     const config = hook(plugin, "config").call({}) as { environments: Record<string, any> };
-    expect(config.environments.ssr.resolve.noExternal).toBe(true);
-    const ssr = hook(plugin, "configEnvironment").call({}, "ssr", {
-      build: {
-        outDir: "x",
-      },
-    }) as {
-      resolve: {
-        conditions: string[];
-      };
-    };
+    const ssr = config.environments.ssr;
+    expect(ssr.resolve.noExternal).toBe(true);
     expect(ssr.resolve.conditions.slice(0, 3)).toStrictEqual(["solid", "worker", "generic"]);
-    expect(hook(plugin, "configEnvironment").call({}, "client", {})).toBeUndefined();
+    expect(ssr.build.outDir).toBe("node_modules/.cache/fetchlet-solid-start");
   });
 
   test("writeBundle uses the SSR output directory and sets h3's request fields", async () => {
@@ -50,6 +44,18 @@ describe("fetchlet/solid-start", () => {
       {},
       {
         root: directory,
+        base: "/",
+        build: {
+          assetsDir: "assets",
+        },
+        // SolidStart puts its client files under _build/assets.
+        environments: {
+          client: {
+            build: {
+              assetsDir: "_build/assets",
+            },
+          },
+        },
       },
     );
     hook(plugin, "configEnvironment").call({}, "ssr", {

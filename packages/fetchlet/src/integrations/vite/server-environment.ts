@@ -4,9 +4,9 @@
 // wrapped by the integration's glue and bundled into the artifact.
 
 import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
-import type { EnvironmentOptions, Plugin, Rolldown } from "vite";
+import type { EnvironmentOptions, Plugin, ResolvedConfig, Rolldown } from "vite";
 
 import { IMMUTABLE } from "../../build/asset-entries.ts";
 import {
@@ -38,8 +38,8 @@ export interface ViteArtifactOptions {
   intl?: IntlOptions;
 }
 
-/** What an integration adds to the shared plugin. */
-export interface ServerEnvironmentIntegration {
+/** What an integration puts around its framework's built server module. */
+export interface ArtifactIntegration {
   /** The plugin name, such as `fetchlet/solid`. */
   name: string;
   /** Recorded in fetchlet.json. */
@@ -48,16 +48,20 @@ export interface ServerEnvironmentIntegration {
   rendering: string;
   /** How `node:async_hooks` is provided; see fetchlet/build. */
   asyncContext?: AsyncContextMode;
+  /** The artifact entry source around the built server module. */
+  entrySource(serverModule: string): string;
+  /** The framework's asset defaults, beneath the app's `assets` settings. */
+  assetDefaults?: FrameworkAssetDefaults;
+}
+
+/** What an integration built on Vite environments adds to the shared plugin. */
+export interface ServerEnvironmentIntegration extends ArtifactIntegration {
   /** The name of the environment whose bundle holds the server. Defaults to "ssr". */
   environment?: string;
   /** Picks the server entry among the environment's entry chunks; the first by default. */
   isServerEntry?: (chunk: Rolldown.OutputChunk) => boolean;
   /** Options for the server environment, merged over the shared ones. */
   serverEnvironment?: EnvironmentOptions;
-  /** The artifact entry source around the built server module. */
-  entrySource(serverModule: string): string;
-  /** Asset defaults beyond the hashed files under `build.assetsDir`. */
-  assetDefaults?: FrameworkAssetDefaults;
 }
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
@@ -65,15 +69,86 @@ const modulePath = (file: string): string => file.replaceAll("\\", "/");
 /** A module path for generated source, with forward slashes on every platform. */
 export const importPath = (file: string): string => JSON.stringify(modulePath(file));
 
+/**
+ * The file of the server entry among a bundle's entry chunks, written to
+ * `directory`. Throws, naming the integration and `description`, when the
+ * bundle has none or the file is missing.
+ */
+export function findServerEntry(
+  integration: Pick<ArtifactIntegration, "name">,
+  bundle: Rolldown.OutputBundle,
+  directory: string,
+  isServerEntry: (chunk: Rolldown.OutputChunk) => boolean = () => true,
+  description = "server entry",
+): string {
+  const entry = Object.values(bundle).find(
+    (chunk): chunk is Rolldown.OutputChunk =>
+      chunk.type === "chunk" && chunk.isEntry && isServerEntry(chunk),
+  );
+  const serverModule = entry && join(directory, entry.fileName);
+  if (!serverModule || !existsSync(serverModule)) {
+    throw new Error(`${integration.name} found no ${description} in ${directory}`);
+  }
+  return serverModule;
+}
+
+/** Where the server module is and what else the artifact takes from the build. */
+export interface ServerArtifactSource {
+  /** The Vite root; `outDir` resolves from it. */
+  root: string;
+  /** The built server module. */
+  serverModule: string;
+  /** The directory the entry's imports resolve from. Defaults to the module's. */
+  resolveDir?: string;
+  /** A URL prefix of hashed client files, cached for a year. */
+  hashedAssets?: string;
+}
+
+/** Writes the artifact around a framework's built server module. */
+export async function writeServerArtifact(
+  integration: ArtifactIntegration,
+  { outDir = "build", backend = "portable", intl = {}, assets = false }: ViteArtifactOptions,
+  { root, serverModule, resolveDir = dirname(serverModule), hashedAssets }: ServerArtifactSource,
+): Promise<void> {
+  const defaults = integration.assetDefaults ?? {};
+  const cache = [
+    ...(defaults.cache ?? []),
+    ...(hashedAssets ? [{ prefix: hashedAssets, cacheControl: IMMUTABLE }] : []),
+  ];
+  await buildArtifact({
+    entry: {
+      source: integration.entrySource(serverModule),
+      resolveDir,
+    },
+    outDir: resolve(root, outDir),
+    framework: integration.framework,
+    rendering: integration.rendering,
+    ...(integration.asyncContext ? { asyncContext: integration.asyncContext } : {}),
+    backend,
+    intl,
+    ...(assets
+      ? { assets: frameworkAssets(assets, cache.length ? { ...defaults, cache } : defaults) }
+      : {}),
+  });
+}
+
+/** The URL prefix of the client build's hashed files: `base` and `build.assetsDir`. */
+function hashedAssetPrefix(config: ResolvedConfig): string {
+  const build = config.environments?.client?.build ?? config.build;
+  const base = config.base.endsWith("/") ? config.base : config.base + "/";
+  return base + build.assetsDir.replace(/^\/+|\/+$/g, "") + "/";
+}
+
 /** The plugin that builds an integration's server environment into an artifact. */
 export function serverEnvironmentPlugin(
   integration: ServerEnvironmentIntegration,
-  { outDir = "build", backend = "portable", intl = {}, assets = false }: ViteArtifactOptions,
+  options: ViteArtifactOptions,
 ): Plugin {
+  const { outDir = "build" } = options;
   const environmentName = integration.environment ?? "ssr";
   const cacheDirectory = "node_modules/.cache/" + integration.name.replaceAll("/", "-");
   let root = process.cwd();
-  let assetPrefix = "/assets/";
+  let hashedAssets = "/assets/";
   let serverDirectory: string | undefined;
   return {
     name: integration.name,
@@ -89,8 +164,12 @@ export function serverEnvironmentPlugin(
             {
               // fetchlet/build bundles the output again for the engine, so
               // every dependency is resolved for a Web-standard server here.
-              resolve: { noExternal: true },
-              build: { outDir: cacheDirectory },
+              resolve: {
+                noExternal: true,
+              },
+              build: {
+                outDir: cacheDirectory,
+              },
             },
             integration.serverEnvironment ?? {},
           ),
@@ -99,10 +178,7 @@ export function serverEnvironmentPlugin(
     },
     configResolved(config) {
       root = config.root;
-      assetPrefix =
-        (config.base.endsWith("/") ? config.base : config.base + "/") +
-        config.build.assetsDir.replace(/^\/+|\/+$/g, "") +
-        "/";
+      hashedAssets = hashedAssetPrefix(config);
     },
     applyToEnvironment(environment) {
       return environment.name === environmentName;
@@ -112,39 +188,19 @@ export function serverEnvironmentPlugin(
         serverDirectory = config.build?.outDir;
       }
     },
-    async writeBundle(options, bundle) {
-      const directory = resolve(root, options.dir ?? serverDirectory ?? cacheDirectory);
-      const entries = Object.values(bundle).filter(
-        (chunk): chunk is Rolldown.OutputChunk => chunk.type === "chunk" && chunk.isEntry,
+    async writeBundle(output, bundle) {
+      const directory = resolve(root, output.dir ?? serverDirectory ?? cacheDirectory);
+      const serverModule = findServerEntry(
+        integration,
+        bundle,
+        directory,
+        integration.isServerEntry,
       );
-      const entry = entries.find(integration.isServerEntry ?? (() => true));
-      const serverModule = entry && join(directory, entry.fileName);
-      if (!serverModule || !existsSync(serverModule)) {
-        throw new Error(`${integration.name} found no server entry in ${directory}`);
-      }
-      const defaults = integration.assetDefaults ?? {};
-      await buildArtifact({
-        entry: {
-          source: integration.entrySource(serverModule),
-          resolveDir: directory,
-        },
-        outDir: resolve(root, outDir),
-        framework: integration.framework,
-        rendering: integration.rendering,
-        ...(integration.asyncContext ? { asyncContext: integration.asyncContext } : {}),
-        backend,
-        intl,
-        ...(assets
-          ? {
-              assets: frameworkAssets(assets, {
-                ...defaults,
-                cache: [
-                  ...(defaults.cache ?? []),
-                  { prefix: assetPrefix, cacheControl: IMMUTABLE },
-                ],
-              }),
-            }
-          : {}),
+      await writeServerArtifact(integration, options, {
+        root,
+        serverModule,
+        resolveDir: directory,
+        hashedAssets,
       });
     },
   };
@@ -158,7 +214,13 @@ function mergeEnvironment(
   return {
     ...base,
     ...override,
-    resolve: { ...base.resolve, ...override.resolve },
-    build: { ...base.build, ...override.build },
+    resolve: {
+      ...base.resolve,
+      ...override.resolve,
+    },
+    build: {
+      ...base.build,
+      ...override.build,
+    },
   };
 }
