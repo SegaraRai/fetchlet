@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+
 import { sveltekit } from "@sveltejs/kit/vite";
 import fetchletAdapter from "fetchlet/sveltekit";
 import { defineConfig } from "vite-plus";
@@ -5,7 +7,14 @@ import { defineConfig } from "vite-plus";
 const cargo = "node ../../tools/workspace/cargo.ts";
 
 // Demo notes are copied here so that editing them leaves sample/ unchanged.
-const demo = "../../.cache/sveltekit-axum-tauri/notes";
+// Cargo runs from the repository root, so the path is absolute, with forward
+// slashes, which the task shell leaves alone.
+const demo = resolve(import.meta.dirname, "../../.cache/sveltekit-axum-tauri/notes").replaceAll(
+  "\\",
+  "/",
+);
+
+const dev = "node ../../tools/examples/dev.ts example-sveltekit-axum-tauri web vite.config.ts";
 
 export default defineConfig({
   plugins: [
@@ -57,6 +66,17 @@ export default defineConfig({
       },
       desktop: {
         command: `${cargo} run --locked -p example-sveltekit-axum-tauri -- desktop ${demo}`,
+        dependsOn: ["build", "prepare:demo"],
+        cache: false,
+      },
+      // Rebuild on source changes while mdw reloads each build.
+      "dev:serve": {
+        command: `${dev} -- serve ${demo} --open`,
+        dependsOn: ["build", "prepare:demo"],
+        cache: false,
+      },
+      "dev:desktop": {
+        command: `${dev} -- desktop ${demo}`,
         dependsOn: ["build", "prepare:demo"],
         cache: false,
       },

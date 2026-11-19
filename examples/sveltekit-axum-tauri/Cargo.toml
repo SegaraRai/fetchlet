@@ -14,6 +14,8 @@ path = "src/main.rs"
 default = ["desktop"]
 # The Tauri window. Without it, `mdw` is a CLI web server that needs no webview libraries.
 desktop = ["dep:tauri", "dep:tauri-build"]
+# Serve build_directory (build/ by default) and reload it when the `dev` task rebuilds it.
+dev = ["fetchlet-http/dev"]
 boa = ["fetchlet/boa"]
 v8 = ["fetchlet/v8"]
 

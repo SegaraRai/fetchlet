@@ -4,7 +4,7 @@ Today an example runs by building the JavaScript (`vp build`) and starting
 the Rust program (`cargo run`); a source change needs both again. This note
 compares ways for fetchlet to give framework apps an edit-and-reload loop
 while the Rust host, its routes and its `HostServices` stay in place. Option A
-is implemented for every axum example, and option B for `fetchlet/vite`.
+is implemented for every axum and Tauri example, and option B for `fetchlet/vite`.
 
 ## Goal
 
@@ -49,6 +49,15 @@ lines have none, HonoX and Qwik City build in two passes, and a full build
 produces exactly the release artifact. Editing a component in each example
 reloaded the server within 1.1 to 4.4 seconds, the build that followed
 caused no further reload, and the page answered 200.
+
+The Tauri examples serve through a URI scheme, whose responder takes whole
+bodies, so their hosts take `DevReload::current()` for each request and
+reload the window from Rust when `DevReload::reloads()` reports a new
+generation, instead of the script `DevService` injects. honox-tauri's `dev`
+task showed an edited route in the open window 1.5 seconds after the save,
+and sveltekit-axum-tauri's `dev:desktop` 3.8 seconds after it, most of it
+the SvelteKit build; `dev:serve` serves the same builds to browsers through
+`DevService`.
 
 With `vite build --watch`, each environment rebuilds on its own, so a client
 change can leave a server that embeds the old client URLs. The `fetchlet/vite`

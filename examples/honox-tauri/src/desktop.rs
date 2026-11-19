@@ -1,41 +1,25 @@
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use tauri::{RunEvent, WebviewUrl, WebviewWindowBuilder};
-
-use fetchlet::{App, Module};
-use fetchlet_http::Artifact;
 
 use crate::commands::{self, Functions};
 use crate::config::Config;
-use crate::protocol::{Protocol, SCHEME, start_url};
-use crate::services::host_services;
+use crate::frontend::Frontend;
+use crate::protocol::{SCHEME, start_url};
 
 pub(crate) fn run(config: Config) -> Result<()> {
-    let artifact = Artifact::open(&config.build_directory)
-        .context("build the HonoX frontend before starting the app")?;
-    let client_directory = artifact
-        .client_directory()
-        .context("the HonoX artifact has no client directory")?;
-    let app = tauri::async_runtime::block_on(
-        App::builder(config.backend()?)
-            .module(Module::new(artifact.server_source()?))
-            .fetch_handler(artifact.handler())
-            .host_services(host_services(&config.message)?)
-            .limits(config.limits())
-            .spawn(config.worker_options()),
-    )?;
-    let protocol = Arc::new(Protocol::new(
-        app.clone(),
-        &client_directory,
-        config.response_body_bytes.get(),
-    )?);
+    let frontend = Arc::new(tauri::async_runtime::block_on(Frontend::start(config))?);
     let url = start_url().parse()?;
 
+    let protocol_frontend = Arc::clone(&frontend);
+    #[cfg(feature = "dev")]
+    let mut reloads = frontend.reloads();
     let desktop = tauri::Builder::default()
-        .manage(Functions(app.clone()))
+        .manage(Functions(Arc::clone(&frontend)))
         .register_asynchronous_uri_scheme_protocol(SCHEME, move |_context, request, responder| {
-            let protocol = Arc::clone(&protocol);
+            // Each request goes to the build current when it arrives.
+            let protocol = protocol_frontend.current().protocol;
             tauri::async_runtime::spawn(async move {
                 responder.respond(protocol.respond(request).await);
             });
@@ -49,7 +33,18 @@ pub(crate) fn run(config: Config) -> Result<()> {
             if let Some(arguments) = devtools_browser_arguments() {
                 window = window.additional_browser_args(&arguments);
             }
-            window.build()?;
+            #[cfg_attr(not(feature = "dev"), allow(unused_variables))]
+            let window = window.build()?;
+            // The scheme's responses go to the webview whole, so the window
+            // is reloaded from here rather than by a script in the page.
+            #[cfg(feature = "dev")]
+            tauri::async_runtime::spawn(async move {
+                while reloads.next().await.is_some() {
+                    if let Err(error) = window.reload() {
+                        eprintln!("could not reload the window: {error}");
+                    }
+                }
+            });
             Ok(())
         })
         .build(tauri::generate_context!())?;
@@ -57,7 +52,7 @@ pub(crate) fn run(config: Config) -> Result<()> {
     println!("FETCHLET_TAURI_READY {}", start_url());
     desktop.run(move |_desktop, event| {
         if let RunEvent::Exit = event
-            && let Err(error) = tauri::async_runtime::block_on(app.shutdown())
+            && let Err(error) = tauri::async_runtime::block_on(frontend.shutdown())
         {
             eprintln!("shutdown failed: {error:#}");
         }

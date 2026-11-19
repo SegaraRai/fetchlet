@@ -36,19 +36,22 @@ impl Shell {
 }
 
 /// The parts both shells share: the workspace and its watcher, the API, and
-/// the fetchlet application that runs the SvelteKit server.
+/// the pages the fetchlet application renders from the SvelteKit build.
 pub(crate) struct Host {
-    pub app: AppHandle,
     pub state: ApiState,
-    note_bytes: usize,
-    file_bytes: usize,
-    artifact: Artifact,
+    pages: Pages,
     _watcher: RecommendedWatcher,
 }
 
 impl Host {
-    pub async fn start(config: &Config, workspace_directory: &Path, shell: Shell) -> Result<Self> {
-        let artifact = frontend(config)?;
+    /// Start the workspace and the application. `public_origin` is the
+    /// origin pages are served at, which SvelteKit sees in each request.
+    pub async fn start(
+        config: Arc<Config>,
+        workspace_directory: &Path,
+        shell: Shell,
+        public_origin: &str,
+    ) -> Result<Self> {
         let workspace = Arc::new(Workspace::open(
             workspace_directory,
             config.workspace_limits(),
@@ -64,19 +67,70 @@ impl Host {
             workspace,
             highlighter,
         };
-        let note_bytes = config.note_bytes.get();
+        let site = Site {
+            config,
+            state: state.clone(),
+            shell,
+            public_origin: public_origin.to_owned(),
+        };
+        let pages = Pages::start(site).await?;
+        Ok(Self {
+            state,
+            pages,
+            _watcher: watcher,
+        })
+    }
 
+    /// The whole application as one router: the public API, workspace files,
+    /// the client build, and the SvelteKit pages for everything else. The CLI
+    /// serves it over HTTP. With the `dev` feature it serves each build the
+    /// `dev` task writes and reloads the browser pages that show one.
+    pub fn router(&self) -> Router {
+        self.pages.router()
+    }
+
+    /// The router of the build that serves the next request, for the
+    /// desktop window, which reloads itself on a new build.
+    #[cfg(feature = "desktop")]
+    pub fn current(&self) -> Router {
+        self.pages.current()
+    }
+
+    /// Each new build from now on.
+    #[cfg(all(feature = "desktop", feature = "dev"))]
+    pub fn reloads(&self) -> fetchlet_http::Reloads {
+        self.pages.reload.reloads()
+    }
+
+    pub async fn shutdown(&self) -> Result<()> {
+        self.pages.shutdown().await
+    }
+}
+
+/// What one build's router needs besides the build.
+struct Site {
+    config: Arc<Config>,
+    state: ApiState,
+    shell: Shell,
+    public_origin: String,
+}
+
+impl Site {
+    /// The router of `artifact` and the application that renders its pages.
+    async fn build(&self, artifact: &Artifact) -> Result<(Router, AppHandle)> {
+        let config = &self.config;
+        let note_bytes = config.note_bytes.get();
         let api = OriginRouter::new()
             .internal(
                 RUST_ORIGIN,
-                router_transport(api_router(state.clone(), note_bytes)),
+                router_transport(api_router(self.state.clone(), note_bytes)),
             )?
             .into_service();
         let hosts = HostServices::new()
             .outbound(api)
             // SvelteKit reports server errors with console.error.
             .console(|level, message| eprintln!("[js {level:?}] {message}"))
-            .env("MDW_SHELL", shell.as_str())?;
+            .env("MDW_SHELL", self.shell.as_str())?;
         let app = App::builder(config.backend()?)
             .module(Module::new(artifact.server_source()?))
             .fetch_handler(artifact.handler())
@@ -84,45 +138,92 @@ impl Host {
             .limits(config.limits())
             .spawn(config.worker_options())
             .await?;
-        Ok(Self {
-            app,
-            state,
-            note_bytes,
-            file_bytes: config.file_bytes.get(),
-            artifact,
-            _watcher: watcher,
-        })
-    }
-
-    /// The whole application as one router: the public API, workspace files,
-    /// the client build, and the SvelteKit pages for everything else. The CLI
-    /// serves it over HTTP and the desktop window through a URI scheme.
-    pub fn router(&self, public_origin: &str) -> Result<Router> {
-        let pages = AxumService::new(self.app.clone(), public_origin)?
+        let pages = AxumService::new(app.clone(), &self.public_origin)?
             .on_error(|error| eprintln!("request failed: {error:#}"));
         let files = Router::new()
             .route("/{*path}", get(workspace_file))
             .with_state(FileState {
                 api: self.state.clone(),
-                file_bytes: self.file_bytes,
+                file_bytes: config.file_bytes.get(),
             });
-        Ok(Router::new()
-            .nest(
-                "/api/v1",
-                public_api_router(self.state.clone(), self.note_bytes),
-            )
+        let router = Router::new()
+            .nest("/api/v1", public_api_router(self.state.clone(), note_bytes))
             .nest("/files", files)
-            .merge(artifact_router(&self.artifact, pages)))
+            .merge(artifact_router(artifact, pages));
+        Ok((router, app))
+    }
+}
+
+/// The pages of one build, or with the `dev` feature of each build the `dev`
+/// task writes to the build directory.
+struct Pages {
+    #[cfg(not(feature = "dev"))]
+    router: Router,
+    #[cfg(not(feature = "dev"))]
+    app: AppHandle,
+    #[cfg(feature = "dev")]
+    reload: fetchlet_http::DevReload<Router>,
+}
+
+impl Pages {
+    #[cfg(not(feature = "dev"))]
+    async fn start(site: Site) -> Result<Self> {
+        let artifact = frontend(&site.config)?;
+        let (router, app) = site.build(&artifact).await?;
+        Ok(Self { router, app })
     }
 
-    pub async fn shutdown(self) -> Result<()> {
+    #[cfg(feature = "dev")]
+    async fn start(site: Site) -> Result<Self> {
+        use fetchlet_http::{DevReload, Generation};
+
+        // Development serves the build directory, never the embedded copy.
+        let directory = site
+            .config
+            .build_directory
+            .clone()
+            .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("build"));
+        let site = Arc::new(site);
+        let reload = DevReload::watch(directory)
+            .start(move |artifact| {
+                let site = site.clone();
+                async move {
+                    let (router, app) = site.build(&artifact).await?;
+                    anyhow::Ok(Generation::new(router).with_app(app))
+                }
+            })
+            .await
+            .context("run `vp run build` before starting mdw with the dev feature")?;
+        Ok(Self { reload })
+    }
+
+    fn router(&self) -> Router {
+        #[cfg(not(feature = "dev"))]
+        return self.router.clone();
+        #[cfg(feature = "dev")]
+        return Router::new().fallback_service(self.reload.service());
+    }
+
+    #[cfg(feature = "desktop")]
+    fn current(&self) -> Router {
+        #[cfg(not(feature = "dev"))]
+        return self.router.clone();
+        #[cfg(feature = "dev")]
+        return self.reload.current();
+    }
+
+    async fn shutdown(&self) -> Result<()> {
+        #[cfg(not(feature = "dev"))]
         self.app.shutdown().await?;
+        #[cfg(feature = "dev")]
+        self.reload.shutdown().await?;
         Ok(())
     }
 }
 
 /// The SvelteKit build: from `build_directory` when the configuration names
 /// one, otherwise the copy embedded in this binary.
+#[cfg(not(feature = "dev"))]
 fn frontend(config: &Config) -> Result<Artifact> {
     if let Some(directory) = &config.build_directory {
         return Artifact::open(directory)

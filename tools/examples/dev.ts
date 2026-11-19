@@ -3,9 +3,10 @@
 // built with the example's `dev` feature, serves each new build. Run from the
 // example's directory after one build, as its `dev` task does:
 //
-//   node ../../tools/examples/dev.ts <cargo package> <watched path>...
+//   node ../../tools/examples/dev.ts <cargo package> <watched path>... [-- <argument>...]
 //
-// Watched paths are files or directories relative to the example. A change
+// Arguments after `--` go to the program. Watched paths are files or
+// directories relative to the example. A change
 // counts when a file's content differs from what was last seen, so files a
 // build rewrites unchanged, such as generated route tables, do not start
 // another build.
@@ -18,9 +19,15 @@ import { join, resolve, sep } from "node:path";
 import { cargoEnv } from "@fetchlet-internal/tools-workspace/cargo";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 
-const [cargoPackage, ...watchedPaths] = process.argv.slice(2);
+const commandLine = process.argv.slice(2);
+const separator = commandLine.indexOf("--");
+const [cargoPackage, ...watchedPaths] =
+  separator === -1 ? commandLine : commandLine.slice(0, separator);
+const programArguments = separator === -1 ? [] : commandLine.slice(separator + 1);
 if (!cargoPackage || watchedPaths.length === 0) {
-  console.error("usage: node tools/examples/dev.ts <cargo package> <watched path>...");
+  console.error(
+    "usage: node tools/examples/dev.ts <cargo package> <watched path>... [-- <argument>...]",
+  );
   process.exit(2);
 }
 
@@ -134,6 +141,7 @@ const server: ChildProcess = spawn(
     cargoPackage,
     "--features",
     "dev",
+    ...(programArguments.length > 0 ? ["--", ...programArguments] : []),
   ],
   { stdio: "inherit", env: cargoEnv() },
 );

@@ -179,13 +179,10 @@ the result in its guide.
 
 ### Development reload per framework
 
-Every axum example has a `dev` task that rebuilds on source changes while
-`DevReload` serves each build ([development loop](research/dev-loop.md)).
-Three parts remain:
+Every axum and Tauri example has a `dev` task that rebuilds on source
+changes while `DevReload` serves each build
+([development loop](research/dev-loop.md)). Two parts remain:
 
-- The Tauri examples serve through a URI scheme, not axum. Their hosts need
-  a generation they can swap, and a webview reload in place of the injected
-  script where the scheme's responses cannot carry it.
 - `tools/examples/dev.ts` is repository tooling. A command in the `fetchlet`
   package, such as `fetchlet dev --watch src -- cargo run --features dev`,
   would give applications the same loop; it needs a `bin` and a check in

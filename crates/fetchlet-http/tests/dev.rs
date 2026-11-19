@@ -138,6 +138,44 @@ async fn a_rewritten_manifest_starts_a_new_generation() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn hosts_without_a_service_take_the_current_generation() {
+    let directory = directory();
+    write_build(&directory, &server("one"));
+    let reload = DevReload::watch(&directory)
+        .poll_interval(POLL)
+        .start(generation)
+        .await
+        .unwrap();
+    let mut reloads = reload.reloads();
+    let text = async |router: axum::Router| {
+        let request = Request::builder().uri("/text").body(Body::empty()).unwrap();
+        let response = router.oneshot(request).await.unwrap();
+        let body = to_bytes(response.into_body(), 1 << 16).await.unwrap();
+        String::from_utf8(body.to_vec()).unwrap()
+    };
+    assert_eq!(text(reload.current()).await, "text one");
+
+    write_build(&directory, &server("two"));
+    tokio::time::timeout(Duration::from_secs(5), reloads.next())
+        .await
+        .expect("a new generation within five seconds")
+        .unwrap();
+    assert_eq!(text(reload.current()).await, "text two");
+
+    // Generations that start between two waits are reported once.
+    write_build(&directory, &server("three"));
+    eventually(async || text(reload.current()).await == "text three").await;
+    reloads.next().await.unwrap();
+    assert!(
+        tokio::time::timeout(POLL * 10, reloads.next())
+            .await
+            .is_err(),
+        "no further generation started"
+    );
+    reload.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn a_poll_waits_for_the_next_generation() {
     let directory = directory();
     write_build(&directory, &server("one"));

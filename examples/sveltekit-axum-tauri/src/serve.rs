@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::path::Path;
+use std::sync::Arc;
 
 use anyhow::Result;
 use axum::extract::{Request, State};
@@ -20,13 +21,13 @@ pub(crate) struct ServeOptions<'a> {
 
 /// `mdw serve`: the workspace in a browser, served by axum on a local port.
 pub(crate) async fn run(config: Config, options: ServeOptions<'_>) -> Result<()> {
-    let host = Host::start(&config, options.workspace, Shell::Browser).await?;
     let listener = TcpListener::bind(options.listen.unwrap_or(config.listen)).await?;
     let address = listener.local_addr()?;
     let authority = address.to_string();
     let origin = format!("http://{authority}");
+    let host = Host::start(Arc::new(config), options.workspace, Shell::Browser, &origin).await?;
     let router = host
-        .router(&origin)?
+        .router()
         .layer(middleware::from_fn_with_state(authority, require_host));
 
     println!("MDW_LISTENING {origin}");

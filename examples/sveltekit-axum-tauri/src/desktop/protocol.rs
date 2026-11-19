@@ -1,9 +1,12 @@
-use axum::Router;
+use std::sync::Arc;
+
 use axum::body::Body;
 use http_body_util::{BodyExt, Limited};
 use tauri::http::header::{CONTENT_TYPE, HeaderValue};
 use tauri::http::{Request, Response, StatusCode};
 use tower::ServiceExt;
+
+use crate::host::Host;
 
 /// The URI scheme the window loads pages from.
 pub(crate) const SCHEME: &str = "mdw";
@@ -21,26 +24,27 @@ pub(crate) fn start_url() -> &'static str {
     }
 }
 
-/// Answers webview requests with the same router `mdw serve` puts behind
-/// HTTP, in-process. Tauri takes complete bodies, so each response is
-/// collected within the configured budget.
+/// Answers webview requests with the same routes `mdw serve` puts behind
+/// HTTP, in-process, from the build current when each request arrives.
+/// Tauri takes complete bodies, so each response is collected within the
+/// configured budget.
 #[derive(Clone)]
 pub(crate) struct Protocol {
-    router: Router,
+    host: Arc<Host>,
     response_body_bytes: usize,
 }
 
 impl Protocol {
-    pub fn new(router: Router, response_body_bytes: usize) -> Self {
+    pub fn new(host: Arc<Host>, response_body_bytes: usize) -> Self {
         Self {
-            router,
+            host,
             response_body_bytes,
         }
     }
 
     pub async fn respond(&self, request: Request<Vec<u8>>) -> Response<Vec<u8>> {
         let request = request.map(Body::from);
-        let response = match self.router.clone().oneshot(request).await {
+        let response = match self.host.current().oneshot(request).await {
             Ok(response) => response,
             Err(never) => match never {},
         };

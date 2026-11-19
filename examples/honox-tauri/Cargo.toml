@@ -7,6 +7,8 @@ publish.workspace = true
 description = "HonoX SSR and browser assets served in-process to a Tauri webview through fetchlet"
 
 [features]
+# Reload the artifact and the window when the `dev` task rebuilds it.
+dev = ["fetchlet-http/dev"]
 boa = ["fetchlet/boa"]
 v8 = ["fetchlet/v8"]
 

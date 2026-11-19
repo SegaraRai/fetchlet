@@ -31,7 +31,9 @@ Each axum example also has a `dev` task: `tools/examples/dev.ts` runs the
 example's `build` task again whenever one of its source files changes, and
 the server, built with the example's `dev` Cargo feature, serves each new
 build through fetchlet-http's `DevReload` and reloads open pages. A full
-build takes one to five seconds for these examples. The vanilla, TanStack
+build takes one to five seconds for these examples. The Tauri examples run
+the same loop (`dev` in honox-tauri, `dev:serve` and `dev:desktop` in
+sveltekit-axum-tauri) and reload their window from Rust. The vanilla, TanStack
 Start, SolidStart and React Router examples also have a `dev:vite` task,
 which runs the server from `vite dev` without a build through fetchlet-http's
 `ViteDev`, and a `vite-dev` suite that checks it with edits;

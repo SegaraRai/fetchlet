@@ -50,6 +50,25 @@ has no embedded copy and serves the build named by `build_directory` in
 the configuration; setting `build_directory` always replaces the embedded
 copy.
 
+## Develop
+
+```bash
+vp run @fetchlet-internal/example-sveltekit-axum-tauri#dev:serve
+```
+
+```bash
+vp run @fetchlet-internal/example-sveltekit-axum-tauri#dev:desktop
+```
+
+The tasks build once and start `mdw serve --open` or `mdw desktop` with the
+`dev` feature, which serves `build_directory` (`build/` by default) instead
+of the embedded copy. Whenever a file in `web/` or `vite.config.ts`
+changes, they run the `build` task again; fetchlet-http's `DevReload`
+starts each new build. Browser pages reload through the script `DevService`
+adds to them, and the desktop window is reloaded by `mdw` itself, since the
+scheme's responses reach the webview whole. A failed build leaves the
+previous one serving. Changes to the Rust sources need a restart.
+
 ## Features
 
 | Feature                | Implementation                                                                                                                             |
@@ -98,7 +117,7 @@ only `https://fetchlet.internal`.
 | Path                      | Role                                                                         |
 | ------------------------- | ---------------------------------------------------------------------------- |
 | `src/cli.rs`              | Subcommands (serve, desktop, openapi) and choosing the configuration file    |
-| `src/host.rs`             | Workspace, watching, Rust API, starting fetchlet; the router both shells use |
+| `src/host.rs`             | Workspace, watching, Rust API, starting fetchlet on each build; the router   |
 | `src/serve.rs`            | `mdw serve`: listens with axum and checks the Host header                    |
 | `src/desktop/`            | `mdw desktop`: URI scheme protocol, window, Tauri change events              |
 | `src/api/`                | utoipa handlers, OpenAPI, syntect, file serving, Server-Sent Events          |

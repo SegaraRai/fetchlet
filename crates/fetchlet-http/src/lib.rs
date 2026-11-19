@@ -37,7 +37,7 @@ pub use axum_server::{AxumService, artifact_router, connect_info, router_transpo
 #[cfg(feature = "dev")]
 pub use dev::{
     DevBody, DevReload, DevReloadBuilder, DevService, Generation, RELOAD_POLL_PATH,
-    RELOAD_SCRIPT_PATH, ReloadError,
+    RELOAD_SCRIPT_PATH, ReloadError, Reloads,
 };
 #[cfg(feature = "hyper")]
 pub use hyper_server::{HyperConnection, HyperService, PeerAddr, peer_addr};

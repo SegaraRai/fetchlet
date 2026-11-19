@@ -19,6 +19,21 @@ The task builds twice, the client (`--mode client`) and the server, then
 starts the Tauri app on QuickJS with `cargo run` (the Tauri CLI is not
 used).
 
+## Develop
+
+```bash
+vp run @fetchlet-internal/example-honox-tauri#dev
+```
+
+The task builds once and starts the app with the `dev` feature. Whenever a
+file in `app/`, `public/` or `vite.config.ts` changes, it runs the `build`
+task again; fetchlet-http's `DevReload` starts each new build, the protocol
+and the `greet` command use it from the next request, and the app reloads
+the window. The scheme's responses reach the webview whole, so the app
+reloads the window itself rather than through a script in the page. A
+failed build leaves the previous one serving. Changes to the Rust sources
+need a restart.
+
 ## Layout
 
 | Path                      | Role                                                                            |
@@ -27,8 +42,9 @@ used).
 | `app/functions.ts`        | JavaScript functions Rust calls (`greet`)                                       |
 | `vite.config.ts`          | HonoX and fetchlet Vite plugins, Vite+ tasks                                    |
 | `src/protocol.rs`         | The URI scheme protocol: Rust routes, then `client/` files, then fetchlet       |
+| `src/frontend.rs`         | Starts fetchlet on the build, or on each build with the `dev` feature           |
 | `src/commands.rs`         | The Tauri command `greet`                                                       |
-| `src/desktop.rs`          | Starts fetchlet, assembles Tauri, shuts down on exit                            |
+| `src/desktop.rs`          | Assembles Tauri, reloads the window on a new build, shuts down on exit          |
 | `config.json`             | Queue, body and response budgets, deadline, background budgets, stacks, backend |
 | `tauri.conf.json`         | Tauri configuration; the window is created in `src/desktop.rs`                  |
 | `capabilities/`, `icons/` | Tauri capabilities and icons                                                    |
@@ -37,7 +53,7 @@ used).
 
 ## Flow
 
-1. `src/desktop.rs` opens the artifact in `build/` and starts fetchlet's
+1. `src/frontend.rs` opens the artifact in `build/` and starts fetchlet's
    worker with `App::builder(...).spawn(...)`.
 2. `register_asynchronous_uri_scheme_protocol("fetchlet", ...)` passes
    webview requests to `Protocol::respond`.

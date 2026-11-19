@@ -59,6 +59,21 @@ reload.shutdown().await?;
 
 `DevService` answers two paths itself: `/__fetchlet/reload.js`, a module script that long-polls `/__fetchlet/reload` and reloads the page when a new generation starts or the server restarts, and that poll. Every other request reaches the current generation, and HTML responses get a `<script type="module" src="/__fetchlet/reload.js?token=…">` element appended. The script comes from the page's own origin, so a Content Security Policy that allows `'self'` scripts allows it. The service drops `Accept-Encoding` from requests, so asset archives answer uncompressed, and leaves responses that still carry a `Content-Encoding` unchanged. The manifest is checked every 200 ms by default (`poll_interval`); a file system whose modification times are coarser than the interval between two builds can miss the second build until the next one. Keep the feature out of release builds: it serves extra paths and changes HTML responses.
 
+A host that answers requests without a Tower service, such as a Tauri URI scheme whose responses reach the webview whole, takes `DevReload::current()` for each request and waits on `DevReload::reloads()` to reload its views when a new generation serves:
+
+```rust,ignore
+let mut reloads = reload.reloads();
+tauri::async_runtime::spawn(async move {
+    while reloads.next().await.is_some() {
+        if let Err(error) = window.reload() {
+            eprintln!("could not reload the window: {error}");
+        }
+    }
+});
+// For each webview request:
+let response = reload.current().respond(request).await;
+```
+
 ## Running from a Vite dev server
 
 The `vite-dev` feature adds `ViteDev`, which runs a server module from `vite dev` with `fetchlet/vite` instead of from a build. The dev server builds a development artifact whose server module runs Vite's module runner in the engine; the runner loads the app's server module and its imports from Vite, and reloads the modules a file change touched before the next call, so a server edit takes effect on the next request without a new instance. Browser modules keep Vite's hot module replacement.

@@ -121,7 +121,10 @@ impl DevReloadBuilder {
 /// previous generation keeps serving.
 ///
 /// [`DevReload::service`] serves the current generation and reloads browsers
-/// that show one of its HTML pages when a new one starts.
+/// that show one of its HTML pages when a new one starts. A host that serves
+/// without a Tower service, such as a webview URI scheme, takes
+/// [`DevReload::current`] for each request and reloads its views when
+/// [`DevReload::reloads`] reports a new generation.
 pub struct DevReload<S> {
     shared: Arc<Shared<S>>,
     task: JoinHandle<()>,
@@ -144,8 +147,22 @@ impl<S: Clone> DevReload<S> {
         DevService::new(self.shared.clone())
     }
 
+    /// The service of the generation being served.
+    pub fn current(&self) -> S {
+        self.shared.current().0
+    }
+
+    /// Changes of generation from now on.
+    pub fn reloads(&self) -> Reloads {
+        let mut tokens = self.shared.token.subscribe();
+        tokens.mark_unchanged();
+        Reloads { tokens }
+    }
+
     /// Stop watching and shut down the current generation's applications.
-    pub async fn shutdown(self) -> Result<(), ReloadError> {
+    /// Requests that reach the generation afterwards fail as calls to a shut
+    /// down application do.
+    pub async fn shutdown(&self) -> Result<(), ReloadError> {
         self.task.abort();
         let apps = std::mem::take(&mut self.shared.write().apps);
         for app in apps {
@@ -158,6 +175,21 @@ impl<S: Clone> DevReload<S> {
 impl<S> Drop for DevReload<S> {
     fn drop(&mut self) {
         self.task.abort();
+    }
+}
+
+/// Reports each new generation of a [`DevReload`], for hosts that reload
+/// their views themselves.
+pub struct Reloads {
+    tokens: watch::Receiver<String>,
+}
+
+impl Reloads {
+    /// Wait until a new generation serves. Generations that start while the
+    /// caller is not waiting are reported once. `None` once the `DevReload`
+    /// and its services are gone.
+    pub async fn next(&mut self) -> Option<()> {
+        self.tokens.changed().await.ok()
     }
 }
 

@@ -14,14 +14,19 @@ const CHANGE_EVENT: &str = "workspace-changed";
 
 /// `mdw desktop`: the workspace in a Tauri window, with no HTTP server.
 pub(crate) fn run(config: Config, workspace: &Path) -> Result<()> {
-    let host = tauri::async_runtime::block_on(Host::start(&config, workspace, Shell::Desktop))?;
-    let protocol = Arc::new(Protocol::new(
-        host.router(PUBLIC_ORIGIN)?,
-        config.response_body_bytes.get(),
-    ));
+    let response_body_bytes = config.response_body_bytes.get();
+    let host = Arc::new(tauri::async_runtime::block_on(Host::start(
+        Arc::new(config),
+        workspace,
+        Shell::Desktop,
+        PUBLIC_ORIGIN,
+    ))?);
+    let protocol = Arc::new(Protocol::new(host.clone(), response_body_bytes));
     let title = format!("{} — mdw", host.state.workspace.info().name);
     let url = start_url().parse()?;
     let mut changes = host.state.workspace.subscribe();
+    #[cfg(feature = "dev")]
+    let mut reloads = host.reloads();
 
     let desktop = tauri::Builder::default()
         .register_asynchronous_uri_scheme_protocol(SCHEME, move |_context, request, responder| {
@@ -38,7 +43,18 @@ pub(crate) fn run(config: Config, workspace: &Path) -> Result<()> {
             if let Some(arguments) = devtools_browser_arguments() {
                 window = window.additional_browser_args(&arguments);
             }
-            window.build()?;
+            #[cfg_attr(not(feature = "dev"), allow(unused_variables))]
+            let window = window.build()?;
+            // The scheme's responses go to the webview whole, so the window
+            // is reloaded from here rather than by a script in the page.
+            #[cfg(feature = "dev")]
+            tauri::async_runtime::spawn(async move {
+                while reloads.next().await.is_some() {
+                    if let Err(error) = window.reload() {
+                        eprintln!("could not reload the window: {error}");
+                    }
+                }
+            });
             let handle = desktop.handle().clone();
             tauri::async_runtime::spawn(async move {
                 use tokio::sync::broadcast::error::RecvError;
@@ -59,10 +75,8 @@ pub(crate) fn run(config: Config, workspace: &Path) -> Result<()> {
         .build(tauri::generate_context!())?;
 
     println!("MDW_DESKTOP_READY {}", start_url());
-    let mut host = Some(host);
     desktop.run(move |_desktop, event| {
         if let RunEvent::Exit = event
-            && let Some(host) = host.take()
             && let Err(error) = tauri::async_runtime::block_on(host.shutdown())
         {
             eprintln!("shutdown failed: {error:#}");

@@ -2,10 +2,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::State;
 
-use fetchlet::AppHandle;
+use std::sync::Arc;
 
-/// The fetchlet application shared by the URI scheme protocol and commands.
-pub(crate) struct Functions(pub AppHandle);
+use crate::frontend::Frontend;
+
+/// The frontend shared by the URI scheme protocol and commands.
+pub(crate) struct Functions(pub Arc<Frontend>);
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct Greeting {
@@ -24,6 +26,8 @@ pub(crate) async fn greet(
 ) -> Result<Greeting, String> {
     functions
         .0
+        .current()
+        .app
         .call("greet", &json!({ "name": name }))
         .await
         .map_err(|error| {
