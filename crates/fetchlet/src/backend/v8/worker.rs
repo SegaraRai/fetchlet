@@ -5,6 +5,7 @@ use std::thread::{self, JoinHandle};
 use anyhow::{Result, anyhow};
 use deno_core::v8;
 use serde_json::Value;
+use tokio::runtime::Handle;
 use tokio::sync::oneshot;
 
 use super::V8Options;
@@ -16,6 +17,8 @@ use crate::execution::{WakeSignal, invocation};
 struct Call {
     expression: String,
     cancelled: Arc<AtomicBool>,
+    /// The caller's runtime, which runs what host futures spawn.
+    runtime: Option<Handle>,
     reply: oneshot::Sender<(Result<Value>, bool)>,
 }
 
@@ -69,7 +72,18 @@ impl V8 {
             let _ = ready.send(Ok(local.isolate_handle()));
             while let Ok(Some(call)) = receiver.recv() {
                 local.set_cancellation(call.cancelled);
-                let result = executor.block_on(local.evaluate(call.expression));
+                // Host futures run here, but what they spawn, such as a
+                // pooled connection another worker reuses, must keep running
+                // between calls: it goes to the caller's runtime, whose
+                // thread drives its IO and timers while it awaits the reply.
+                // The worker's own runtime runs only during a call.
+                let result = match call.runtime {
+                    Some(runtime) => {
+                        let _caller = runtime.enter();
+                        runtime.block_on(local.evaluate(call.expression))
+                    }
+                    None => executor.block_on(local.evaluate(call.expression)),
+                };
                 let _ = call.reply.send((result, local.is_reusable()));
             }
         })?;
@@ -113,6 +127,7 @@ impl V8 {
             .send(Some(Call {
                 expression,
                 cancelled: flag,
+                runtime: Handle::try_current().ok(),
                 reply,
             }))
             .map_err(|_| anyhow!("V8 worker stopped"))?;

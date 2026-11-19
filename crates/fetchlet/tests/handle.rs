@@ -186,3 +186,38 @@ async fn a_replaced_global_fetch_still_passes_the_policy() -> anyhow::Result<()>
     }
     Ok(())
 }
+
+/// A transport's background task, such as a pooled connection, keeps
+/// running between calls on every engine, so the next call can reuse it
+/// from any worker.
+#[tokio::test(flavor = "current_thread")]
+async fn tasks_host_futures_spawn_run_between_calls() -> anyhow::Result<()> {
+    for backend in backends() {
+        let (ran, mut receive_ran) = mpsc::unbounded_channel();
+        let policy = FetchPolicy::deny_all().allow_origin("https://allowed.test")?;
+        let outbound = FetchService::new(
+            transport_fn(move |_| {
+                let ran = ran.clone();
+                async move {
+                    tokio::spawn(async move {
+                        tokio::time::sleep(Duration::from_millis(20)).await;
+                        let _ = ran.send(());
+                    });
+                    Ok(Response::new(Body::empty()))
+                }
+            }),
+            policy,
+        );
+        let handle = App::builder(backend)
+            .module(Module::new(PATCHED_FETCH))
+            .host_services(HostServices::new().outbound(outbound))
+            .spawn(WorkerOptions::new(NonZeroUsize::new(1).unwrap()))
+            .await?;
+        handle.call_json("patched", &[]).await?;
+        tokio::time::timeout(Duration::from_secs(2), receive_ran.recv())
+            .await?
+            .expect("the spawned task ran after the call");
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
