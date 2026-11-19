@@ -196,8 +196,13 @@ export default defineConfig({
         command: "node tools/conformance/update-sources.ts",
         cache: false,
       },
+      // Chromium's system libraries need installing only on Linux; on Windows
+      // --with-deps enables Media Foundation, which the checks do not use.
       "setup:browser": {
-        command: "playwright install --with-deps chromium",
+        command:
+          process.platform === "linux"
+            ? "playwright install --with-deps chromium"
+            : "playwright install chromium",
         cache: false,
       },
 

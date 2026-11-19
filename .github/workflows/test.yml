@@ -86,6 +86,39 @@ jobs:
           run-install: false
       - run: vp install --frozen-lockfile
       - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: vp run build:fixtures
+      - run: vp run check:types
+      - run: vp run check:format
+      - run: vp run test:polyfills
+      - run: vp run test:js
+      - run: vp run test:package
+      - run: vp run test:matrix
+      - run: vp run test:host
+      - run: vp run test:url
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: results-packages-${{ matrix.os }}
+          path: results/
+
+  examples:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version: "26"
+          version: "1.7.0"
+          run-install: false
+      - run: vp install --frozen-lockfile
+      - run: rustup toolchain install stable --profile minimal
       - if: runner.os == 'Linux'
         run: |
           sudo apt-get update
@@ -99,21 +132,12 @@ jobs:
           path: ${{ runner.os == 'Windows' && '~\AppData\Local\ms-playwright' || '~/.cache/ms-playwright' }}
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: playwright-${{ runner.os }}-
-      - run: vp run build:fixtures
-      - run: vp run check:types
-      - run: vp run check:format
-      - run: vp run test:polyfills
-      - run: vp run test:js
-      - run: vp run test:package
-      - run: vp run test:matrix
-      - run: vp run test:host
-      - run: vp run test:url
       - run: vp run setup:browser
       - run: vp run test:examples
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
-          name: results-packages-${{ matrix.os }}
+          name: results-examples-${{ matrix.os }}
           path: results/
 
   fuzz:
