@@ -2,8 +2,8 @@
 // a bundler and Node both use it rather than Node's module of the same
 // name, with the Web stream adapters and duplexPair attached.
 
-import Stream from "readable-stream/lib/stream.js";
-import promises from "readable-stream/lib/stream/promises.js";
+import streamModule from "readable-stream/lib/stream.js";
+import promisesModule from "readable-stream/lib/stream/promises.js";
 
 import { duplexPair } from "./duplex-pair.ts";
 import {
@@ -14,6 +14,14 @@ import {
   writableFromWeb,
   writableToWeb,
 } from "./web-adapters.ts";
+
+// Typed here, so the published declarations do not import readable-stream,
+// which ships no types of its own.
+const Stream: any = streamModule;
+const promises: {
+  pipeline: (...streams: unknown[]) => Promise<void>;
+  finished: (stream: unknown, options?: object) => Promise<void>;
+} = promisesModule;
 
 Stream.duplexPair = duplexPair;
 Stream.Readable.fromWeb = readableFromWeb;

@@ -5,6 +5,7 @@
   "description": "Rust-hosted JavaScript workspace, adapters and end-to-end examples",
   "type": "module",
   "devDependencies": {
+    "@fetchlet/node": "workspace:*",
     "@sveltejs/kit": "catalog:",
     "@sveltejs/vite-plugin-svelte": "catalog:",
     "@types/node": "catalog:",

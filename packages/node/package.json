@@ -1,7 +1,6 @@
 {
   "name": "@fetchlet/node",
   "version": "0.0.0",
-  "private": true,
   "description": "Node.js built-in modules for code that runs inside a fetchlet engine, over the Web API profile and the host operations of fetchlet-web",
   "license": "MIT OR Apache-2.0",
   "repository": {
@@ -9,6 +8,9 @@
     "url": "git+https://github.com/SegaraRai/fetchlet.git",
     "directory": "packages/node"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     "./assert": "./src/assert.ts",
@@ -35,16 +37,40 @@
     "./util/types": "./src/util-types.ts",
     "./zlib": "./src/zlib.ts"
   },
-  "devDependencies": {
-    "@fetchlet/web": "workspace:*",
-    "@types/node": "catalog:",
-    "buffer": "catalog:dep",
-    "readable-stream": "catalog:dep",
-    "vite-plus": "catalog:"
+  "publishConfig": {
+    "exports": {
+      "./assert": "./dist/assert.js",
+      "./assert/strict": "./dist/assert-strict.js",
+      "./async-hooks": "./dist/async-hooks.js",
+      "./async-hooks/serialized": "./dist/async-hooks-serialized.js",
+      "./buffer": "./dist/buffer.js",
+      "./crypto": "./dist/crypto.js",
+      "./diagnostics-channel": "./dist/diagnostics-channel.js",
+      "./events": "./dist/events.js",
+      "./http": "./dist/http.js",
+      "./https": "./dist/https.js",
+      "./path": "./dist/path.js",
+      "./process": "./dist/process.js",
+      "./querystring": "./dist/querystring.js",
+      "./stream": "./dist/stream.js",
+      "./stream/promises": "./dist/stream-promises.js",
+      "./stream/web": "./dist/stream-web.js",
+      "./string-decoder": "./dist/string-decoder.js",
+      "./timers": "./dist/timers.js",
+      "./timers/promises": "./dist/timers-promises.js",
+      "./url": "./dist/url.js",
+      "./util": "./dist/util.js",
+      "./util/types": "./dist/util-types.js",
+      "./zlib": "./dist/zlib.js"
+    }
   },
-  "peerDependencies": {
+  "dependencies": {
     "@fetchlet/web": "workspace:*",
     "buffer": "catalog:dep",
     "readable-stream": "catalog:dep"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

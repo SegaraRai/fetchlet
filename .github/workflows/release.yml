@@ -53,6 +53,8 @@ jobs:
       - run: vp install --frozen-lockfile
       - run: rustup toolchain install stable --profile minimal
       - run: vp run check:release
+      - run: vp run @fetchlet/web#build
+      - run: vp run @fetchlet/node#build
       - run: vp run fetchlet#build
       # Recursive publication skips private packages and versions that already exist on npm.
       - name: Pack every npm package

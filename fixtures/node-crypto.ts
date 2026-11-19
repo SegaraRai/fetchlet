@@ -2,8 +2,8 @@
 // compares the results with Node's own crypto; the Node reference has no
 // fetchlet host and returns null.
 
-import { Buffer } from "fetchlet/node/buffer";
-import crypto from "fetchlet/node/crypto";
+import { Buffer } from "@fetchlet/node/buffer";
+import crypto from "@fetchlet/node/crypto";
 
 const hashes = ["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512-224", "sha512-256"];
 

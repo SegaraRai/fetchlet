@@ -17,11 +17,11 @@ implementations live in `src/internal/<area>/`, one directory per concern
 (`fetch`, `dom`, `html`, `url`, `crypto`, `webidl` and so on), with their
 unit tests beside them.
 
-The package is private. [fetchlet](../fetchlet/README.md) lists it as a
-development dependency, reexports it as `fetchlet/runtime` and compiles it
-into its published output. Its subpaths point at the TypeScript sources; to
-publish it on its own, remove `private` and add a build that writes `dist/`,
-as `fetchlet` does.
+[fetchlet](../fetchlet/README.md) depends on the package and initializes it in
+`fetchlet/runtime`, so applications get it through `fetchlet` and do not
+install it themselves. In the workspace the subpaths point at the TypeScript
+sources; `vp run @fetchlet/web#build` compiles them and their declarations
+into `dist/`, which the published manifest (`publishConfig.exports`) names.
 
 `PROTOCOL_VERSION` in `src/internal/runtime/web-host.ts` matches the one in fetchlet-web's
 dispatcher; bump both when an operation's name or message changes.

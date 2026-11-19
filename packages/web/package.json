@@ -1,7 +1,6 @@
 {
   "name": "@fetchlet/web",
   "version": "0.0.0",
-  "private": true,
   "description": "Web API implementations that run inside a fetchlet engine on the host operations of fetchlet-web",
   "license": "MIT OR Apache-2.0",
   "repository": {
@@ -9,11 +8,21 @@
     "url": "git+https://github.com/SegaraRai/fetchlet.git",
     "directory": "packages/web"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./async-context": "./src/async-context.ts",
     "./wire": "./src/wire.ts"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.js",
+      "./async-context": "./dist/async-context.js",
+      "./wire": "./dist/wire.js"
+    }
   },
   "dependencies": {
     "@exodus/bytes": "catalog:dep",

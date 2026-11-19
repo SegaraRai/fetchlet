@@ -46,10 +46,25 @@ and assembles its default export. The implementations live in
 `stream`, `url`, `util`, `zlib` and so on), and import each other there
 rather than through the subpaths.
 
-The package is private. [fetchlet](../fetchlet/README.md) lists it as a
-development dependency, reexports its modules as `fetchlet/node/*` and
-compiles them into its published output. Its peer dependencies are the ones
-the compiled modules import, which `fetchlet` lists as dependencies.
+[fetchlet](../fetchlet/README.md) depends on the package, and
+`fetchlet/build` resolves `node:*` imports to its subpaths from there, so
+applications get it through `fetchlet` and do not install it themselves. In
+the workspace the subpaths point at the TypeScript sources;
+`vp run @fetchlet/node#build` compiles them and their declarations into
+`dist/`, which the published manifest (`publishConfig.exports`) names.
+
+Applications type their `node:*` imports with `@types/node`; the build swaps
+in these modules only when it bundles, so the compiler never sees them. The
+package's own declarations describe the implementation and are not a typed
+API: modules that wrap untyped code, such as `node:stream` over
+readable-stream and parts of `node:http` and `node:util`, export `any`. Code
+that imports a subpath directly gets those loose types.
+
+The declarations compile under `strict` without `skipLibCheck`, which
+`vp run test:package` verifies. They need TypeScript's disposable lib
+(`ESNext.Disposable`, or a `lib` that includes it), because
+`addAbortListener` from `@fetchlet/node/events` returns a `Disposable`, as
+Node's does.
 
 The tests compare each module with Node's own. For `node:crypto` and
 `node:zlib` they install a stand-in host whose operations Node computes; the

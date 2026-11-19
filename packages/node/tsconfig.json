@@ -7,10 +7,7 @@
     "noEmit": true,
     "types": [],
     // Newer members are used only behind feature checks.
-    "lib": ["ESNext", "DOM"],
-    "paths": {
-      "@fetchlet/web/*": ["../web/src/*.ts"]
-    }
+    "lib": ["ESNext", "DOM"]
   },
   "include": ["src/**/*.ts"]
 }

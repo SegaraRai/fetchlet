@@ -82,7 +82,7 @@ documented refusal, and a check in a framework example:
     matrix check passing on QuickJS, switch every adapter to
     `"propagated"`, and remove `"serialized"`: the option value,
     `packages/node/src/async-hooks-serialized.ts`, its
-    `fetchlet/node/async-hooks/serialized` export, its tests and the
+    `@fetchlet/node/async-hooks/serialized` export, its tests and the
     documentation that describes it. Propagation then applies to every
     artifact, so the `asyncContext` option, its `fetchlet.json` field and
     the `node:async_hooks` stub for builds without it go too.

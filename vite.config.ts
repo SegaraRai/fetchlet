@@ -120,7 +120,7 @@ export default defineConfig({
       },
       "test:package": {
         command: "node tools/package/test.ts",
-        dependsOn: ["fetchlet#build", "build:lab"],
+        dependsOn: ["@fetchlet/node#build", "@fetchlet/web#build", "fetchlet#build", "build:lab"],
         cache: false,
       },
       "test:matrix": {

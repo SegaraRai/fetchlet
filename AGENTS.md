@@ -28,8 +28,8 @@ Use Vite+ with pnpm. Define tasks in `vite.config.ts`. Use `vp i` for dependenci
 - Test JavaScript with Vitest through `vp test`, importing from `vite-plus/test`. Put unit tests next to their module as `*.test.ts` and broader suites in the package's `tests/`; each package with tests has a `vite.config.ts` with a `test` section, listed in the root `test.projects` unless it needs prerequisites such as `build:lab`.
 - Write package sources, example scripts and tests in TypeScript too. Code that runs inside the engines as written, such as `crates/fetchlet/js/` and engine fixtures, stays JavaScript.
 - When code needs another module of the package as a file, publish that module as a subpath and resolve it with `createRequire(import.meta.url).resolve`; do not build paths relative to `import.meta.url`.
-- Publish JavaScript as the single npm package `fetchlet` (`packages/fetchlet`), with one subpath per framework and the integrations under `src/integrations/<framework>/`. Name private workspace packages `@fetchlet-internal/*`; keep `@fetchlet/*` for packages that could be published on their own.
-- Put the guest Web API implementations in `@fetchlet/web` (`packages/web`), the counterpart of `crates/fetchlet-web`. It stays private with subpaths pointing at its TypeScript sources; `fetchlet` lists it as a development dependency and compiles it into its own output.
+- Publish the user-facing JavaScript as the npm package `fetchlet` (`packages/fetchlet`), with one subpath per framework and the integrations under `src/integrations/<framework>/`. Name private workspace packages `@fetchlet-internal/*` and published supporting packages `@fetchlet/*`.
+- Put the guest Web API implementations in `@fetchlet/web` (`packages/web`), the counterpart of `crates/fetchlet-web`, and the guest `node:*` modules in `@fetchlet/node` (`packages/node`). `fetchlet` depends on both and imports them by package name; it neither bundles their modules nor relays their subpaths. Each package's subpaths point at its TypeScript sources in the workspace, and `vp pack` compiles them to `dist/`, which `publishConfig.exports` names.
 
 ## Releases
 

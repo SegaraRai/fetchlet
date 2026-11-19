@@ -33,14 +33,21 @@ async function bundle(name: string, entry: string, target = "es2022"): Promise<v
     resolve: {
       mainFields: ["module", "main"],
       conditions: ["module", "production"],
-      // readable-stream, under fetchlet/node/stream, requires the npm process
+      // readable-stream, under @fetchlet/node/stream, requires the npm process
       // package, whose main module is Node's global; fetchlet/build serves
       // fetchlet's process for it, and so does this bundle.
-      alias: { "process/": "fetchlet/node/process" },
+      alias: {
+        "process/": "@fetchlet/node/process",
+      },
     },
     plugins: [noAsyncHooks],
-    define: { "process.env.NODE_ENV": '"production"' },
-    esbuild: { jsx: "automatic", jsxImportSource: "hono/jsx" },
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
+    esbuild: {
+      jsx: "automatic",
+      jsxImportSource: "hono/jsx",
+    },
     build: {
       target,
       outDir: artifacts,
@@ -52,9 +59,15 @@ async function bundle(name: string, entry: string, target = "es2022"): Promise<v
         name: "fetchletExports",
         fileName: () => name + ".js",
       },
-      rolldownOptions: { output: { inlineDynamicImports: true } },
+      rolldownOptions: {
+        output: {
+          inlineDynamicImports: true,
+        },
+      },
     },
-    ssr: { noExternal: true },
+    ssr: {
+      noExternal: true,
+    },
   });
 }
 

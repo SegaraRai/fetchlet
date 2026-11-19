@@ -70,10 +70,9 @@ catalogs:
     waku: 1.0.0-rc.5
     yaml: 2.9.1
 
-  # The ranges fetchlet publishes for its runtime dependencies, including the
-  # guest Web API and Node packages compiled into it. pnpm writes them into the
-  # published manifest, so they stay semver ranges that deduplicate with the
-  # application's own copies.
+  # The ranges fetchlet, @fetchlet/web and @fetchlet/node publish for their
+  # runtime dependencies. pnpm writes them into the published manifests, so
+  # they stay semver ranges that deduplicate with the application's own copies.
   dep:
     "@exodus/bytes": ^1.16.0
     "@formatjs/intl-datetimeformat": ^8.2.0

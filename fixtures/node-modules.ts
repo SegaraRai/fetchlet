@@ -4,16 +4,16 @@
 // matrix compares the results with what Node computes for the same inputs;
 // the Node reference has no fetchlet host and returns null.
 
-import assert from "fetchlet/node/assert";
-import { Buffer } from "fetchlet/node/buffer";
-import crypto from "fetchlet/node/crypto";
-import diagnostics from "fetchlet/node/diagnostics-channel";
-import querystring from "fetchlet/node/querystring";
-import { PassThrough, Readable, Transform, pipeline } from "fetchlet/node/stream";
-import { StringDecoder } from "fetchlet/node/string-decoder";
-import url from "fetchlet/node/url";
-import types from "fetchlet/node/util/types";
-import zlib from "fetchlet/node/zlib";
+import assert from "@fetchlet/node/assert";
+import { Buffer } from "@fetchlet/node/buffer";
+import crypto from "@fetchlet/node/crypto";
+import diagnostics from "@fetchlet/node/diagnostics-channel";
+import querystring from "@fetchlet/node/querystring";
+import { PassThrough, Readable, Transform, pipeline } from "@fetchlet/node/stream";
+import { StringDecoder } from "@fetchlet/node/string-decoder";
+import url from "@fetchlet/node/url";
+import types from "@fetchlet/node/util/types";
+import zlib from "@fetchlet/node/zlib";
 
 /** PKCS #8 for a curve25519 key from its 32-byte seed. */
 function seedKey(oid: "70" | "6e", seed: number) {

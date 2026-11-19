@@ -1,0 +1,10 @@
+{
+  // The declarations vp pack emits. The sources are type-checked with the
+  // guest entries by the root tsconfig.json.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

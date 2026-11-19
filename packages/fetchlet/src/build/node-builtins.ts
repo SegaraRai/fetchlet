@@ -9,37 +9,37 @@ export type AsyncContextMode = "serialized" | "propagated";
 
 /**
  * The Node built-in modules that fetchlet implements, by name without the
- * `node:` scheme, with the fetchlet subpath of each. node:async_hooks
+ * `node:` scheme, with the @fetchlet/node subpath of each. node:async_hooks
  * depends on the build's asyncContext option and is listed separately.
  */
 const modules: Record<string, string> = {
-  assert: "fetchlet/node/assert",
-  "assert/strict": "fetchlet/node/assert/strict",
-  buffer: "fetchlet/node/buffer",
-  crypto: "fetchlet/node/crypto",
-  diagnostics_channel: "fetchlet/node/diagnostics-channel",
-  events: "fetchlet/node/events",
-  http: "fetchlet/node/http",
-  https: "fetchlet/node/https",
-  path: "fetchlet/node/path",
-  "path/posix": "fetchlet/node/path",
-  process: "fetchlet/node/process",
-  querystring: "fetchlet/node/querystring",
-  stream: "fetchlet/node/stream",
-  "stream/promises": "fetchlet/node/stream/promises",
-  "stream/web": "fetchlet/node/stream/web",
-  string_decoder: "fetchlet/node/string-decoder",
-  timers: "fetchlet/node/timers",
-  "timers/promises": "fetchlet/node/timers/promises",
-  url: "fetchlet/node/url",
-  util: "fetchlet/node/util",
-  "util/types": "fetchlet/node/util/types",
-  zlib: "fetchlet/node/zlib",
+  assert: "@fetchlet/node/assert",
+  "assert/strict": "@fetchlet/node/assert/strict",
+  buffer: "@fetchlet/node/buffer",
+  crypto: "@fetchlet/node/crypto",
+  diagnostics_channel: "@fetchlet/node/diagnostics-channel",
+  events: "@fetchlet/node/events",
+  http: "@fetchlet/node/http",
+  https: "@fetchlet/node/https",
+  path: "@fetchlet/node/path",
+  "path/posix": "@fetchlet/node/path",
+  process: "@fetchlet/node/process",
+  querystring: "@fetchlet/node/querystring",
+  stream: "@fetchlet/node/stream",
+  "stream/promises": "@fetchlet/node/stream/promises",
+  "stream/web": "@fetchlet/node/stream/web",
+  string_decoder: "@fetchlet/node/string-decoder",
+  timers: "@fetchlet/node/timers",
+  "timers/promises": "@fetchlet/node/timers/promises",
+  url: "@fetchlet/node/url",
+  util: "@fetchlet/node/util",
+  "util/types": "@fetchlet/node/util/types",
+  zlib: "@fetchlet/node/zlib",
 };
 
 const asyncHooksModules: Record<AsyncContextMode, string> = {
-  propagated: "fetchlet/node/async-hooks",
-  serialized: "fetchlet/node/async-hooks/serialized",
+  propagated: "@fetchlet/node/async-hooks",
+  serialized: "@fetchlet/node/async-hooks/serialized",
 };
 
 /** Names, with and without `node:`, that fetchlet/build resolves to its own modules. */
@@ -107,7 +107,7 @@ function stubSource(name: string, hint: string): string {
 /**
  * Node built-ins for the artifact.
  *
- * The modules fetchlet implements resolve to fetchlet/node/*. A `require`
+ * The modules fetchlet implements resolve to `@fetchlet/node/*`. A `require`
  * gets the module's default export, which holds all its members as Node's
  * CommonJS exports do; for node:events that is the EventEmitter class.
  * node:async_hooks is the module for `asyncContext`, see AsyncContextMode.
