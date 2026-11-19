@@ -30,14 +30,14 @@ need a restart.
 
 ## Layout
 
-| Path                | Role                                                                |
-| ------------------- | ------------------------------------------------------------------- |
-| `web/`              | SvelteKit pages, actions, endpoints and public files                |
-| `vite.config.ts`    | Build settings for SvelteKit and the fetchlet adapter               |
-| `src/`              | axum routing, the shared handle and HTTP integration, Rust services |
-| `config.json`       | Listen address, queue, body budgets, deadlines, env                 |
-| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                             |
-| `build/`            | Output: `server.js`, `client/`, `fetchlet.json`                     |
+| Path                | Role                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------ |
+| `web/`              | SvelteKit pages, actions, endpoints and public files                                                   |
+| `vite.config.ts`    | Build settings for SvelteKit and the fetchlet adapter                                                  |
+| `src/`              | `main.rs` starts `fetchlet_http::Server` with the API routes; `services.rs` holds the API and bindings |
+| `config.json`       | Listen address, body budgets, deadlines, env                                                           |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                                                |
+| `build/`            | Output: `server.js`, `client/`, `fetchlet.json`                                                        |
 
 One server handles Rust's `/api/rust` and SvelteKit's routes. Static files
 are served first and dynamic requests go to JavaScript, including POST and
@@ -92,8 +92,8 @@ worker finishes it before the next request. The budgets are
 
 ## Configuration
 
-`config.json` holds this local example's operating choices: a queue of 8, a
-1 MiB request body and a 10-second cooperative deadline, sized for small
+`config.json` holds this local example's operating choices: a 1 MiB request
+body and a 10-second cooperative deadline, sized for small
 pages and forms. Change them for other uses; `null` body and deadline values
 leave those budgets to the host.
 

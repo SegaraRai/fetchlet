@@ -44,16 +44,20 @@ which runs the server from `vite dev` without a build through fetchlet-http's
 
 Framework adapters produce the server bundle and client assets, and
 `fetchlet/build` fixes the Web API initialization order and the artifact
-format. On the Rust side, `AppHandle` runs the app. The axum examples read
-the artifact with fetchlet-http's `Artifact` and serve client assets and the
-app with `artifact_router`. The Tauri examples call fetchlet-http's
+format. On the Rust side, `AppHandle` runs the app. The axum examples serve
+the artifact with fetchlet-http's `Server`: `main.rs` reads `config.json`
+and passes the Rust routes, the bindings of `services.rs` and the budgets;
+the server starts the engine the artifact records and serves its client
+assets, and the `dev` and `vite-dev` features switch it to development
+serving. The Tauri examples call fetchlet-http's
 `FetchletService` from a URI scheme protocol and serve the webview without
 an HTTP server. The same request handling contract is verified on the
 Tower, hyper and actix-web layers.
 
 An artifact is `server.js`, `client/` or `assets.flpk`, and `fetchlet.json`,
 which records the format version, entry, profile, framework and required
-capabilities. The application chooses the backend to match.
+capabilities, and the backend it was built for, whose engine `Server`
+starts.
 
 ## Switching backends
 
@@ -69,10 +73,10 @@ node tools/workspace/cargo.ts run --release -p example-honox-axum --features v8
 ```
 
 `FETCHLET_BACKEND` (`quickjs`, `boa` or `v8`) overrides the backend in the
-framework configuration at build time, and `"backend": "v8"` in
-`config.json` selects the Rust `Backend`. A server built without the feature
-refuses a Boa or V8 configuration at startup. `worker_stack_bytes` also
-applies to V8's worker thread.
+framework configuration at build time. The axum hosts run on
+`fetchlet_http::Server`, which starts the engine the artifact records, so a
+server built without that engine's Cargo feature refuses the build at
+startup and names the feature.
 
 [tools/bench](../tools/bench/README.md) measures requests per second for
 each example, backend and endpoint.

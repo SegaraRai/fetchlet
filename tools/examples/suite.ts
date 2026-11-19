@@ -53,7 +53,6 @@ export function exampleSuite(name: string): ExampleSuite {
     config.listen = "127.0.0.1:0";
     config.build_directory = resolve(example, "build");
     config.request_body_bytes = 4096;
-    config.backend = backend;
     const configPath = resolve(output, "config.json");
     await writeFile(configPath, JSON.stringify(config, null, 2));
 

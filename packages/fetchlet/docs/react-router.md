@@ -64,9 +64,11 @@ React's Fizz catches stack overflows and retries rendering the element. A
 `<link` fragment written before the retry stays in the head, producing
 broken HTML with status 200. With QuickJS's default 1 MiB stack limit this
 happens even for small pages in Rust debug builds, not in release builds
-(`/about` in examples/react-router-axum; 2 MiB is enough). The example sets
-`QuickJsOptions::stack_limit_bytes` to 4 MiB and the worker thread stack to
-8 MiB, and its end-to-end checks assert that no fragment remains.
+(`/about` in examples/react-router-axum; 2 MiB is enough). fetchlet-http's
+`Server` sets `QuickJsOptions::stack_limit_bytes` to 4 MiB and the worker
+thread stack to 8 MiB by default, which the example uses; a host that starts
+its `App` itself sets them, and the example's end-to-end checks assert that
+no fragment remains.
 
 ## Development serving
 

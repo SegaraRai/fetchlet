@@ -44,19 +44,19 @@ The task starts `vite dev` on `127.0.0.1:3621`, then the server with the
 `src/server.ts` takes effect on the next request and reloads open pages;
 a change to `src/client.ts` or `src/styles.css` is applied in place. No
 build is needed. To run on Boa, set `FETCHLET_BACKEND=boa` and pass
-`-- --features boa` with `"backend": "boa"` in the configuration.
+`-- --features boa`; the server runs the engine the module was built for.
 
 ## Layout
 
-| Path                | Role                                                                      |
-| ------------------- | ------------------------------------------------------------------------- |
-| `src/server.ts`     | The server module: pages, endpoints and the `greet` function              |
-| `src/client.ts`     | The browser entry, with `src/styles.css`                                  |
-| `vite.config.ts`    | The fetchlet Vite plugin and Vite+ tasks                                  |
-| `server/`           | Starting axum, bindings, routing, the `/api/greet` route                  |
-| `config.json`       | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                   |
-| `build/`            | `server.js`, `client/`, `assets.flpk`, `fetchlet.json`                    |
+| Path                | Role                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/server.ts`     | The server module: pages, endpoints and the `greet` function                                                 |
+| `src/client.ts`     | The browser entry, with `src/styles.css`                                                                     |
+| `vite.config.ts`    | The fetchlet Vite plugin and Vite+ tasks                                                                     |
+| `server/`           | `main.rs` starts `fetchlet_http::Server` with Rust routes and `/api/greet`; `services.rs` holds the bindings |
+| `config.json`       | Listen address, body budgets, deadline, background budgets, message                                          |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                                                      |
+| `build/`            | `server.js`, `client/`, `assets.flpk`, `fetchlet.json`                                                       |
 
 The server reads the built script and style URLs of `src/client.ts` from
 `virtual:fetchlet/client-assets`. `/api/greet?name=…` is an axum route that

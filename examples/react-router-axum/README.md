@@ -43,16 +43,16 @@ loaders, actions and resource routes run on the engine.
 
 ## Layout
 
-| Path                     | Role                                                                      |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `app/`                   | Routes, components, `entry.server.tsx`, typed load context                |
-| `react-router.config.ts` | React Router configuration and the fetchlet preset                        |
-| `vite.config.ts`         | React Router's Vite plugin, Vite+ tasks                                   |
-| `src/`                   | Starting axum, bindings, routing                                          |
-| `config.json`            | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                   |
-| `tests/vite-dev.test.ts` | The `dev:vite` loop with in-place edits                                   |
-| `build/`                 | `server.js`, `client/`, `fetchlet.json` (`server/` is intermediate)       |
+| Path                     | Role                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| `app/`                   | Routes, components, `entry.server.tsx`, typed load context                                  |
+| `react-router.config.ts` | React Router configuration and the fetchlet preset                                          |
+| `vite.config.ts`         | React Router's Vite plugin, Vite+ tasks                                                     |
+| `src/`                   | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
+| `config.json`            | Listen address, body budgets, deadline, background budgets, message                         |
+| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                                     |
+| `tests/vite-dev.test.ts` | The `dev:vite` loop with in-place edits                                                     |
+| `build/`                 | `server.js`, `client/`, `fetchlet.json` (`server/` is intermediate)                         |
 
 ## Routes and context
 
@@ -72,8 +72,8 @@ completes.
 
 ## Stack
 
-`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
-`config.json` fit React's recursion depth. With QuickJS's default 1 MiB, Rust
+`fetchlet_http::Server` gives QuickJS a 4 MiB stack limit within an 8 MiB
+worker thread by default, which fits React's recursion depth. With QuickJS's default 1 MiB, Rust
 debug builds made React retry rendering after a stack overflow, leaving a
 `<link` fragment in the head (2 MiB is enough; release builds do not hit it
 at 1 MiB). The worker thread's stack must be larger than QuickJS's limit.

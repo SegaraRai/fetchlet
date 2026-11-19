@@ -226,11 +226,11 @@ async function startServer(framework: string, backend: string) {
   config.listen = "127.0.0.1:0";
   config.build_directory = resolve(cache, framework, artifactBackend(backend), "build");
   // The queue must hold every connection's request so overload is not measured.
-  config.queue_capacity = Math.max(config.queue_capacity, options.connections);
+  // The Rust server's default queue is 8.
+  config.queue_capacity = Math.max(config.queue_capacity ?? 8, options.connections);
+  // The Rust server runs the engine the copied build was made for.
   if (backend === "node") {
     config.node = framework === "bare" ? "bare" : "artifact";
-  } else {
-    config.backend = backend;
   }
   const directory = resolve(cache, framework, backend);
   await mkdir(directory, { recursive: true });

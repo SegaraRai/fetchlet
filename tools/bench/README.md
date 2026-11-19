@@ -41,9 +41,9 @@ For each combination:
    backend in `fetchlet.json` is checked and the build is copied to
    `.cache/bench/<framework>/<backend>/build`. Afterwards the example's
    `build/` is rebuilt with the default backend.
-3. The server starts with the example's `config.json`, with `backend`, the
-   copied build and `listen: 127.0.0.1:0`. `queue_capacity` is at least the
-   number of connections.
+3. The server starts with the example's `config.json`, with the copied
+   build, whose backend it runs, and `listen: 127.0.0.1:0`. `queue_capacity`
+   is at least the number of connections.
 4. Each endpoint is requested once and must answer 2xx, then `fetchlet-bench`
    applies load.
 

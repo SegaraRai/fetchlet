@@ -31,22 +31,22 @@ sources need a restart.
 
 ## Layout
 
-| Path                | Role                                                                      |
-| ------------------- | ------------------------------------------------------------------------- |
-| `app/`              | Layouts, pages, route handlers                                            |
-| `vite.config.ts`    | vinext and fetchlet Vite plugins, Vite+ tasks                             |
-| `src/`              | Starting axum, bindings, routing                                          |
-| `config.json`       | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                   |
-| `build/`            | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                | Role                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `app/`              | Layouts, pages, route handlers                                                              |
+| `vite.config.ts`    | vinext and fetchlet Vite plugins, Vite+ tasks                                               |
+| `src/`              | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
+| `config.json`       | Listen address, body budgets, deadline, background budgets, message                         |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                                     |
+| `build/`            | `server.js`, `client/`, `fetchlet.json`                                                     |
 
 `/api/background` registers work after the response with `after()` from
 `next/server`. `background_tasks` in `config.json` is 64: on the first
 request vinext registers a `waitUntil` for each route module preload, and
 with 8 the first page failed to render over budget.
 
-`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
-`config.json` match the [React Router example](../react-router-axum/README.md#stack),
+The engine runs with `fetchlet_http::Server`'s default stacks, which the
+[React Router example](../react-router-axum/README.md#stack) explains,
 sized for the depth at which React's Fizz retries rendering after a stack
 overflow.
 

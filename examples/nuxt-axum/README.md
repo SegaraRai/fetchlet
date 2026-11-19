@@ -30,15 +30,15 @@ need a restart.
 
 ## Layout
 
-| Path                | Role                                                                       |
-| ------------------- | -------------------------------------------------------------------------- |
-| `web/`              | Nuxt pages, components, server routes and public files                     |
-| `nuxt.config.ts`    | `srcDir` and `serverDir`, runtime config, the Nitro preset                 |
-| `vite.config.ts`    | Vite+ tasks                                                                |
-| `src/`              | Starting axum, bindings, routing                                           |
-| `config.json`       | Listen address, queue, body budgets, deadline, background budgets, message |
-| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                    |
-| `build/`            | Output: `server.js`, `client/`, `fetchlet.json`                            |
+| Path                | Role                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `web/`              | Nuxt pages, components, server routes and public files                                      |
+| `nuxt.config.ts`    | `srcDir` and `serverDir`, runtime config, the Nitro preset                                  |
+| `vite.config.ts`    | Vite+ tasks                                                                                 |
+| `src/`              | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
+| `config.json`       | Listen address, body budgets, deadline, background budgets, message                         |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                                     |
+| `build/`            | Output: `server.js`, `client/`, `fetchlet.json`                                             |
 
 axum handles the static files in `build/client` and `/api/rust` first, and
 passes the rest to Nuxt through `FetchletService`.

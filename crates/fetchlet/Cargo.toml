@@ -8,6 +8,9 @@ repository.workspace = true
 publish = true
 # The version placeholder for pnpm change; see docs/releasing.md.
 exclude = ["package.json"]
+# Lets dependents' build scripts read which engines are enabled
+# (DEP_FETCHLET_ENGINES); see build.rs. Nothing is linked.
+links = "fetchlet"
 description = "Rust-hosted JavaScript functions and Fetch handlers with explicit host services"
 
 [features]

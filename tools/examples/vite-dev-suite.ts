@@ -154,7 +154,6 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
 
     const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
     config.listen = "127.0.0.1:0";
-    config.backend = backend;
     // The first request loads every module from Vite.
     config.invocation_timeout_ms = Math.max(config.invocation_timeout_ms ?? 0, startupMs);
     const configPath = resolve(output, "config.json");

@@ -57,8 +57,8 @@ the Vite+ tasks. `src/` only starts Rust, sets bindings and routes.
 rebuilding, and `FetchletService` converts HTTP and passes the client
 address. Rust services and `MESSAGE` are read from `Astro.locals.env`.
 
-`config.json` sets the listen address, queue, body budgets, deadline and
-build directory. This local example uses a queue of 8, a 1 MiB request body
+`config.json` sets the listen address, body budgets, deadline and build
+directory. This local example uses a 1 MiB request body
 and a 10-second cooperative deadline; `public_origin` sets the origin
 outside a proxy. Configuration works as in the SvelteKit example.
 

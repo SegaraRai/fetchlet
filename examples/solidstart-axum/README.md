@@ -43,24 +43,24 @@ server functions and API routes run on the engine.
 
 ## Layout
 
-| Path                     | Role                                                                      |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `src/routes/`            | Pages, API routes, the 404 route                                          |
-| `src/lib/completed.ts`   | State shared between API route handlers                                   |
-| `vite.config.ts`         | SolidStart and fetchlet Vite plugins, Vite+ tasks                         |
-| `server/`                | Starting axum, bindings, routing                                          |
-| `config.json`            | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                   |
-| `tests/vite-dev.test.ts` | The `dev:vite` loop with in-place edits                                   |
-| `build/`                 | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                     | Role                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| `src/routes/`            | Pages, API routes, the 404 route                                                            |
+| `src/lib/completed.ts`   | State shared between API route handlers                                                     |
+| `vite.config.ts`         | SolidStart and fetchlet Vite plugins, Vite+ tasks                                           |
+| `server/`                | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
+| `config.json`            | Listen address, body budgets, deadline, background budgets, message                         |
+| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                                     |
+| `tests/vite-dev.test.ts` | The `dev:vite` loop with in-place edits                                                     |
+| `build/`                 | `server.js`, `client/`, `fetchlet.json`                                                     |
 
 SolidStart builds each API route handler as its own module, so the state of
 `/api/background` lives in `src/lib/`. `[...404].tsx` answers unmatched paths
 with 404.
 
-`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
-`config.json` match the [React Router example](../react-router-axum/README.md#stack);
-the minimum this framework needs has not been measured.
+The engine runs with `fetchlet_http::Server`'s default stacks, which the
+[React Router example](../react-router-axum/README.md#stack) explains; the minimum this
+framework needs has not been measured.
 
 ## Checks
 

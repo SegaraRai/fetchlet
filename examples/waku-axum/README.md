@@ -30,21 +30,21 @@ sources need a restart.
 
 ## Layout
 
-| Path                  | Role                                                                      |
-| --------------------- | ------------------------------------------------------------------------- |
-| `src/pages/`          | Pages, layouts, root, API routes (`_api/`)                                |
-| `src/waku.server.tsx` | fetchlet's server entry adapter                                           |
-| `vite.config.ts`      | Vite+ tasks (Waku builds with `waku build`)                               |
-| `server/`             | Starting axum, bindings, routing                                          |
-| `config.json`         | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.test.ts`   | Checks over real HTTP in a real browser                                   |
-| `build/`              | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                  | Role                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| `src/pages/`          | Pages, layouts, root, API routes (`_api/`)                                                  |
+| `src/waku.server.tsx` | fetchlet's server entry adapter                                                             |
+| `vite.config.ts`      | Vite+ tasks (Waku builds with `waku build`)                                                 |
+| `server/`             | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
+| `config.json`         | Listen address, body budgets, deadline, background budgets, message                         |
+| `tests/e2e.test.ts`   | Checks over real HTTP in a real browser                                                     |
+| `build/`              | `server.js`, `client/`, `fetchlet.json`                                                     |
 
 `/` is a server component rendered per request that calls the Rust binding
 through `getRequestContext()`.
 
-`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
-`config.json` match the [React Router example](../react-router-axum/README.md#stack),
+The engine runs with `fetchlet_http::Server`'s default stacks, which the
+[React Router example](../react-router-axum/README.md#stack) explains,
 sized for the depth at which React's Fizz retries rendering after a stack
 overflow.
 

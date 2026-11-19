@@ -2,18 +2,73 @@
 
 Serves a shared fetchlet application (`fetchlet::AppHandle`) over HTTP. The Tower service is always available; Cargo features add thin layers for specific servers. The JavaScript engine is selected on the `fetchlet` crate, so this crate has no engine features.
 
-| Feature | Adds                                                                     |
-| ------- | ------------------------------------------------------------------------ |
-| (none)  | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`     |
-| `hyper` | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr` |
-| `axum`  | `AxumService`, `connect_info`, `router_transport`, `artifact_router`     |
-| `actix` | `ActixService` for actix-web 4                                           |
+| Feature | Adds                                                                           |
+| ------- | ------------------------------------------------------------------------------ |
+| (none)  | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`           |
+| `hyper` | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
+| `axum`  | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
+| `actix` | `ActixService` for actix-web 4                                                 |
 
 ```toml
 [dependencies]
 fetchlet = { version = "...", features = ["quickjs"] }
 fetchlet-http = { version = "...", features = ["axum"] }
 ```
+
+## Serving a build with `Server`
+
+With the `axum` feature, `Server` serves one `fetchlet/build` artifact on a
+listener: the caller's Rust routes first, then the client assets, then the
+application. It starts the engine the artifact was built for and shuts the
+application down after Ctrl-C (or the future given to
+`serve_with_shutdown`). It is available when the `fetchlet` crate is
+built with an engine feature; its build script reports the enabled engines
+to this crate (`links = "fetchlet"`), so the engine stays a choice on
+`fetchlet`.
+
+```rust,ignore
+use axum::{Router, routing::get};
+use fetchlet::HostServices;
+use fetchlet_http::Server;
+
+let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+Server::new("build")
+    .host_services(|| HostServices::new().env("MESSAGE", "Hello"))
+    .routes(|_app| Router::new().route("/api/rust", get(rust_endpoint)))
+    .rendering(|service| service.stream_request_bodies())
+    .serve(listener)
+    .await?;
+```
+
+| Method                  | Default                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `host_services(f)`      | No bindings. `f` runs for each application the server starts                                                                                   |
+| `routes(f)`             | No Rust routes. `f` receives the `AppHandle`, so a route can call named exports                                                                |
+| `rendering(f)`          | `AxumService` with errors written to standard error; `f` adds a context or streams request bodies                                              |
+| `limits(limits)`        | `Limits::default()`                                                                                                                            |
+| `public_origin(origin)` | `http://` and the listener's address                                                                                                           |
+| `backend(backend)`      | `Backend::for_target` of the artifact's `backend`; with the default worker, a 4 MiB QuickJS stack limit and a Boa value stack of 131,072 slots |
+| `worker(options)`       | A queue of 8 commands and an 8 MiB native stack                                                                                                |
+| `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                |
+
+The stack defaults are the depth the repository's framework examples need:
+React's server renderer retries an element after a QuickJS stack overflow
+and can leave a partial tag behind, and React Server Components rendering
+on Boa needs the larger value stack. The queue bounds the requests waiting
+for one engine thread.
+
+The crate's development features change how `serve` serves the build, with
+the same routes and services:
+
+- `dev`: through `DevReload`, which serves each build written to the
+  directory and reloads open pages ([reloading during development](#reloading-during-development)).
+- `vite-dev`: when the `FETCHLET_VITE_URL` environment variable names a Vite
+  dev server, through `ViteDev`, which runs the server module from it, with
+  console output on standard error ([running from a Vite dev server](#running-from-a-vite-dev-server)).
+
+Enable them in a `dev` feature of the application, not in release builds.
+The sections below are the parts `Server` combines, for hosts that need
+another arrangement.
 
 ## Serving a build artifact with axum
 

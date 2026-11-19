@@ -30,23 +30,23 @@ sources need a restart.
 
 ## Layout
 
-| Path                     | Role                                                                      |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `src/routes/`            | Pages, layouts, endpoints (`onGet`, `onPost`)                             |
-| `src/entry.fetchlet.tsx` | fetchlet's server entry                                                   |
-| `vite.config.ts`         | Qwik, Qwik City and fetchlet Vite plugins, Vite+ tasks                    |
-| `server/`                | Starting axum, bindings, routing                                          |
-| `config.json`            | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                   |
-| `build/`                 | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                     | Role                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| `src/routes/`            | Pages, layouts, endpoints (`onGet`, `onPost`)                                               |
+| `src/entry.fetchlet.tsx` | fetchlet's server entry                                                                     |
+| `vite.config.ts`         | Qwik, Qwik City and fetchlet Vite plugins, Vite+ tasks                                      |
+| `server/`                | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
+| `config.json`            | Listen address, body budgets, deadline, background budgets, message                         |
+| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                                     |
+| `build/`                 | `server.js`, `client/`, `fetchlet.json`                                                     |
 
 Qwik resumes instead of hydrating; the counter's `data-hydrated` is set by
 `useVisibleTask$`. Qwik inlines component styles and loads chunks from
 `/build/`.
 
-`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
-`config.json` match the [React Router example](../react-router-axum/README.md#stack);
-the minimum this framework needs has not been measured.
+The engine runs with `fetchlet_http::Server`'s default stacks, which the
+[React Router example](../react-router-axum/README.md#stack) explains; the minimum this
+framework needs has not been measured.
 
 ## Checks
 

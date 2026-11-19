@@ -30,21 +30,21 @@ sources need a restart.
 
 ## Layout
 
-| Path                | Role                                                                      |
-| ------------------- | ------------------------------------------------------------------------- |
-| `app/`              | Routes, islands, renderer, API routes                                     |
-| `vite.config.ts`    | HonoX and fetchlet Vite plugins, Vite+ tasks                              |
-| `src/`              | Starting axum, bindings, routing                                          |
-| `config.json`       | Listen address, queue, body budgets, deadline, background budgets, stacks |
-| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                   |
-| `build/`            | `server.js`, `client/`, `fetchlet.json`                                   |
+| Path                | Role                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `app/`              | Routes, islands, renderer, API routes                                                       |
+| `vite.config.ts`    | HonoX and fetchlet Vite plugins, Vite+ tasks                                                |
+| `src/`              | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
+| `config.json`       | Listen address, body budgets, deadline, background budgets, message                         |
+| `tests/e2e.test.ts` | Checks over real HTTP in a real browser                                                     |
+| `build/`            | `server.js`, `client/`, `fetchlet.json`                                                     |
 
 HonoX islands have no client router, so navigating to `/about` loads a new
 document. Assets are served from `/static/`.
 
-`quickjs_stack_bytes` (4 MiB) and `worker_stack_bytes` (8 MiB) in
-`config.json` match the [React Router example](../react-router-axum/README.md#stack);
-the minimum this framework needs has not been measured.
+The engine runs with `fetchlet_http::Server`'s default stacks, which the
+[React Router example](../react-router-axum/README.md#stack) explains; the minimum this
+framework needs has not been measured.
 
 ## Checks
 
