@@ -30,6 +30,18 @@ again; the server's `DevReload` starts each new build and open pages reload.
 A failed build leaves the previous one serving. Changes to the Rust sources
 need a restart.
 
+## Develop from Vite
+
+```bash
+vp run @fetchlet-internal/example-astro-axum#dev:vite
+```
+
+The task starts `astro dev` on `127.0.0.1:3101`, then the server with the
+`vite-dev` feature, which runs Astro's development app from Vite on QuickJS
+(`tools/examples/vite-dev.ts`). Open `http://127.0.0.1:3100`. An edit to a
+page renders on the next request and reloads the open page; island edits
+refresh in place; endpoints run on the engine.
+
 ## Layout and configuration
 
 `web/` holds Astro's pages, endpoints, Svelte components and assets.
@@ -72,3 +84,11 @@ cover SSR, escaping, assets, JSON endpoints, forms, cookies, context, the
 Rust route, budgets, streaming uploads, concurrent requests, island
 hydration and client navigation. Results go to
 `results/example-astro-axum.json`.
+`tests/vite-dev.test.ts` runs the `dev:vite` loop
+(`tools/examples/vite-dev-suite.ts`): SSR with a Rust service binding and
+styles from Vite, endpoints, island hydration and navigation, and a page
+edit that renders on the next request and reloads the open page, recorded
+in `results/example-astro-axum-vite-dev.json` and its V8 variant. It
+skips Boa: Astro's client router cancels a request when it navigates,
+which retires the instance, and a debug build of Boa takes about 40 seconds
+to evaluate Astro's development modules again.

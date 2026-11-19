@@ -191,6 +191,7 @@ function exampleNames(): string[] {
     "sveltekit-axum-tauri",
     "sveltekit-axum-tauri-desktop",
     "astro-axum",
+    "astro-axum-vite-dev",
     "nuxt-axum",
     "react-router-axum",
     "react-router-axum-vite-dev",

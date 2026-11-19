@@ -17,6 +17,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { cargoEnv } from "@fetchlet-internal/tools-workspace/cargo";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 
+import { viteDevCommand } from "./vite-command.ts";
+
 const [cargoPackage, port, ...rest] = process.argv.slice(2);
 if (!cargoPackage || !port || !/^\d+$/.test(port)) {
   console.error(
@@ -32,10 +34,8 @@ const viteUrl = `http://127.0.0.1:${port}`;
 /** How long Vite may take to start listening. */
 const startTimeoutMs = 30_000;
 
-// `vp` is a `.cmd` shim on Windows, which only a shell can start; the
-// command is one string, since a shell does not escape separate arguments,
-// and `port` was checked to be digits.
-const vite: ChildProcess = spawn(`vp dev --host 127.0.0.1 --port ${port} --strictPort`, {
+// `port` was checked to be digits.
+const vite: ChildProcess = spawn(viteDevCommand(process.cwd(), Number(port)), {
   stdio: "inherit",
   shell: true,
 });

@@ -61,10 +61,23 @@ the SvelteKit build; `dev:serve` serves the same builds to browsers through
 `DevService`.
 
 With `vite build --watch`, each environment rebuilds on its own, so a client
-change can leave a server that embeds the old client URLs. The `fetchlet/vite`
-server build watches the client manifest to avoid that; SvelteKit 3.4.0
-rewrote the artifact when a page changed; the other integrations are
-unverified under `--watch`.
+change can leave a server that embeds the old client URLs. `fetchlet dev
+--build-watch` keeps such a command running and starts the server once the
+first manifest is written. Editing a component under it, with the server
+reloading each build, gave these results:
+
+| Integration                                     | Under `vite build --watch`                                                                                      |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `fetchlet/vite`                                 | Consistent: the server build watches the client manifest; an edit served in 0.2 seconds against 0.9 for a build |
+| SvelteKit 3.4.0                                 | Consistent for edits, served in 1.9 seconds against 2.7 for a build, but a new route is not built               |
+| TanStack Start                                  | Pages name the previous client chunks and TanStack's development client entry                                   |
+| Solid (`fetchlet/vite` with Solid's SSR plugin) | Pages name the previous client chunks and a development module path                                             |
+| SolidStart 2.2.3                                | The server build fails in SolidStart's manifest plugin                                                          |
+| vinext 1.4.6                                    | The manifest is written before the frontend build the server needs                                              |
+
+vanilla-axum's `dev` task uses `--build-watch`; the other examples keep
+full builds. Files outside the module graph, such as `public/` and the Vite
+configuration, need a restart under `--build-watch`.
 
 ### B. Vite's module runner on the fetchlet engine
 
@@ -168,6 +181,38 @@ links `/@react-router/critical.css`, which the proxy passes to Vite.
 `examples/react-router-axum/tests/vite-dev.test.ts` runs the same four
 checks, with React Fast Refresh keeping state.
 
+Astro also decides by `isRunnableDevEnvironment`. With a plain `ssr`
+environment, `astro/app/entrypoint` resolves to Astro's app for
+non-runnable environments, which loads routes and the manifest through the
+environment's own runner; `fetchlet/astro`'s `devServer` option serves a
+virtual entry that renders with that app and the adapter's locals. Four
+details were needed beyond React Router's:
+
+- Astro's dependency scan sets `resolve.external` on `ssr`, which wins over
+  `noExternal: true`; the dev server plugin clears it.
+- The development app imports some of Astro's modules only on the first
+  request. Vite then reoptimized dependencies in the middle of that
+  request, and a Svelte island rendered with a stale copy of Svelte. The
+  integration names those modules in `optimizeDeps.include`.
+- Astro handles hot updates of `.astro` files itself and reloads pages
+  through its own events, but disables them under `NODE_ENV=test`, which
+  Vitest sets; the suite starts Astro without it. The dev server plugin's
+  `hotUpdate` now runs before the framework's and reloads the page when a
+  change has no browser module other than injected styles.
+- Astro's client connects its HMR socket to the page's port, which is the
+  Rust server's; the dev server plugin points `server.ws.clientPort` at
+  Vite's own port.
+
+`examples/astro-axum/tests/vite-dev.test.ts` checks SSR with a Rust
+service binding, endpoints, island hydration and navigation, and a page
+edit that reloads the open page.
+
+A request the client cancels retires the instance, as in production, and
+the next request builds a new one, whose runner fetches and evaluates every
+module again. Astro's client router cancels a request when it navigates;
+the request after it waited 2.6 seconds on QuickJS and 42 seconds on a
+debug build of Boa, so the Astro suite skips Boa.
+
 On Boa, the runner can spend longer than Node's 5-second keep-alive timeout
 evaluating one large module, such as the prebundled `react-dom/server.edge`,
 between two requests to Vite. Its next request then went out on a pooled
@@ -201,18 +246,18 @@ server through `environment.runner` inside the Vite process, which option B
 cannot replace; "fetchable" means it hands requests to
 `environment.dispatchFetch`, which a custom environment can implement.
 
-| Framework (version)              | Server environment in development                                                            | Option B                 |
-| -------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------ |
-| TanStack Start (1.169)           | Fetchable when the environment is not runnable                                               | Runs                     |
-| SolidStart (2.2.3)               | Fetchable when the environment is not runnable                                               | Runs                     |
-| React Router (8.5.2)             | Skips its middleware when not runnable, leaving requests to another one                      | Runs                     |
-| Astro (7.4.13)                   | Falls back to its `astro` environment for content when `ssr` is not runnable, as for workerd | Likely                   |
-| vinext (1.4.6)                   | `createServerModuleRunner`, `ssrLoadModule` and `runner.import`                              | To investigate           |
-| SvelteKit (3.4.0)                | Requires a runnable `ssr` environment and errors otherwise                                   | Not without Kit changes  |
-| Waku (1.0.0-rc.5)                | Imports its entry through `environments.rsc.runner`                                          | Not without Waku changes |
-| Nuxt 4.6.4 / Nitro 2.13.6        | Nitro's own Node dev server                                                                  | No                       |
-| Qwik City (1.20), HonoX (0.1.62) | `ssrLoadModule` in Node                                                                      | No                       |
-| Vanilla (`fetchlet/vite`)        | fetchlet's own plugin decides                                                                | Runs                     |
+| Framework (version)              | Server environment in development                                        | Option B                 |
+| -------------------------------- | ------------------------------------------------------------------------ | ------------------------ |
+| TanStack Start (1.169)           | Fetchable when the environment is not runnable                           | Runs                     |
+| SolidStart (2.2.3)               | Fetchable when the environment is not runnable                           | Runs                     |
+| React Router (8.5.2)             | Skips its middleware when not runnable, leaving requests to another one  | Runs                     |
+| Astro (7.4.13)                   | Renders through its non-runnable `ssr` facade when `ssr` is not runnable | Runs                     |
+| vinext (1.4.6)                   | `createServerModuleRunner`, `ssrLoadModule` and `runner.import`          | To investigate           |
+| SvelteKit (3.4.0)                | Requires a runnable `ssr` environment and errors otherwise               | Not without Kit changes  |
+| Waku (1.0.0-rc.5)                | Imports its entry through `environments.rsc.runner`                      | Not without Waku changes |
+| Nuxt 4.6.4 / Nitro 2.13.6        | Nitro's own Node dev server                                              | No                       |
+| Qwik City (1.20), HonoX (0.1.62) | `ssrLoadModule` in Node                                                  | No                       |
+| Vanilla (`fetchlet/vite`)        | fetchlet's own plugin decides                                            | Runs                     |
 
 The checks were for `isRunnableDevEnvironment`, `isFetchableDevEnvironment`,
 `dispatchFetch`, `runner.import`, `createServerModuleRunner` and
@@ -238,5 +283,3 @@ the other frameworks' dev servers are unverified on a fetchlet environment.
   Rust log?
 - How does a release build guarantee the `vite-dev` and `dev` features are
   absent? Today it is the application's Cargo features.
-- Does Astro serve content from its `astro` environment, with `ssr` left to
-  the engine's runner?

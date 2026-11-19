@@ -38,6 +38,37 @@ backend to the Rust backend keeps native APIs and shrinks the bundle.
 according to `trailingSlash` and `build.format`
 ([asset archive](../../../docs/asset-archive.md)).
 
+## Development serving
+
+`devServer: true` makes `astro dev` serve a Rust host that uses
+fetchlet-http's `ViteDev`, as [fetchlet/vite](vite.md#development-serving)
+does:
+
+```js
+export default defineConfig({
+  output: "server",
+  adapter: fetchletAdapter({
+    backend: "quickjs",
+    devServer: true,
+  }),
+});
+```
+
+The host runs Astro's development app on its engine through Vite's module
+runner, with the same `Astro.locals`, client address and `getSecret` as the
+artifact, and Vite serves the browser modules, styles and island HMR.
+Astro renders in Node whenever its `ssr` environment is runnable, so the
+adapter replaces it with a plain `DevEnvironment` that the engine's runner
+fetches from. Astro reloads open pages after an edit to a page or a server
+module.
+[examples/astro-axum](../../../examples/astro-axum/README.md#develop-from-vite)
+has a `dev:vite` task.
+
+A request the client cancels, as Astro's client router does when it
+navigates, retires the engine instance; the next request evaluates every
+module from Vite again, which takes seconds on QuickJS and about 40 seconds
+on a debug build of Boa.
+
 ## Tests
 
 examples/astro-axum runs on QuickJS with FormatJS and checks SSR, a Svelte

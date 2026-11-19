@@ -2,10 +2,12 @@ import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { AstroIntegration } from "astro";
+import type { Plugin } from "vite";
 
 import { IMMUTABLE } from "../../build/asset-entries.ts";
 import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
+import { devServerPlugin } from "../vite/dev-server.ts";
 
 export interface FetchletAstroOptions {
   /**
@@ -21,6 +23,84 @@ export interface FetchletAstroOptions {
   backend?: BuildBackend;
   /** Intl data for engines without native Intl. */
   intl?: IntlOptions;
+  /**
+   * `astro dev` serves a Rust host that uses fetchlet-http's `ViteDev`
+   * instead of rendering in Node: the host runs Astro's development app on
+   * its engine through Vite's module runner. Defaults to false.
+   */
+  devServer?: boolean;
+}
+
+/** The module the engine's runner imports in development. */
+const DEV_ENTRY = "virtual:fetchlet/astro-dev-entry";
+
+/**
+ * Astro's development app over the `ssr` environment, with the request
+ * context of `fetchlet/astro/server`. `astro/app/entrypoint` resolves to
+ * Astro's app for non-runnable environments under `astro dev`.
+ */
+const DEV_ENTRY_SOURCE = `
+import { createApp } from "astro/app/entrypoint";
+import { setGetEnv } from "astro/env/setup";
+
+const app = createApp({
+  streaming: true,
+});
+
+let bindings = {};
+setGetEnv((key) => (typeof bindings[key] === "string" ? bindings[key] : undefined));
+
+export default {
+  fetch(request, env, ctx) {
+    bindings = env;
+    return app.render(request, {
+      clientAddress: ctx.clientAddress,
+      locals: {
+        env,
+        waitUntil: ctx.waitUntil,
+      },
+      addCookieHeader: true,
+    });
+  },
+};
+`;
+
+/** The Vite plugins of development serving. */
+function devServerPlugins(backend: BuildBackend, intl: IntlOptions): Plugin[] {
+  return [
+    devServerPlugin({
+      name: "fetchlet/astro:dev-server",
+      entry: DEV_ENTRY,
+      // Astro renders in Node whenever the ssr environment is runnable.
+      runnable: false,
+      framework: "astro",
+      rendering: "streaming",
+      requirements: ["Intl.DateTimeFormat"],
+      // Astro's development app imports these on the first request; naming
+      // them up front spares the reloads that discovering them one by one
+      // causes in the middle of that request.
+      include: [
+        "astro/app/entrypoint/dev",
+        "astro/app/fetch/default-handler",
+        "astro/app/manifest",
+        "astro/compiler-runtime",
+        "astro/logger/json",
+        "astro/virtual-modules/transitions.js",
+      ],
+      backend,
+      intl,
+    }),
+    {
+      name: "fetchlet/astro:dev-entry",
+      apply: "serve",
+      resolveId(source) {
+        return source === DEV_ENTRY ? "\0" + DEV_ENTRY : undefined;
+      },
+      load(id) {
+        return id === "\0" + DEV_ENTRY ? DEV_ENTRY_SOURCE : undefined;
+      },
+    },
+  ];
 }
 
 /** The Astro adapter that builds the server output into a fetchlet artifact. */
@@ -29,6 +109,7 @@ export default function fetchletAdapter({
   backend = "portable",
   intl = {},
   assets = false,
+  devServer = false,
 }: FetchletAstroOptions = {}): AstroIntegration {
   let output: string;
   let serverEntry: string;
@@ -36,8 +117,15 @@ export default function fetchletAdapter({
   return {
     name: "fetchlet/astro",
     hooks: {
-      "astro:config:setup": ({ config, updateConfig }) => {
+      "astro:config:setup": ({ command, config, updateConfig }) => {
         output = resolve(fileURLToPath(config.root), out);
+        if (command === "dev" && devServer) {
+          updateConfig({
+            vite: {
+              plugins: devServerPlugins(backend, intl),
+            },
+          });
+        }
         updateConfig({
           outDir: pathToFileURL(output + "/"),
           build: {

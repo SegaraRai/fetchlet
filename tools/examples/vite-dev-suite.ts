@@ -23,6 +23,7 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 
 import type { Feature } from "./features.ts";
 import { backend, resultFile } from "./suite.ts";
+import { viteDevCommand } from "./vite-command.ts";
 
 export interface ViteDevOptions {
   /** Engines the loop does not run on, with the reason; checks are skipped. */
@@ -54,6 +55,19 @@ const deadlineMs = 30_000;
  * module, which takes Boa's debug builds about half a minute for a framework.
  */
 const startupMs = 150_000;
+
+/**
+ * The environment of `vite dev`: the suite's own, for the engine the suite
+ * runs on, without the `NODE_ENV=test` Vitest sets, under which Astro turns
+ * off hot module replacement.
+ */
+function viteEnvironment(): NodeJS.ProcessEnv {
+  const { NODE_ENV: _test, ...inherited } = process.env;
+  return {
+    ...inherited,
+    FETCHLET_BACKEND: backend,
+  };
+}
 
 function freePort(): Promise<number> {
   return new Promise((resolvePort, reject) => {
@@ -127,14 +141,12 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
     await mkdir(output, { recursive: true });
     const vitePort = await freePort();
     const viteUrl = `http://127.0.0.1:${vitePort}`;
-    // `vp` is a `.cmd` shim on Windows, which only a shell can start; the
-    // command is one string, since a shell does not escape separate arguments.
-    vite = spawn(`vp dev --host 127.0.0.1 --port ${vitePort} --strictPort`, {
+    vite = spawn(viteDevCommand(example, vitePort), {
       cwd: example,
       shell: true,
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, FETCHLET_BACKEND: backend },
+      env: viteEnvironment(),
     });
     vite.stdout!.on("data", (data) => (log += data));
     vite.stderr!.on("data", (data) => (log += data));
@@ -169,6 +181,7 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
     await until(async () => (await fetch(base + "/")).status < 500, "first page", startupMs);
   }, startupMs + 60_000);
 
+  // Stopping the process trees can outlast the default hook timeout on Windows.
   afterAll(async () => {
     await restore();
     await browser?.close();
@@ -181,7 +194,7 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
       summary: summarize(results),
       results,
     });
-  });
+  }, 60_000);
 
   return {
     deadline: deadlineMs,

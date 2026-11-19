@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, test } from "vite-plus/test";
 
-import { parseDevArguments, WatchedFiles } from "./dev.ts";
+import { modifiedSince, parseDevArguments, WatchedFiles } from "./dev.ts";
 
 describe("parseDevArguments", () => {
   test("splits options from the server command at the first --", () => {
@@ -26,8 +26,11 @@ describe("parseDevArguments", () => {
         "/project",
       ),
     ).toStrictEqual({
-      watch: ["app", "vite.config.ts"],
-      build: "vp run build",
+      build: {
+        mode: "rebuild",
+        command: "vp run build",
+        watch: ["app", "vite.config.ts"],
+      },
       server: ["cargo", "run", "--", "serve"],
       cwd: "/project",
     });
@@ -35,10 +38,43 @@ describe("parseDevArguments", () => {
 
   test("watches src and builds with vite build by default", () => {
     expect(parseDevArguments(["--", "./server"], "/project")).toStrictEqual({
-      watch: ["src"],
-      build: "vite build",
+      build: {
+        mode: "rebuild",
+        command: "vite build",
+        watch: ["src"],
+      },
       server: ["./server"],
       cwd: "/project",
+    });
+  });
+
+  test("a watching build names its command and the artifact directory", () => {
+    expect(
+      parseDevArguments(["--build-watch", "vite build --watch", "--", "./server"], "/p"),
+    ).toStrictEqual({
+      build: {
+        mode: "watch",
+        command: "vite build --watch",
+        out: "build",
+      },
+      server: ["./server"],
+      cwd: "/p",
+    });
+    expect(
+      parseDevArguments(["--build-watch", "x", "--out", "dist", "--", "./server"], "/p"),
+    ).toMatchObject({
+      build: {
+        mode: "watch",
+        out: "dist",
+      },
+    });
+    expect(
+      parseDevArguments(["--build-watch", "x", "--watch", "src", "--", "s"], "/p"),
+    ).toStrictEqual({
+      error: "--build-watch rebuilds by itself; leave out --build and --watch",
+    });
+    expect(parseDevArguments(["--out", "dist", "--", "s"], "/p")).toStrictEqual({
+      error: "--out belongs to --build-watch",
     });
   });
 
@@ -107,4 +143,17 @@ describe("WatchedFiles", () => {
     files.snapshot();
     expect(files.changed(join(root, "src/routes/index.ts"))).toBe(false);
   });
+});
+
+test("a manifest counts as written when it is no older than the build", () => {
+  const directory = mkdtempSync(join(tmpdir(), "fetchlet-dev-"));
+  try {
+    const manifest = join(directory, "fetchlet.json");
+    expect(modifiedSince(manifest, Date.now())).toBe(false);
+    writeFileSync(manifest, "{}");
+    expect(modifiedSince(manifest, Date.now())).toBe(true);
+    expect(modifiedSince(manifest, Date.now() + 60_000)).toBe(false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

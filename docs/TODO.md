@@ -182,23 +182,28 @@ the result in its guide.
 Every axum and Tauri example has a `dev` task that rebuilds on source
 changes while `DevReload` serves each build
 ([development loop](research/dev-loop.md)), through the `fetchlet dev`
-command ([dev](../packages/fetchlet/docs/dev.md)). One part remains:
+command ([dev](../packages/fetchlet/docs/dev.md)). vanilla-axum keeps
+`vite build --watch` running instead. One part remains:
 
-- Each change runs a full build, one to five seconds for the examples.
-  Incremental rebuilds through `vite build --watch` are faster where an
-  integration keeps the artifact consistent across environment rebuilds, as
-  `fetchlet/vite` does; the other integrations are unverified under
-  `--watch`.
+- Other integrations are inconsistent under `vite build --watch`
+  ([results](research/dev-loop.md#a-watch-build-and-artifact-reload)):
+  TanStack Start and Solid serve pages naming the previous client chunks,
+  SolidStart's server build fails, vinext writes the manifest before its
+  frontend, and SvelteKit does not build new routes. Each needs its
+  integration to rebuild the server after the client, as `fetchlet/vite`
+  does, or a framework fix, before its example's `dev` task switches.
 
-### Development from Vite per framework
+### Cancelled requests under `ViteDev`
 
-`ViteDev` serves `fetchlet/vite`, `fetchlet/tanstack-start`,
-`fetchlet/solid-start` and `fetchlet/react-router`
-([development loop](research/dev-loop.md)). Astro may fit the same way
-([framework table](research/dev-loop.md#how-frameworks-evaluate-their-server-in-development)):
-it falls back to its `astro` environment for content when `ssr` is not
-runnable, which needs checking before an integration plugin and a
-`dev:vite` suite like the others.
+A request the client cancels retires the engine instance, and under
+`ViteDev` the next instance fetches and evaluates every module from Vite
+again: 2.6 seconds for Astro on QuickJS and 42 seconds on a debug build of
+Boa, where the Astro `dev:vite` suite is skipped
+([development loop](research/dev-loop.md#b-vites-module-runner-on-the-fetchlet-engine)).
+Astro's client router cancels a request on each navigation. Keeping the
+evaluated modules across instances, or letting a cancelled development call
+finish instead of retiring the instance, needs a design that keeps the
+production isolation guarantee, and a check that navigates on Boa.
 
 ### React Router
 

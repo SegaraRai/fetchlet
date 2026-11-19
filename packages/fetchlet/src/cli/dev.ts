@@ -1,18 +1,34 @@
 // `fetchlet dev`: builds the artifact, starts the server that serves it, and
-// builds again whenever a watched source changes. The server reloads each
-// build itself, as fetchlet-http's `DevReload` does, so it keeps running
-// across builds.
+// builds again whenever a watched source changes, or keeps a watching build
+// running. The server reloads each build itself, as fetchlet-http's
+// `DevReload` does, so it keeps running across builds.
 
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync, watch } from "node:fs";
 import { join, resolve, sep } from "node:path";
 
+/** How the artifact is built while the server runs. */
+export type DevBuild =
+  | {
+      /** A full build after each change of a watched file. */
+      mode: "rebuild";
+      /** The shell command that builds the artifact once. */
+      command: string;
+      /** Files or directories whose changes start a build, relative to `cwd`. */
+      watch: string[];
+    }
+  | {
+      /** One build command that keeps running and rebuilds by itself. */
+      mode: "watch";
+      /** The shell command, such as `vite build --watch`. */
+      command: string;
+      /** The artifact directory, whose manifest the first build writes. */
+      out: string;
+    };
+
 export interface DevOptions {
-  /** Files or directories whose changes start a build, relative to `cwd`. */
-  watch: string[];
-  /** The shell command that builds the artifact. */
-  build: string;
+  build: DevBuild;
   /** The program that serves each build, and its arguments. */
   server: string[];
   /** The directory the paths and commands are relative to. */
@@ -20,12 +36,20 @@ export interface DevOptions {
 }
 
 export const DEV_USAGE = `usage: fetchlet dev [--watch <path>]... [--build <command>] -- <server> [<argument>...]
+       fetchlet dev --build-watch <command> [--out <directory>] -- <server> [<argument>...]
 
 Builds with <command>, starts <server>, and builds again when a file under a
-watched path changes. The server keeps running and serves each new build.
+watched path changes. With --build-watch, the command keeps running and
+rebuilds by itself, and <server> starts once it wrote the first build. The
+server keeps running and serves each new build.
 
-  --watch <path>     A file or directory to watch; repeatable. Default: src
-  --build <command>  The shell command that builds. Default: vite build`;
+  --watch <path>           A file or directory to watch; repeatable. Default: src
+  --build <command>        The shell command that builds. Default: vite build
+  --build-watch <command>  A shell command that rebuilds on changes by itself,
+                           such as vite build --watch
+  --out <directory>        The artifact directory of --build-watch. Default: build`;
+
+const VALUED = new Set(["--watch", "--build", "--build-watch", "--out"]);
 
 /** The options a `fetchlet dev` command line gives, or the reason it is invalid. */
 export function parseDevArguments(
@@ -36,35 +60,59 @@ export function parseDevArguments(
   const options = separator === -1 ? args : args.slice(0, separator);
   const server = separator === -1 ? [] : args.slice(separator + 1);
   const watched: string[] = [];
-  let build = "vite build";
+  let build: string | undefined;
+  let buildWatch: string | undefined;
+  let out: string | undefined;
   for (let index = 0; index < options.length; index++) {
     const option = options[index];
     const value = options[index + 1];
-    if ((option === "--watch" || option === "--build") && value === undefined) {
-      return {
-        error: `${option} needs a value`,
-      };
+    if (!VALUED.has(option)) {
+      return { error: `unknown option ${option}` };
     }
+    if (value === undefined) {
+      return { error: `${option} needs a value` };
+    }
+    index++;
     if (option === "--watch") {
       watched.push(value);
-      index++;
     } else if (option === "--build") {
       build = value;
-      index++;
+    } else if (option === "--build-watch") {
+      buildWatch = value;
     } else {
-      return {
-        error: `unknown option ${option}`,
-      };
+      out = value;
     }
   }
   if (server.length === 0) {
+    return { error: "name the server command after --" };
+  }
+  if (buildWatch !== undefined) {
+    if (build !== undefined || watched.length > 0) {
+      return {
+        error: "--build-watch rebuilds by itself; leave out --build and --watch",
+      };
+    }
     return {
-      error: "name the server command after --",
+      build: {
+        mode: "watch",
+        command: buildWatch,
+        out: out ?? "build",
+      },
+      server,
+      cwd,
+    };
+  }
+  if (out !== undefined) {
+    return {
+      error: "--out belongs to --build-watch",
     };
   }
   return {
-    watch: watched.length > 0 ? watched : ["src"],
-    build,
+    build: {
+      mode: "rebuild",
+      command: build ?? "vite build",
+      watch: watched.length > 0 ? watched : ["src"],
+    },
     server,
     cwd,
   };
@@ -145,6 +193,9 @@ function contentHash(file: string): string | undefined {
 /** How long to wait after a change for more changes before building. */
 const SETTLE_MS = 100;
 
+/** How often a watching build's manifest is checked for its first build. */
+const MANIFEST_POLL_MS = 200;
+
 const windows = process.platform === "win32";
 
 /** An argument as one word of a Windows command line. */
@@ -166,116 +217,181 @@ function kill(child: ChildProcess | undefined): void {
   }
 }
 
-function runBuild(options: DevOptions): ChildProcess {
-  return spawn(options.build, { cwd: options.cwd, stdio: "inherit", shell: true });
+function runShell(command: string, cwd: string): ChildProcess {
+  return spawn(command, {
+    cwd,
+    stdio: "inherit",
+    shell: true,
+  });
+}
+
+/** Whether `file` exists and was modified at or after `time`, in milliseconds. */
+export function modifiedSince(file: string, time: number): boolean {
+  try {
+    // File systems with coarse timestamps round them down by up to two seconds.
+    return statSync(file).mtimeMs >= time - 2000;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Run the development loop until the server exits or the process is
  * interrupted. Resolves to the exit code: the first build's when it fails,
- * otherwise the server's.
+ * the watching build's when it stops, otherwise the server's.
  */
 export function dev(options: DevOptions): Promise<number> {
   return new Promise((resolveExit) => {
-    console.log("[fetchlet dev] building");
-    const first = runBuild(options);
-    first.on("error", (error) => {
-      console.error(`[fetchlet dev] ${error.message}`);
-      resolveExit(1);
-    });
-    first.on("exit", (code) => {
-      if (code !== 0) {
-        console.error(`[fetchlet dev] the build failed with exit code ${code}`);
-        resolveExit(code ?? 1);
-        return;
-      }
-      serve(options, resolveExit);
-    });
+    const session = new Session(options, resolveExit);
+    if (options.build.mode === "watch") {
+      session.watchBuilds(options.build.command, options.build.out);
+    } else {
+      session.rebuild(options.build.command, options.build.watch);
+    }
   });
 }
 
-function serve(options: DevOptions, resolveExit: (code: number) => void): void {
-  const files = new WatchedFiles(options.watch, options.cwd);
-  let building = false;
-  let pending = false;
-  let timer: NodeJS.Timeout | undefined;
-  let builder: ChildProcess | undefined;
+/** The processes of one `fetchlet dev` run, which stop together. */
+class Session {
+  private readonly options: DevOptions;
+  private readonly resolveExit: (code: number) => void;
+  private server: ChildProcess | undefined;
+  private builder: ChildProcess | undefined;
+  private readonly cleanups: (() => void)[] = [];
+  private exiting = false;
+  private readonly interrupt = () => this.stop(130);
+  private readonly terminate = () => this.stop(143);
 
-  function build(): void {
-    if (building) {
-      pending = true;
-      return;
-    }
-    building = true;
-    pending = false;
+  constructor(options: DevOptions, resolveExit: (code: number) => void) {
+    this.options = options;
+    this.resolveExit = resolveExit;
+    process.on("SIGINT", this.interrupt);
+    process.on("SIGTERM", this.terminate);
+  }
+
+  /** A full build now, then the server, then a full build per change. */
+  rebuild(command: string, paths: readonly string[]): void {
     console.log("[fetchlet dev] building");
-    const started = Date.now();
-    builder = runBuild(options);
-    builder.on("exit", (code) => {
-      building = false;
-      builder = undefined;
-      console.log(
-        code === 0
-          ? `[fetchlet dev] built in ${Date.now() - started} ms`
-          : `[fetchlet dev] the build failed with exit code ${code}; the server keeps the previous build`,
-      );
-      // What the build itself rewrote is not a change to build again for;
-      // edits made while it ran have already set `pending`.
-      files.snapshot();
-      if (pending) {
-        build();
+    const first = runShell(command, this.options.cwd);
+    this.builder = first;
+    first.on("error", (error) => {
+      console.error(`[fetchlet dev] ${error.message}`);
+      this.stop(1);
+    });
+    first.on("exit", (code) => {
+      this.builder = undefined;
+      if (code !== 0) {
+        console.error(`[fetchlet dev] the build failed with exit code ${code}`);
+        this.stop(code ?? 1);
+        return;
       }
+      this.watchSources(command, paths);
+      this.startServer();
     });
   }
 
-  const watcher = watch(
-    options.cwd,
-    {
-      recursive: true,
-    },
-    (_event, name) => {
-      if (name && files.changed(resolve(options.cwd, name))) {
+  private watchSources(command: string, paths: readonly string[]): void {
+    const cwd = this.options.cwd;
+    const files = new WatchedFiles(paths, cwd);
+    let building = false;
+    let pending = false;
+    let timer: NodeJS.Timeout | undefined;
+
+    const build = (): void => {
+      if (building) {
+        pending = true;
+        return;
+      }
+      building = true;
+      pending = false;
+      console.log("[fetchlet dev] building");
+      const started = Date.now();
+      const builder = runShell(command, cwd);
+      this.builder = builder;
+      builder.on("exit", (code) => {
+        building = false;
+        this.builder = undefined;
+        console.log(
+          code === 0
+            ? `[fetchlet dev] built in ${Date.now() - started} ms`
+            : `[fetchlet dev] the build failed with exit code ${code}; the server keeps the previous build`,
+        );
+        // What the build itself rewrote is not a change to build again for;
+        // edits made while it ran have already set `pending`.
+        files.snapshot();
+        if (pending) {
+          build();
+        }
+      });
+    };
+
+    const watcher = watch(cwd, { recursive: true }, (_event, name) => {
+      if (name && files.changed(resolve(cwd, name))) {
         clearTimeout(timer);
         timer = setTimeout(build, SETTLE_MS);
       }
-    },
-  );
+    });
+    this.cleanups.push(() => {
+      watcher.close();
+      clearTimeout(timer);
+    });
+  }
 
-  const [program, ...args] = options.server;
-  // A Windows shell starts `.cmd` shims such as npm's, which spawn cannot.
-  const server = windows
-    ? spawn([program, ...args].map(quote).join(" "), {
-        cwd: options.cwd,
-        stdio: "inherit",
-        shell: true,
-      })
-    : spawn(program, args, {
-        cwd: options.cwd,
-        stdio: "inherit",
-      });
+  /**
+   * A build command that keeps running, and the server once the command
+   * wrote its first build: a manifest no older than the command.
+   */
+  watchBuilds(command: string, out: string): void {
+    const manifest = resolve(this.options.cwd, out, "fetchlet.json");
+    const started = Date.now();
+    console.log("[fetchlet dev] starting the watching build");
+    const builder = runShell(command, this.options.cwd);
+    this.builder = builder;
+    builder.on("error", (error) => {
+      console.error(`[fetchlet dev] ${error.message}`);
+      this.stop(1);
+    });
+    builder.on("exit", (code) => {
+      console.error(`[fetchlet dev] the watching build stopped with exit code ${code}`);
+      this.stop(code === 0 || code === null ? 1 : code);
+    });
+    const poll = setInterval(() => {
+      if (modifiedSince(manifest, started)) {
+        clearInterval(poll);
+        this.startServer();
+      }
+    }, MANIFEST_POLL_MS);
+    this.cleanups.push(() => clearInterval(poll));
+  }
 
-  let exiting = false;
-  function stop(code: number): void {
-    if (exiting) {
+  private startServer(): void {
+    if (this.exiting) {
       return;
     }
-    exiting = true;
-    watcher.close();
-    clearTimeout(timer);
-    kill(builder);
-    kill(server);
-    process.off("SIGINT", interrupt);
-    process.off("SIGTERM", terminate);
-    resolveExit(code);
+    const [program, ...args] = this.options.server;
+    const cwd = this.options.cwd;
+    // A Windows shell starts `.cmd` shims such as npm's, which spawn cannot.
+    const server = windows
+      ? spawn([program, ...args].map(quote).join(" "), { cwd, stdio: "inherit", shell: true })
+      : spawn(program, args, { cwd, stdio: "inherit" });
+    this.server = server;
+    server.on("exit", (code) => this.stop(code ?? 1));
+    server.on("error", (error) => {
+      console.error(`[fetchlet dev] ${error.message}`);
+      this.stop(1);
+    });
   }
-  const interrupt = () => stop(130);
-  const terminate = () => stop(143);
 
-  server.on("exit", (code) => stop(code ?? 1));
-  server.on("error", (error) => {
-    console.error(`[fetchlet dev] ${error.message}`);
-    stop(1);
-  });
-  process.on("SIGINT", interrupt);
-  process.on("SIGTERM", terminate);
+  private stop(code: number): void {
+    if (this.exiting) {
+      return;
+    }
+    this.exiting = true;
+    this.cleanups.forEach((cleanup) => cleanup());
+    kill(this.builder);
+    kill(this.server);
+    process.off("SIGINT", this.interrupt);
+    process.off("SIGTERM", this.terminate);
+    this.resolveExit(code);
+  }
 }

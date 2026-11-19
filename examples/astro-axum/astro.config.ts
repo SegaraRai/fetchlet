@@ -14,6 +14,8 @@ export default defineConfig({
   adapter: fetchletAdapter({
     backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as BuildBackend,
     assets: true,
+    // `astro dev` serves the Rust host of the `dev:vite` task.
+    devServer: true,
   }),
   integrations: [
     svelte({

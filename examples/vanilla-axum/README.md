@@ -25,11 +25,12 @@ QuickJS.
 vp run @fetchlet-internal/example-vanilla-axum#dev
 ```
 
-The task builds once and starts the server with the `dev` feature. Whenever
-a file in `src/`, `public/` or `vite.config.ts` changes, it runs the `build`
-task again; the server's `DevReload` starts each new build and open pages
-reload. A failed build leaves the previous one serving. Changes to the Rust
-sources need a restart.
+The task keeps `vite build --watch` running and starts the server with the
+`dev` feature once the first build is written. Vite rebuilds the client and
+then the server after each change to a module they import, in a fraction of
+a second; the server's `DevReload` starts each new build and open pages
+reload. A failed build leaves the previous one serving. Changes to `public/`,
+`vite.config.ts` or the Rust sources need a restart.
 
 ## Develop from Vite
 

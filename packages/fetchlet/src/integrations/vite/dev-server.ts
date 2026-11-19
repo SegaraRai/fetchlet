@@ -32,6 +32,9 @@ const devRunner = createRequire(import.meta.url).resolve("fetchlet/vite/dev-runn
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
+/** Files Vite handles as stylesheets, whose edits it applies in place. */
+const STYLESHEET = /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss|sss)(?:$|\?)/;
+
 export interface DevServerOptions {
   /** The plugin name, such as `fetchlet/vite:dev-server`. */
   name: string;
@@ -73,6 +76,8 @@ export interface DevServerOptions {
   backend?: BuildBackend;
   /** Intl data for engines without native Intl, as in fetchlet/build. */
   intl?: IntlOptions;
+  /** APIs the server needs beyond the profile, as in fetchlet/build. */
+  requirements?: string[];
 }
 
 /** Modules of the server environment that changed after a version. */
@@ -111,16 +116,11 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
   return {
     name: options.name,
     apply: "serve",
-    config(userConfig) {
+    config() {
       return {
         ...(options.customApp ? { appType: "custom" as const } : {}),
         server: {
-          // The Rust host proxies pages and modules but not WebSockets, so
-          // the browser opens Vite's HMR socket on Vite's own port.
           strictPort: true,
-          ...(userConfig.server?.ws === undefined
-            ? { ws: { clientPort: userConfig.server?.port ?? 5173 } }
-            : {}),
         },
       };
     },
@@ -164,6 +164,23 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
     },
     configResolved(resolved) {
       config = resolved;
+      // The Rust host proxies pages and modules but not WebSockets, so the
+      // browser opens Vite's HMR socket on Vite's own port, as resolved
+      // after frameworks such as Astro set it from their command line.
+      const ws = resolved.server.ws;
+      if (ws !== false && !(ws?.clientPort || ws?.port || ws?.server)) {
+        resolved.server.ws = {
+          ...ws,
+          clientPort: resolved.server.port,
+        };
+      }
+      // The engine loads only the modules Vite transforms, so packages a
+      // framework lists as external for Node, as Astro does, are transformed
+      // too; an explicit list would otherwise win over `noExternal`.
+      const resolve = resolved.environments[environmentName]?.resolve;
+      if (resolve) {
+        resolve.external = [];
+      }
       // Framework packages whose imports the framework's plugins rewrite stay
       // out of prebundling, as frameworks arrange for the browser.
       const server = resolved.environments[environmentName]?.optimizeDeps;
@@ -221,21 +238,32 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
         });
       });
     },
-    hotUpdate({ file, modules, server: devServer }) {
-      if (this.environment.name !== environmentName || modules.length === 0) {
-        return;
-      }
-      version += 1;
-      changes.push({ version, ids: [...withImporters(modules)] });
-      // A module the browser also loads is replaced there; otherwise only a
-      // reload shows what the server renders now.
-      const client = devServer.environments.client;
-      if (client && !client.moduleGraph.getModulesByFile(file)?.size) {
-        client.hot.send({
-          type: "full-reload",
-          path: "*",
-        });
-      }
+    hotUpdate: {
+      // Before framework plugins, which may handle an update themselves and
+      // leave later plugins no modules, as Astro does for its pages.
+      order: "pre",
+      handler({ file, modules, server: devServer }) {
+        if (this.environment.name !== environmentName || modules.length === 0) {
+          return;
+        }
+        version += 1;
+        changes.push({ version, ids: [...withImporters(modules)] });
+        // A module the browser also loads is replaced there; otherwise only a
+        // reload shows what the server renders now. A component whose only
+        // browser part is its styles, such as an Astro page, renders on the
+        // server, so it reloads too.
+        const client = devServer.environments.client;
+        const browserModules = [...(client?.moduleGraph.getModulesByFile(file) ?? [])];
+        const rendered =
+          browserModules.length === 0 ||
+          (!STYLESHEET.test(file) && browserModules.every((module) => module.type === "css"));
+        if (client && rendered) {
+          client.hot.send({
+            type: "full-reload",
+            path: "*",
+          });
+        }
+      },
     },
   };
 
@@ -357,6 +385,7 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
       ...(options.asyncContext ? { asyncContext: options.asyncContext } : {}),
       ...(options.backend ? { backend: options.backend } : {}),
       ...(options.intl ? { intl: options.intl } : {}),
+      ...(options.requirements ? { requirements: options.requirements } : {}),
     });
     return {
       "fetchlet.json": readFileSync(join(outDir, "fetchlet.json"), "utf8"),
