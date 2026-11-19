@@ -14,7 +14,7 @@ const demo = resolve(import.meta.dirname, "../../.cache/sveltekit-axum-tauri/not
   "/",
 );
 
-const dev = "node ../../tools/examples/dev.ts example-sveltekit-axum-tauri web vite.config.ts";
+const dev = `fetchlet dev --watch web --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-sveltekit-axum-tauri --features dev`;
 
 export default defineConfig({
   plugins: [
@@ -72,12 +72,12 @@ export default defineConfig({
       // Rebuild on source changes while mdw reloads each build.
       "dev:serve": {
         command: `${dev} -- serve ${demo} --open`,
-        dependsOn: ["build", "prepare:demo"],
+        dependsOn: ["prepare:demo"],
         cache: false,
       },
       "dev:desktop": {
         command: `${dev} -- desktop ${demo}`,
-        dependsOn: ["build", "prepare:demo"],
+        dependsOn: ["prepare:demo"],
         cache: false,
       },
     },

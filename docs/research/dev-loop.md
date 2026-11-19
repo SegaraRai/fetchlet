@@ -40,8 +40,9 @@ modification time, builds a new generation of the caller's services and
 links HTML responses to a long-poll reload script it serves under
 `/__fetchlet/`
 ([fetchlet-http](../../crates/fetchlet-http/README.md#reloading-during-development)).
-Every axum example has a `dev` task. `tools/examples/dev.ts` watches the
-example's source directories and runs its `build` task again when a file's
+Every axum example has a `dev` task. The `fetchlet dev` command
+([dev](../../packages/fetchlet/docs/dev.md)) watches the example's source
+directories and runs its `build` task again when a file's
 content changes, so files a build rewrites unchanged, such as generated
 route tables, do not start another build. A full build is used rather than
 each framework's watch mode: the Astro, Nuxt, React Router and Waku command

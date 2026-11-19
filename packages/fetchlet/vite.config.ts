@@ -4,9 +4,12 @@ import { defineConfig } from "vite-plus";
 
 const manifest = JSON.parse(readFileSync(new URL("package.json", import.meta.url), "utf8"));
 
-// Every module an export names; unbundled, the modules they import compile
-// next to them in dist/.
-const entries = Object.values<string>(manifest.exports).filter((file) => !file.endsWith(".d.ts"));
+// Every module an export or the command names; unbundled, the modules they
+// import compile next to them in dist/.
+const entries = [
+  ...Object.values<string>(manifest.exports).filter((file) => !file.endsWith(".d.ts")),
+  ...Object.values<string>(manifest.bin),
+];
 
 export default defineConfig({
   root: import.meta.dirname,

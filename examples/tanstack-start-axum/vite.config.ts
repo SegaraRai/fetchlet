@@ -25,9 +25,7 @@ export default defineConfig({
       },
       // Rebuilds on source changes while the server reloads each build.
       dev: {
-        command:
-          "node ../../tools/examples/dev.ts example-tanstack-start-axum src public vite.config.ts",
-        dependsOn: ["build"],
+        command: `fetchlet dev --watch src --watch public --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-tanstack-start-axum --features dev`,
         cache: false,
       },
       // Runs the server entry from `vite dev` on the engine, without a build.

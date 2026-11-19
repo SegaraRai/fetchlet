@@ -33,6 +33,8 @@
   polyfill selection.
 - [fetchlet/runtime](../packages/fetchlet/docs/runtime.md): the Fetch entry
   and bindings.
+- [fetchlet dev](../packages/fetchlet/docs/dev.md): the command that
+  rebuilds an artifact on source changes while the Rust host serves each build.
 - [Web API profile](web-api.md): what the profile provides on every engine,
   implemented in [@fetchlet/web](../packages/web/README.md).
 - [Node.js compatibility](node-compat.md): the `node:*` modules and globals

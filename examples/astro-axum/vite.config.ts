@@ -11,8 +11,7 @@ export default defineConfig({
       },
       // Rebuilds on source changes while the server reloads each build.
       dev: {
-        command: "node ../../tools/examples/dev.ts example-astro-axum web astro.config.ts",
-        dependsOn: ["build"],
+        command: `fetchlet dev --watch web --watch astro.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-astro-axum --features dev`,
         cache: false,
       },
       "check:types": {

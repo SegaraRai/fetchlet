@@ -1,7 +1,8 @@
 // Runs inside the consumer project against the installed tarball.
 
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
@@ -64,3 +65,32 @@ await buildArtifact({
 });
 assert.ok(existsSync("./artifact/server.js"));
 assert.equal(JSON.parse(readFileSync("./artifact/fetchlet.json", "utf8")).handler, "handle");
+
+// The `fetchlet` command is linked from the compiled bin. `fetchlet dev`
+// builds, then starts the server, and returns the server's exit code once it
+// exits; the server's command line passes through a shell on Windows, so the
+// path of node, which may contain spaces, checks its quoting.
+const fetchletManifest = JSON.parse(readFileSync(join(fetchletDirectory, "package.json"), "utf8"));
+const bin = String(fetchletManifest.bin.fetchlet);
+assert.match(bin, /^\.\/dist\/.+\.js$/, "fetchlet's bin");
+assert.ok(existsSync("node_modules/.bin/fetchlet"), "the fetchlet command is linked");
+rmSync("dev-build.txt", { force: true });
+const command = spawnSync(
+  process.execPath,
+  [
+    join(fetchletDirectory, bin),
+    "dev",
+    "--watch",
+    "entry.js",
+    "--build",
+    "node dev-build.js",
+    "--",
+    process.execPath,
+    "dev-server.js",
+  ],
+  {
+    encoding: "utf8",
+  },
+);
+assert.equal(command.status, 0, command.stdout + command.stderr);
+assert.match(command.stdout, /server started after the build: built/);

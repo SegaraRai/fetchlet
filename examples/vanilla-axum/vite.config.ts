@@ -22,8 +22,7 @@ export default defineConfig({
         cache: false,
       },
       dev: {
-        command: "node ../../tools/examples/dev.ts example-vanilla-axum src public vite.config.ts",
-        dependsOn: ["build"],
+        command: `fetchlet dev --watch src --watch public --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-vanilla-axum --features dev`,
         cache: false,
       },
       "dev:vite": {

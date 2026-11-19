@@ -181,12 +181,9 @@ the result in its guide.
 
 Every axum and Tauri example has a `dev` task that rebuilds on source
 changes while `DevReload` serves each build
-([development loop](research/dev-loop.md)). Two parts remain:
+([development loop](research/dev-loop.md)), through the `fetchlet dev`
+command ([dev](../packages/fetchlet/docs/dev.md)). One part remains:
 
-- `tools/examples/dev.ts` is repository tooling. A command in the `fetchlet`
-  package, such as `fetchlet dev --watch src -- cargo run --features dev`,
-  would give applications the same loop; it needs a `bin` and a check in
-  `test:package`.
 - Each change runs a full build, one to five seconds for the examples.
   Incremental rebuilds through `vite build --watch` are faster where an
   integration keeps the artifact consistent across environment rebuilds, as

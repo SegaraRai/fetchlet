@@ -21,6 +21,8 @@ Install it as a development dependency next to your framework. Each framework ha
 | `fetchlet/build`                                           | `buildArtifact`, for adapters of other frameworks     | [build](docs/build.md)                   |
 | `fetchlet/runtime`, `/adapter`, `/handler`                 | The Web API profile and Fetch entry inside the bundle | [runtime](docs/runtime.md)               |
 
+The `fetchlet` command runs `fetchlet dev`, which rebuilds the artifact on source changes while a Rust host serves each build ([dev](docs/dev.md)).
+
 ```ts
 import { sveltekit } from "@sveltejs/kit/vite";
 import fetchletAdapter from "fetchlet/sveltekit";
@@ -42,4 +44,4 @@ Every adapter calls `fetchlet/build`, which initializes `fetchlet/runtime` and t
 
 ## Development
 
-The workspace uses the sources in `src/` directly: `build/`, `runtime/` and the framework integrations in `integrations/`. The guest Web API implementations come from [`@fetchlet/web`](../web/README.md) and the `node:*` modules from [`@fetchlet/node`](../node/README.md), both dependencies released with fetchlet under the same version. The sources are TypeScript; `vp run fetchlet#build` compiles every exported module and its declarations into `dist/`, and the published manifest (`publishConfig.exports`) points at `dist/`. `vp run test:package` packs the three packages, installs them from their tarballs in a separate project, type-checks its declarations, and builds and runs an artifact on QuickJS.
+The workspace uses the sources in `src/` directly: `build/`, `runtime/` and the framework integrations in `integrations/`. The guest Web API implementations come from [`@fetchlet/web`](../web/README.md) and the `node:*` modules from [`@fetchlet/node`](../node/README.md), both dependencies released with fetchlet under the same version. The sources are TypeScript; `vp run fetchlet#build` compiles every exported module and its declarations into `dist/`, and the published manifest (`publishConfig.exports`) points at `dist/`. `vp run test:package` packs the three packages, installs them from their tarballs in a separate project, type-checks its declarations, builds and runs an artifact on QuickJS, and runs the packed `fetchlet dev` command.

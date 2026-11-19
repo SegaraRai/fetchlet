@@ -1,0 +1,110 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, test } from "vite-plus/test";
+
+import { parseDevArguments, WatchedFiles } from "./dev.ts";
+
+describe("parseDevArguments", () => {
+  test("splits options from the server command at the first --", () => {
+    expect(
+      parseDevArguments(
+        [
+          "--watch",
+          "app",
+          "--watch",
+          "vite.config.ts",
+          "--build",
+          "vp run build",
+          "--",
+          "cargo",
+          "run",
+          "--",
+          "serve",
+        ],
+        "/project",
+      ),
+    ).toStrictEqual({
+      watch: ["app", "vite.config.ts"],
+      build: "vp run build",
+      server: ["cargo", "run", "--", "serve"],
+      cwd: "/project",
+    });
+  });
+
+  test("watches src and builds with vite build by default", () => {
+    expect(parseDevArguments(["--", "./server"], "/project")).toStrictEqual({
+      watch: ["src"],
+      build: "vite build",
+      server: ["./server"],
+      cwd: "/project",
+    });
+  });
+
+  test("refuses a missing server, unknown options and options without a value", () => {
+    expect(parseDevArguments(["--watch", "src"], "/p")).toStrictEqual({
+      error: "name the server command after --",
+    });
+    expect(parseDevArguments(["--open", "--", "x"], "/p")).toStrictEqual({
+      error: "unknown option --open",
+    });
+    expect(parseDevArguments(["--build"], "/p")).toStrictEqual({
+      error: "--build needs a value",
+    });
+  });
+});
+
+describe("WatchedFiles", () => {
+  let directory: string | undefined;
+  afterEach(() => {
+    if (directory) {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  function project(): string {
+    directory = mkdtempSync(join(tmpdir(), "fetchlet-dev-"));
+    mkdirSync(join(directory, "src/routes"), { recursive: true });
+    writeFileSync(join(directory, "src/routes/index.ts"), "one");
+    writeFileSync(join(directory, "vite.config.ts"), "config");
+    writeFileSync(join(directory, "README.md"), "readme");
+    return directory;
+  }
+
+  test("a file counts as changed when its content differs", () => {
+    const root = project();
+    const files = new WatchedFiles(["src", "vite.config.ts"], root);
+    const route = join(root, "src/routes/index.ts");
+    writeFileSync(route, "one");
+    expect(files.changed(route)).toBe(false);
+    writeFileSync(route, "two");
+    expect(files.changed(route)).toBe(true);
+    expect(files.changed(route)).toBe(false);
+    writeFileSync(join(root, "vite.config.ts"), "changed");
+    expect(files.changed(join(root, "vite.config.ts"))).toBe(true);
+  });
+
+  test("files outside the watched paths and directories are no change", () => {
+    const root = project();
+    const files = new WatchedFiles(["src"], root);
+    writeFileSync(join(root, "README.md"), "changed");
+    expect(files.changed(join(root, "README.md"))).toBe(false);
+    expect(files.changed(join(root, "src/routes"))).toBe(false);
+    // A sibling whose name starts with a watched path is outside it.
+    expect(files.includes(join(root, "src-old/index.ts"))).toBe(false);
+  });
+
+  test("new and removed files are changes, and a snapshot forgets earlier ones", () => {
+    const root = project();
+    const files = new WatchedFiles(["src"], root);
+    const added = join(root, "src/added.ts");
+    writeFileSync(added, "new");
+    expect(files.changed(added)).toBe(true);
+    rmSync(added);
+    expect(files.changed(added)).toBe(true);
+    writeFileSync(join(root, "src/routes/index.ts"), "rewritten by a build");
+    files.snapshot();
+    expect(files.changed(join(root, "src/routes/index.ts"))).toBe(false);
+  });
+});

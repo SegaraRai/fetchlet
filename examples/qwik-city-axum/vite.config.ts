@@ -28,9 +28,7 @@ export default defineConfig({
       },
       // Rebuilds on source changes while the server reloads each build.
       dev: {
-        command:
-          "node ../../tools/examples/dev.ts example-qwik-city-axum src public vite.config.ts",
-        dependsOn: ["build"],
+        command: `fetchlet dev --watch src --watch public --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-qwik-city-axum --features dev`,
         cache: false,
       },
       "check:types": {

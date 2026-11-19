@@ -8,6 +8,9 @@
     "url": "git+https://github.com/SegaraRai/fetchlet.git",
     "directory": "packages/fetchlet"
   },
+  "bin": {
+    "fetchlet": "./src/cli/index.ts"
+  },
   "files": [
     "dist",
     "docs"
@@ -46,6 +49,9 @@
     "./waku/context": "./src/integrations/waku/context.ts"
   },
   "publishConfig": {
+    "bin": {
+      "fetchlet": "./dist/cli/index.js"
+    },
     "exports": {
       "./astro": "./dist/integrations/astro/index.js",
       "./astro/server": "./dist/integrations/astro/server.js",

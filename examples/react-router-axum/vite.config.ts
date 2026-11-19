@@ -22,9 +22,7 @@ export default defineConfig({
       },
       // Rebuilds on source changes while the server reloads each build.
       dev: {
-        command:
-          "node ../../tools/examples/dev.ts example-react-router-axum app public react-router.config.ts vite.config.ts",
-        dependsOn: ["build"],
+        command: `fetchlet dev --watch app --watch public --watch react-router.config.ts --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-react-router-axum --features dev`,
         cache: false,
       },
       // Runs the server build from `vite dev` on the engine.

@@ -3,7 +3,7 @@
 // installs fetchlet from its tarball, with @fetchlet/web and @fetchlet/node
 // from theirs, resolves every export and its declarations, type-checks an
 // import of each typed entry, builds an artifact with fetchlet/build and runs
-// it on QuickJS through fetchlet-lab.
+// it on QuickJS through fetchlet-lab, and runs the `fetchlet dev` command.
 
 import assert from "node:assert/strict";
 import {
@@ -149,7 +149,7 @@ assert.deepEqual(
   [{ ok: true, value: { status: 200, body: "packed /hello" } }],
   session.stderr,
 );
-console.log("[package] the packed npm packages build and run an artifact");
+console.log("[package] the packed npm packages build and run an artifact, and fetchlet dev runs");
 
 function step(name: string, code: number): void {
   if (code !== 0) {
