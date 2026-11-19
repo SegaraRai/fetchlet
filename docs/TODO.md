@@ -21,6 +21,8 @@ parts remain:
   over to the server module through the SSR environment's module runner,
   with bindings the app supplies for development, and check it with a test
   that requests a page and an endpoint from the dev server.
+  [Development loop](research/dev-loop.md) proposes running that runner
+  on the fetchlet engine inside the Rust program instead of in Node.
 - A command line entry, `fetchlet build src/server.ts --backend quickjs
   --out build`, for projects without Vite. It needs a `bin` in the package
   and a check in `test:package` that runs the packed command.

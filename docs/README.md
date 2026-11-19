@@ -59,5 +59,7 @@
   behind moving URL parsing to Rust.
 - [Ahead-of-time compilation](research/native-aot.md): a concluded
   investigation of Perry and scriptc.
+- [Development loop](research/dev-loop.md): options for editing a framework
+  app while the Rust host keeps running.
 - [Async context propagation](research/async-context.md): the design for
   isolating concurrent `AsyncLocalStorage` runs on every engine.
