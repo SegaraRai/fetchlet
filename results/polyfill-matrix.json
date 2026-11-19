@@ -38,7 +38,7 @@
   },
   "artifacts": {
     "quickjs": {
-      "bytes": 2801146,
+      "bytes": 2238994,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",
@@ -80,37 +80,37 @@
         }
       ],
       "formatjsModules": [
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.3.1/node_modules/@formatjs/intl-getcanonicallocales/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.4.0/node_modules/@formatjs/intl-getcanonicallocales/polyfill.js",
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+fast-memoize@3.1.7/node_modules/@formatjs/fast-memoize/index.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-supportedvaluesof@3.0.1/node_modules/@formatjs/intl-supportedvaluesof/index.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.3.1/node_modules/@formatjs/intl-getcanonicallocales/index.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-locale@5.4.3/node_modules/@formatjs/intl-locale/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-supportedvaluesof@3.1.0/node_modules/@formatjs/intl-supportedvaluesof/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.4.0/node_modules/@formatjs/intl-getcanonicallocales/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-locale@5.5.0/node_modules/@formatjs/intl-locale/polyfill.js",
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-localematcher@0.10.1/node_modules/@formatjs/intl-localematcher/index.js",
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+bigdecimal@0.2.10/node_modules/@formatjs/bigdecimal/index.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/polyfill.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/locale-data/en.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/locale-data/ja.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.0.4/node_modules/@formatjs/intl-numberformat/polyfill.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.0.4/node_modules/@formatjs/intl-numberformat/locale-data/en.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.0.4/node_modules/@formatjs/intl-numberformat/locale-data/ja.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.0.3/node_modules/@formatjs/intl-datetimeformat/polyfill.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.0.3/node_modules/@formatjs/intl-datetimeformat/locale-data/en.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.0.3/node_modules/@formatjs/intl-datetimeformat/locale-data/ja.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.0.3/node_modules/@formatjs/intl-datetimeformat/add-golden-tz.js"
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.1.0/node_modules/@formatjs/intl-pluralrules/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.1.0/node_modules/@formatjs/intl-pluralrules/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.1.0/node_modules/@formatjs/intl-pluralrules/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.1.0/node_modules/@formatjs/intl-numberformat/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.1.0/node_modules/@formatjs/intl-numberformat/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-numberformat@10.1.0/node_modules/@formatjs/intl-numberformat/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/add-golden-tz.js"
       ]
     },
     "v8": {
-      "bytes": 468389,
+      "bytes": 468336,
       "polyfills": [],
       "formatjsModules": []
     },
     "plain": {
-      "bytes": 468295,
+      "bytes": 468242,
       "polyfills": [],
       "formatjsModules": []
     },
     "plural": {
-      "bytes": 1118746,
+      "bytes": 1120478,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",
@@ -132,15 +132,15 @@
         }
       ],
       "formatjsModules": [
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.3.1/node_modules/@formatjs/intl-getcanonicallocales/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.4.0/node_modules/@formatjs/intl-getcanonicallocales/polyfill.js",
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+fast-memoize@3.1.7/node_modules/@formatjs/fast-memoize/index.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-supportedvaluesof@3.0.1/node_modules/@formatjs/intl-supportedvaluesof/index.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.3.1/node_modules/@formatjs/intl-getcanonicallocales/index.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-locale@5.4.3/node_modules/@formatjs/intl-locale/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-supportedvaluesof@3.1.0/node_modules/@formatjs/intl-supportedvaluesof/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-getcanonicallocales@3.4.0/node_modules/@formatjs/intl-getcanonicallocales/index.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-locale@5.5.0/node_modules/@formatjs/intl-locale/polyfill.js",
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-localematcher@0.10.1/node_modules/@formatjs/intl-localematcher/index.js",
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+bigdecimal@0.2.10/node_modules/@formatjs/bigdecimal/index.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/polyfill.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.0.4/node_modules/@formatjs/intl-pluralrules/locale-data/ja.js"
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.1.0/node_modules/@formatjs/intl-pluralrules/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-pluralrules@7.1.0/node_modules/@formatjs/intl-pluralrules/locale-data/ja.js"
       ]
     }
   },

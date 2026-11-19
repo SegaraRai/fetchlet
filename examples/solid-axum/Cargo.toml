@@ -2,6 +2,7 @@
 name = "example-solid-axum"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 description = "Solid 2 SSR and browser assets served by axum through fetchlet"
 

@@ -8,6 +8,9 @@
     "docs"
   ],
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
   "exports": {
     "./astro": "./src/integrations/astro/index.ts",
     "./astro/server": "./src/integrations/astro/server.ts",
@@ -119,19 +122,19 @@
     }
   },
   "dependencies": {
-    "@exodus/bytes": "catalog:",
-    "@formatjs/intl-datetimeformat": "catalog:",
-    "@formatjs/intl-getcanonicallocales": "catalog:",
-    "@formatjs/intl-locale": "catalog:",
-    "@formatjs/intl-numberformat": "catalog:",
-    "@formatjs/intl-pluralrules": "catalog:",
-    "buffer": "catalog:",
-    "core-js-pure": "catalog:",
-    "hono": "catalog:",
-    "pathe": "catalog:",
-    "readable-stream": "catalog:",
-    "rolldown": "catalog:",
-    "web-streams-polyfill": "catalog:"
+    "@exodus/bytes": "catalog:dep",
+    "@formatjs/intl-datetimeformat": "catalog:dep",
+    "@formatjs/intl-getcanonicallocales": "catalog:dep",
+    "@formatjs/intl-locale": "catalog:dep",
+    "@formatjs/intl-numberformat": "catalog:dep",
+    "@formatjs/intl-pluralrules": "catalog:dep",
+    "buffer": "catalog:dep",
+    "core-js-pure": "catalog:dep",
+    "hono": "catalog:dep",
+    "pathe": "catalog:dep",
+    "readable-stream": "catalog:dep",
+    "rolldown": "catalog:dep",
+    "web-streams-polyfill": "catalog:dep"
   },
   "devDependencies": {
     "@builder.io/qwik": "catalog:",
@@ -147,7 +150,6 @@
     "@types/node": "catalog:",
     "astro": "catalog:",
     "h3": "catalog:",
-    "hono": "catalog:",
     "nitropack": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -173,7 +175,7 @@
     "h3": "^1.0.0",
     "nitropack": "^2.0.0",
     "react-router": "^8.0.0",
-    "solid-js": "^1.0.0",
+    "solid-js": "^1.0.0 || ^2.0.0",
     "vinext": "^1.0.0",
     "vite": "^8.0.0",
     "waku": "^1.0.0-rc.5"

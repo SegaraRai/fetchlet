@@ -68,10 +68,10 @@ Unexpected results: 0.
 
 | Build   | Bytes     | Intl polyfills                                                                                  |
 | ------- | --------- | ----------------------------------------------------------------------------------------------- |
-| quickjs | 2,801,146 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
-| v8      | 468,389   | none                                                                                            |
-| plain   | 468,295   | none                                                                                            |
-| plural  | 1,118,746 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
+| quickjs | 2,238,994 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
+| v8      | 468,336   | none                                                                                            |
+| plain   | 468,242   | none                                                                                            |
+| plural  | 1,120,478 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
 
 ## Examples
 
@@ -79,12 +79,12 @@ Unexpected results: 0.
 
 | Example                      | QuickJS | Boa     | V8      | Framework                     | Browser       |
 | ---------------------------- | ------- | ------- | ------- | ----------------------------- | ------------- |
-| sveltekit-axum               | 17 / 17 | 17 / 17 | 17 / 17 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
-| sveltekit-axum-tauri         | 15 / 15 | 15 / 15 | 15 / 15 | @sveltejs/kit 3.2.0           | 159.0.8154.6  |
-| sveltekit-axum-tauri-desktop | 5 / 5   | 5 / 5   | 5 / 5   | @sveltejs/kit 3.2.0           | 157.0.4341.60 |
-| astro-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | astro 7.4.12                  | 159.0.8154.6  |
+| sveltekit-axum               | 17 / 17 | 17 / 17 | 17 / 17 | @sveltejs/kit 3.4.0           | 159.0.8154.6  |
+| sveltekit-axum-tauri         | 15 / 15 | 15 / 15 | 15 / 15 | @sveltejs/kit 3.4.0           | 159.0.8154.6  |
+| sveltekit-axum-tauri-desktop | 5 / 5   | 5 / 5   | 5 / 5   | @sveltejs/kit 3.4.0           | 157.0.4341.60 |
+| astro-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | astro 7.4.13                  | 159.0.8154.6  |
 | nuxt-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | nuxt 4.6.4                    | 159.0.8154.6  |
-| react-router-axum            | 12 / 12 | 12 / 12 | 12 / 12 | react-router 8.5.1            | 159.0.8154.6  |
+| react-router-axum            | 12 / 12 | 12 / 12 | 12 / 12 | react-router 8.5.2            | 159.0.8154.6  |
 | honox-axum                   | 11 / 11 | 11 / 11 | 11 / 11 | honox 0.1.62                  | 159.0.8154.6  |
 | honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 157.0.4341.60 |
 | tanstack-start-axum          | 11 / 11 | 11 / 11 | 11 / 11 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |

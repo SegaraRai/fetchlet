@@ -8,14 +8,14 @@
     "@sveltejs/kit": "catalog:",
     "@sveltejs/vite-plugin-svelte": "catalog:",
     "@types/node": "catalog:",
-    "core-js-pure": "catalog:",
+    "core-js-pure": "catalog:dep",
     "fetchlet": "workspace:*",
     "hono": "catalog:",
     "playwright": "catalog:",
     "svelte": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:",
-    "web-streams-polyfill": "catalog:"
+    "web-streams-polyfill": "catalog:dep"
   },
   "packageManager": "pnpm@12.21.0"
 }

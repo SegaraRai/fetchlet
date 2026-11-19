@@ -10,9 +10,9 @@
     "./wire": "./src/wire.ts"
   },
   "dependencies": {
-    "@exodus/bytes": "catalog:",
-    "core-js-pure": "catalog:",
-    "web-streams-polyfill": "catalog:"
+    "@exodus/bytes": "catalog:dep",
+    "core-js-pure": "catalog:dep",
+    "web-streams-polyfill": "catalog:dep"
   },
   "devDependencies": {
     "vite-plus": "catalog:"

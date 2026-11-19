@@ -67,11 +67,14 @@ The framework versions each example was checked with are in
 
 ## Environment
 
-Results are recorded on Windows x64 with stable Rust, Node, the pnpm and
-Vite+ versions the root manifest and CI pin, and Visual Studio with LLVM.
-Each result file records the exact toolchain, engine and package versions.
-Fuzzing uses nightly Rust. Dependencies are pinned by `Cargo.lock` and
-`pnpm-lock.yaml`. CI runs the regular suites on Windows and Linux
+Results are recorded on Windows x64 with stable Rust (1.100.0 or later, the
+workspace `rust-version`), Node, the pnpm and Vite+ versions the root manifest
+and CI pin, and Visual Studio with LLVM. Each result file records the exact
+toolchain, engine and package versions. Fuzzing uses nightly Rust.
+Dependencies are pinned by `Cargo.lock` and `pnpm-lock.yaml`. The default pnpm
+catalog names the exact version of each package the workspace develops and
+records results with; the `dep` catalog holds the semver ranges `fetchlet`
+publishes for its runtime dependencies. CI runs the regular suites on Windows and Linux
 ([security](security.md#continuous-checks)).
 
 ```bash

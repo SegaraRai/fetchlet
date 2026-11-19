@@ -2,6 +2,7 @@
 name = "fetchlet"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 description = "Rust-hosted JavaScript functions and Fetch handlers with explicit host services"
 
@@ -33,10 +34,12 @@ http = "1"
 http-body = "1"
 url = "2"
 thiserror = "2"
-rquickjs = { version = "=0.14.0", optional = true }
-boa_engine = { version = "=0.22.0", optional = true, features = ["annex-b"] }
+rquickjs = { version = "0.14", optional = true }
+boa_engine = { version = "0.22", optional = true, features = ["annex-b"] }
 # The derives of boa_engine's garbage-collected types name boa_gc directly.
-boa_gc = { version = "=0.22.0", optional = true }
+boa_gc = { version = "0.22", optional = true }
+# deno_core breaks its API in every 0.x release and requires deno_error at
+# exactly this version; the pair also fixes the V8 build. Upgrade them together.
 deno_core = { version = "=0.413.0", optional = true }
 deno_error = { version = "=0.7.1", optional = true }
 

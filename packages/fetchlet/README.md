@@ -2,7 +2,7 @@
 
 Builds JavaScript web frameworks into artifacts that a Rust server runs through the [fetchlet](../../crates/fetchlet/README.md) crate. An artifact is a directory holding `server.js` (one IIFE bundle with a Fetch handler), `client/` (public assets) and `fetchlet.json` (the manifest that [fetchlet-http](../../crates/fetchlet-http/README.md)'s `Artifact` reads).
 
-Install it as a development dependency next to your framework. Each framework has its own subpath, and the framework packages are optional peer dependencies.
+Install it as a development dependency next to your framework. Each framework has its own subpath, and the framework packages are optional peer dependencies. The build runs on Node 20.19, 22.12, 24 or later, the versions Vite 8 and Rolldown require; the repository tests it on Node 26.
 
 | Subpath                                                    | Use                                                   | Guide                                    |
 | ---------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------- |

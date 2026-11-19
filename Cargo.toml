@@ -6,17 +6,18 @@ resolver = "3"
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
+rust-version = "1.100.0"
 publish = false
 
 [workspace.dependencies]
 fetchlet = { path = "crates/fetchlet", default-features = false }
 fetchlet-http = { path = "crates/fetchlet-http" }
 fetchlet-web = { path = "crates/fetchlet-web", default-features = false }
-actix-web = { version = "=4.19.0", default-features = false }
-axum = "=0.8.9"
-hyper = { version = "=1.12.0", features = ["http1", "server"] }
-tower = { version = "=0.5.3", features = ["util"] }
-tower-http = { version = "=0.7.1", features = ["fs"] }
+actix-web = { version = "4", default-features = false }
+axum = "0.8"
+hyper = { version = "1", features = ["http1", "server"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.7", features = ["fs"] }
 thiserror = "2"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }

@@ -32,13 +32,13 @@
   "devDependencies": {
     "@fetchlet/web": "workspace:*",
     "@types/node": "catalog:",
-    "buffer": "catalog:",
-    "readable-stream": "catalog:",
+    "buffer": "catalog:dep",
+    "readable-stream": "catalog:dep",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "@fetchlet/web": "workspace:*",
-    "buffer": "catalog:",
-    "readable-stream": "catalog:"
+    "buffer": "catalog:dep",
+    "readable-stream": "catalog:dep"
   }
 }

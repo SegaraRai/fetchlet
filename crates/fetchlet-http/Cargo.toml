@@ -2,6 +2,7 @@
 name = "fetchlet-http"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish.workspace = true
 description = "Serve fetchlet applications through Tower, hyper, axum and actix-web"
 
@@ -15,7 +16,7 @@ actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
 
 [dependencies]
 fetchlet.workspace = true
-brotli-decompressor = "5"
+brotli-decompressor = "6"
 bytes = "1"
 http = "1"
 http-body = "1"
@@ -37,7 +38,7 @@ fetchlet = { workspace = true, features = ["quickjs", "boa", "v8", "web-apis"] }
 actix-http = "3"
 actix-web = { workspace = true, features = ["macros"] }
 anyhow.workspace = true
-brotli-decompressor = "5"
+brotli-decompressor = "6"
 hyper = { workspace = true, features = ["client"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 tokio = { workspace = true, features = ["net"] }
