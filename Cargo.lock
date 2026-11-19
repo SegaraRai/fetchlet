@@ -2067,6 +2067,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-solid-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-http",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "example-solidstart-axum"
 version = "0.0.0"
 dependencies = [
@@ -2120,6 +2133,19 @@ dependencies = [
 
 [[package]]
 name = "example-tanstack-start-axum"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "fetchlet",
+ "fetchlet-http",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "example-vanilla-axum"
 version = "0.0.0"
 dependencies = [
  "anyhow",

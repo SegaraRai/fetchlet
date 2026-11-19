@@ -1,0 +1,20 @@
+{
+  "name": "@fetchlet-internal/example-solid-axum",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@solidjs/meta": "catalog:solid2",
+    "@solidjs/router": "catalog:solid2",
+    "@solidjs/web": "catalog:solid2",
+    "solid-js": "catalog:solid2"
+  },
+  "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
+    "@solidjs/vite-plugin": "catalog:solid2",
+    "@types/node": "catalog:",
+    "fetchlet": "workspace:*",
+    "filesystem-routing": "catalog:solid2",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

@@ -82,6 +82,9 @@ minimumReleaseAgeExclude:
   - oxlint@1.94.0
   - tsrs@7.1.0-beta.tsrs2
   - vite-plus@1.7.0
+  - "@solidjs/signals@2.0.1"
+  - "@solidjs/web@2.0.1"
+  - solid-js@2.0.1
 
 # One version of each external dependency for every workspace package. Peer
 # ranges in packages/fetchlet stay major ranges and are written there.
@@ -154,3 +157,15 @@ catalog:
   waku: 1.0.0-rc.5
   web-streams-polyfill: 4.5.1
   yaml: 2.9.1
+
+# Solid 2 and the full-stack Vite plugin that replaces SolidStart for it,
+# for fetchlet/solid and examples/solid-axum. The default catalog keeps
+# Solid 1 for SolidStart.
+catalogs:
+  solid2:
+    "@solidjs/meta": 2.0.0
+    "@solidjs/router": 2.0.0
+    "@solidjs/vite-plugin": 3.0.1
+    "@solidjs/web": 2.0.1
+    filesystem-routing: 0.5.0
+    solid-js: 2.0.1

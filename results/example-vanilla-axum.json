@@ -1,0 +1,92 @@
+{
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    },
+    "packages": {
+      "@fetchlet-internal/tools-examples": "0.0.0",
+      "@types/node": "26.6.6",
+      "fetchlet": "0.0.0",
+      "typescript": "6.0.3",
+      "vite-plus": "1.7.0"
+    }
+  },
+  "backend": "quickjs",
+  "browser": "159.0.8154.6",
+  "summary": {
+    "passed": 13,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "vanilla JavaScript SSR, escaping and the Rust service binding",
+      "features": ["ssr", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "vanilla JavaScript JavaScript, CSS and public files",
+      "features": ["assets"],
+      "status": "pass"
+    },
+    {
+      "name": "vanilla JavaScript JSON endpoint",
+      "features": ["json"],
+      "status": "pass"
+    },
+    {
+      "name": "vanilla JavaScript client address and host bindings",
+      "features": ["client-address", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "native axum route coexists with vanilla JavaScript",
+      "features": ["rust-routes"],
+      "status": "pass"
+    },
+    {
+      "name": "input budget and the following vanilla JavaScript request",
+      "features": ["body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "streamed uploads reach vanilla JavaScript in chunks within the budget",
+      "features": ["streaming-upload", "body-budget"],
+      "status": "pass"
+    },
+    {
+      "name": "vanilla JavaScript background work runs after the response and before the next request",
+      "features": ["wait-until"],
+      "status": "pass"
+    },
+    {
+      "name": "concurrent vanilla JavaScript requests keep their own values",
+      "features": ["concurrency"],
+      "status": "pass"
+    },
+    {
+      "name": "vanilla JavaScript hydration and navigation",
+      "features": ["hydration", "navigation"],
+      "status": "pass"
+    },
+    {
+      "name": "vanilla JavaScript streams deferred content after the shell",
+      "features": ["streaming-ssr"],
+      "status": "pass"
+    },
+    {
+      "name": "Rust calls a named export beside the Fetch handler",
+      "features": ["functions"],
+      "status": "pass"
+    },
+    {
+      "name": "unknown paths answer 404 from the handler",
+      "features": ["ssr"],
+      "status": "pass"
+    }
+  ]
+}

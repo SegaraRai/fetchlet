@@ -1,0 +1,12 @@
+{
+  "name": "@fetchlet-internal/example-vanilla-axum",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet-internal/tools-examples": "workspace:*",
+    "@types/node": "catalog:",
+    "fetchlet": "workspace:*",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

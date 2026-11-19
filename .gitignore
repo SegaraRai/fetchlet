@@ -29,6 +29,7 @@
 /examples/*/dist/
 /examples/*/.tanstack/
 /examples/*/src/routeTree.gen.ts
+/examples/*/file-routes.d.ts
 /examples/*/.vinext/
 /examples/*/.next/
 /examples/*/next-env.d.ts

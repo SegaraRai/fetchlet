@@ -3,3 +3,4 @@
 import "@fetchlet/web";
 
 export { wireRequest, wireResponse } from "@fetchlet/web/wire";
+export type { ExecutionContext, ExportedHandler, ServiceBinding } from "./handler";

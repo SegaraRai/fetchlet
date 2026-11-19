@@ -7,16 +7,40 @@ resolve it.
 
 ## Future framework support
 
-### Solid 2
+### Vanilla JavaScript
 
-`fetchlet/solid-start` supports SolidStart 2.2.3, which requires `solid-js`
-^1.9.15 and `@solidjs/router` below 2. The workspace catalog therefore keeps
-`solid-js` 1.9.19, `@solidjs/router` 1.0.3 and `@solidjs/meta` 0.29.8, the
-`v1-latest` releases, although Solid 2.0.0, Solid Router 2.0.0 and Solid Meta
-2.0.0 are published. When a SolidStart release accepts Solid 2, move the
-catalog to it, update `examples/solidstart-axum` to the Solid 2 APIs, and pass
-its end-to-end checks on QuickJS. Then widen the `@solidjs/start` peer range if
-the adapter keeps supporting the previous line.
+[fetchlet/vite](../packages/fetchlet/docs/vite.md) and `exportedHandler` in
+[fetchlet/build](../packages/fetchlet/docs/build.md#a-server-module-without-a-framework)
+build a server module in the Workers module shape, which
+`examples/vanilla-axum` checks. Three parts remain:
+
+- Development serving. `vite dev` serves the browser entries but does not
+  run the server module. Dispatch requests the client environment leaves
+  over to the server module through the SSR environment's module runner,
+  with bindings the app supplies for development, and check it with a test
+  that requests a page and an endpoint from the dev server.
+- A command line entry, `fetchlet build src/server.ts --backend quickjs
+  --out build`, for projects without Vite. It needs a `bin` in the package
+  and a check in `test:package` that runs the packed command.
+- Artifacts of functions only. A module without a default export builds
+  today, but `fetchlet.json` still names `handle`, which throws when Rust
+  calls it. Record `handler: null`, make `Artifact::handler` optional in
+  fetchlet-http, and have Rust refuse `fetch` on such an artifact with a
+  clear error, as the first entry of
+  [capability negotiation](#capability-negotiation). An example of this
+  shape has no HTTP server, so it needs a name outside the
+  `<framework>-<rust-server>` convention.
+
+### Shared Vite integration
+
+`fetchlet/vite` and `fetchlet/solid` share `serverEnvironmentPlugin`
+(`src/integrations/vite/server-environment.ts`): client output under
+`<outDir>/client`, the server environment in a cache directory, the server
+entry wrapped by the integration's glue, and hashed assets cached for a
+year. The SolidStart, TanStack Start, Qwik City and Hono plugins repeat
+these steps with their own code. Move each onto the shared plugin, keeping
+its framework's glue, conditions and cache rules, with its unit tests and
+example passing unchanged.
 
 ### Nitro 3 and h3 2
 
@@ -33,10 +57,11 @@ and add an example on a framework that runs on Nitro 3. Widen the `h3` peer to
 TanStack Start already use h3 2 internally; their adapters do not import h3,
 so they are unaffected.
 
-Sources: [SolidStart adapter](../packages/fetchlet/src/integrations/solid-start/index.ts),
+Sources: [shared Vite plugin](../packages/fetchlet/src/integrations/vite/server-environment.ts),
+[exportedHandler](../packages/fetchlet/src/build/exported-handler.ts),
+[artifact manifest](../crates/fetchlet-http/src/artifact.rs),
 [Nitro runtime](../packages/fetchlet/src/integrations/nitro/runtime/nitro.ts),
-[Nitro declarations](../packages/fetchlet/src/integrations/nitro/types.d.ts),
-[workspace catalog](../pnpm-workspace.yaml).
+[Nitro declarations](../packages/fetchlet/src/integrations/nitro/types.d.ts).
 
 ## Runtime
 

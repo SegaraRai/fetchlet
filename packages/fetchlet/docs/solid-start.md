@@ -1,8 +1,9 @@
 # fetchlet/solid-start
 
 A Vite plugin that bundles SolidStart 2's server environment into a
-fetchlet artifact. Supports `@solidjs/start` 2 with Solid 1
-([Solid 2](../../../docs/TODO.md#solid-2) is open work);
+fetchlet artifact. Supports `@solidjs/start` 2, which runs on Solid 1;
+Solid 2 applications build without SolidStart and use
+[fetchlet/solid](solid.md).
 [examples/solidstart-axum](../../../examples/solidstart-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
 
 ```ts
@@ -11,7 +12,12 @@ import { solidStart } from "@solidjs/start/config";
 import fetchletSolidStart from "fetchlet/solid-start";
 
 export default defineConfig({
-  plugins: [solidStart(), fetchletSolidStart({ backend: "quickjs" })],
+  plugins: [
+    solidStart(),
+    fetchletSolidStart({
+      backend: "quickjs",
+    }),
+  ],
 });
 ```
 
@@ -51,6 +57,3 @@ builder's `asyncContext: "serialized"`.
 
 SolidStart builds each method handler of an API route (GET, POST, …) as its
 own module; keep state shared between handlers in a separate module.
-
-Solid 2 support waits for a SolidStart release that accepts it
-([open work](../../../docs/TODO.md#solid-2)).

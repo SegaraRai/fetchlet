@@ -1,0 +1,12 @@
+{
+  "listen": "127.0.0.1:3610",
+  "queue_capacity": 8,
+  "request_body_bytes": 1048576,
+  "invocation_timeout_ms": 10000,
+  "background_timeout_ms": 5000,
+  "background_tasks": 8,
+  "message": "From Solid",
+  "build_directory": "build",
+  "quickjs_stack_bytes": 4194304,
+  "worker_stack_bytes": 8388608
+}

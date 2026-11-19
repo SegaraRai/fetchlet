@@ -12,10 +12,12 @@ Install it as a development dependency next to your framework. Each framework ha
 | `fetchlet/react-router`, `fetchlet/react-router/context`   | React Router preset                                   | [react-router](docs/react-router.md)     |
 | `fetchlet/hono/vite`, `fetchlet/hono/conninfo`             | Hono and HonoX Vite plugin                            | [hono](docs/hono.md)                     |
 | `fetchlet/tanstack-start`                                  | TanStack Start Vite plugin                            | [tanstack-start](docs/tanstack-start.md) |
-| `fetchlet/solid-start`, `fetchlet/solid-start/context`     | SolidStart Vite plugin                                | [solid-start](docs/solid-start.md)       |
+| `fetchlet/solid`, `fetchlet/solid/context`                 | Solid 2 Vite plugin                                   | [solid](docs/solid.md)                   |
+| `fetchlet/solid-start`, `fetchlet/solid-start/context`     | SolidStart (Solid 1) Vite plugin                      | [solid-start](docs/solid-start.md)       |
 | `fetchlet/qwik-city/vite`, `fetchlet/qwik-city/middleware` | Qwik City Vite plugin and middleware                  | [qwik-city](docs/qwik-city.md)           |
 | `fetchlet/waku`, `fetchlet/waku/context`                   | Waku server entry adapter                             | [waku](docs/waku.md)                     |
 | `fetchlet/vinext`, `fetchlet/vinext/context`               | vinext Vite plugin                                    | [vinext](docs/vinext.md)                 |
+| `fetchlet/vite`, `fetchlet/vite/client-assets`             | Vite plugin for a server module without a framework   | [vite](docs/vite.md)                     |
 | `fetchlet/build`                                           | `buildArtifact`, for adapters of other frameworks     | [build](docs/build.md)                   |
 | `fetchlet/runtime`, `/adapter`, `/handler`                 | The Web API profile and Fetch entry inside the bundle | [runtime](docs/runtime.md)               |
 

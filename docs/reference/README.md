@@ -111,6 +111,7 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 | Bindings            | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
 | Client address      | ✓         | —               | n/a (3)           | ✓     | ✓       | ✓            | ✓     | n/a (3)     | ✓              | ✓          | ✓         | ✓    | ✓      |
 | In-process Rust API | ✓         | ✓               | ✓                 | —     | —       | —            | —     | —           | —              | —          | —         | —    | —      |
+| Function calls      | —         | —               | —                 | —     | —       | —            | —     | —           | —              | —          | —         | —    | —      |
 | Rust routes         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
 | Body budget         | ✓         | —               | —                 | ✓     | ✓       | ✓            | ✓     | ✓           | ✓              | ✓          | ✓         | ✓    | ✓      |
 | Streaming uploads   | —         | —               | n/a (4)           | ✓     | ✓       | ✓            | ✓     | n/a (4)     | ✓              | ✓          | ✓         | ✓    | ✓      |

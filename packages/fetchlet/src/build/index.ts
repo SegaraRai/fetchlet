@@ -43,6 +43,7 @@ export {
   type AssetSettings,
   type AssetsOption,
 } from "./asset-option.ts";
+export { exportedHandler } from "./exported-handler.ts";
 export { implementedNodeBuiltins, type AsyncContextMode } from "./node-builtins.ts";
 export type { BuildBackend, IntlOptions } from "./polyfills/plan.ts";
 

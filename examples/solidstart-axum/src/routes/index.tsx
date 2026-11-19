@@ -9,10 +9,15 @@ const greeting = query(async () => {
   const { env } = getRequestContext();
   const response = await env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };
-  return { message: env.MESSAGE, service: service.message };
+  return {
+    message: env.MESSAGE,
+    service: service.message,
+  };
 }, "greeting");
 
-export const route = { preload: () => greeting() };
+export const route = {
+  preload: () => greeting(),
+};
 
 export default function Home() {
   const [search] = useSearchParams();

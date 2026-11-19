@@ -66,6 +66,29 @@ DateTimeFormat; `v8` uses native ICU data. CLDR and time zone updates change
 output and past or future offsets, so recheck results when updating
 dependencies.
 
+## A server module without a framework
+
+`exportedHandler(module)` returns the entry for a server module in the
+Workers module shape: a default export with `fetch(request, env, ctx)` and
+named functions beside it. The artifact's Fetch handler calls the default
+export's `fetch` with the host bindings as `env`, and `waitUntil` and the
+client address on `ctx`; the named exports stay callable from Rust with
+`App::call`. The export name `handle` is reserved for the handler.
+
+```ts
+import { buildArtifact, exportedHandler } from "fetchlet/build";
+
+await buildArtifact({
+  entry: exportedHandler("./src/server.ts"),
+  outDir: "./build",
+  backend: "quickjs",
+});
+```
+
+`framework` is optional. [fetchlet/vite](vite.md) builds the same module
+shape with Vite, together with browser entries. The types `ExportedHandler`
+and `ExecutionContext` come from `fetchlet/runtime`.
+
 ## Framework settings
 
 | Setting                      | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |

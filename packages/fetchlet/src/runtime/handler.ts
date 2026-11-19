@@ -4,6 +4,26 @@ export interface ServiceBinding {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 }
 
+/**
+ * The third argument of `fetch` in a module with the Workers module shape,
+ * as `exportedHandler` in fetchlet/build and fetchlet/vite call it.
+ */
+export interface ExecutionContext {
+  /** Keep the invocation open until `promise` settles, within the background budget. */
+  waitUntil(promise: unknown): void;
+  /** Present for Workers compatibility; fetchlet has no origin to fall back to. */
+  passThroughOnException(): void;
+  /** Present for Workers compatibility; always empty. */
+  props: Record<string, unknown>;
+  /** The client address from the Rust request context, when it has one. */
+  clientAddress?: string;
+}
+
+/** A server module's default export in the Workers module shape. */
+export interface ExportedHandler<Env = Record<string, unknown>> {
+  fetch(request: Request, env: Readonly<Env>, ctx: ExecutionContext): Response | Promise<Response>;
+}
+
 interface FetchletHost<Bindings> {
   env: Readonly<Bindings>;
   waitUntil(promise: unknown): void;
