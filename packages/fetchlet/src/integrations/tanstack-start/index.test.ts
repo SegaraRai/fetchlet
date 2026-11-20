@@ -41,10 +41,11 @@ describe("fetchlet/tanstack-start", () => {
     expect(config.environments.ssr.define["process.env.TSS_SHELL"]).toBe('"false"');
   });
 
-  test("applies to the SSR environment only", () => {
+  test("applies to the SSR environment, and to the client for watch builds", () => {
     const apply = hook(startPlugin(), "applyToEnvironment");
     expect(apply.call({}, { name: "ssr" })).toBe(true);
-    expect(apply.call({}, { name: "client" })).toBe(false);
+    expect(apply.call({}, { name: "client" })).toBe(true);
+    expect(apply.call({}, { name: "provider" })).toBe(false);
   });
 
   test("resolves react-dom/server to its edge build", async () => {

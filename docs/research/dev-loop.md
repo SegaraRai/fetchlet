@@ -67,17 +67,81 @@ change can leave a server that embeds the old client URLs. `fetchlet dev
 first manifest is written. Editing a component under it, with the server
 reloading each build, gave these results:
 
-| Integration                                     | Under `vite build --watch`                                                                                      |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `fetchlet/vite`                                 | Consistent: the server build watches the client manifest; an edit served in 0.2 seconds against 0.9 for a build |
-| SvelteKit 3.4.0                                 | Consistent for edits, served in 1.9 seconds against 2.7 for a build, but a new route is not built               |
-| TanStack Start                                  | Pages name the previous client chunks and TanStack's development client entry                                   |
-| Solid (`fetchlet/vite` with Solid's SSR plugin) | Pages name the previous client chunks and a development module path                                             |
-| SolidStart 2.2.3                                | The server build fails in SolidStart's manifest plugin                                                          |
-| vinext 1.4.6                                    | The manifest is written before the frontend build the server needs                                              |
+| Integration                                      | Under `vite build --watch`                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `fetchlet/vite`                                  | Consistent: the server build watches the client manifest; an edit served in 0.2 seconds against 0.9 for a build |
+| SvelteKit 3.4.0                                  | Consistent for edits, served in 1.9 seconds against 2.7 for a build, but a new route is not built               |
+| TanStack Start                                   | Consistent: server builds follow the client builds (below)                                                      |
+| Solid (`fetchlet/solid` with Solid's SSR plugin) | Consistent: server builds follow the client builds (below)                                                      |
+| SolidStart 2.2.3                                 | Consistent: server builds follow the client builds and restore the client bundle SolidStart reads               |
+| vinext 1.4.6                                     | The manifest is written before the frontend build the server needs                                              |
 
-vanilla-axum's `dev` task uses `--build-watch`; the other examples keep
-full builds. Files outside the module graph, such as `public/` and the Vite
+#### Why the integrations differ under `--watch`
+
+The causes were traced with Vite+ 1.7.0 by running `vp build --watch` in
+each example, editing a route, and comparing the server bundle with the
+client files after each build settled.
+
+Under `--watch`, Vite's `builder.build(environment)` returns a watcher as
+soon as it starts, before the first build finishes, and `buildApp` hooks do
+not run again on rebuilds. Two assumptions of a framework's build
+orchestration therefore fail:
+
+1. `await builder.build(client)` followed by `builder.build(server)` no
+   longer orders the builds. Every environment starts at once (the log
+   shows `watching for file changes...` once per environment before any
+   build ends), so the server build reads the client build's output before
+   it exists.
+2. A server environment rebuilds only when a module in its own graph
+   changes. A client rebuild does not rebuild the server, and a virtual
+   module the server loaded is not loaded again.
+
+`fetchlet/vite` is consistent because its server plugin reads the client
+manifest from disk and registers it with `addWatchFile`: the server
+rebuilds whenever the client writes a manifest, including after a first
+build that started before the client's. The framework plugins hold the
+client build in memory and have no such dependency:
+
+| Integration                                 | What happens                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TanStack Start (start-plugin-core 1.171.56) | The client's `generateBundle` stores its bundle in a variable that the server's `tanstack-start-manifest` virtual module reads on load. The first server build loads it before the client finishes and falls back to the development manifest (`/@id/virtual:tanstack-start-dev-client-entry`). Later server builds embed the previous round's client chunks.                                                                                                                                                                                                                  |
+| Solid (`@solidjs/vite-plugin` 3.0.1)        | The same pattern: `writeBundle` of the client stores the manifest that `virtual:solid-manifest` reads. Without one it emits the development manifest (`/@fs/` paths); later rounds name the previous client entry. The plugin also deletes the client manifest file once a server build read it, so the server cannot watch that file.                                                                                                                                                                                                                                         |
+| SolidStart 2.2.3                            | `solid-start:manifest-plugin` reads `globalThis.START_CLIENT_BUNDLE`, which the client build sets. The first server build runs before it is set and fails with `Object.values(undefined)`; later rounds read the previous round's bundle and name chunks the client build has since removed.                                                                                                                                                                                                                                                                                   |
+| vinext 1.4.6 (`@vitejs/plugin-rsc` 0.5.39)  | plugin-rsc builds in five steps, two of them scan builds with `write: false` that toggle shared plugin state. Under `--watch` all five start as concurrent watchers and a step fails on the missing `rsc` bundle. `fetchlet/vinext` bundles `dist/server/index.js` into the artifact in a `buildApp` hook, which runs once, right after the watchers start, from whatever server build is on disk.                                                                                                                                                                             |
+| SvelteKit 3.4.0                             | SvelteKit drives its own watch loop: on each server rebuild it regenerates the route manifest, builds the client and runs the adapter, so edits stay consistent. A new route file is outside the module graph and starts no build. The next edit regenerates the manifest with the route, but the server inputs were fixed when the configuration resolved, so `build_server_nodes` fails on the missing page chunk. The error rejects a promise that already settled after the first build, so it is swallowed: no message appears and the artifact keeps the previous build. |
+
+The integrations for TanStack Start, Solid and SolidStart now order the
+builds themselves (`embedsClientBuild` in the shared server environment
+plugin). Each client build writes a stamp file,
+`<client outDir>/.vite/fetchlet-client-build`, after the framework's hooks
+recorded it. Each server build waits for the client build in progress, or
+for the first one, and registers the stamp with `addWatchFile` in its
+`buildStart`, so every client build rebuilds the server; rolldown did not
+rebuild for a file registered while loading the virtual manifest module. A
+server build that a newer client build started during is not written, since
+the server build that client build causes replaces it. Two framework details
+needed more:
+
+- Solid's plugin resolves each environment's configuration on its own, which
+  loads the Vite configuration again and creates a fetchlet plugin per
+  environment. The plugins share the client build state through a
+  module-level map keyed by the stamp file.
+- SolidStart's `solid-start:capture-client-bundle` hook runs in every
+  environment, so a server build replaces `START_CLIENT_BUNDLE` with its own
+  bundle and the next server build embeds the server's manifest.
+  `fetchlet/solid-start` sets the globals back to the last client build as
+  each server build starts.
+
+With Vite+ 1.7.0, a first build and an edited route in each example left
+artifacts whose pages name only client files that exist, with no development
+manifest, and that carry the edit. vinext needs plugin-rsc's multi-step
+build to support watch mode upstream. SvelteKit needs route files watched
+and the server inputs recomputed upstream. Until then full builds stay
+correct for both.
+
+The `dev` tasks of vanilla-axum, tanstack-start-axum, solid-axum and
+solidstart-axum use `--build-watch`; the other examples keep full builds.
+Files outside the module graph, such as `public/` and the Vite
 configuration, need a restart under `--build-watch`.
 
 ### B. Vite's module runner on the fetchlet engine

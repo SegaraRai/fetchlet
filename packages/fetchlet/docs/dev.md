@@ -38,7 +38,7 @@ The command runs the build once and starts the server only when it succeeds. A c
 
 With `--build-watch`, the command starts the build command once and leaves it running; the build tool watches its own module graph and rewrites the artifact after each change. The server starts once `<out>/fetchlet.json` is no older than the build command. `--build-watch` excludes `--build` and `--watch`. When the build command exits, `fetchlet dev` stops the server and exits with a nonzero code.
 
-A watching build only suits an integration whose artifact stays consistent across rebuilds: Vite rebuilds each environment on its own, so a client change can leave a server that names the previous client files. `fetchlet/vite` rebuilds the server build after the client's, and its rebuilds take a fraction of a second:
+A watching build only suits an integration whose artifact stays consistent across rebuilds: Vite rebuilds each environment on its own, so a client change can leave a server that names the previous client files. `fetchlet/vite`, `fetchlet/tanstack-start`, `fetchlet/solid` and `fetchlet/solid-start` rebuild the server build after the client's; `fetchlet/vite`'s rebuilds take a fraction of a second:
 
 ```json
 {

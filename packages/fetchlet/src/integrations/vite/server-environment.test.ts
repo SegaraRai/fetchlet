@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -200,6 +200,137 @@ describe("serverEnvironmentPlugin", () => {
         cache: [{ prefix: "/_build/assets/" }],
       },
     });
+  });
+});
+
+describe("serverEnvironmentPlugin under vite build --watch", () => {
+  const watched = (environment: string, watchMode = true) => ({
+    environment: { name: environment },
+    meta: { watchMode },
+    addWatchFile: vi.fn(),
+    info: vi.fn(),
+  });
+
+  function watchedPlugin(extra: Partial<ServerEnvironmentIntegration> = {}) {
+    const plugin = serverEnvironmentPlugin(
+      { ...integration, embedsClientBuild: true, ...extra },
+      { outDir: "build" },
+    );
+    hook(plugin, "configResolved").call(
+      {},
+      {
+        root: directory,
+        base: "/",
+        build: { assetsDir: "assets" },
+        environments: {
+          client: { build: { outDir: join("build", "client"), assetsDir: "assets" } },
+        },
+      },
+    );
+    return plugin;
+  }
+
+  const stampFile = () => join(directory, "build", "client", ".vite", "fetchlet-client-build");
+
+  test("also applies to the client environment", () => {
+    const plugin = watchedPlugin();
+    expect(hook(plugin, "applyToEnvironment").call({}, { name: "client" })).toBe(true);
+  });
+
+  test("the first server build waits for the client build to be written", async () => {
+    const plugin = watchedPlugin();
+    let started = false;
+    const server = Promise.resolve(hook(plugin, "buildStart").call(watched("ssr"))).then(() => {
+      started = true;
+    });
+    await hook(plugin, "buildStart").call(watched("client"));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(started).toBe(false);
+    await hook(plugin, "writeBundle").call(watched("client"), { dir: directory }, {});
+    await server;
+    expect(started).toBe(true);
+    expect(existsSync(stampFile())).toBe(true);
+    // A server build after it starts at once.
+    await hook(plugin, "buildStart").call(watched("ssr"));
+  });
+
+  test("a failed client build releases the waiting server build", async () => {
+    const plugin = watchedPlugin();
+    const server = hook(plugin, "buildStart").call(watched("ssr"));
+    hook(plugin, "buildEnd").call(watched("client"), new Error("syntax"));
+    await server;
+  });
+
+  test("every server build watches the client build's stamp", async () => {
+    const plugin = watchedPlugin();
+    await hook(plugin, "buildStart").call(watched("client"));
+    await hook(plugin, "writeBundle").call(watched("client"), { dir: directory }, {});
+    const context = watched("ssr");
+    await hook(plugin, "buildStart").call(context);
+    expect(context.addWatchFile).toHaveBeenCalledWith(stampFile());
+  });
+
+  test("a server build that a client build started after is not written", async () => {
+    writeFileSync(join(directory, "entry.js"), "");
+    const plugin = watchedPlugin();
+    await hook(plugin, "buildStart").call(watched("client"));
+    await hook(plugin, "writeBundle").call(watched("client"), { dir: directory }, {});
+    const server = watched("ssr");
+    await hook(plugin, "buildStart").call(server);
+    // An edit starts the next client build while the server bundles.
+    await hook(plugin, "buildStart").call(watched("client"));
+    await hook(plugin, "writeBundle").call(
+      server,
+      { dir: directory },
+      {
+        entry: chunk("entry.js", "x"),
+      },
+    );
+    expect(buildArtifact).not.toHaveBeenCalled();
+    expect(server.info).toHaveBeenCalled();
+    // The server build the client build causes is written.
+    await hook(plugin, "writeBundle").call(watched("client"), { dir: directory }, {});
+    const next = watched("ssr");
+    await hook(plugin, "buildStart").call(next);
+    await hook(plugin, "writeBundle").call(
+      next,
+      { dir: directory },
+      {
+        entry: chunk("entry.js", "x"),
+      },
+    );
+    expect(buildArtifact).toHaveBeenCalledOnce();
+  });
+
+  test("plugins created per environment follow the same client builds", async () => {
+    // Solid's plugin loads the configuration once per environment.
+    const client = watchedPlugin();
+    const server = watchedPlugin();
+    const waiting = hook(server, "buildStart").call(watched("ssr"));
+    await hook(client, "buildStart").call(watched("client"));
+    await hook(client, "writeBundle").call(watched("client"), { dir: directory }, {});
+    await waiting;
+  });
+
+  test("each server build starts with the last client build written", async () => {
+    const serverBuildStarting = vi.fn();
+    const plugin = watchedPlugin({ serverBuildStarting });
+    const bundle = { entry: chunk("entry.js", "x") };
+    await hook(plugin, "buildStart").call(watched("client"));
+    await hook(plugin, "writeBundle").call(watched("client"), { dir: directory }, bundle);
+    await hook(plugin, "buildStart").call(watched("ssr"));
+    await hook(plugin, "buildStart").call(watched("ssr"));
+    expect(serverBuildStarting).toHaveBeenCalledTimes(2);
+    expect(serverBuildStarting).toHaveBeenLastCalledWith({ bundle, dir: directory });
+  });
+
+  test("a single build neither waits, watches nor writes the stamp", async () => {
+    const plugin = watchedPlugin();
+    const context = watched("ssr", false);
+    await hook(plugin, "buildStart").call(context);
+    await hook(plugin, "writeBundle").call(watched("client", false), { dir: directory }, {});
+    expect(existsSync(stampFile())).toBe(false);
+    expect(context.addWatchFile).not.toHaveBeenCalled();
   });
 });
 

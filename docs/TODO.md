@@ -182,16 +182,15 @@ the result in its guide.
 Every axum and Tauri example has a `dev` task that rebuilds on source
 changes while `DevReload` serves each build
 ([development loop](research/dev-loop.md)), through the `fetchlet dev`
-command ([dev](../packages/fetchlet/docs/dev.md)). vanilla-axum keeps
+command ([dev](../packages/fetchlet/docs/dev.md)). vanilla-axum,
+tanstack-start-axum, solid-axum and solidstart-axum keep
 `vite build --watch` running instead. One part remains:
 
-- Other integrations are inconsistent under `vite build --watch`
+- Two integrations are inconsistent under `vite build --watch`
   ([results](research/dev-loop.md#a-watch-build-and-artifact-reload)):
-  TanStack Start and Solid serve pages naming the previous client chunks,
-  SolidStart's server build fails, vinext writes the manifest before its
-  frontend, and SvelteKit does not build new routes. Each needs its
-  integration to rebuild the server after the client, as `fetchlet/vite`
-  does, or a framework fix, before its example's `dev` task switches.
+  vinext writes the manifest before its frontend, and SvelteKit does not
+  build new routes; [both need upstream changes](research/dev-loop.md#why-the-integrations-differ-under---watch).
+  Their examples' `dev` tasks keep full builds until then.
 
 ### Cancelled requests under `ViteDev`
 

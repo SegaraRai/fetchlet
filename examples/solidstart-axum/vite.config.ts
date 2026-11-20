@@ -21,9 +21,9 @@ export default defineConfig({
         dependsOn: ["build"],
         cache: false,
       },
-      // Rebuilds on source changes while the server reloads each build.
+      // Keeps `vp build --watch` running while the server reloads each build.
       dev: {
-        command: `fetchlet dev --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-solidstart-axum --features dev`,
+        command: `fetchlet dev --build-watch "vp build --watch" -- node ../../tools/workspace/cargo.ts run --locked -p example-solidstart-axum --features dev`,
         cache: false,
       },
       // Runs the server entry from `vite dev` on the engine.

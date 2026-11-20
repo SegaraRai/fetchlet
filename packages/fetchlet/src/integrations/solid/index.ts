@@ -25,6 +25,8 @@ export default function fetchletSolid(options: FetchletSolidOptions = {}): Plugi
       rendering: "streaming",
       // Solid's server runtime keeps the request event in AsyncLocalStorage.
       asyncContext: "serialized",
+      // virtual:solid-manifest embeds the client build it recorded.
+      embedsClientBuild: true,
       serverEnvironment: {
         resolve: {
           // "solid" compiles Solid libraries from source for SSR, and

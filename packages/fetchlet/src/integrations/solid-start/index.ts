@@ -26,6 +26,17 @@ export default function fetchletSolidStart(options: FetchletSolidStartOptions = 
       framework: "solid-start",
       rendering: "streaming",
       asyncContext: "serialized",
+      // SolidStart embeds the client's Vite manifest and fails without it.
+      embedsClientBuild: true,
+      // solid-start:capture-client-bundle stores every environment's bundle
+      // in these globals, so a server build replaces the client's with its
+      // own; each server build under --watch reads the client's again.
+      serverBuildStarting(client) {
+        Object.assign(globalThis, {
+          START_CLIENT_BUNDLE: client.bundle,
+          START_CLIENT_OUT_DIR: client.dir,
+        });
+      },
       serverEnvironment: {
         resolve: {
           // Bundle every dependency for a Web-standard server: "solid" compiles

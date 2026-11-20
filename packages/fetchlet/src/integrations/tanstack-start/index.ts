@@ -38,6 +38,8 @@ export default function fetchletStart(options: FetchletStartOptions = {}): Plugi
         rendering: "streaming",
         asyncContext: "serialized",
         isServerEntry: (chunk) => chunk.name === "server",
+        // Start's manifest module embeds the client build it recorded.
+        embedsClientBuild: true,
         serverEnvironment: {
           resolve: {
             conditions,
