@@ -21,7 +21,7 @@
       "boa": "boa_engine 0.22.0",
       "v8": "v8 150.4.0"
     },
-    "profileSha256": "4067ce25b3043847e077af7e1dad7dfb005a22859710ad186cf84414075c4c45"
+    "profileSha256": "b510499ee82c28eca774c864180a520359d83912f6bed661f20a835c2c6c0ebe"
   },
   "options": {
     "suite": "all",

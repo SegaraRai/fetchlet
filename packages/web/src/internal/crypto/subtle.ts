@@ -3,7 +3,7 @@
 // usages and JSON Web Key members; the host does format conversion and
 // the cryptography.
 
-import { decode, encode } from "../encoding/bytes";
+import { encode } from "../encoding/bytes";
 import { domString } from "../webidl/idl";
 import {
   allowedUsages,
@@ -22,6 +22,7 @@ import {
   type Operation,
 } from "./algorithms";
 import { cryptoCall, domException, fromBase64, toBase64 } from "./host";
+import { decodeUtf8, parse } from "./intrinsics";
 import { type CryptoKey, type KeySlots, type KeyType, createKey, hostKey, keySlots } from "./key";
 
 const formats = ["raw", "spki", "pkcs8", "jwk"];
@@ -89,13 +90,17 @@ const jwkMembers = [
   "y",
 ];
 
-/** Web IDL conversion to the JsonWebKey dictionary. */
+/**
+ * Web IDL conversion to the JsonWebKey dictionary. The dictionary has a null
+ * prototype, so that an unwrapped key's members never meet an inherited
+ * accessor.
+ */
 function jsonWebKey(value: unknown): any {
   if (value !== undefined && value !== null && typeof value !== "object") {
     throw new TypeError("Expected a JsonWebKey");
   }
   const source = (value ?? {}) as Record<string, unknown>;
-  const jwk: any = {};
+  const jwk: any = { __proto__: null };
   for (const member of jwkMembers) {
     const item = source[member];
     if (item === undefined) {
@@ -583,12 +588,16 @@ export class SubtleCrypto {
     const importAlgorithm = normalizeAlgorithm(unwrappedKeyAlgorithm, "importKey");
     const wrapped = copyBytes(wrappedSource);
     checkKey(normalized, unwrapping, "unwrapKey");
-    const bytes = new Uint8Array(bytesResult("crypto.decrypt", normalized, unwrapping, wrapped));
+    // The unwrapped key stays away from the built-in functions application
+    // code can replace, as in ./intrinsics.
+    const bytes = fromBase64(
+      cryptoCall("crypto.decrypt", request(normalized, unwrapping, wrapped)),
+    );
     let keyData: any = bytes;
     if (keyFormatValue === "jwk") {
       let parsed: unknown;
       try {
-        parsed = JSON.parse(decode(bytes));
+        parsed = parse(decodeUtf8(bytes));
       } catch {
         throw domException("DataError", "The unwrapped key is not JSON");
       }

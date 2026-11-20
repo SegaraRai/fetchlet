@@ -38,7 +38,7 @@
   },
   "artifacts": {
     "quickjs": {
-      "bytes": 2238994,
+      "bytes": 2243311,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",
@@ -100,17 +100,17 @@
       ]
     },
     "v8": {
-      "bytes": 468336,
+      "bytes": 472653,
       "polyfills": [],
       "formatjsModules": []
     },
     "plain": {
-      "bytes": 468242,
+      "bytes": 472559,
       "polyfills": [],
       "formatjsModules": []
     },
     "plural": {
-      "bytes": 1120478,
+      "bytes": 1124795,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",

@@ -1,9 +1,12 @@
 // CryptoKey (https://w3c.github.io/webcrypto/#cryptokey-interface). The key
 // material stays in a module-private slot: raw bytes for secret keys,
-// SubjectPublicKeyInfo for public keys and PKCS #8 for private keys.
+// SubjectPublicKeyInfo for public keys and PKCS #8 for private keys. The
+// slot map does not go through WeakMap.prototype, which application code
+// can replace.
 
 import { exposeAttributes } from "../webidl/idl";
 import { recognizeKeys } from "./algorithms";
+import { SlotMap } from "./intrinsics";
 
 export type KeyType = "secret" | "public" | "private";
 
@@ -20,7 +23,7 @@ export interface KeySlots {
   usagesView: string[];
 }
 
-const slots = new WeakMap<object, KeySlots>();
+const slots = new SlotMap<KeySlots>();
 const construct = Symbol("CryptoKey");
 
 /** A JavaScript copy of a key algorithm, with its own Uint8Array and hash objects. */
