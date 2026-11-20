@@ -7,15 +7,16 @@ import {
   type ServerRequestEvent,
 } from "@builder.io/qwik-city/middleware/request-handler";
 import { setServerPlatform } from "@builder.io/qwik/server";
+import type { FetchletBindings as Bindings, ServiceBinding } from "fetchlet/bindings";
 import { getBindings, waitUntil } from "fetchlet/runtime/adapter";
 
-/** A host service binding: a fetch scoped by the Rust FetchPolicy. */
-export interface ServiceBinding {
-  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
-}
+/**
+ * The fixed host bindings of the fetchlet App: the keys applications declare
+ * on `FetchletBindings` of fetchlet/bindings.
+ */
+export interface FetchletBindings extends Bindings {}
 
-/** The fixed host bindings of the fetchlet App. Apps declare their own keys. */
-export interface FetchletBindings {}
+export type { ServiceBinding };
 
 /** What `platform` holds in Qwik City request events. */
 export interface FetchletPlatform {

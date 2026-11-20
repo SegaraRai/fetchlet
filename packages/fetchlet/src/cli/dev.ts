@@ -1,12 +1,15 @@
 // `fetchlet dev`: builds the artifact, starts the server that serves it, and
 // builds again whenever a watched source changes, or keeps a watching build
 // running. The server reloads each build itself, as fetchlet-http's
-// `DevReload` does, so it keeps running across builds.
+// `DevReload` does, so it keeps running across builds. With `--vite`, it
+// starts a Vite dev server instead, and the server runs the server module
+// from it, as fetchlet-http's `ViteDev` does.
 
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync, watch } from "node:fs";
-import { join, resolve, sep } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync, watch } from "node:fs";
+import { createServer, type AddressInfo } from "node:net";
+import { extname, join, resolve, sep } from "node:path";
 
 /** How the artifact is built while the server runs. */
 export type DevBuild =
@@ -15,7 +18,10 @@ export type DevBuild =
       mode: "rebuild";
       /** The shell command that builds the artifact once. */
       command: string;
-      /** Files or directories whose changes start a build, relative to `cwd`. */
+      /**
+       * Files or directories whose changes start a build, relative to `cwd`.
+       * Empty for the defaults of `defaultWatchPaths`.
+       */
       watch: string[];
     }
   | {
@@ -25,6 +31,17 @@ export type DevBuild =
       command: string;
       /** The artifact directory, whose manifest the first build writes. */
       out: string;
+    }
+  | {
+      /** No build: a Vite dev server that the server runs the module from. */
+      mode: "vite";
+      /**
+       * The shell command that starts it, such as `vite dev`, without a host
+       * or port, which are appended.
+       */
+      command: string;
+      /** The port, or undefined for a free one. */
+      port: number | undefined;
     };
 
 export interface DevOptions {
@@ -37,19 +54,27 @@ export interface DevOptions {
 
 export const DEV_USAGE = `usage: fetchlet dev [--watch <path>]... [--build <command>] -- <server> [<argument>...]
        fetchlet dev --build-watch <command> [--out <directory>] -- <server> [<argument>...]
+       fetchlet dev --vite <command> [--vite-port <port>] -- <server> [<argument>...]
 
 Builds with <command>, starts <server>, and builds again when a file under a
 watched path changes. With --build-watch, the command keeps running and
 rebuilds by itself, and <server> starts once it wrote the first build. The
-server keeps running and serves each new build.
+server keeps running and serves each new build. With --vite, no build runs:
+the command starts a Vite dev server, and <server> starts once it answers,
+with FETCHLET_VITE_URL set to its URL.
 
-  --watch <path>           A file or directory to watch; repeatable. Default: src
+  --watch <path>           A file or directory to watch; repeatable. Default:
+                           src, app, web and public, and the framework and
+                           Vite configuration files, where they exist
   --build <command>        The shell command that builds. Default: vite build
   --build-watch <command>  A shell command that rebuilds on changes by itself,
                            such as vite build --watch
-  --out <directory>        The artifact directory of --build-watch. Default: build`;
+  --out <directory>        The artifact directory of --build-watch. Default: build
+  --vite <command>         A shell command that starts a Vite dev server, such
+                           as vite dev or astro dev; --host and --port are appended
+  --vite-port <port>       The dev server's port. Default: a free port`;
 
-const VALUED = new Set(["--watch", "--build", "--build-watch", "--out"]);
+const VALUED = new Set(["--watch", "--build", "--build-watch", "--out", "--vite", "--vite-port"]);
 
 /** The options a `fetchlet dev` command line gives, or the reason it is invalid. */
 export function parseDevArguments(
@@ -63,6 +88,8 @@ export function parseDevArguments(
   let build: string | undefined;
   let buildWatch: string | undefined;
   let out: string | undefined;
+  let vite: string | undefined;
+  let vitePort: string | undefined;
   for (let index = 0; index < options.length; index++) {
     const option = options[index];
     const value = options[index + 1];
@@ -79,12 +106,43 @@ export function parseDevArguments(
       build = value;
     } else if (option === "--build-watch") {
       buildWatch = value;
-    } else {
+    } else if (option === "--out") {
       out = value;
+    } else if (option === "--vite") {
+      vite = value;
+    } else {
+      vitePort = value;
     }
   }
   if (server.length === 0) {
     return { error: "name the server command after --" };
+  }
+  if (vite !== undefined) {
+    if (
+      build !== undefined ||
+      watched.length > 0 ||
+      buildWatch !== undefined ||
+      out !== undefined
+    ) {
+      return {
+        error: "--vite runs without a build; leave out --build, --watch, --build-watch and --out",
+      };
+    }
+    if (vitePort !== undefined && !/^[1-9]\d{0,4}$/.test(vitePort)) {
+      return { error: "--vite-port needs a port number" };
+    }
+    return {
+      build: {
+        mode: "vite",
+        command: vite,
+        port: vitePort === undefined ? undefined : Number(vitePort),
+      },
+      server,
+      cwd,
+    };
+  }
+  if (vitePort !== undefined) {
+    return { error: "--vite-port belongs to --vite" };
   }
   if (buildWatch !== undefined) {
     if (build !== undefined || watched.length > 0) {
@@ -111,7 +169,7 @@ export function parseDevArguments(
     build: {
       mode: "rebuild",
       command: build ?? "vite build",
-      watch: watched.length > 0 ? watched : ["src"],
+      watch: watched,
     },
     server,
     cwd,
@@ -132,9 +190,15 @@ export class WatchedFiles {
     this.snapshot();
   }
 
-  /** Whether `file` is one of the watched paths or under one. */
+  /**
+   * Whether `file` is one of the watched paths or under one. Rust sources
+   * belong to the host, which a build does not change, so they never count.
+   */
   includes(file: string): boolean {
-    return this.roots.some((root) => file === root || file.startsWith(root + sep));
+    return (
+      extname(file) !== ".rs" &&
+      this.roots.some((root) => file === root || file.startsWith(root + sep))
+    );
   }
 
   /** Record the current content of every watched file. */
@@ -163,6 +227,23 @@ export class WatchedFiles {
     this.seen.set(file, hash);
     return true;
   }
+}
+
+/** Source directories a framework or Vite project keeps its build inputs in. */
+const SOURCE_DIRECTORIES = ["src", "app", "web", "public"];
+
+/** Configuration files whose changes change the build. */
+const CONFIGURATION =
+  /^(?:vite|astro|nuxt|react-router|svelte|waku|vinext|tsr|app)\.config\.[cm]?[jt]s$/;
+
+/**
+ * The paths `fetchlet dev` watches without `--watch`: those of
+ * `SOURCE_DIRECTORIES` that exist in `cwd`, and its configuration files.
+ */
+export function defaultWatchPaths(cwd: string): string[] {
+  const directories = SOURCE_DIRECTORIES.filter((name) => existsSync(join(cwd, name)));
+  const configuration = readdirSync(cwd).filter((name) => CONFIGURATION.test(name));
+  return [...directories, ...configuration.sort()];
 }
 
 /** The files under `path`, or `path` itself when it is a file. */
@@ -195,6 +276,21 @@ const SETTLE_MS = 100;
 
 /** How often a watching build's manifest is checked for its first build. */
 const MANIFEST_POLL_MS = 200;
+
+/** How long a Vite dev server may take to answer before `fetchlet dev` gives up. */
+const VITE_START_MS = 60_000;
+
+/** A port no listener uses now. */
+function freePort(): Promise<number> {
+  return new Promise((resolvePort, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address() as AddressInfo;
+      probe.close(() => resolvePort(port));
+    });
+  });
+}
 
 const windows = process.platform === "win32";
 
@@ -245,8 +341,14 @@ export function dev(options: DevOptions): Promise<number> {
     const session = new Session(options, resolveExit);
     if (options.build.mode === "watch") {
       session.watchBuilds(options.build.command, options.build.out);
+    } else if (options.build.mode === "vite") {
+      void session.serveVite(options.build.command, options.build.port);
     } else {
-      session.rebuild(options.build.command, options.build.watch);
+      const { watch: paths } = options.build;
+      session.rebuild(
+        options.build.command,
+        paths.length > 0 ? paths : defaultWatchPaths(options.cwd),
+      );
     }
   });
 }
@@ -364,16 +466,53 @@ class Session {
     this.cleanups.push(() => clearInterval(poll));
   }
 
-  private startServer(): void {
+  /**
+   * A Vite dev server on `port`, or a free one, and the server once Vite
+   * answers, with FETCHLET_VITE_URL naming it.
+   */
+  async serveVite(command: string, port: number | undefined): Promise<void> {
+    const vitePort = port ?? (await freePort());
+    const url = `http://127.0.0.1:${vitePort}`;
+    console.log(`[fetchlet dev] starting the Vite dev server at ${url}`);
+    // The port is a number, so the command line needs no quoting.
+    const vite = runShell(`${command} --host 127.0.0.1 --port ${vitePort}`, this.options.cwd);
+    this.builder = vite;
+    vite.on("error", (error) => {
+      console.error(`[fetchlet dev] ${error.message}`);
+      this.stop(1);
+    });
+    vite.on("exit", (code) => {
+      console.error(`[fetchlet dev] the Vite dev server stopped with exit code ${code}`);
+      this.stop(code === 0 || code === null ? 1 : code);
+    });
+    const deadline = Date.now() + VITE_START_MS;
+    while (!this.exiting) {
+      try {
+        await fetch(`${url}/@vite/client`, { method: "HEAD" });
+        this.startServer({ FETCHLET_VITE_URL: url });
+        return;
+      } catch {
+        if (Date.now() > deadline) {
+          console.error(`[fetchlet dev] the Vite dev server did not answer at ${url}`);
+          this.stop(1);
+          return;
+        }
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, MANIFEST_POLL_MS));
+      }
+    }
+  }
+
+  private startServer(environment: NodeJS.ProcessEnv = {}): void {
     if (this.exiting) {
       return;
     }
     const [program, ...args] = this.options.server;
     const cwd = this.options.cwd;
+    const env = { ...process.env, ...environment };
     // A Windows shell starts `.cmd` shims such as npm's, which spawn cannot.
     const server = windows
-      ? spawn([program, ...args].map(quote).join(" "), { cwd, stdio: "inherit", shell: true })
-      : spawn(program, args, { cwd, stdio: "inherit" });
+      ? spawn([program, ...args].map(quote).join(" "), { cwd, env, stdio: "inherit", shell: true })
+      : spawn(program, args, { cwd, env, stdio: "inherit" });
     this.server = server;
     server.on("exit", (code) => this.stop(code ?? 1));
     server.on("error", (error) => {

@@ -69,7 +69,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-/// The worker's stack: the 8 MiB the server examples configure.
+/// The worker's stack: 8 MiB, above the platform default that framework
+/// recursion in debug builds exceeds.
 const WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
 
 fn backend() -> Result<Backend> {

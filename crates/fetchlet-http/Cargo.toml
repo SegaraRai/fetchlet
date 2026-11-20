@@ -82,5 +82,9 @@ name = "server"
 required-features = ["axum"]
 
 [[test]]
+name = "webview"
+required-features = ["axum"]
+
+[[test]]
 name = "artifact"
 required-features = ["axum"]

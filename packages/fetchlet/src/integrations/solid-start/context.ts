@@ -1,8 +1,12 @@
 import type { FetchEvent } from "@solidjs/start/server";
+import type { FetchletBindings as Bindings } from "fetchlet/bindings";
 import { getRequestEvent } from "solid-js/web";
 
-/** The fixed host bindings of the fetchlet App. Apps declare their own keys. */
-export interface FetchletBindings {}
+/**
+ * The fixed host bindings of the fetchlet App: the keys applications declare
+ * on `FetchletBindings` of fetchlet/bindings.
+ */
+export interface FetchletBindings extends Bindings {}
 
 /** The request context the fetchlet entry passes to SolidStart. */
 export interface FetchletRequestContext {

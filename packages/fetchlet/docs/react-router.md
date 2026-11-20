@@ -33,8 +33,8 @@ In React Router's `buildEnd`, the preset connects the server build in
 
 The `context` of loaders, actions and middleware is a
 `RouterContextProvider`. fetchlet's values are a `FetchletLoadContext`, read
-with `context.get(fetchletContext)` or, with the app's binding types,
-`getLoadContext<Bindings>(context)`.
+with `context.get(fetchletContext)` or, typed with the bindings declared on
+[`fetchlet/bindings`](runtime.md#binding-types), `getLoadContext(context)`.
 
 | Value           | Content                                                            |
 | --------------- | ------------------------------------------------------------------ |
@@ -46,7 +46,7 @@ with `context.get(fetchletContext)` or, with the app's binding types,
 import { getLoadContext } from "fetchlet/react-router/context";
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const { env, waitUntil } = getLoadContext<Bindings>(context);
+  const { env, waitUntil } = getLoadContext(context);
   // ...
 }
 ```

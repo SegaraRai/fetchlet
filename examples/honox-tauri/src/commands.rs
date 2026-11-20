@@ -2,12 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::State;
 
-use std::sync::Arc;
-
-use crate::frontend::Frontend;
-
-/// The frontend shared by the URI scheme protocol and commands.
-pub(crate) struct Functions(pub Arc<Frontend>);
+use fetchlet_http::Webview;
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct Greeting {
@@ -20,14 +15,9 @@ pub(crate) struct Greeting {
 /// Commands name the exports they call, so the webview reaches only these
 /// functions and never the Fetch handler or other exports.
 #[tauri::command]
-pub(crate) async fn greet(
-    functions: State<'_, Functions>,
-    name: String,
-) -> Result<Greeting, String> {
-    functions
-        .0
-        .current()
-        .app
+pub(crate) async fn greet(webview: State<'_, Webview>, name: String) -> Result<Greeting, String> {
+    webview
+        .app()
         .call("greet", &json!({ "name": name }))
         .await
         .map_err(|error| {

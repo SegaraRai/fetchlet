@@ -78,8 +78,6 @@ beforeAll(async () => {
   const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
   config.build_directory = resolve(example, "build");
   config.request_body_bytes = 4096;
-  // Match the backend of an artifact built with FETCHLET_BACKEND.
-  config.backend = backend;
   const configPath = resolve(output, "config.json");
   await writeFile(configPath, JSON.stringify(config, null, 2));
 

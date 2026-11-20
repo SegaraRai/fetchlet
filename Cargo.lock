@@ -1989,17 +1989,13 @@ name = "example-honox-tauri"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "bytes",
+ "axum",
  "fetchlet",
  "fetchlet-http",
- "http-body-util",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
- "tokio",
- "tower",
- "tower-http 0.7.1",
 ]
 
 [[package]]
@@ -2089,7 +2085,6 @@ dependencies = [
  "clap",
  "fetchlet",
  "fetchlet-http",
- "http-body-util",
  "notify",
  "open",
  "serde",
@@ -2100,7 +2095,6 @@ dependencies = [
  "tauri-build",
  "tokio",
  "tokio-stream",
- "tower",
  "two-face",
  "utoipa",
  "utoipa-axum",

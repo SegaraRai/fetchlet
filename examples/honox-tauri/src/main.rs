@@ -4,8 +4,6 @@
 mod commands;
 mod config;
 mod desktop;
-mod frontend;
-mod protocol;
 mod services;
 
 use std::path::PathBuf;

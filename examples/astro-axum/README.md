@@ -36,9 +36,8 @@ need a restart.
 vp run @fetchlet-internal/example-astro-axum#dev:vite
 ```
 
-The task starts `astro dev` on `127.0.0.1:3101`, then the server with the
-`vite-dev` feature, which runs Astro's development app from Vite on QuickJS
-(`tools/examples/vite-dev.ts`). Open `http://127.0.0.1:3100`. An edit to a
+The task runs `fetchlet dev --vite`, which starts `astro dev` on a free port, then the server with the
+`vite-dev` feature, which runs Astro's development app from Vite on QuickJS. Open `http://127.0.0.1:3100`. An edit to a
 page renders on the next request and reloads the open page; island edits
 refresh in place; endpoints run on the engine.
 

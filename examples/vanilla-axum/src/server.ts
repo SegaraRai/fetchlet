@@ -1,15 +1,16 @@
 // The server module: Vite builds it with fetchlet/vite, and the Rust server
 // runs its default export for every request the axum routes leave over.
 
+import type { FetchletBindings, ServiceBinding } from "fetchlet/bindings";
 import type { ExecutionContext, ExportedHandler } from "fetchlet/runtime";
 import clientAssets from "virtual:fetchlet/client-assets";
 
-/** The host bindings src/services.rs registers. */
-interface Bindings {
-  MESSAGE: string;
-  RUST: {
-    fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
-  };
+declare module "fetchlet/bindings" {
+  /** The host bindings server/services.rs registers. */
+  interface FetchletBindings {
+    MESSAGE: string;
+    RUST: ServiceBinding;
+  }
 }
 
 // Work recorded after responses, kept in this instance for the example.
@@ -55,14 +56,14 @@ export default {
         return html(page("Page not found", ""), 404);
     }
   },
-} satisfies ExportedHandler<Bindings>;
+} satisfies ExportedHandler;
 
 /** Called from Rust with `AppHandle::call_json("greet", ...)`, beside the Fetch handler. */
 export function greet(name: string): string {
   return `Hello from JavaScript, ${name}`;
 }
 
-async function home(url: URL, env: Bindings): Promise<string> {
+async function home(url: URL, env: FetchletBindings): Promise<string> {
   const name = url.searchParams.get("name") ?? "guest";
   const response = await env.RUST.fetch("https://fetchlet.internal/");
   const service = (await response.json()) as { message: string };

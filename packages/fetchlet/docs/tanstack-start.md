@@ -55,7 +55,7 @@ import type { FetchletRequestContext } from "fetchlet/tanstack-start";
 declare module "@tanstack/react-start" {
   interface Register {
     server: {
-      requestContext: FetchletRequestContext<Bindings>;
+      requestContext: FetchletRequestContext;
     };
   }
 }

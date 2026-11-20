@@ -72,9 +72,12 @@ to stop.
 
 Explicit values must be positive. How well a setting is enforced depends on
 the engine and operating system. A QuickJS stack limit must be smaller than
-the native stack of the thread running it. The examples set an 8 MiB worker
-stack (and a 4 MiB QuickJS limit where React renders) because framework
-recursion in debug builds exceeds the platform default, notably on Boa.
+the native stack of the thread running it. `fetchlet_http::Server` sets a
+64 MiB worker stack, a 4 MiB QuickJS limit and, on Boa, a recursion limit of
+10,000 calls, because framework recursion in debug builds exceeds the
+platform default and Boa's 512 calls stop ordinary code with an uncatchable
+error. Boa's `JSON.stringify` recurses on the native stack without a depth
+check, so deep enough data aborts the process instead of throwing.
 examples/vinext-axum also raises Boa's value stack to 131,072 slots for
 React Server Components rendering.
 

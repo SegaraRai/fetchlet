@@ -1,6 +1,7 @@
-import type { ServiceBinding } from "fetchlet/vinext/context";
+import type { ServiceBinding } from "fetchlet/bindings";
 
-declare module "fetchlet/vinext/context" {
+declare module "fetchlet/bindings" {
+  /** The host bindings src/services.rs registers. */
   interface FetchletBindings {
     MESSAGE: string;
     RUST: ServiceBinding;

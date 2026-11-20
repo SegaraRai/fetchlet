@@ -5,6 +5,8 @@
 //! for those servers; with `axum`, `Server` serves one build behind Rust
 //! routes in a few lines. [`Artifact`] reads the output of `fetchlet/build`, and
 //! [`AssetService`] serves its client assets from an [`AssetArchive`].
+//! [`WebviewResponder`] answers a webview's custom URI scheme, such as
+//! Tauri's, in-process with any of these services.
 //! The `dev` feature adds `DevReload`, which serves an artifact while a
 //! build tool rewrites it, and the `vite-dev` feature adds `ViteDev`, which
 //! runs the server module from a Vite dev server through Vite's module runner.
@@ -13,6 +15,7 @@
 mod artifact;
 mod assets;
 mod service;
+mod webview;
 
 #[cfg(feature = "actix")]
 mod actix_server;
@@ -30,13 +33,14 @@ pub use assets::{Asset, AssetArchive, AssetArchiveError, AssetBody, AssetFuture,
 pub use service::{
     BoxError, Error, FetchletService, PublicOrigin, RequestContext, service_transport,
 };
+pub use webview::{WebviewResponder, WebviewScheme};
 
 #[cfg(feature = "actix")]
 pub use actix_server::ActixService;
 #[cfg(feature = "axum")]
 pub use axum_server::{AxumService, artifact_router, connect_info, router_transport};
 #[cfg(all(feature = "axum", fetchlet_engine))]
-pub use axum_server::{Server, ServerError, VITE_URL_VARIABLE};
+pub use axum_server::{Server, ServerError, VITE_URL_VARIABLE, Webview};
 #[cfg(feature = "dev")]
 pub use dev::{
     DevBody, DevReload, DevReloadBuilder, DevService, Generation, RELOAD_POLL_PATH,

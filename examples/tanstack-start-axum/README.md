@@ -35,9 +35,8 @@ sources need a restart.
 vp run @fetchlet-internal/example-tanstack-start-axum#dev:vite
 ```
 
-The task starts `vite dev` on `127.0.0.1:3501`, then the server with the
-`vite-dev` feature, which runs Start's server entry from Vite on QuickJS
-(`tools/examples/vite-dev.ts`). Open `http://127.0.0.1:3500`. A component
+The task runs `fetchlet dev --vite`, which starts `vite dev` on a free port, then the server with the
+`vite-dev` feature, which runs Start's server entry from Vite on QuickJS. Open `http://127.0.0.1:3500`. A component
 edit refreshes in the open page and renders on the next request; server
 functions and routes run on the engine. The first request waits a few
 seconds while Vite optimizes the server's dependencies.

@@ -28,7 +28,7 @@ export default defineConfig({
       },
       // Rebuilds on source changes while the app reloads each build.
       dev: {
-        command: `fetchlet dev --watch app --watch public --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-honox-tauri --features dev`,
+        command: `fetchlet dev --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-honox-tauri --features dev`,
         cache: false,
       },
       "check:types": {

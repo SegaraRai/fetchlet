@@ -49,8 +49,10 @@ from a command line program.
 ```ts
 import type { ExportedHandler } from "fetchlet/runtime";
 
-interface Bindings {
-  MESSAGE: string;
+declare module "fetchlet/bindings" {
+  interface FetchletBindings {
+    MESSAGE: string;
+  }
 }
 
 export default {
@@ -58,7 +60,7 @@ export default {
     ctx.waitUntil(audit(request.url));
     return new Response(`${env.MESSAGE} from ${ctx.clientAddress}`);
   },
-} satisfies ExportedHandler<Bindings>;
+} satisfies ExportedHandler;
 
 export function greet(name: string): string {
   return `Hello, ${name}`;

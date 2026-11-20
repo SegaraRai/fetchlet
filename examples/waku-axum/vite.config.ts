@@ -16,7 +16,7 @@ export default defineConfig({
       },
       // Rebuilds on source changes while the server reloads each build.
       dev: {
-        command: `fetchlet dev --watch src --watch public --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-waku-axum --features dev`,
+        command: `fetchlet dev --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-waku-axum --features dev`,
         cache: false,
       },
       "check:types": {

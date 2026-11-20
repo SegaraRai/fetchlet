@@ -51,7 +51,7 @@ import { getRequestContext } from "fetchlet/solid-start/context";
 const { clientAddress, env, waitUntil } = getRequestContext(); // getRequestContext(event) in API routes
 ```
 
-Declaring `FetchletBindings` through module augmentation types `env`.
+The bindings declared on [`fetchlet/bindings`](runtime.md#binding-types) type `env`.
 SolidStart and solid-js use `node:async_hooks`, so the plugin enables the
 builder's `asyncContext: "serialized"`.
 

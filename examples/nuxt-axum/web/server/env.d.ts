@@ -1,6 +1,7 @@
-import type { ServiceBinding } from "fetchlet/nitro/types";
+import type { ServiceBinding } from "fetchlet/bindings";
 
-declare module "fetchlet/nitro/types" {
+declare module "fetchlet/bindings" {
+  /** The host bindings src/services.rs registers. */
   interface FetchletBindings {
     NUXT_MESSAGE: string;
     RUST: ServiceBinding;

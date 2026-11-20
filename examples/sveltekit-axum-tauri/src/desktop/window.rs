@@ -4,10 +4,14 @@ use std::sync::Arc;
 use anyhow::Result;
 use tauri::{Emitter, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
+use fetchlet_http::{WebviewResponder, WebviewScheme};
+
 use crate::config::Config;
 use crate::host::{Host, Shell};
 
-use super::protocol::{PUBLIC_ORIGIN, Protocol, SCHEME, start_url};
+/// The URI scheme the window loads pages from. Pages see
+/// `http://mdw.localhost` on every platform.
+const SCHEME: WebviewScheme = WebviewScheme::new("mdw");
 
 /// The Tauri event that carries workspace changes to the page.
 const CHANGE_EVENT: &str = "workspace-changed";
@@ -19,22 +23,34 @@ pub(crate) fn run(config: Config, workspace: &Path) -> Result<()> {
         Arc::new(config),
         workspace,
         Shell::Desktop,
-        PUBLIC_ORIGIN,
+        &SCHEME.origin(),
     ))?);
-    let protocol = Arc::new(Protocol::new(host.clone(), response_body_bytes));
+    // The webview takes whole responses, so each is collected within the
+    // configured budget, from the build current when the request arrives:
+    // the same routes `mdw serve` puts behind HTTP.
+    let protocol = Arc::new(WebviewResponder::new(
+        {
+            let host = host.clone();
+            move || host.current()
+        },
+        response_body_bytes,
+    ));
     let title = format!("{} — mdw", host.state.workspace.info().name);
-    let url = start_url().parse()?;
+    let url = SCHEME.start_url().parse()?;
     let mut changes = host.state.workspace.subscribe();
     #[cfg(feature = "dev")]
     let mut reloads = host.reloads();
 
     let desktop = tauri::Builder::default()
-        .register_asynchronous_uri_scheme_protocol(SCHEME, move |_context, request, responder| {
-            let protocol = Arc::clone(&protocol);
-            tauri::async_runtime::spawn(async move {
-                responder.respond(protocol.respond(request).await);
-            });
-        })
+        .register_asynchronous_uri_scheme_protocol(
+            SCHEME.name(),
+            move |_context, request, responder| {
+                let protocol = Arc::clone(&protocol);
+                tauri::async_runtime::spawn(async move {
+                    responder.respond(protocol.respond(request).await);
+                });
+            },
+        )
         .setup(move |desktop| {
             let mut window =
                 WebviewWindowBuilder::new(desktop, "main", WebviewUrl::CustomProtocol(url))
@@ -74,7 +90,7 @@ pub(crate) fn run(config: Config, workspace: &Path) -> Result<()> {
         })
         .build(tauri::generate_context!())?;
 
-    println!("MDW_DESKTOP_READY {}", start_url());
+    println!("MDW_DESKTOP_READY {}", SCHEME.start_url());
     desktop.run(move |_desktop, event| {
         if let RunEvent::Exit = event
             && let Err(error) = tauri::async_runtime::block_on(host.shutdown())

@@ -1,13 +1,14 @@
-// The harness of an example's `dev:vite` loop: starts `vite dev` in the
-// example and its Rust server, built with the `vite-dev` feature, against
-// it, registers checks with Vitest, and records
+// The harness of an example's `dev:vite` loop: runs `fetchlet dev --vite` in
+// the example, which starts its Vite dev server and then its Rust server,
+// built with the `vite-dev` feature, against it, registers checks with
+// Vitest, and records
 // results/example-<name>-vite-dev.json. Checks edit the example's sources
 // in place with `edit`, which every check restores when it ends.
 
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { createServer, type AddressInfo } from "node:net";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 
@@ -23,7 +24,6 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 
 import type { Feature } from "./features.ts";
 import { backend, resultFile } from "./suite.ts";
-import { viteDevCommand } from "./vite-command.ts";
 
 export interface ViteDevOptions {
   /** Engines the loop does not run on, with the reason; checks are skipped. */
@@ -69,16 +69,16 @@ function viteEnvironment(): NodeJS.ProcessEnv {
   };
 }
 
-function freePort(): Promise<number> {
-  return new Promise((resolvePort, reject) => {
-    const probe = createServer();
-    probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
-      const { port } = probe.address() as AddressInfo;
-      probe.close(() => resolvePort(port));
-    });
-  });
+/** The command that starts the example's Vite dev server: Astro's own, or Vite+'s. */
+function viteCommand(example: string): string {
+  const astro = ["mjs", "js", "ts", "mts"].some((ext) =>
+    existsSync(resolve(example, `astro.config.${ext}`)),
+  );
+  return astro ? "vp exec astro dev" : "vp dev";
 }
+
+/** The `fetchlet` command line program of the workspace package. */
+const fetchletCli = resolve(root, "packages/fetchlet/src/cli/index.ts");
 
 function stop(child: ChildProcess | undefined): Promise<unknown> | undefined {
   if (!child || child.exitCode !== null || child.signalCode !== null || !child.pid) {
@@ -86,7 +86,7 @@ function stop(child: ChildProcess | undefined): Promise<unknown> | undefined {
   }
   const exited = once(child, "exit");
   if (windows) {
-    // Vite runs under a shell; the tree goes with it.
+    // Vite and the server are children of `fetchlet dev`; the tree goes with it.
     spawnSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], {
       stdio: "ignore",
     });
@@ -110,7 +110,6 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
     error?: string;
   }[] = [];
   const originals = new Map<string, string>();
-  let vite: ChildProcess | undefined;
   let server: ChildProcess | undefined;
   let browser: Browser | undefined;
   let base: string | undefined;
@@ -139,38 +138,31 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
 
   beforeAll(async () => {
     await mkdir(output, { recursive: true });
-    const vitePort = await freePort();
-    const viteUrl = `http://127.0.0.1:${vitePort}`;
-    vite = spawn(viteDevCommand(example, vitePort), {
-      cwd: example,
-      shell: true,
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: viteEnvironment(),
-    });
-    vite.stdout!.on("data", (data) => (log += data));
-    vite.stderr!.on("data", (data) => (log += data));
-    await until(async () => (await fetch(`${viteUrl}/@vite/client`)).ok, "Vite startup");
-
     const config = JSON.parse(await readFile(resolve(example, "config.json"), "utf8"));
     config.listen = "127.0.0.1:0";
     // The first request loads every module from Vite.
     config.invocation_timeout_ms = Math.max(config.invocation_timeout_ms ?? 0, startupMs);
     const configPath = resolve(output, "config.json");
     await writeFile(configPath, JSON.stringify(config, null, 2));
-    const started = spawn(exampleBinary(name), [configPath], {
-      cwd: root,
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, FETCHLET_VITE_URL: viteUrl },
-    });
+    // `fetchlet dev --vite` starts Vite on a free port, then the server.
+    const started = spawn(
+      process.execPath,
+      [fetchletCli, "dev", "--vite", viteCommand(example), "--", exampleBinary(name), configPath],
+      {
+        cwd: example,
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+        env: viteEnvironment(),
+      },
+    );
     server = started;
     started.stderr.on("data", (data) => (log += data));
     base = await new Promise<string>((resolveAddress, reject) => {
-      started.once("exit", (code) => reject(new Error(`Server exited ${code}: ${log}`)));
+      started.once("exit", (code) => reject(new Error(`fetchlet dev exited ${code}: ${log}`)));
       createInterface({
         input: started.stdout,
       }).on("line", (line) => {
+        log += `${line}\n`;
         if (line.startsWith("FETCHLET_LISTENING ")) {
           resolveAddress(line.slice("FETCHLET_LISTENING ".length));
         }
@@ -184,7 +176,7 @@ export function viteDevSuite(name: string, options: ViteDevOptions = {}): ViteDe
   afterAll(async () => {
     await restore();
     await browser?.close();
-    await Promise.all([stop(server), stop(vite)]);
+    await stop(server);
     await writeFile(resolve(output, "server.log"), log);
     writeResult(resultFile(`${name}-vite-dev`), {
       environment: environment({ packagesOf: example }),

@@ -38,7 +38,7 @@ export default defineConfig({
       },
       // Rebuilds on source changes while the server reloads each build.
       dev: {
-        command: `fetchlet dev --watch web --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-sveltekit-axum --features dev`,
+        command: `fetchlet dev --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-sveltekit-axum --features dev`,
         cache: false,
       },
     },

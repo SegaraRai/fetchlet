@@ -1,7 +1,8 @@
+import type { FetchletBindings } from "fetchlet/bindings";
 import { createContext, type RouterContext, type RouterContextProvider } from "react-router";
 
 /** What the Rust server and the fetchlet host provide to each request. */
-export interface FetchletLoadContext<Env = Readonly<Record<string, unknown>>> {
+export interface FetchletLoadContext<Env = Readonly<FetchletBindings>> {
   /** The client address from the Rust request context, when it has one. */
   clientAddress?: string;
   /** The fixed host bindings of the fetchlet App. */
@@ -27,7 +28,7 @@ export const fetchletContext: RouterContext<FetchletLoadContext> = ((
  * `context.get(fetchletContext)` with the app's own binding types, for
  * loaders, actions and middleware.
  */
-export function getLoadContext<Env = Readonly<Record<string, unknown>>>(
+export function getLoadContext<Env = Readonly<FetchletBindings>>(
   context: Readonly<RouterContextProvider>,
 ): FetchletLoadContext<Env> {
   return context.get(fetchletContext) as unknown as FetchletLoadContext<Env>;

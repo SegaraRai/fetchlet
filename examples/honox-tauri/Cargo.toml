@@ -14,19 +14,13 @@ v8 = ["fetchlet/v8"]
 
 [dependencies]
 fetchlet = { workspace = true, features = ["quickjs", "web-apis"] }
-fetchlet-http.workspace = true
+fetchlet-http = { workspace = true, features = ["axum"] }
 anyhow.workspace = true
+axum.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 # Tauri requires its crate and @tauri-apps/api to share major and minor versions.
 tauri = "=2.12.7"
-tower.workspace = true
-tower-http.workspace = true
-bytes = "1"
-http-body-util = "0.1"
 
 [build-dependencies]
 tauri-build = { version = "=2.7.6", features = [] }
-
-[dev-dependencies]
-tokio = { workspace = true, features = ["rt-multi-thread"] }

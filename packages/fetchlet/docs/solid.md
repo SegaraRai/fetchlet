@@ -65,13 +65,11 @@ const { clientAddress, env, waitUntil } = getRequestContext();
 ```
 
 `getRequestContext(event)` reads a given request event instead of the
-current one. Declaring `FetchletBindings` through module augmentation types
-`env`:
+current one. The bindings declared on
+[`fetchlet/bindings`](runtime.md#binding-types) type `env`:
 
 ```ts
-import "fetchlet/solid/context";
-
-declare module "fetchlet/solid/context" {
+declare module "fetchlet/bindings" {
   interface FetchletBindings {
     MESSAGE: string;
   }

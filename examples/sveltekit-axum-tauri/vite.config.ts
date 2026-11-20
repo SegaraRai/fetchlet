@@ -14,7 +14,7 @@ const demo = resolve(import.meta.dirname, "../../.cache/sveltekit-axum-tauri/not
   "/",
 );
 
-const dev = `fetchlet dev --watch web --watch vite.config.ts --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-sveltekit-axum-tauri --features dev`;
+const dev = `fetchlet dev --build "vp run build" -- node ../../tools/workspace/cargo.ts run --locked -p example-sveltekit-axum-tauri --features dev`;
 
 export default defineConfig({
   plugins: [

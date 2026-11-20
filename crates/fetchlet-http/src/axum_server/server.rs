@@ -10,17 +10,22 @@ use tokio::net::TcpListener;
 use fetchlet::{App, AppHandle, Backend, HostServices, Limits, Module, WorkerOptions};
 
 use super::{AxumService, artifact_router};
-use crate::{Artifact, ArtifactError};
+use crate::{Artifact, ArtifactError, WebviewResponder, WebviewScheme};
 
 /// Commands a server's application queues behind the running call by
 /// default: a caller policy that bounds the requests waiting for one engine
-/// thread before they are refused.
+/// thread. Further requests wait for room in the queue; none are refused.
 const DEFAULT_QUEUE_CAPACITY: NonZeroUsize = NonZeroUsize::new(8).unwrap();
 
 /// The worker thread's native stack by default. Framework server renderers
-/// recurse deeply, and Boa and V8 evaluate on this stack; 8 MiB is what the
-/// repository's framework examples need on every engine.
-const DEFAULT_WORKER_STACK_BYTES: NonZeroUsize = NonZeroUsize::new(8 * 1024 * 1024).unwrap();
+/// recurse deeply, and Boa evaluates and serializes JSON on this stack
+/// without a native guard, so an overflow aborts the process. 64 MiB lets
+/// Boa reach the recursion limit below first; the operating system commits
+/// stack pages only as they are used.
+const DEFAULT_WORKER_STACK_BYTES: NonZeroUsize = NonZeroUsize::new(64 * 1024 * 1024).unwrap();
+
+/// The worker stack that the QuickJS and Boa limits below need.
+const MINIMUM_STACK_FOR_DEFAULT_LIMITS: NonZeroUsize = NonZeroUsize::new(8 * 1024 * 1024).unwrap();
 
 /// QuickJS's stack limit by default, within the worker stack above. React's
 /// server renderer retries an element after a stack overflow and can leave a
@@ -30,6 +35,10 @@ const DEFAULT_QUICKJS_STACK_BYTES: usize = 4 * 1024 * 1024;
 /// Boa's value stack limit by default, in slots. React Server Components
 /// rendering on Boa, as in the vinext example, needs this depth.
 const DEFAULT_BOA_STACK_SLOTS: usize = 128 * 1024;
+
+/// Boa's recursion limit by default. Boa's own 512 stops ordinary recursive
+/// code with an error scripts cannot catch; 10,000 is near what Node allows.
+const DEFAULT_BOA_RECURSION: usize = 10_000;
 
 /// The environment variable that names a Vite dev server to run from, read
 /// when the `vite-dev` feature is enabled.
@@ -124,7 +133,7 @@ impl Server {
     /// The engine and its options. By default, the engine the artifact was
     /// built for, through [`Backend::for_target`]. While the worker keeps its
     /// default stack, QuickJS gets a 4 MiB stack limit and Boa a value stack
-    /// of 131,072 slots, the depth framework server renderers need.
+    /// of 131,072 slots and a recursion limit of 10,000 calls.
     pub fn backend(mut self, backend: Backend) -> Self {
         self.backend = Some(backend);
         self
@@ -156,7 +165,7 @@ impl Server {
     }
 
     /// The application's worker thread. By default, a queue of 8 commands
-    /// and an 8 MiB native stack.
+    /// and a 64 MiB native stack.
     pub fn worker(mut self, worker: WorkerOptions) -> Self {
         self.worker = Some(worker);
         self
@@ -189,6 +198,75 @@ impl Server {
         self
     }
 
+    /// Start the application for a webview's custom URI scheme, such as
+    /// Tauri's, instead of a listener. The application sees the scheme's
+    /// origin unless [`public_origin`](Self::public_origin) names another.
+    /// `response_body_bytes` bounds each response the webview receives
+    /// whole ([`WebviewResponder`]).
+    ///
+    /// With `dev`, each build written to the directory serves the next
+    /// request, and [`Webview::reloads`] tells the host when to reload its
+    /// window; pages get no reload script. `vite-dev` does not apply.
+    pub async fn webview(
+        self,
+        scheme: WebviewScheme,
+        response_body_bytes: usize,
+    ) -> Result<Webview, ServerError> {
+        let origin = self
+            .public_origin
+            .clone()
+            .unwrap_or_else(|| scheme.origin());
+        let (settings, services, directory) = self.into_settings(origin);
+
+        #[cfg(feature = "dev")]
+        let builds = {
+            use crate::{DevReload, Generation, ReloadError};
+
+            DevReload::watch(directory.clone())
+                .start(move |artifact| {
+                    let (settings, services) = (settings.clone(), services.clone());
+                    async move {
+                        let (router, app) = settings.application(&artifact, services()?).await?;
+                        let built = Built {
+                            router,
+                            app: app.clone(),
+                        };
+                        Ok::<_, ServerError>(Generation::new(built).with_app(app))
+                    }
+                })
+                .await
+                .map_err(|error| match error {
+                    ReloadError::Artifact(source) => ServerError::Artifact { directory, source },
+                    error => ServerError::Reload(error),
+                })?
+        };
+        #[cfg(not(feature = "dev"))]
+        let builds = {
+            let artifact = open(&directory)?;
+            let (router, app) = settings.application(&artifact, services()?).await?;
+            Built { router, app }
+        };
+        Ok(Webview {
+            inner: Arc::new(WebviewInner {
+                builds,
+                response_body_bytes,
+            }),
+        })
+    }
+
+    fn into_settings(self, origin: String) -> (Arc<Settings>, Arc<ServicesFn>, PathBuf) {
+        let settings = Arc::new(Settings {
+            backend: self.backend,
+            routes: self.routes,
+            limits: self.limits,
+            worker: self.worker,
+            queue_capacity: self.queue_capacity,
+            origin,
+            rendering: self.rendering,
+        });
+        (settings, self.services, self.directory)
+    }
+
     /// Serve on `listener` until Ctrl-C, then shut the application down.
     pub async fn serve(self, listener: TcpListener) -> Result<(), ServerError> {
         self.serve_with_shutdown(listener, async {
@@ -211,32 +289,102 @@ impl Server {
             Some(origin) => origin.clone(),
             None => format!("http://{}", listener.local_addr()?),
         };
-        let settings = Arc::new(Settings {
-            backend: self.backend,
-            routes: self.routes,
-            limits: self.limits,
-            worker: self.worker,
-            queue_capacity: self.queue_capacity,
-            origin,
-            rendering: self.rendering,
-        });
+        let (settings, services, directory) = self.into_settings(origin);
 
         #[cfg(feature = "vite-dev")]
         if let Ok(url) = std::env::var(VITE_URL_VARIABLE) {
-            return serve_vite(listener, signal, &settings, &self.services, &url).await;
+            return serve_vite(listener, signal, &settings, &services, &url).await;
         }
 
         #[cfg(feature = "dev")]
-        return serve_reloading(listener, signal, settings, self.services, self.directory).await;
+        return serve_reloading(listener, signal, settings, services, directory).await;
 
         #[cfg(not(feature = "dev"))]
         {
-            let artifact = open(&self.directory)?;
-            let (router, app) = settings.application(&artifact, (self.services)()?).await?;
+            let artifact = open(&directory)?;
+            let (router, app) = settings.application(&artifact, services()?).await?;
             let result = run(listener, router, signal).await;
             app.shutdown().await?;
             result
         }
+    }
+}
+
+/// A [`Server`] started for a webview's custom URI scheme: answers its
+/// requests and holds the application. Clones share it.
+///
+/// ```rust,ignore
+/// const SCHEME: WebviewScheme = WebviewScheme::new("app");
+/// let webview = Server::new("build").webview(SCHEME, 16 << 20).await?;
+/// tauri::Builder::default()
+///     .register_asynchronous_uri_scheme_protocol(SCHEME.name(), move |_, request, responder| {
+///         let webview = webview.clone();
+///         tauri::async_runtime::spawn(async move {
+///             responder.respond(webview.respond(request).await);
+///         });
+///     })
+/// ```
+#[derive(Clone)]
+pub struct Webview {
+    inner: Arc<WebviewInner>,
+}
+
+struct WebviewInner {
+    #[cfg(feature = "dev")]
+    builds: crate::DevReload<Built>,
+    #[cfg(not(feature = "dev"))]
+    builds: Built,
+    response_body_bytes: usize,
+}
+
+/// One build's routes and application.
+#[derive(Clone)]
+struct Built {
+    router: Router,
+    app: AppHandle,
+}
+
+impl Webview {
+    /// The response to a webview request, from the build current when it
+    /// arrives: Rust routes, then client assets, then the application.
+    pub async fn respond(&self, request: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
+        WebviewResponder::new(|| self.router(), self.inner.response_body_bytes)
+            .respond(request)
+            .await
+    }
+
+    /// The routes of the current build, for a host that answers its
+    /// requests itself.
+    pub fn router(&self) -> Router {
+        self.current().router
+    }
+
+    /// The application of the current build, whose named exports Rust can
+    /// call with [`AppHandle::call`].
+    pub fn app(&self) -> AppHandle {
+        self.current().app
+    }
+
+    /// Each new build from now on, for the host to reload its window.
+    #[cfg(feature = "dev")]
+    pub fn reloads(&self) -> crate::Reloads {
+        self.inner.builds.reloads()
+    }
+
+    /// Shut the application down; requests after this fail.
+    pub async fn shutdown(&self) -> Result<(), ServerError> {
+        #[cfg(feature = "dev")]
+        self.inner.builds.shutdown().await?;
+        #[cfg(not(feature = "dev"))]
+        self.inner.builds.app.shutdown().await?;
+        Ok(())
+    }
+
+    fn current(&self) -> Built {
+        #[cfg(feature = "dev")]
+        return self.inner.builds.current();
+        #[cfg(not(feature = "dev"))]
+        return self.inner.builds.clone();
     }
 }
 
@@ -294,10 +442,10 @@ impl Settings {
 /// the default worker stack.
 fn default_backend(artifact: &Artifact, worker: &WorkerOptions) -> Result<Backend, ServerError> {
     let backend = Backend::for_target(artifact.backend().unwrap_or("portable"))?;
-    if worker.stack_size_bytes >= Some(DEFAULT_WORKER_STACK_BYTES) {
+    if worker.stack_size_bytes >= Some(MINIMUM_STACK_FOR_DEFAULT_LIMITS) {
         return Ok(backend
             .with_default_quickjs_stack(DEFAULT_QUICKJS_STACK_BYTES)
-            .with_default_boa_stack(DEFAULT_BOA_STACK_SLOTS));
+            .with_default_boa_stack(DEFAULT_BOA_STACK_SLOTS, DEFAULT_BOA_RECURSION));
     }
     Ok(backend)
 }

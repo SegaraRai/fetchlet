@@ -38,9 +38,8 @@ reload. A failed build leaves the previous one serving. Changes to `public/`,
 vp run @fetchlet-internal/example-vanilla-axum#dev:vite
 ```
 
-The task starts `vite dev` on `127.0.0.1:3621`, then the server with the
-`vite-dev` feature, which runs the server module from Vite on QuickJS
-(`tools/examples/vite-dev.ts`). Open `http://127.0.0.1:3620`. A change to
+The task runs `fetchlet dev --vite`, which starts `vite dev` on a free port, then the server with the
+`vite-dev` feature, which runs the server module from Vite on QuickJS. Open `http://127.0.0.1:3620`. A change to
 `src/server.ts` takes effect on the next request and reloads open pages;
 a change to `src/client.ts` or `src/styles.css` is applied in place. No
 build is needed. To run on Boa, set `FETCHLET_BACKEND=boa` and pass

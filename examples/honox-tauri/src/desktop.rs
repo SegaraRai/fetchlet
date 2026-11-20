@@ -1,29 +1,48 @@
-use std::sync::Arc;
-
-use anyhow::Result;
+use anyhow::{Context, Result};
+use axum::Router;
+use axum::routing::get;
 use tauri::{RunEvent, WebviewUrl, WebviewWindowBuilder};
 
-use crate::commands::{self, Functions};
+use fetchlet_http::{Server, WebviewScheme};
+
+use crate::commands;
 use crate::config::Config;
-use crate::frontend::Frontend;
-use crate::protocol::{SCHEME, start_url};
+use crate::services::host_services;
+
+/// The URI scheme the webview loads pages from. The application sees
+/// `http://fetchlet.localhost` on every platform.
+const SCHEME: WebviewScheme = WebviewScheme::new("fetchlet");
 
 pub(crate) fn run(config: Config) -> Result<()> {
-    let frontend = Arc::new(tauri::async_runtime::block_on(Frontend::start(config))?);
-    let url = start_url().parse()?;
+    let message = config.message.clone();
+    let mut server = Server::new(&config.build_directory)
+        .host_services(move || host_services(&message))
+        .routes(|_| Router::new().route("/api/rust", get(rust_endpoint)))
+        .limits(config.limits());
+    if let Some(capacity) = config.queue_capacity {
+        server = server.queue_capacity(capacity);
+    }
+    // With the `dev` feature, each build the `dev` task writes serves the
+    // next request.
+    let webview =
+        tauri::async_runtime::block_on(server.webview(SCHEME, config.response_body_bytes.get()))
+            .context("build the HonoX frontend before starting the app")?;
+    let url = SCHEME.start_url().parse()?;
 
-    let protocol_frontend = Arc::clone(&frontend);
+    let protocol = webview.clone();
     #[cfg(feature = "dev")]
-    let mut reloads = frontend.reloads();
+    let mut reloads = webview.reloads();
     let desktop = tauri::Builder::default()
-        .manage(Functions(Arc::clone(&frontend)))
-        .register_asynchronous_uri_scheme_protocol(SCHEME, move |_context, request, responder| {
-            // Each request goes to the build current when it arrives.
-            let protocol = protocol_frontend.current().protocol;
-            tauri::async_runtime::spawn(async move {
-                responder.respond(protocol.respond(request).await);
-            });
-        })
+        .manage(webview.clone())
+        .register_asynchronous_uri_scheme_protocol(
+            SCHEME.name(),
+            move |_context, request, responder| {
+                let protocol = protocol.clone();
+                tauri::async_runtime::spawn(async move {
+                    responder.respond(protocol.respond(request).await);
+                });
+            },
+        )
         .invoke_handler(tauri::generate_handler![commands::greet])
         .setup(move |desktop| {
             let mut window =
@@ -49,15 +68,19 @@ pub(crate) fn run(config: Config) -> Result<()> {
         })
         .build(tauri::generate_context!())?;
 
-    println!("FETCHLET_TAURI_READY {}", start_url());
+    println!("FETCHLET_TAURI_READY {}", SCHEME.start_url());
     desktop.run(move |_desktop, event| {
         if let RunEvent::Exit = event
-            && let Err(error) = tauri::async_runtime::block_on(frontend.shutdown())
+            && let Err(error) = tauri::async_runtime::block_on(webview.shutdown())
         {
             eprintln!("shutdown failed: {error:#}");
         }
     });
     Ok(())
+}
+
+async fn rust_endpoint() -> axum::Json<serde_json::Value> {
+    axum::Json(serde_json::json!({ "message": "served by the Tauri protocol" }))
 }
 
 /// WebView2 browser arguments that open the DevTools protocol on the port in

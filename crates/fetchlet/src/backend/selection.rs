@@ -85,14 +85,16 @@ impl Backend {
         }
     }
 
-    /// Set Boa's value stack limit to `slots` when it has none; other
-    /// engines are unchanged.
+    /// Set Boa's value stack limit to `slots` and its recursion limit to
+    /// `depth` where it has none; other engines are unchanged. Both must fit
+    /// the native stack of the thread the engine runs on.
     #[cfg_attr(not(feature = "boa"), allow(unused_variables))]
-    pub fn with_default_boa_stack(self, slots: usize) -> Self {
+    pub fn with_default_boa_stack(self, slots: usize, depth: usize) -> Self {
         match self {
             #[cfg(feature = "boa")]
             Self::Boa(mut options) => {
                 options.stack_size_limit.get_or_insert(slots);
+                options.recursion_limit.get_or_insert(depth);
                 Self::Boa(options)
             }
             #[allow(unreachable_patterns)]
@@ -148,10 +150,11 @@ mod tests {
         assert!(Backend::for_target("spidermonkey").is_err());
         #[cfg(feature = "boa")]
         {
-            let Backend::Boa(options) = Backend::boa().with_default_boa_stack(2048) else {
+            let Backend::Boa(options) = Backend::boa().with_default_boa_stack(2048, 300) else {
                 unreachable!()
             };
             assert_eq!(options.stack_size_limit, Some(2048));
+            assert_eq!(options.recursion_limit, Some(300));
         }
         #[cfg(feature = "quickjs")]
         {

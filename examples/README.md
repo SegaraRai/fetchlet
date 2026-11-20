@@ -34,9 +34,10 @@ the server, built with the example's `dev` Cargo feature, serves each new
 build through fetchlet-http's `DevReload` and reloads open pages. A full
 build takes one to five seconds for these examples. The Tauri examples run
 the same loop (`dev` in honox-tauri, `dev:serve` and `dev:desktop` in
-sveltekit-axum-tauri) and reload their window from Rust. The vanilla, TanStack
-Start, SolidStart and React Router examples also have a `dev:vite` task,
-which runs the server from `vite dev` without a build through fetchlet-http's
+sveltekit-axum-tauri) and reload their window from Rust. The vanilla, Astro,
+TanStack Start, SolidStart and React Router examples also have a `dev:vite`
+task, in which `fetchlet dev --vite` starts the framework's Vite dev server
+and the server runs from it without a build through fetchlet-http's
 `ViteDev`, and a `vite-dev` suite that checks it with edits;
 `test:examples` builds an example with a `vite-dev` feature with it.
 

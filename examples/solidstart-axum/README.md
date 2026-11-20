@@ -34,9 +34,9 @@ sources need a restart.
 vp run @fetchlet-internal/example-solidstart-axum#dev:vite
 ```
 
-The task starts `vite dev` on `127.0.0.1:3601`, then the server with the
+The task runs `fetchlet dev --vite`, which starts `vite dev` on a free port, then the server with the
 `vite-dev` feature, which runs SolidStart's server entry from Vite on
-QuickJS (`tools/examples/vite-dev.ts`). Open `http://127.0.0.1:3600`. A
+QuickJS. Open `http://127.0.0.1:3600`. A
 component edit is replaced in the open page by Solid's hot module
 replacement, which remounts the component, and renders on the next request;
 server functions and API routes run on the engine.

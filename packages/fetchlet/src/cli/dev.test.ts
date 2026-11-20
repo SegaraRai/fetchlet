@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, test } from "vite-plus/test";
 
-import { modifiedSince, parseDevArguments, WatchedFiles } from "./dev.ts";
+import { defaultWatchPaths, modifiedSince, parseDevArguments, WatchedFiles } from "./dev.ts";
 
 describe("parseDevArguments", () => {
   test("splits options from the server command at the first --", () => {
@@ -36,15 +36,35 @@ describe("parseDevArguments", () => {
     });
   });
 
-  test("watches src and builds with vite build by default", () => {
+  test("builds with vite build and leaves the watched paths to the defaults", () => {
     expect(parseDevArguments(["--", "./server"], "/project")).toStrictEqual({
       build: {
         mode: "rebuild",
         command: "vite build",
-        watch: ["src"],
+        watch: [],
       },
       server: ["./server"],
       cwd: "/project",
+    });
+  });
+
+  test("a Vite dev server replaces the build", () => {
+    expect(parseDevArguments(["--vite", "vite dev", "--", "./server"], "/p")).toStrictEqual({
+      build: { mode: "vite", command: "vite dev", port: undefined },
+      server: ["./server"],
+      cwd: "/p",
+    });
+    expect(
+      parseDevArguments(["--vite", "astro dev", "--vite-port", "4321", "--", "s"], "/p"),
+    ).toMatchObject({ build: { mode: "vite", port: 4321 } });
+    expect(parseDevArguments(["--vite", "x", "--vite-port", "0", "--", "s"], "/p")).toStrictEqual({
+      error: "--vite-port needs a port number",
+    });
+    expect(parseDevArguments(["--vite", "x", "--watch", "src", "--", "s"], "/p")).toStrictEqual({
+      error: "--vite runs without a build; leave out --build, --watch, --build-watch and --out",
+    });
+    expect(parseDevArguments(["--vite-port", "4321", "--", "s"], "/p")).toStrictEqual({
+      error: "--vite-port belongs to --vite",
     });
   });
 
@@ -129,6 +149,28 @@ describe("WatchedFiles", () => {
     expect(files.changed(join(root, "src/routes"))).toBe(false);
     // A sibling whose name starts with a watched path is outside it.
     expect(files.includes(join(root, "src-old/index.ts"))).toBe(false);
+  });
+
+  test("Rust sources of the host are never a change", () => {
+    const root = project();
+    writeFileSync(join(root, "src/main.rs"), "fn main() {}");
+    const files = new WatchedFiles(["src"], root);
+    writeFileSync(join(root, "src/main.rs"), "fn main() { todo!() }");
+    expect(files.changed(join(root, "src/main.rs"))).toBe(false);
+  });
+
+  test("the default paths are the source directories and configuration that exist", () => {
+    const root = project();
+    mkdirSync(join(root, "public"));
+    mkdirSync(join(root, "server"));
+    writeFileSync(join(root, "astro.config.mjs"), "config");
+    writeFileSync(join(root, "tsconfig.json"), "{}");
+    expect(defaultWatchPaths(root)).toStrictEqual([
+      "src",
+      "public",
+      "astro.config.mjs",
+      "vite.config.ts",
+    ]);
   });
 
   test("new and removed files are changes, and a snapshot forgets earlier ones", () => {

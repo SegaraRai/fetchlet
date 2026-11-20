@@ -26,7 +26,7 @@ export default defineConfig({
         cache: false,
       },
       "dev:vite": {
-        command: "node ../../tools/examples/vite-dev.ts example-vanilla-axum 3621",
+        command: `fetchlet dev --vite "vp dev" -- node ../../tools/workspace/cargo.ts run --locked -p example-vanilla-axum --features vite-dev`,
         cache: false,
       },
       "check:types": {

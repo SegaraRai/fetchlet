@@ -1,8 +1,7 @@
 import { wireRequest, wireResponse, type WireRequest, type WireResponse } from "@fetchlet/web/wire";
+import type { FetchletBindings, ServiceBinding } from "fetchlet/bindings";
 
-export interface ServiceBinding {
-  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
-}
+export type { FetchletBindings, ServiceBinding };
 
 /**
  * The third argument of `fetch` in a module with the Workers module shape,
@@ -20,7 +19,7 @@ export interface ExecutionContext {
 }
 
 /** A server module's default export in the Workers module shape. */
-export interface ExportedHandler<Env = Record<string, unknown>> {
+export interface ExportedHandler<Env = FetchletBindings> {
   fetch(request: Request, env: Readonly<Env>, ctx: ExecutionContext): Response | Promise<Response>;
 }
 
@@ -41,7 +40,8 @@ function host<Bindings>(): FetchletHost<Bindings> {
   return fetchlet;
 }
 
-export function getBindings<Bindings extends object>(): Readonly<Bindings> {
+/** The host bindings, typed by default with the keys declared on fetchlet/bindings. */
+export function getBindings<Bindings extends object = FetchletBindings>(): Readonly<Bindings> {
   return host<Bindings>().env;
 }
 

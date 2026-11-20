@@ -35,9 +35,9 @@ serving. Changes to the Rust sources need a restart.
 vp run @fetchlet-internal/example-react-router-axum#dev:vite
 ```
 
-The task starts `vite dev` on `127.0.0.1:3301`, then the server with the
+The task runs `fetchlet dev --vite`, which starts `vite dev` on a free port, then the server with the
 `vite-dev` feature, which runs React Router's server build from Vite on
-QuickJS (`tools/examples/vite-dev.ts`). Open `http://127.0.0.1:3300`. A
+QuickJS. Open `http://127.0.0.1:3300`. A
 component edit refreshes in the open page and renders on the next request;
 loaders, actions and resource routes run on the engine.
 
@@ -72,7 +72,7 @@ completes.
 
 ## Stack
 
-`fetchlet_http::Server` gives QuickJS a 4 MiB stack limit within an 8 MiB
+`fetchlet_http::Server` gives QuickJS a 4 MiB stack limit within a 64 MiB
 worker thread by default, which fits React's recursion depth. With QuickJS's default 1 MiB, Rust
 debug builds made React retry rendering after a stack overflow, leaving a
 `<link` fragment in the head (2 MiB is enough; release builds do not hit it

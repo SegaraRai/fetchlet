@@ -19,10 +19,28 @@ export function add(left: number, right: number) {
 }
 ```
 
-`getBindings<T>()` returns the env values and services Rust fixed, and
+`getBindings()` returns the env values and services Rust fixed, and
 `waitUntil(promise)` registers background work. JavaScript `fetch` goes to
 Rust's host services. [Web API profile](../../../docs/web-api.md) lists what
 the profile provides.
+
+## Binding types
+
+`fetchlet/bindings` declares `ServiceBinding`, a service's `fetch`, and
+`FetchletBindings`, the bindings Rust's `HostServices` define. An application
+declares its keys once; `getBindings()`, `ExportedHandler` and each
+framework integration's request context are typed with them:
+
+```ts
+import type { ServiceBinding } from "fetchlet/bindings";
+
+declare module "fetchlet/bindings" {
+  interface FetchletBindings {
+    MESSAGE: string;
+    RUST: ServiceBinding;
+  }
+}
+```
 
 ## Subpaths
 
@@ -31,6 +49,7 @@ the profile provides.
 | `fetchlet/runtime`         | The profile itself: installs the Web APIs, and exports the wire helpers             |
 | `fetchlet/runtime/adapter` | Installs the profile, then exports `createFetchHandler`, `getBindings`, `waitUntil` |
 | `fetchlet/runtime/handler` | The same exports without installing the profile                                     |
+| `fetchlet/bindings`        | Types only: `ServiceBinding` and `FetchletBindings`                                 |
 
 Framework integrations whose builder initializes the profile first use the
 side-effect-free `fetchlet/runtime/handler`. That keeps Node-only polyfills

@@ -49,12 +49,12 @@ for example) for that age ([asset archive](../../../docs/asset-archive.md)).
 - The context's client address becomes `event.context.clientAddress`, which
   h3's `getRequestIP(event)` returns.
 - Rust's fixed bindings are `event.context.fetchlet.env`. Applications
-  declare their types by extending `FetchletBindings`:
+  declare their types on [`fetchlet/bindings`](runtime.md#binding-types):
 
   ```ts
-  import type { ServiceBinding } from "fetchlet/nitro/types";
+  import type { ServiceBinding } from "fetchlet/bindings";
 
-  declare module "fetchlet/nitro/types" {
+  declare module "fetchlet/bindings" {
     interface FetchletBindings {
       NUXT_MESSAGE: string;
       RUST: ServiceBinding;

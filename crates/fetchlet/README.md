@@ -17,7 +17,8 @@ from the `backend` that `fetchlet/build` records: `quickjs`, `boa`, `v8`, or
 `portable`, which takes the first enabled of QuickJS, Boa and V8. When that
 engine's feature is not enabled, it fails with an error naming the feature.
 `with_default_quickjs_stack` and `with_default_boa_stack` set an engine's
-stack limit when the options leave it unset.
+stack limits (for Boa, the value stack and recursion limit) when the options
+leave them unset.
 
 Every engine includes the host implementations of [fetchlet-web](../fetchlet-web/README.md).
 These features select its Web APIs; the guest runtime installs only the

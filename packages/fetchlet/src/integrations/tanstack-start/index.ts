@@ -1,3 +1,4 @@
+import type { FetchletBindings } from "fetchlet/bindings";
 import type { Plugin } from "vite";
 
 import { devServerPlugin } from "../vite/dev-server.ts";
@@ -11,7 +12,7 @@ import {
 export interface FetchletStartOptions extends ViteArtifactOptions {}
 
 /** The request context the fetchlet entry passes to TanStack Start. */
-export interface FetchletRequestContext<Env = Readonly<Record<string, unknown>>> {
+export interface FetchletRequestContext<Env = Readonly<FetchletBindings>> {
   /** The client address from the Rust request context, when it has one. */
   clientAddress?: string;
   /** The fixed host bindings of the fetchlet App. */

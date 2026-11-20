@@ -19,6 +19,7 @@
   "exports": {
     "./astro": "./src/integrations/astro/index.ts",
     "./astro/server": "./src/integrations/astro/server.ts",
+    "./bindings": "./src/bindings.d.ts",
     "./build": "./src/build/index.ts",
     "./hono/conninfo": "./src/integrations/hono/conninfo.ts",
     "./hono/vite": "./src/integrations/hono/vite.ts",
@@ -55,6 +56,7 @@
     "exports": {
       "./astro": "./dist/integrations/astro/index.js",
       "./astro/server": "./dist/integrations/astro/server.js",
+      "./bindings": "./dist/bindings.d.ts",
       "./build": "./dist/build/index.js",
       "./hono/conninfo": "./dist/integrations/hono/conninfo.js",
       "./hono/vite": "./dist/integrations/hono/vite.js",

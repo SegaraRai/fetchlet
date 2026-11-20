@@ -40,22 +40,32 @@ Server::new("build")
     .await?;
 ```
 
-| Method                  | Default                                                                                                                                        |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `host_services(f)`      | No bindings. `f` runs for each application the server starts                                                                                   |
-| `routes(f)`             | No Rust routes. `f` receives the `AppHandle`, so a route can call named exports                                                                |
-| `rendering(f)`          | `AxumService` with errors written to standard error; `f` adds a context or streams request bodies                                              |
-| `limits(limits)`        | `Limits::default()`                                                                                                                            |
-| `public_origin(origin)` | `http://` and the listener's address                                                                                                           |
-| `backend(backend)`      | `Backend::for_target` of the artifact's `backend`; with the default worker, a 4 MiB QuickJS stack limit and a Boa value stack of 131,072 slots |
-| `worker(options)`       | A queue of 8 commands and an 8 MiB native stack                                                                                                |
-| `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                |
+| Method                  | Default                                                                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `host_services(f)`      | No bindings. `f` runs for each application the server starts                                                                                                 |
+| `routes(f)`             | No Rust routes. `f` receives the `AppHandle`, so a route can call named exports                                                                              |
+| `rendering(f)`          | `AxumService` with errors written to standard error; `f` adds a context or streams request bodies                                                            |
+| `limits(limits)`        | `Limits::default()`                                                                                                                                          |
+| `public_origin(origin)` | `http://` and the listener's address                                                                                                                         |
+| `backend(backend)`      | `Backend::for_target` of the artifact's `backend`; with the default worker, a 4 MiB QuickJS stack limit; for Boa, 131,072 value stack slots and 10,000 calls |
+| `worker(options)`       | A queue of 8 commands and a 64 MiB native stack                                                                                                              |
+| `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                              |
 
 The stack defaults are the depth the repository's framework examples need:
 React's server renderer retries an element after a QuickJS stack overflow
 and can leave a partial tag behind, and React Server Components rendering
-on Boa needs the larger value stack. The queue bounds the requests waiting
-for one engine thread.
+on Boa needs the larger value stack. Boa's own recursion limit of 512 calls
+stops ordinary recursive code with an error scripts cannot catch, so the
+server allows 10,000, close to Node. Boa serializes JSON on the native stack
+without a depth check, and an overflow there aborts the process; the 64 MiB
+worker stack, which the operating system commits only as it is used, moves
+that point beyond `JSON.stringify` of 10,000 nested arrays in debug builds
+and 50,000 in release builds. QuickJS and V8 throw a catchable `RangeError`
+instead.
+
+The queue bounds the commands waiting for the engine thread, which runs one
+request at a time. When it is full, further requests wait for room rather
+than fail, so a slow handler shows up as latency.
 
 The crate's development features change how `serve` serves the build, with
 the same routes and services:
@@ -69,6 +79,55 @@ the same routes and services:
 Enable them in a `dev` feature of the application, not in release builds.
 The sections below are the parts `Server` combines, for hosts that need
 another arrangement.
+
+## Serving a webview's URI scheme
+
+A desktop or mobile host, such as a Tauri app, can show the application in a
+webview without an HTTP server: the webview loads pages from a custom URI
+scheme, and the host answers its requests in-process. `Server::webview`
+starts the application for such a scheme instead of a listener, with the
+same routes, services and defaults as `serve`:
+
+```rust,ignore
+use fetchlet_http::{Server, WebviewScheme};
+
+const SCHEME: WebviewScheme = WebviewScheme::new("app");
+
+let webview = Server::new("build")
+    .host_services(|| HostServices::new().env("MESSAGE", "Hello"))
+    .routes(|_app| Router::new().route("/api/rust", get(rust_endpoint)))
+    .webview(SCHEME, 16 * 1024 * 1024)
+    .await?;
+let protocol = webview.clone();
+tauri::Builder::default()
+    .manage(webview.clone()) // commands call named exports through webview.app()
+    .register_asynchronous_uri_scheme_protocol(SCHEME.name(), move |_, request, responder| {
+        let protocol = protocol.clone();
+        tauri::async_runtime::spawn(async move {
+            responder.respond(protocol.respond(request).await);
+        });
+    })
+    // ...
+```
+
+WebView2 and Android load a custom scheme from `http://<name>.localhost`,
+the other platforms from `<name>://localhost`; `WebviewScheme::start_url`
+returns the one for the platform, and the application sees
+`http://<name>.localhost` (`WebviewScheme::origin`) on every platform unless
+`public_origin` names another. Tauri's responder takes a whole body, so each
+response is collected first; the second argument of `webview` bounds what is
+collected, a memory budget the caller sets, and a larger response becomes a
+`502 Bad Gateway`. Request bodies arrive whole too, within the application's
+`request_body_bytes`.
+
+With `dev`, each build written to the directory answers the next request,
+and `Webview::reloads()` yields once per new build so the host can reload
+its window; pages get no reload script, since the scheme's responses are
+not watched by one. `vite-dev` does not apply to a webview. A host that
+keeps its own router, such as one shared with an HTTP server, answers the
+scheme with `WebviewResponder`, which takes any Tower service for each
+request, such as `DevReload::current()`'s, and collects its responses
+within the same kind of budget.
 
 ## Serving a build artifact with axum
 
@@ -114,7 +173,7 @@ reload.shutdown().await?;
 
 `DevService` answers two paths itself: `/__fetchlet/reload.js`, a module script that long-polls `/__fetchlet/reload` and reloads the page when a new generation starts or the server restarts, and that poll. Every other request reaches the current generation, and HTML responses get a `<script type="module" src="/__fetchlet/reload.js?token=…">` element appended. The script comes from the page's own origin, so a Content Security Policy that allows `'self'` scripts allows it. The service drops `Accept-Encoding` from requests, so asset archives answer uncompressed, and leaves responses that still carry a `Content-Encoding` unchanged. The manifest is checked every 200 ms by default (`poll_interval`); a file system whose modification times are coarser than the interval between two builds can miss the second build until the next one. Keep the feature out of release builds: it serves extra paths and changes HTML responses.
 
-A host that answers requests without a Tower service, such as a Tauri URI scheme whose responses reach the webview whole, takes `DevReload::current()` for each request and waits on `DevReload::reloads()` to reload its views when a new generation serves:
+A host that answers a webview's URI scheme itself ([serving a webview's URI scheme](#serving-a-webviews-uri-scheme)) takes `DevReload::current()` for each request and waits on `DevReload::reloads()` to reload its views when a new generation serves:
 
 ```rust,ignore
 let mut reloads = reload.reloads();

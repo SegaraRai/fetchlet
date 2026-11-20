@@ -1,12 +1,11 @@
 /// <reference types="@solidjs/start/env" />
 
-import "fetchlet/solid-start/context";
+import type { ServiceBinding } from "fetchlet/bindings";
 
-declare module "fetchlet/solid-start/context" {
+declare module "fetchlet/bindings" {
+  /** The host bindings server/services.rs registers. */
   interface FetchletBindings {
     MESSAGE: string;
-    RUST: {
-      fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
-    };
+    RUST: ServiceBinding;
   }
 }

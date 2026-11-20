@@ -1,12 +1,14 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
-/** A host service binding: a fetch scoped by the Rust FetchPolicy. */
-export interface ServiceBinding {
-  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
-}
+import type { FetchletBindings as Bindings, ServiceBinding } from "fetchlet/bindings";
 
-/** The fixed host bindings of the fetchlet App. Apps declare their own keys. */
-export interface FetchletBindings {}
+/**
+ * The fixed host bindings of the fetchlet App: the keys applications declare
+ * on `FetchletBindings` of fetchlet/bindings.
+ */
+export interface FetchletBindings extends Bindings {}
+
+export type { ServiceBinding };
 
 /** The request context the fetchlet entry passes to vinext. */
 export interface FetchletRequestContext {
