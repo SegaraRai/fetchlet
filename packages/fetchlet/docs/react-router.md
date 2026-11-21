@@ -18,6 +18,9 @@ export default {
 requires `ssr: true` and one server bundle; `serverBundles` or `ssr: false`
 fails the build.
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## Output
 
 In React Router's `buildEnd`, the preset connects the server build in

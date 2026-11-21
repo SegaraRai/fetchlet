@@ -44,16 +44,6 @@ Sources: [shared Vite plugin](../packages/fetchlet/src/integrations/vite/server-
 
 ## Runtime
 
-### WinterTC gaps
-
-The [WinterTC table](web-api.md#wintertc-minimum-common-api) lists what the
-profile lacks:
-
-- WebAssembly on QuickJS and Boa has no practical provider. Record it as an
-  engine limit in each framework guide, with the libraries it rules out:
-  wasm image rendering (satori with resvg), shiki's Oniguruma engine and
-  wasm database drivers.
-
 ### Framework runtime needs beyond WinterTC
 
 Framework servers and their common dependencies also expect APIs outside
@@ -87,30 +77,53 @@ documented refusal, and a check in a framework example:
     readers each see their own request.
   - Before that change, measure `run`, `getStore` and an `await` loop per
     engine against the serialized implementation.
-- Decide whether `process.env` carries the string bindings for every
-  artifact, as Workers' `nodejs_compat` does; the Nitro preset fills it
-  today ([Node.js compatibility](node-compat.md)).
 - Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
   QuickJS and Boa, which libraries such as depd call at load time.
-- WebSocket: server upgrades as crossws and framework WebSocket routes use
-  them, and the client `WebSocket`. Both need a connection lifetime beyond
-  one Request → Response call and a host service boundary.
-- The Cache API (`caches`), which some edge adapters use for ISR and fetch
-  caching. Decide whether it maps to a host service or stays out.
-- TCP sockets (TC55 Sockets API `connect()`), which postgres.js, pg and
-  Redis clients use on edge runtimes. Decide between a host-mediated socket
-  service and documenting host services as the supported path.
+- WebSocket and TCP sockets, through
+  [host channels](#host-channels-and-resources).
 - A runtime key for package `exports`: choose fetchlet's condition name
   following WinterTC Runtime Keys and which of `worker`, `edge-light` and
   `workerd` it implies, so adapters stop adding conditions one by one.
-- `SharedArrayBuffer` and `Atomics` on QuickJS and Boa, which some wasm
-  builds and libraries detect.
 
 Streaming outbound request bodies, Intl coverage checks and legacy
 multi-byte encodings are tracked under
 [Streaming outbound request bodies](#streaming-outbound-request-bodies),
 [Capability negotiation](#capability-negotiation) and
 [Conformance](#conformance).
+
+Deferred until an adapter or application needs them:
+
+- The Cache API (`caches`), which some edge adapters use for ISR and fetch
+  caching. It would map to a cache store configured in Rust, with an
+  in-memory default, as an optional fetchlet-web API.
+- `SharedArrayBuffer` and `Atomics` on QuickJS and Boa, which some
+  WebAssembly builds and libraries detect.
+
+### Host channels and resources
+
+Connections that outlive one Request → Response call go through Rust, as
+fetch does: the network stays in the host, and JavaScript gets one channel
+primitive with the APIs built on it.
+
+- A channel binding. `HostServices` registers a named handler that receives
+  a bidirectional stream of text and binary messages with backpressure,
+  close and cancellation; JavaScript sees an object shaped like
+  `WebSocket`, with `send`, `close` and `message` and `close` events.
+- The client `WebSocket` and the TC55 Sockets API `connect()`, which
+  postgres.js, pg and Redis clients use on edge runtimes, as host transports
+  over channels. They open the connection in Rust and authorize its
+  destination with a policy, as `FetchPolicy` does for fetch.
+- Server upgrades as crossws and framework WebSocket routes use them. A
+  response carries one end of a channel, in the manner of Workers'
+  `WebSocketPair`, and fetchlet-http performs the upgrade.
+- An open channel keeps its instance alive after the invocation. Define how
+  `Limits` bound open channels and how they interact with
+  [instance pools](#instance-pools).
+- Channels are the first host resource JavaScript holds, so their boundary
+  is also the one for [values beyond JSON](#values-beyond-json):
+  identifiers JavaScript cannot forge, with a generation; lifetimes tied to
+  the instance or the call; release when an instance resets; revocation and
+  cancellation; regression tests and fuzzing of that boundary.
 
 ### Capability negotiation
 
@@ -163,7 +176,9 @@ and `call_json` have no way to pass one; add an entry point and cover it in
 ### Values beyond JSON
 
 Function arguments and results are JSON-compatible values. Handles and host
-resources need a boundary with explicit ownership and lifetime.
+resources need a boundary with explicit ownership and lifetime, which
+fetchlet provides rather than each application; it follows the boundary
+[host channels](#host-channels-and-resources) define.
 
 ## Frameworks
 

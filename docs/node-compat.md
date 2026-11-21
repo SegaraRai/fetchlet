@@ -72,8 +72,11 @@ against Node.
   `process.version` is `""`, and `Object.prototype.toString` does not report
   `[object process]`, so isomorphic libraries take their Web paths.
   `process.platform` is `"linux"`, `arch` `"x64"`, `pid` 1, `argv`
-  `["fetchlet"]` and `env` `{ NODE_ENV: "production" }`; the Nitro preset adds
-  the string bindings to `env`. `exit`, `abort`, `kill`, `chdir` and
+  `["fetchlet"]` and `env` `{ NODE_ENV: "production" }`. Rust bindings do
+  not appear in `process.env`: applications read them from
+  [`getBindings()`](../packages/fetchlet/docs/runtime.md) or the Fetch
+  handler's `env`, as on Workers. The Nitro preset copies the string
+  bindings into `env` because Nitro reads its runtime config there. `exit`, `abort`, `kill`, `chdir` and
   `binding` throw. `memoryUsage` and `cpuUsage` return zeros. `nextTick`
   queues a microtask, so ticks and promise reactions interleave in the order
   they were queued.

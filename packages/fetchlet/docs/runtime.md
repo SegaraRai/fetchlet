@@ -20,7 +20,10 @@ export function add(left: number, right: number) {
 ```
 
 `getBindings()` returns the env values and services Rust fixed, and
-`waitUntil(promise)` registers background work. JavaScript `fetch` goes to
+`waitUntil(promise)` registers background work. The bindings are fixed
+before the application's modules evaluate, so `getBindings()` also works at
+module scope, like `import { env } from "cloudflare:workers"` on Workers.
+`process.env` does not carry them. JavaScript `fetch` goes to
 Rust's host services. [Web API profile](../../../docs/web-api.md) lists what
 the profile provides.
 

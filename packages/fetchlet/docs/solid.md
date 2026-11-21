@@ -37,6 +37,9 @@ export default defineConfig({
 `outDir`, `backend`, `intl` and `assets` mean the same as in
 [fetchlet/vite](vite.md). Solid's `nodeServer` option is not needed.
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## Output
 
 The client builds to `build/client/` and the server to

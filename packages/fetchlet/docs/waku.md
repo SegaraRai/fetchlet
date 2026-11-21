@@ -23,6 +23,9 @@ export default adapter(fsRouter(modules), { backend: "quickjs" });
 `middlewareFns` and `middlewareModules` work as in Waku's other adapters.
 Build with `waku build`.
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## Output
 
 After Waku's static generation, the adapter writes `build/server.js`,

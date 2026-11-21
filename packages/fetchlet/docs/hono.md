@@ -23,6 +23,9 @@ Rust calls with `App::call` or `AppHandle::call`, next to the Fetch handler
 (`handle` is reserved). [HonoX + Tauri](../../../examples/honox-tauri/README.md)
 uses them.
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## Output
 
 The plugin writes `build/server.js` and `build/fetchlet.json`. Rust serves

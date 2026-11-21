@@ -32,6 +32,9 @@ entry is `handle`.
 | `waitUntil`             | `platform.context.waitUntil` |
 | String bindings         | `env` of `server.init`       |
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## Assets
 
 `assets: true` packs the client assets into `build/assets.flpk` and records

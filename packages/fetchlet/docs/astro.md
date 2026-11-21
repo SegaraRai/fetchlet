@@ -31,6 +31,9 @@ locale and time zone data; for `v8` it uses native Intl. The default
 `portable` builds a bundle that works on any engine. Matching the build
 backend to the Rust backend keeps native APIs and shrinks the bundle.
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## Assets
 
 `assets: true` packs the client assets into `assets.flpk`, caches

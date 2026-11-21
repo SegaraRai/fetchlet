@@ -87,7 +87,8 @@ fetchlet's status for each:
 | Globals                  | `globalThis`, `self`, `atob`, `btoa`, `console`, `queueMicrotask`, `structuredClone`, timers, `navigator.userAgent` (`"fetchlet"`), `reportError` |
 | Global events            | The global scope has the `EventTarget` methods and `onerror`, `onunhandledrejection` and `onrejectionhandled`                                     |
 
-[TODO](TODO.md#wintertc-gaps) tracks the missing parts.
+Libraries that need WebAssembly therefore run only on V8
+([engine limits](../packages/fetchlet/docs/build.md#engine-limits)).
 
 ## Limits of the profile
 

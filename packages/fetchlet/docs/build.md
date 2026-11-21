@@ -46,6 +46,20 @@ configuration does not match. These capabilities are the APIs above;
 identical behavior across every ECMA-402 proposal and option is a separate
 question.
 
+## Engine limits
+
+QuickJS and Boa have no `WebAssembly` global, and no polyfill provides one
+at a usable speed, so libraries that compile WebAssembly do not run on the
+`quickjs` and `boa` backends. They include image rendering with satori and
+resvg, shiki with its Oniguruma engine, and database drivers built to
+WebAssembly such as sql.js and PGlite. A library that falls back to
+JavaScript when `WebAssembly` is missing takes that path. V8 provides
+WebAssembly natively; applications that need such libraries run on the `v8`
+backend.
+
+QuickJS and Boa do not expose `SharedArrayBuffer` and `Atomics` either.
+The [conformance results](../../../docs/conformance.md) record both.
+
 ## Locales and time zones
 
 `intl.locales` defaults to `["en"]`. Only the selected locales' data is

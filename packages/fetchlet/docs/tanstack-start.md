@@ -22,6 +22,9 @@ export default defineConfig({
 
 `backend` and `intl` are the [builder's](build.md) settings.
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## Output
 
 The client builds to `build/client/` and the server to

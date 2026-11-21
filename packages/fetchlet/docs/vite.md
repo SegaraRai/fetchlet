@@ -33,6 +33,9 @@ export default defineConfig({
 | `intl`    | `{}`              | Intl data for engines without native Intl, as in [fetchlet/build](build.md)              |
 | `assets`  | `false`           | Pack `client/` into `assets.flpk`; see below                                             |
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## The server module
 
 The default export handles requests with `fetch(request, env, ctx)`, as a

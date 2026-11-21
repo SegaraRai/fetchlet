@@ -17,6 +17,9 @@ export default defineConfig({
 
 `backend`, `intl` and `outDir` are the [builder's](build.md) settings.
 
+Libraries that need WebAssembly do not run on the `quickjs` and `boa`
+backends ([engine limits](build.md#engine-limits)).
+
 ## Output
 
 The client environment builds directly to `build/client`. After vinext
