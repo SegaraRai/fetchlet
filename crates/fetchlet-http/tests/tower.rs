@@ -132,3 +132,8 @@ async fn origin_validation() {
 async fn disconnect_cancels() {
     contract::disconnect_cancels(&Tower).await;
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn disconnect_aborts_the_request_signal() {
+    contract::disconnect_aborts_the_request_signal(&Tower).await;
+}

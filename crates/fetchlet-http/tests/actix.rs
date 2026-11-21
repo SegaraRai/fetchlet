@@ -163,3 +163,8 @@ async fn origin_validation() {
 async fn disconnect_cancels() {
     contract::disconnect_cancels(&Actix).await;
 }
+
+#[actix_web::test]
+async fn disconnect_aborts_the_request_signal() {
+    contract::disconnect_aborts_the_request_signal(&Actix).await;
+}

@@ -46,6 +46,26 @@ class Signal {
   removeEventListener() {}
 }
 
+// The bridge gives each Fetch request a signal from this; its listeners run
+// once, when the client goes away.
+globalThis.AbortController = class {
+  #listeners = [];
+  signal = {
+    aborted: false,
+    addEventListener: (_type, listener) => this.#listeners.push(listener),
+  };
+
+  abort() {
+    this.signal.aborted = true;
+    for (const listener of this.#listeners.splice(0)) {
+      listener();
+    }
+  }
+};
+
+// Requests whose signal aborted.
+let aborts = 0;
+
 globalThis.Request = class {
   constructor(url, init = {}) {
     this.url = url;
@@ -91,6 +111,15 @@ async function count(body) {
 
 globalThis.fetchletExports = {
   async handle(request, context) {
+    if (request.url.endsWith("/until-abort")) {
+      // Answers once the client has gone away.
+      await new Promise((resolve) => request.signal.addEventListener("abort", resolve));
+      aborts += 1;
+      return { status: 200, headers: [], body: [] };
+    }
+    if (request.url.endsWith("/aborts")) {
+      return { status: 200, headers: [], body: text(String(aborts)) };
+    }
     if (request.url.endsWith("/count")) {
       return count(request.body);
     }

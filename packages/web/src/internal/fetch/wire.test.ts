@@ -62,6 +62,22 @@ describe("wireRequest", () => {
     });
     expect(await request.text()).toBe("ab");
   });
+
+  test("aborts the request when the host aborts its signal", () => {
+    const base = { url: "https://app.test/", method: "GET", headers: [], body: null };
+    expect(wireRequest(base).signal.aborted).toBe(false);
+    for (const body of [null, stream(["a"])]) {
+      const controller = new AbortController();
+      const request = wireRequest({
+        ...base,
+        ...(body ? { method: "POST", body } : {}),
+        signal: controller.signal,
+      });
+      expect(request.signal.aborted).toBe(false);
+      controller.abort();
+      expect(request.signal.aborted).toBe(true);
+    }
+  });
 });
 
 describe("wireResponse", () => {

@@ -5,7 +5,7 @@ mod dispatcher;
 #[cfg(feature = "fuzzing")]
 mod harness;
 
-pub(crate) use dispatcher::HostBridge;
+pub(crate) use dispatcher::{Disconnect, HostBridge};
 
 #[cfg(any(
     feature = "boa",

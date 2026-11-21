@@ -7,7 +7,7 @@ use serde_json::Value;
 use super::AppBuilder;
 use super::response_body::OpenResponseBody;
 use crate::backend::Engine;
-use crate::bridge::{HostBridge, InvocationScope};
+use crate::bridge::{Disconnect, HostBridge, InvocationScope};
 use crate::config::check_limit;
 use crate::execution::{
     BACKGROUND_SETTLE, deadline_after, fetch_invocation, invocation, with_deadline,
@@ -124,7 +124,7 @@ impl App {
         request: Request,
         context: Option<Value>,
     ) -> Result<Response> {
-        let (response, open) = self.fetch_head(request, context).await?;
+        let (response, open) = self.fetch_head(request, context, None).await?;
         let Some(mut open) = open else {
             return Ok(response);
         };
@@ -145,10 +145,13 @@ impl App {
     /// The returned body holds the bytes produced so far. When the JavaScript
     /// body is still open, the invocation stays open with it: the caller must
     /// pull it to the end or cancel it before the App runs another call.
+    /// `disconnect`, when given, aborts the request's signal in JavaScript
+    /// once signalled, for the head and every pull of the body.
     pub(crate) async fn fetch_head(
         &mut self,
         request: Request,
         context: Option<Value>,
+        disconnect: Option<Disconnect>,
     ) -> Result<(Response, Option<OpenResponseBody>)> {
         if self.handler.is_none() {
             return Err(Error::Configuration(
@@ -165,6 +168,12 @@ impl App {
         let trusted = request.extensions_mut().remove::<Context>();
         // The request body goes into this invocation's byte store.
         let scope = self.begin(trusted)?;
+        if let Some(disconnect) = disconnect
+            && let Err(error) = self.host.watch_disconnect(disconnect)
+        {
+            self.close(scope);
+            return Err(error);
+        }
         let expression = match self.fetch_expression(request, context, deadline).await {
             Ok(expression) => expression,
             Err(error) => {
@@ -232,6 +241,11 @@ impl App {
         arguments.extend(context);
         let handler = self.handler.as_deref().unwrap_or_default();
         fetch_invocation(handler, &arguments).map_err(invalid_request)
+    }
+
+    /// A disconnect token for the next Fetch call; see [`App::fetch_head`].
+    pub(crate) fn disconnect(&self) -> Disconnect {
+        self.host.disconnect()
     }
 
     pub(super) fn begin(&mut self, context: Option<Context>) -> Result<InvocationScope> {

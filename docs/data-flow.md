@@ -172,6 +172,13 @@ state is then uncertain is retired. A worker with
 evaluation in progress returns within the deadline, an open body is then
 cancelled, and the invocation ends normally.
 
+The handler sees the client leave through its `Request`'s `signal`, which
+aborts before the response body is cancelled. Under `Finish` it also aborts
+while the handler or a body pull is still running, so a server-sent event
+stream or a streaming render can stop at once. Under the default `Retire`,
+an evaluation the client leaves is abandoned with its instance and sees no
+abort. A request whose response completes never aborts.
+
 | Where it fails                | What the caller sees                                                 |
 | ----------------------------- | -------------------------------------------------------------------- |
 | Rust API (`App`, `AppHandle`) | A detailed `fetchlet::Error`                                         |

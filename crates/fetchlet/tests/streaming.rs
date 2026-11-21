@@ -1,7 +1,7 @@
 #![cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 
 use std::num::NonZeroUsize;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use std::future::poll_fn;
 use std::pin::Pin;
@@ -261,6 +261,8 @@ async fn dropping_a_body_cancels_the_javascript_stream() -> anyhow::Result<()> {
         assert_eq!(number(&handle, "sequence").await?, 2);
         assert_eq!(number(&handle, "cancelled").await?, 1);
         assert_eq!(number(&handle, "pendingTimers").await?, 0);
+        // The handler saw its request abort before the body was cancelled.
+        assert_eq!(number(&handle, "aborts").await?, 1);
         handle.shutdown().await?;
     }
     Ok(())
@@ -590,6 +592,60 @@ async fn a_finishing_worker_retires_a_call_that_outlives_its_deadline() -> anyho
         // The pull never settles; at the deadline the instance is replaced.
         let next = tokio::time::timeout(Duration::from_secs(5), number(&handle, "sequence"));
         assert_eq!(next.await??, 1);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_finishing_worker_aborts_the_request_signal_of_a_cancelled_head() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn_finishing(backend, limits(Duration::from_secs(5), None)).await?;
+        let started = Instant::now();
+        let cancelled = tokio::time::timeout(
+            Duration::from_millis(50),
+            handle.fetch(get("/until-abort-head")),
+        );
+        assert!(cancelled.await.is_err());
+        // The handler returned once its signal aborted, well before its own
+        // two-second fallback, in the same instance.
+        assert_eq!(number(&handle, "aborts").await?, 1);
+        assert!(started.elapsed() < Duration::from_millis(1500));
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        assert_eq!(number(&handle, "sequence").await?, 2);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_finishing_worker_aborts_the_request_signal_during_a_pull() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn_finishing(backend, limits(Duration::from_secs(5), None)).await?;
+        let mut body = handle.fetch(get("/until-abort-body")).await?.into_body();
+        assert_eq!(next_frame(&mut body).await.unwrap()?.as_ref(), b"start;");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let started = Instant::now();
+        drop(body);
+        // The pull waiting for the abort ended the body, and the instance
+        // stays.
+        assert_eq!(number(&handle, "aborts").await?, 1);
+        assert!(started.elapsed() < Duration::from_millis(1500));
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        assert_eq!(number(&handle, "pendingTimers").await?, 0);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_completed_request_never_aborts() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn_finishing(backend, limits(Duration::from_secs(5), None)).await?;
+        let frames = frames(handle.fetch(get("/ticks?count=2&wait=10")).await?).await;
+        assert_eq!(frames.len(), 2);
+        assert_eq!(handle.fetch(get("/slow-head")).await?.status(), 200);
+        assert_eq!(number(&handle, "aborts").await?, 0);
         handle.shutdown().await?;
     }
     Ok(())

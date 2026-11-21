@@ -29,6 +29,17 @@
     configurable: true,
   });
 
+  // Aborts the request signal of the Fetch invocation in progress when its
+  // client goes away: Rust cancels the response body, or reports through
+  // invocation.disconnected that the caller left while a call runs on.
+  let requestAbort = null;
+
+  function abortRequest() {
+    const controller = requestAbort;
+    requestAbort = null;
+    controller?.abort();
+  }
+
   const pendingFetches = new Map();
   // Outstanding reads of Rust bodies: ticket -> { id, resolve, reject }.
   const pendingReads = new Map();
@@ -190,8 +201,13 @@
   }
 
   function pumpHostOperations() {
+    let progress = 0;
+    if (requestAbort !== null && dispatch("invocation.disconnected", null)) {
+      abortRequest();
+      progress = 1;
+    }
     if (pendingFetches.size === 0 && pendingReads.size === 0) {
-      return 0;
+      return progress;
     }
 
     const completions = dispatch("fetch.poll", null);
@@ -222,7 +238,7 @@
       }
     }
 
-    return completions.length;
+    return completions.length + progress;
   }
 
   function waitForResponse(ticket, signal) {
@@ -576,6 +592,7 @@
   });
 
   function clearInvocation() {
+    requestAbort = null;
     responseBodyRegistry.closeAll();
     // Background work keeps its timers until Rust settles it.
     if (backgroundTasks.size === 0) {
@@ -608,6 +625,11 @@
 
       if (streamResponseBody === true) {
         const request = argumentsList[0];
+        if (typeof globalThis.AbortController === "function" && request !== null) {
+          requestAbort = new globalThis.AbortController();
+          // Not JSON: wireRequest passes it to the Request it builds.
+          request.signal = requestAbort.signal;
+        }
         if (typeof request?.body === "number") {
           request.body = takeBytes(request.body);
         } else if (typeof request?.stream === "number") {
@@ -668,6 +690,9 @@
         });
       }
       if (operation === "cancel") {
+        // The client went away: the handler sees its request abort before
+        // its body is cancelled.
+        abortRequest();
         await responseBodyRegistry.cancel(bodyId);
         return "null";
       }

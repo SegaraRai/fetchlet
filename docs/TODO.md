@@ -90,10 +90,6 @@ documented refusal, and a check in a framework example:
 - Decide whether `process.env` carries the string bindings for every
   artifact, as Workers' `nodejs_compat` does; the Nitro preset fills it
   today ([Node.js compatibility](node-compat.md)).
-- Client disconnects on the incoming request. `wireRequest` gives the entry
-  `Request` a signal that never aborts, so SSE and streaming SSR keep running
-  after the client leaves. Abort it when Rust drops the response body, and
-  test that the handler observes it.
 - Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
   QuickJS and Boa, which libraries such as depd call at load time.
 - WebSocket: server upgrades as crossws and framework WebSocket routes use

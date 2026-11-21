@@ -111,6 +111,15 @@ class Signal {
   }
 }
 
+// The bridge gives each Fetch invocation's request a signal from this.
+globalThis.AbortController = class {
+  signal = new Signal();
+
+  abort(reason = new Error("aborted")) {
+    this.signal.abort(reason);
+  }
+};
+
 globalThis.Request = class {
   constructor(url, init = {}) {
     this.url = url;
@@ -133,6 +142,19 @@ let sequence = 0;
 let cancelled = 0;
 // Calls whose result came after a delay, whether or not the caller waited.
 let finished = 0;
+// Requests whose signal aborted.
+let aborts = 0;
+
+/** Resolves when `signal` aborts, or after two seconds. */
+function aborted(signal) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), 2000);
+    signal.addEventListener("abort", () => {
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+}
 let backgroundDone = 0;
 let backgroundBytes = 0;
 
@@ -227,6 +249,7 @@ globalThis.fetchletExports = {
   sequence: () => ++sequence,
   cancelled: () => cancelled,
   finished: () => finished,
+  aborts: () => aborts,
   async slowCall() {
     await delay(150);
     return ++finished;
@@ -246,6 +269,29 @@ globalThis.fetchletExports = {
   },
   async handle(request) {
     const bodies = globalThis.__fetchletResponseBodies;
+    request.signal?.addEventListener("abort", () => {
+      aborts += 1;
+    });
+    if (request.url.endsWith("/until-abort-head")) {
+      // The head waits for the client to leave.
+      const left = await aborted(request.signal);
+      return { status: 200, headers: [], body: bytes(String(left)) };
+    }
+    if (request.url.endsWith("/until-abort-body")) {
+      // The second read waits for the client to leave, then ends the body.
+      let index = 0;
+      const id = bodies.register(
+        source(async () => {
+          if (index++ === 0) {
+            return { done: false, value: bytes("start;") };
+          }
+          await aborted(request.signal);
+          return { done: true, value: undefined };
+        }),
+      );
+      const initial = await bodies.pull(id, false);
+      return { status: 200, headers: [], body: initial.chunk, stream: id };
+    }
     if (request.url.endsWith("/slow-head")) {
       // The head comes after a delay.
       await delay(150);

@@ -141,13 +141,23 @@ impl Command {
                 context,
                 mut reply,
             } => {
+                let disconnect = app.disconnect();
                 let head = if finish {
-                    // A closed reply fails the send below, which cancels an
-                    // open body.
-                    app.fetch_head(*request, context).await
+                    // The handler sees its request's signal abort when the
+                    // caller leaves, and the closed reply fails the send
+                    // below, which cancels an open body.
+                    let head = app.fetch_head(*request, context, Some(disconnect.clone()));
+                    tokio::pin!(head);
+                    tokio::select! {
+                        head = &mut head => head,
+                        () = reply.closed() => {
+                            disconnect.signal();
+                            head.await
+                        }
+                    }
                 } else {
                     tokio::select! {
-                        head = app.fetch_head(*request, context) => head,
+                        head = app.fetch_head(*request, context, None) => head,
                         () = reply.closed() => return,
                     }
                 };
@@ -176,7 +186,7 @@ impl Command {
                     app.cancel_response_body(open).await;
                     return;
                 }
-                stream_response_body(app, open, sender, finish).await;
+                stream_response_body(app, open, sender, finish.then_some(disconnect)).await;
             }
         }
     }

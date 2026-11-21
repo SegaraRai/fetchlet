@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use crate::app::OpenResponseBody;
+use crate::bridge::Disconnect;
 use crate::fetch::BodySender;
 use crate::{App, Error};
 
@@ -9,15 +10,16 @@ use crate::{App, Error};
 /// Production follows demand: the next chunk is pulled only after the channel
 /// has room. Dropping the Rust body between pulls cancels the JavaScript
 /// stream and keeps the instance; dropping it during a pull abandons that
-/// evaluation and retires the instance, unless `finish` lets the pull return
-/// first ([`CancelledCalls::Finish`](crate::CancelledCalls::Finish)). The
+/// evaluation and retires the instance, unless `finish` is given: then the
+/// pull returns first, after the request's signal is aborted through it
+/// ([`CancelledCalls::Finish`](crate::CancelledCalls::Finish)). The
 /// invocation deadline covers the whole body, including time spent waiting
 /// for the consumer.
 pub(super) async fn stream_response_body(
     app: &mut App,
     mut open: OpenResponseBody,
     sender: BodySender,
-    finish: bool,
+    finish: Option<Disconnect>,
 ) {
     loop {
         let permit = tokio::select! {
@@ -42,10 +44,18 @@ pub(super) async fn stream_response_body(
             app.cancel_response_body(open).await;
             return;
         };
-        let pulled = if finish {
-            // A consumer that left meanwhile fails the next reservation,
-            // which cancels the stream.
-            app.pull_response_body(open).await
+        let pulled = if let Some(disconnect) = &finish {
+            // A consumer that leaves meanwhile aborts the request's signal and
+            // fails the next reservation, which cancels the stream.
+            let pull = app.pull_response_body(open);
+            tokio::pin!(pull);
+            tokio::select! {
+                pulled = &mut pull => pulled,
+                () = sender.closed() => {
+                    disconnect.signal();
+                    pull.await
+                }
+            }
         } else {
             tokio::select! {
                 pulled = app.pull_response_body(open) => pulled,

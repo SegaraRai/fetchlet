@@ -19,8 +19,8 @@ use bytes::Bytes;
 use http_body::{Frame, SizeHint};
 
 use fetchlet::{
-    App, AppHandle, Backend, Body, Context, HostServices, Limits, Module, OriginRouter, Response,
-    WorkerOptions, transport_fn,
+    App, AppHandle, Backend, Body, CancelledCalls, Context, HostServices, Limits, Module,
+    OriginRouter, Response, WorkerOptions, transport_fn,
 };
 
 const SOURCE: &str = include_str!("handler.js");
@@ -173,6 +173,8 @@ pub struct Options {
     /// Derive the trusted Context with [`caller_context`] of the peer address.
     pub trusted_caller: bool,
     pub errors: Errors,
+    /// The worker's policy for calls whose client went away.
+    pub cancelled_calls: CancelledCalls,
 }
 
 /// The JavaScript context the tenant option supplies.
@@ -242,6 +244,12 @@ fn caller_response(request: &fetchlet::Request) -> Response {
 }
 
 pub async fn spawn(backend: Backend) -> AppHandle {
+    spawn_with(backend, CancelledCalls::Retire).await
+}
+
+async fn spawn_with(backend: Backend, cancelled_calls: CancelledCalls) -> AppHandle {
+    let mut worker = WorkerOptions::new(NonZeroUsize::new(2).unwrap());
+    worker.cancelled_calls = cancelled_calls;
     let api = OriginRouter::new()
         .internal(
             "https://fetchlet.internal",
@@ -266,7 +274,7 @@ pub async fn spawn(backend: Backend) -> AppHandle {
             request_body_bytes: Some(BODY_BUDGET),
             ..Limits::default()
         })
-        .spawn(WorkerOptions::new(NonZeroUsize::new(2).unwrap()))
+        .spawn(worker)
         .await
         .unwrap()
 }
@@ -276,7 +284,7 @@ async fn start<T: Target>(
     backend: Backend,
     options: Options,
 ) -> (AppHandle, T::Server) {
-    let app = spawn(backend).await;
+    let app = spawn_with(backend, options.cancelled_calls).await;
     let server = target.build(app.clone(), PUBLIC_ORIGIN, &options).unwrap();
     (app, server)
 }
@@ -492,6 +500,31 @@ pub async fn disconnect_cancels<T: Target>(target: &T) {
             .expect("the worker is free again");
         assert_eq!(reply.status, 201);
         assert_eq!(DROPPED_SLOW_CALLS.load(Ordering::SeqCst), dropped + 1);
+        app.shutdown().await.unwrap();
+    }
+}
+
+/// Under [`CancelledCalls::Finish`], a client that stops waiting aborts the
+/// request's signal; the handler answers, and the same instance serves the
+/// next request.
+pub async fn disconnect_aborts_the_request_signal<T: Target>(target: &T) {
+    for backend in backends() {
+        let options = Options {
+            cancelled_calls: CancelledCalls::Finish,
+            ..Options::default()
+        };
+        let (app, server) = start(target, backend, options).await;
+        let waiting = target.send(&server, Exchange::get("/until-abort"));
+        assert!(
+            tokio::time::timeout(Duration::from_millis(200), waiting)
+                .await
+                .is_err()
+        );
+        let aborts = target.send(&server, Exchange::get("/aborts"));
+        let reply = tokio::time::timeout(Duration::from_secs(5), aborts)
+            .await
+            .expect("the handler answered after the abort");
+        assert_eq!(reply.text(), "1");
         app.shutdown().await.unwrap();
     }
 }

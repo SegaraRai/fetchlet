@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::task::Poll;
 
@@ -35,9 +36,38 @@ struct InvocationState {
     background_pending: usize,
     /// Trusted values attached to each host fetch of this invocation.
     context: Option<Context>,
+    /// Set when the client of this Fetch invocation went away; JavaScript
+    /// aborts the request's signal when it sees it.
+    disconnect: Option<Disconnect>,
     /// Web API state, such as open compression streams.
     #[cfg(feature = "web")]
     web: fetchlet_web::WebState,
+}
+
+/// Tells a running Fetch invocation that its client went away.
+///
+/// The worker signals it while it lets a cancelled call finish
+/// ([`CancelledCalls::Finish`](crate::CancelledCalls::Finish)); the engine
+/// wakes, and JavaScript aborts the request's signal at its next host step.
+#[derive(Clone)]
+pub(crate) struct Disconnect {
+    gone: Arc<AtomicBool>,
+    wake: WakeSignal,
+}
+
+impl Disconnect {
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn signal(&self) {
+        self.gone.store(true, Ordering::Release);
+        self.wake.notify();
+    }
+
+    fn is_signalled(&self) -> bool {
+        self.gone.load(Ordering::Acquire)
+    }
 }
 
 impl InvocationState {
@@ -165,6 +195,30 @@ impl HostBridge {
         self.wake.clone()
     }
 
+    /// A new disconnect token for a Fetch invocation of this bridge.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn disconnect(&self) -> Disconnect {
+        Disconnect {
+            gone: Arc::default(),
+            wake: self.wake.clone(),
+        }
+    }
+
+    /// Attach `disconnect` to the current invocation.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn watch_disconnect(&self, disconnect: Disconnect) -> Result<()> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.disconnect = Some(disconnect);
+        Ok(())
+    }
+
     fn effective_limits(&self) -> Result<Limits> {
         let state = self.lock_state()?;
         Ok(state
@@ -207,6 +261,7 @@ impl HostBridge {
             background_registered: 0,
             background_pending: 0,
             context,
+            disconnect: None,
             #[cfg(feature = "web")]
             web: fetchlet_web::WebState::default(),
         });
@@ -295,6 +350,7 @@ impl HostBridge {
             "bindings" => Ok(self.bindings()),
             "clock" => Ok(self.clock.read()),
             "invocation.limits" => self.invocation_limits(),
+            "invocation.disconnected" => self.invocation_disconnected(),
             "fetch.start" => self.start_fetch(input),
             "fetch.poll" => self.poll_fetches(),
             "fetch.cancel" => self.cancel_fetch(input),
@@ -371,6 +427,20 @@ impl HostBridge {
             "requestBodyBytes": invocation.limits.request_body_bytes.map(|value| value.to_string()),
             "requestBodyChunks": invocation.limits.request_body_chunks.map(|value| value.to_string()),
         }))
+    }
+
+    /// Whether the client of the current invocation went away. Outside a
+    /// Fetch invocation, or between invocations, it has not.
+    fn invocation_disconnected(&self) -> Result<Value> {
+        let state = self.lock_state()?;
+        Ok(Value::Bool(state.invocation.as_ref().is_some_and(
+            |invocation| {
+                invocation
+                    .disconnect
+                    .as_ref()
+                    .is_some_and(Disconnect::is_signalled)
+            },
+        )))
     }
 
     pub(super) fn start_fetch(&self, input: &str) -> Result<Value> {

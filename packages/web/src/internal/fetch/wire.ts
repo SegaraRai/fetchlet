@@ -10,6 +10,12 @@ export interface WireRequest {
    * `FetchApp`. The App host passes a body that is still arriving as a stream.
    */
   body: ReadableStream<Uint8Array> | Uint8Array | number[] | null;
+  /**
+   * Aborted by the fetchlet App host when the client goes away. Hosts that
+   * pass JSON, such as `FetchApp`, give none, and the request's signal never
+   * aborts.
+   */
+  signal?: AbortSignal;
 }
 
 export interface WireResponse {
@@ -47,6 +53,7 @@ export function wireRequest(input: WireRequest): Request {
       headers: input.headers,
       body,
       duplex: "half",
+      signal: input.signal,
     } as RequestInit);
   }
   return new runtime.Request(input.url, {
@@ -58,6 +65,7 @@ export function wireRequest(input: WireRequest): Request {
         : body instanceof Uint8Array
           ? body
           : new Uint8Array(body as number[]),
+    signal: input.signal,
   });
 }
 
