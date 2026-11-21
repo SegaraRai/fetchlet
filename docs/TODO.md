@@ -192,17 +192,15 @@ tanstack-start-axum, solid-axum and solidstart-axum keep
   build new routes; [both need upstream changes](research/dev-loop.md#why-the-integrations-differ-under---watch).
   Their examples' `dev` tasks keep full builds until then.
 
-### Cancelled requests under `ViteDev`
+### Development reloads under `ViteDev`
 
-A request the client cancels retires the engine instance, and under
-`ViteDev` the next instance fetches and evaluates every module from Vite
-again: 2.6 seconds for Astro on QuickJS and 42 seconds on a debug build of
-Boa, where the Astro `dev:vite` suite is skipped
-([development loop](research/dev-loop.md#b-vites-module-runner-on-the-fetchlet-engine)).
-Astro's client router cancels a request on each navigation. Keeping the
-evaluated modules across instances, or letting a cancelled development call
-finish instead of retiring the instance, needs a design that keeps the
-production isolation guarantee, and a check that navigates on Boa.
+A new instance under `ViteDev` fetches and evaluates every module from Vite
+again: 2.4 seconds for Astro on QuickJS. Cancelled requests no longer cause
+one (`CancelledCalls::Finish`), but a call past its deadline still does.
+Reading a whole host fetch body without the guest's
+stream path would shorten each, about 1.1 of the 2.4 seconds
+([measurements](research/dev-loop.md#why-a-cancelled-request-costs-a-module-reload)),
+and would speed up application fetches too.
 
 ### React Router
 

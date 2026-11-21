@@ -13,7 +13,8 @@ use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
 use fetchlet::{
-    App, AppHandle, Backend, Body, Error, Limits, Module, Response, WorkerOptions, http,
+    App, AppHandle, Backend, Body, CancelledCalls, Error, Limits, Module, Response, WorkerOptions,
+    http,
 };
 
 const SOURCE: &str = include_str!("fixtures/streaming.js");
@@ -493,6 +494,102 @@ async fn cancelling_or_aborting_releases_the_upstream_body() -> anyhow::Result<(
             b"first|stopped"
         );
         assert!(released(&upstream).await);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+async fn spawn_finishing(backend: Backend, limits: Limits) -> fetchlet::Result<AppHandle> {
+    let mut worker = WorkerOptions::new(NonZeroUsize::new(4).unwrap());
+    worker.cancelled_calls = CancelledCalls::Finish;
+    App::builder(backend)
+        .module(Module::new(SOURCE))
+        .limits(limits)
+        .spawn(worker)
+        .await
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_cancelled_head_retires_the_instance_by_default() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn(backend, limits(Duration::from_secs(5), None)).await?;
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        let cancelled =
+            tokio::time::timeout(Duration::from_millis(50), handle.fetch(get("/slow-head")));
+        assert!(cancelled.await.is_err());
+        // The evaluation was abandoned with its instance.
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        assert_eq!(number(&handle, "finished").await?, 0);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_finishing_worker_completes_a_cancelled_head_and_keeps_the_instance() -> anyhow::Result<()>
+{
+    for backend in backends() {
+        let handle = spawn_finishing(backend, limits(Duration::from_secs(5), None)).await?;
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        let cancelled =
+            tokio::time::timeout(Duration::from_millis(50), handle.fetch(get("/slow-head")));
+        assert!(cancelled.await.is_err());
+        // The next call waits for the cancelled one, which ran to its end.
+        assert_eq!(number(&handle, "sequence").await?, 2);
+        assert_eq!(number(&handle, "finished").await?, 1);
+        assert_eq!(number(&handle, "pendingTimers").await?, 0);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_finishing_worker_completes_a_cancelled_call() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn_finishing(backend, limits(Duration::from_secs(5), None)).await?;
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        let cancelled =
+            tokio::time::timeout(Duration::from_millis(50), handle.call_json("slowCall", &[]));
+        assert!(cancelled.await.is_err());
+        assert_eq!(number(&handle, "sequence").await?, 2);
+        assert_eq!(number(&handle, "finished").await?, 1);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_finishing_worker_cancels_a_body_dropped_during_a_pull() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn_finishing(backend, limits(Duration::from_secs(5), None)).await?;
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        let mut body = handle.fetch(get("/forever?wait=150")).await?.into_body();
+        assert_eq!(next_frame(&mut body).await.unwrap()?.as_ref(), b"tick-0;");
+        // The worker is in the pull that waits for the next tick.
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        drop(body);
+        // The pull returned, then the stream was cancelled, in the same
+        // instance.
+        assert_eq!(number(&handle, "sequence").await?, 2);
+        assert_eq!(number(&handle, "cancelled").await?, 1);
+        assert_eq!(number(&handle, "pendingTimers").await?, 0);
+        handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_finishing_worker_retires_a_call_that_outlives_its_deadline() -> anyhow::Result<()> {
+    for backend in backends() {
+        let handle = spawn_finishing(backend, limits(Duration::from_millis(300), None)).await?;
+        assert_eq!(number(&handle, "sequence").await?, 1);
+        let mut body = handle.fetch(get("/pending")).await?.into_body();
+        assert_eq!(next_frame(&mut body).await.unwrap()?.as_ref(), b"start;");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        drop(body);
+        // The pull never settles; at the deadline the instance is replaced.
+        let next = tokio::time::timeout(Duration::from_secs(5), number(&handle, "sequence"));
+        assert_eq!(next.await??, 1);
         handle.shutdown().await?;
     }
     Ok(())

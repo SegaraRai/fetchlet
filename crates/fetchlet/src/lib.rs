@@ -31,7 +31,7 @@ pub use host::{
     TransportFuture, transport_fn,
 };
 pub use http;
-pub use worker::{AppHandle, WorkerOptions};
+pub use worker::{AppHandle, CancelledCalls, WorkerOptions};
 
 #[cfg(feature = "fuzzing")]
 #[doc(hidden)]

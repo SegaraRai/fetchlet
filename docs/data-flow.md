@@ -167,7 +167,10 @@ Without background work, remaining timers are discarded when the call ends.
 Cancellation travels with ownership. Dropping the call's future, an expired
 deadline or a disconnected client ends the invocation, which drops its host
 futures and body sources, which cancels their producers. An instance whose
-state is then uncertain is retired.
+state is then uncertain is retired. A worker with
+`CancelledCalls::Finish` does not drop the call when its caller leaves: the
+evaluation in progress returns within the deadline, an open body is then
+cancelled, and the invocation ends normally.
 
 | Where it fails                | What the caller sees                                                 |
 | ----------------------------- | -------------------------------------------------------------------- |

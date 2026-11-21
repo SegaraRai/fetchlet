@@ -79,7 +79,10 @@ An instance is the engine state: the evaluated module and its globals. It
 persists across calls, so module-level state is reused. An instance is
 retired, and later rebuilt, when its state is uncertain: after a cancelled
 call, an exceeded deadline, or a call that returned while host fetches were
-still pending. A JavaScript exception with no pending work leaves it
+still pending. Under `CancelledCalls::Finish`, a worker option for
+development, a cancelled call runs on until its evaluation returns and then
+ends like any other, so only the deadline and pending host fetches retire
+the instance. A JavaScript exception with no pending work leaves it
 reusable. `App::is_reusable()` reports the state.
 
 ### Invocation

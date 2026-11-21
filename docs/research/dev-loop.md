@@ -272,11 +272,89 @@ details were needed beyond React Router's:
 service binding, endpoints, island hydration and navigation, and a page
 edit that reloads the open page.
 
-A request the client cancels retires the instance, as in production, and
-the next request builds a new one, whose runner fetches and evaluates every
+A request the client cancels retired the instance, as in production, and
+the next request built a new one, whose runner fetched and evaluated every
 module again. Astro's client router cancels a request when it navigates;
 the request after it waited 2.6 seconds on QuickJS and 42 seconds on a
-debug build of Boa, so the Astro suite skips Boa.
+debug build of Boa, so the Astro suite skipped Boa. `fetchlet_http::Server`
+now lets a cancelled request finish in the instance when it serves from
+Vite (below), and the Astro suite runs on Boa too.
+
+#### Why a cancelled request costs a module reload
+
+Traced in examples/astro-axum (Astro 7.4.13, Vite+ 1.7.0) under `dev:vite`
+on a debug build with QuickJS, by aborting requests from a script and
+timing the request after each.
+
+The worker runs a call as one future and stops polling it when the caller
+goes away: `Command::execute` selects the response head against
+`reply.closed()`, and `stream_response_body` selects each pull against
+`sender.closed()`. `App::evaluate` marks the instance unusable before it
+awaits the engine and usable again only after the evaluation returns, so
+an evaluation dropped at an await point leaves the instance retired. That
+is the isolation guarantee: a JavaScript continuation of an abandoned call
+must never resume inside a later call's invocation scope. Only a body
+cancelled between two pulls, with no host fetch pending, keeps the
+instance.
+
+Every way a browser cancels lands in a dropped evaluation:
+
+| Request aborted                                           | The request after it |
+| --------------------------------------------------------- | -------------------- |
+| `/deferred` after 5 ms, before its head                   | 2.9 to 3.3 seconds   |
+| `/deferred` after 100 ms, while a component waits         | 2.9 to 3.3 seconds   |
+| `/deferred` after its head and first chunk, while pulling | 2.9 to 3.3 seconds   |
+| `/` after 2 ms, while still queued for the worker         | 20 ms                |
+| None (a warm instance)                                    | 16 to 25 ms          |
+
+A request cancelled before the worker takes it is skipped
+(`Command::is_cancelled`) and costs nothing.
+
+A new instance's first request spends its time in the engine, not in Vite.
+The runner made 284 `invoke` calls, which returned 5 MB of transformed
+modules; Vite answered all of them in about 10 ms in total once its
+transforms were cached. Timed in the runner, the 2.4 to 2.9 seconds of
+`runner.import(entry)` split as follows:
+
+| Part                                      | Time               |
+| ----------------------------------------- | ------------------ |
+| Response heads of the 284 host fetches    | 0.42 seconds       |
+| Reading the response bodies with `text()` | 1.1 to 1.2 seconds |
+| `JSON.parse` of the payloads              | 0.04 seconds       |
+| Evaluating the modules, by difference     | about 0.75 seconds |
+
+Reading a host fetch body goes through the guest's stream path,
+`pipeTo` into a `WritableStream`, then `concatBytes` and UTF-8 decoding
+in JavaScript, at about 4 ms for an average 17 KB response on QuickJS.
+
+Letting the abandoned call finish keeps the instance. A prototype that
+awaited the head instead of selecting on `reply.closed()`, and pulled an
+unread body to its end, gave 80 to 176 ms for the request after each
+cancel, the rest of the cancelled render, and the runner did not load its
+modules again.
+
+`WorkerOptions::cancelled_calls` now chooses between the two. The default,
+`CancelledCalls::Retire`, keeps the behaviour above: production frees the
+worker at once, and rebuilding an artifact's instance is cheap.
+`CancelledCalls::Finish` awaits the evaluation in progress, the response
+head, a body pull or a named-export call, within the invocation deadline,
+and then cancels an open body between pulls instead of reading it to its
+end, so a stream that never ends, such as server-sent events, holds the
+worker only until its next chunk. The call ends in its own invocation
+scope, so no continuation reaches another call; one that outlives its
+deadline, or leaves host fetches pending, retires the instance as under
+`Retire`. `fetchlet_http::Server` sets `Finish` when it serves from Vite.
+With it, the request after each cancel above took 17 to 157 ms on QuickJS
+and the runner loaded its modules once, at startup; the Astro `dev:vite`
+suite passes on Boa, navigation included.
+
+Two changes shorten every reload rather than avoiding it: reading a host
+fetch body without the stream machinery when the caller consumes all of it
+with `text()`, `json()` or `arrayBuffer()`, which would also speed up
+application fetches; and keeping the runner's transformed modules in Rust
+across instances, which saves the transport (about two thirds of the time
+on QuickJS) but not evaluation. Neither keeps the evaluated modules: those
+live in the engine heap of the retired instance.
 
 On Boa, the runner can spend longer than Node's 5-second keep-alive timeout
 evaluating one large module, such as the prebundled `react-dom/server.edge`,

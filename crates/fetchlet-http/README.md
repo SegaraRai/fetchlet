@@ -207,6 +207,8 @@ axum::serve(listener, router).await?;
 - `proxy` sends `GET` and `HEAD` requests to Vite first, which answers browser modules, its HMR client and public files; Vite's 404s and every other method go to the app. The runner's own endpoints under `/@fetchlet/` stay with the app. The browser opens Vite's HMR WebSocket on Vite's port.
 - The engine, the Web API profile, host services, in-process fetch and the `Context` are those of the application. What differs from a release build: modules are evaluated one by one with `AsyncFunction` instead of as one bundle, module state is lost when its module changes, and the named exports `App::call` reaches are those the server module had when the dev server built the development artifact.
 
+- A new instance fetches and evaluates every module from Vite again, which takes seconds for a framework. Spawn the application with `WorkerOptions::cancelled_calls` set to `CancelledCalls::Finish`, so that a request the client cancels, as client routers do when they navigate, runs to the end of its evaluation in the instance instead of retiring it. `Server` does this when it serves from Vite.
+
 Keep the feature out of release builds: it runs whatever the dev server sends.
 
 ## Asset archives

@@ -9,12 +9,15 @@ use crate::{App, Error};
 /// Production follows demand: the next chunk is pulled only after the channel
 /// has room. Dropping the Rust body between pulls cancels the JavaScript
 /// stream and keeps the instance; dropping it during a pull abandons that
-/// evaluation and retires the instance. The invocation deadline covers the
-/// whole body, including time spent waiting for the consumer.
+/// evaluation and retires the instance, unless `finish` lets the pull return
+/// first ([`CancelledCalls::Finish`](crate::CancelledCalls::Finish)). The
+/// invocation deadline covers the whole body, including time spent waiting
+/// for the consumer.
 pub(super) async fn stream_response_body(
     app: &mut App,
     mut open: OpenResponseBody,
     sender: BodySender,
+    finish: bool,
 ) {
     loop {
         let permit = tokio::select! {
@@ -39,9 +42,15 @@ pub(super) async fn stream_response_body(
             app.cancel_response_body(open).await;
             return;
         };
-        let pulled = tokio::select! {
-            pulled = app.pull_response_body(open) => pulled,
-            () = sender.closed() => return,
+        let pulled = if finish {
+            // A consumer that left meanwhile fails the next reservation,
+            // which cancels the stream.
+            app.pull_response_body(open).await
+        } else {
+            tokio::select! {
+                pulled = app.pull_response_body(open) => pulled,
+                () = sender.closed() => return,
+            }
         };
         match pulled {
             Err(error) => {

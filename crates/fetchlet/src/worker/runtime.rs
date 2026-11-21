@@ -5,10 +5,10 @@ use std::thread;
 
 use tokio::sync::{mpsc, oneshot, watch};
 
-use super::WorkerOptions;
 use super::lifecycle::WorkerStatus;
 use super::protocol::Command;
 use super::streaming::stream_response_body;
+use super::{CancelledCalls, WorkerOptions};
 use crate::{App, AppBuilder, Body, Error, Response, Result};
 
 pub(super) fn spawn(
@@ -41,8 +41,11 @@ pub(super) fn spawn(
                 if initialized.send(Ok(())).is_err() {
                     return Ok(());
                 }
-                let response_body_queue = options.response_body_queue.get();
-                executor.block_on(serve(receiver, shutdown, app, builder, response_body_queue));
+                let execution = Execution {
+                    response_body_queue: options.response_body_queue.get(),
+                    cancelled_calls: options.cancelled_calls,
+                };
+                executor.block_on(serve(receiver, shutdown, app, builder, execution));
                 Ok(())
             }));
             let outcome = match result {
@@ -60,7 +63,7 @@ async fn serve(
     mut shutdown: watch::Receiver<bool>,
     mut app: App,
     builder: AppBuilder,
-    response_body_queue: usize,
+    execution: Execution,
 ) {
     let mut draining = false;
     loop {
@@ -87,11 +90,19 @@ async fn serve(
                 }
             };
         }
-        command.execute(&mut app, response_body_queue).await;
+        command.execute(&mut app, execution).await;
         // Background work runs after the reply, before the next command. A
         // failure retires the instance, which the next command rebuilds.
         let _ = app.finish_background().await;
     }
+}
+
+/// How the worker runs each command.
+#[derive(Clone, Copy)]
+pub struct Execution {
+    /// See [`WorkerOptions::response_body_queue`].
+    pub response_body_queue: usize,
+    pub cancelled_calls: CancelledCalls,
 }
 
 impl Command {
@@ -115,23 +126,30 @@ impl Command {
 
     /// Execute on the worker. A streaming Fetch response keeps the worker,
     /// and with it the instance, until its body finishes or is dropped.
-    pub async fn execute(self, app: &mut App, response_body_queue: usize) {
+    pub async fn execute(self, app: &mut App, execution: Execution) {
+        let finish = execution.cancelled_calls == CancelledCalls::Finish;
         match self {
             Self::Call {
                 export,
                 arguments,
                 reply,
             } => {
-                complete(reply, app.call_json(&export, &arguments)).await;
+                complete(reply, app.call_json(&export, &arguments), finish).await;
             }
             Self::Fetch {
                 request,
                 context,
                 mut reply,
             } => {
-                let head = tokio::select! {
-                    head = app.fetch_head(*request, context) => head,
-                    () = reply.closed() => return,
+                let head = if finish {
+                    // A closed reply fails the send below, which cancels an
+                    // open body.
+                    app.fetch_head(*request, context).await
+                } else {
+                    tokio::select! {
+                        head = app.fetch_head(*request, context) => head,
+                        () = reply.closed() => return,
+                    }
                 };
                 let (response, open) = match head {
                     Ok(head) => head,
@@ -153,12 +171,12 @@ impl Command {
                         return;
                     }
                 };
-                let (sender, body) = Body::channel(prefix, response_body_queue);
+                let (sender, body) = Body::channel(prefix, execution.response_body_queue);
                 if reply.send(Ok(Response::from_parts(parts, body))).is_err() {
                     app.cancel_response_body(open).await;
                     return;
                 }
-                stream_response_body(app, open, sender).await;
+                stream_response_body(app, open, sender, finish).await;
             }
         }
     }
@@ -167,7 +185,12 @@ impl Command {
 async fn complete<T>(
     mut reply: oneshot::Sender<Result<T>>,
     execution: impl Future<Output = Result<T>>,
+    finish: bool,
 ) {
+    if finish {
+        let _ = reply.send(execution.await);
+        return;
+    }
     tokio::select! {
         result = execution => {
             let _ = reply.send(result);

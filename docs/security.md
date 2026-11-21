@@ -15,7 +15,7 @@ that fits the deployment, and tests and fuzzing that keep checking them.
 | JavaScript state    | Reused within an app; assign one app per application, tenant and authority configuration                                                                                   |
 | Async resources     | The invocation owns transport futures and drops them when it ends                                                                                                          |
 | Tickets             | Bound to the invocation's generation; each completion is delivered once within the call                                                                                    |
-| Cancellation        | Instances with cancelled or unfinished work are retired                                                                                                                    |
+| Cancellation        | Instances with cancelled or unfinished work are retired; `CancelledCalls::Finish` lets a cancelled call end in its own invocation first, within its deadline               |
 | Host errors         | Guests see stable codes and general messages; details stay in Rust                                                                                                         |
 | Budgets             | The caller chooses `Limits` and engine options                                                                                                                             |
 

@@ -7,7 +7,9 @@ use std::sync::Arc;
 use axum::Router;
 use tokio::net::TcpListener;
 
-use fetchlet::{App, AppHandle, Backend, HostServices, Limits, Module, WorkerOptions};
+use fetchlet::{
+    App, AppHandle, Backend, CancelledCalls, HostServices, Limits, Module, WorkerOptions,
+};
 
 use super::{AxumService, artifact_router};
 use crate::{Artifact, ArtifactError, WebviewResponder, WebviewScheme};
@@ -94,7 +96,9 @@ pub enum ServerError {
 /// - With `vite-dev` and [`VITE_URL_VARIABLE`] set, the server module runs
 ///   from that Vite dev server through [`ViteDev`](crate::ViteDev), which
 ///   also serves the browser modules, and console output goes to standard
-///   error.
+///   error. A request the client cancels runs to its end
+///   ([`CancelledCalls::Finish`]), since a new instance would load every
+///   module from Vite again.
 /// - Otherwise, with `dev`, [`DevReload`](crate::DevReload) serves each build
 ///   written to the directory and reloads open pages.
 /// - Otherwise the build is opened once.
@@ -406,6 +410,17 @@ impl Settings {
         artifact: &Artifact,
         services: HostServices,
     ) -> Result<(Router, AppHandle), ServerError> {
+        self.start(artifact, services, None).await
+    }
+
+    /// [`application`](Self::application), with the worker's
+    /// `cancelled_calls` replaced when given.
+    async fn start(
+        &self,
+        artifact: &Artifact,
+        services: HostServices,
+        cancelled_calls: Option<CancelledCalls>,
+    ) -> Result<(Router, AppHandle), ServerError> {
         let mut worker = self.worker.clone().unwrap_or_else(|| {
             let mut worker = WorkerOptions::new(DEFAULT_QUEUE_CAPACITY);
             worker.stack_size_bytes = Some(DEFAULT_WORKER_STACK_BYTES);
@@ -413,6 +428,9 @@ impl Settings {
         });
         if let Some(capacity) = self.queue_capacity {
             worker.queue_capacity = capacity;
+        }
+        if let Some(cancelled_calls) = cancelled_calls {
+            worker.cancelled_calls = cancelled_calls;
         }
         let backend = match self.backend {
             Some(backend) => backend,
@@ -527,7 +545,11 @@ async fn serve_vite(
     let services = vite
         .host_services(services()?)?
         .console(|level, message| eprintln!("[{level:?}] {message}"));
-    let (router, app) = settings.application(&artifact, services).await?;
+    // A new instance fetches and evaluates every module from Vite again, so
+    // a cancelled request finishes in the instance instead of retiring it.
+    let (router, app) = settings
+        .start(&artifact, services, Some(CancelledCalls::Finish))
+        .await?;
     let result = run(
         listener,
         Router::new().fallback_service(vite.proxy(router)),

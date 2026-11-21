@@ -131,6 +131,8 @@ globalThis.Response = class {
 
 let sequence = 0;
 let cancelled = 0;
+// Calls whose result came after a delay, whether or not the caller waited.
+let finished = 0;
 let backgroundDone = 0;
 let backgroundBytes = 0;
 
@@ -224,6 +226,11 @@ function routes(url) {
 globalThis.fetchletExports = {
   sequence: () => ++sequence,
   cancelled: () => cancelled,
+  finished: () => finished,
+  async slowCall() {
+    await delay(150);
+    return ++finished;
+  },
   backgroundDone: () => backgroundDone,
   backgroundBytes: () => backgroundBytes,
   topLevelWaitUntil: () => topLevelWaitUntil,
@@ -239,6 +246,12 @@ globalThis.fetchletExports = {
   },
   async handle(request) {
     const bodies = globalThis.__fetchletResponseBodies;
+    if (request.url.endsWith("/slow-head")) {
+      // The head comes after a delay.
+      await delay(150);
+      finished += 1;
+      return { status: 200, headers: [], body: bytes("late") };
+    }
     if (request.url.endsWith("/withheld")) {
       // Register a body, start a timer, and answer without handing the body over.
       const id = bodies.register(routes("https://stream.test/forever?wait=10"));

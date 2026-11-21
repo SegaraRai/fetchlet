@@ -5,15 +5,9 @@
 import { viteDevSuite } from "@fetchlet-internal/tools-examples/vite-dev-suite";
 import { expect } from "vite-plus/test";
 
-const suite = viteDevSuite("astro-axum", {
-  unsupported: {
-    // Astro's client router cancels a request when it navigates, which
-    // retires the instance; a debug build of Boa then takes about 40 seconds
-    // to evaluate Astro's development modules again. Built artifacts run on
-    // Boa in the main suite.
-    boa: "a cancelled request makes Boa evaluate Astro's development modules again, for about 40 seconds",
-  },
-});
+// Astro's client router cancels a request when it navigates; the server
+// lets it finish in the instance rather than load every module again.
+const suite = viteDevSuite("astro-axum");
 
 suite.check(
   "the engine renders Astro from Vite, with the Rust service binding",

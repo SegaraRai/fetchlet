@@ -60,7 +60,11 @@ native stack size is set in `WorkerOptions` and defaults to the platform's.
 Dropping a call's future cancels that call. An instance retired by
 cancellation, an expired deadline or unfinished work is rebuilt from the
 same module, bindings and settings before the next call. After an ordinary
-JavaScript exception the state is reused.
+JavaScript exception the state is reused. With
+`WorkerOptions::cancelled_calls` set to `CancelledCalls::Finish`, the worker
+instead lets a cancelled call's evaluation return within its deadline and
+then cancels its body, keeping the instance; development hosts whose
+instances are expensive to build use it.
 
 `shutdown` stops accepting calls on every clone and waits for accepted calls
 and their resources. Calls waiting for queue capacity receive
