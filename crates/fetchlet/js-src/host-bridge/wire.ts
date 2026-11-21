@@ -1,0 +1,41 @@
+// The JSON shapes the bridge exchanges with the host dispatcher
+// (src/bridge/dispatcher.rs). Byte fields carry byte store handles.
+
+export interface Bindings {
+  console: boolean;
+  env: Record<string, unknown>;
+  services: string[];
+}
+
+/** Budgets as decimal strings, since they may exceed a double; null is none. */
+export interface BridgeLimits {
+  requestBodyBytes: string | null;
+  requestBodyChunks: string | null;
+}
+
+export interface WireResponse {
+  status: number;
+  headers: [string, string][];
+  body: number | null;
+  /** A Rust body source still arriving, read on demand. */
+  stream?: number;
+}
+
+/** A finished fetch or body read, by the ticket its start returned. */
+export interface Completion {
+  id: number;
+  result: HostReply<unknown>;
+}
+
+/** The request argument of a Fetch invocation, before the bridge prepares it. */
+export interface InvocationRequest {
+  body?: number | Uint8Array | ReadableStream<Uint8Array> | null;
+  stream?: number;
+  signal?: AbortSignal;
+}
+
+/** The fields of a Fetch result the bridge hands to the host. */
+export interface InvocationResult {
+  body?: unknown;
+  stream?: number;
+}

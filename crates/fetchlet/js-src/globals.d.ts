@@ -1,0 +1,87 @@
+/* eslint-disable no-var -- Only var declarations add properties to typeof globalThis. */
+
+// The global names the embedded scripts share with Rust and with the guest
+// runtime (@fetchlet/web). Rust installs the host bindings before the bridge
+// runs; the bridge defines the registries; the guest runtime installs the
+// timer, async context and rejection hooks. A hook is undefined in a bundle
+// that does not install it.
+
+/** A message the host dispatcher answers, as JSON text both ways. */
+type NativeDispatch = (operation: string, input: string) => string;
+
+interface HostErrorDescription {
+  code: string;
+  message: string;
+}
+
+type HostReply<T> = { ok: true; value: T } | { ok: false; error: HostErrorDescription };
+
+/** The host functions the bundle claims once with __fetchletClaimHost. */
+interface HostClaim {
+  call(operation: string, input: string): string;
+  putBytes(bytes: Uint8Array): number;
+  takeBytes(handle: number): Uint8Array<ArrayBuffer>;
+  readWholeBody(
+    stream: ReadableStream<Uint8Array>,
+    text: boolean,
+    onValue: (value: Uint8Array | string) => void,
+    onError: (error: unknown) => void,
+  ): boolean;
+}
+
+/** A chunk a Fetch response body yields to Rust. */
+interface ResponseBodyChunk {
+  chunk: Uint8Array;
+  done: boolean;
+}
+
+/** Fetch response bodies Rust pulls after the handler returns. */
+interface ResponseBodyRegistry {
+  beginCall(streaming: boolean): void;
+  endCall(): void;
+  streaming(): boolean;
+  openCount(): number;
+  register(stream: ReadableStream<Uint8Array>): number;
+  pull(id: number, waitForData: boolean): Promise<ResponseBodyChunk>;
+  cancel(id: number): Promise<void>;
+  retain(id: number | undefined): boolean;
+  closeAll(): void;
+}
+
+/** Work registered with fetchlet.waitUntil. */
+interface BackgroundRegistry {
+  pending(): number;
+  settle(): Promise<void>;
+  clear(): void;
+}
+
+/** The async context slot of the guest runtime. */
+interface AsyncContextSlot {
+  get(): unknown;
+  set(mapping: unknown): void;
+}
+
+// Host bindings, which the bridge removes from the global object.
+declare var __fetchletHost: NativeDispatch | undefined;
+declare var __fetchletTakeBytes: ((handle: number) => Uint8Array<ArrayBuffer>) | undefined;
+declare var __fetchletPutBytes: ((bytes: Uint8Array) => number) | undefined;
+
+// Defined by the bridge.
+declare var __fetchletClaimHost: (() => HostClaim) | undefined;
+declare var __fetchletResponseBodies: ResponseBodyRegistry;
+declare var __fetchletBackground: BackgroundRegistry;
+declare var __fetchletPumpHost: (() => number) | undefined;
+
+// Installed by the guest runtime.
+declare var __fetchletAsyncContext: AsyncContextSlot | undefined;
+declare var __fetchletFlushRejections: (() => void) | undefined;
+declare var __fetchletRunNextTimer: (() => boolean) | undefined;
+declare var __fetchletTimerDelay: (() => number | undefined) | undefined;
+declare var __fetchletClearTimers: (() => void) | undefined;
+declare var __fetchletClearPerformanceEntries: (() => void) | undefined;
+
+/** The exports of the evaluated bundle. */
+declare var fetchletExports: Record<string, unknown>;
+
+/** Node's name for the global object, which runtime.ts defines. */
+declare var global: typeof globalThis;

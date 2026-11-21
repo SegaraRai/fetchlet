@@ -1,0 +1,19 @@
+{
+  // The browser script DevService serves (src/dev/service.rs), an ES module
+  // the crate's vite.config.ts compiles from js-src/ into js/.
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "types": []
+  },
+  "include": ["js-src"]
+}

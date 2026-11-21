@@ -6,8 +6,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = true
-# The version placeholder for pnpm change; see docs/releasing.md.
-exclude = ["package.json"]
+# package.json is the version placeholder for pnpm change (docs/releasing.md);
+# vite.config.ts compiles js-src/ into the committed js/.
+exclude = ["package.json", "vite.config.ts"]
 # Lets dependents' build scripts read which engines are enabled
 # (DEP_FETCHLET_ENGINES); see build.rs. Nothing is linked.
 links = "fetchlet"

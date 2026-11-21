@@ -170,5 +170,6 @@ callbacks, body sources, crypto, URL, clock), `config/` (Limits),
 `execution/` (Instance, scheduler, deadlines), `fetch/` (Body and the Fetch
 adapter), `host/` (HostServices, policy, routing, Context), `wire/` (the
 JavaScript wire format and byte store) and `worker/` (AppHandle and its
-thread). The JavaScript the host evaluates around a bundle lives in
-`crates/fetchlet/js/`.
+thread). The JavaScript the host evaluates around a bundle is written in
+TypeScript in `crates/fetchlet/js-src/` and compiled into the committed
+`crates/fetchlet/js/`, which the crate embeds.

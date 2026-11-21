@@ -1,0 +1,19 @@
+{
+  // The scripts Rust embeds (src/execution/script.rs), which the crate's
+  // vite.config.ts compiles from js-src/ into js/. Each runs in the engine as a
+  // classic script, with the Web APIs of the guest runtime.
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024", "WebWorker"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "types": []
+  },
+  "include": ["js-src"]
+}

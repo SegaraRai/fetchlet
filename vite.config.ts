@@ -16,14 +16,15 @@ export default defineConfig({
     astro: true,
     svelte: true,
     // Pinned upstream sources are verified byte-for-byte against sources.lock.json.
-    ignorePatterns: ["tests/conformance/upstream/**"],
+    // The embedded scripts are generated from their formatted TypeScript sources.
+    ignorePatterns: ["crates/*/js/**", "tests/conformance/upstream/**"],
   },
   lint: {
     categories: {
       correctness: "error",
     },
     // Upstream sources and generated API clients are not edited by hand.
-    ignorePatterns: ["tests/conformance/upstream/**", "**/*.gen.ts"],
+    ignorePatterns: ["crates/*/js/**", "tests/conformance/upstream/**", "**/*.gen.ts"],
     options: {
       denyWarnings: true,
       reportUnusedDisableDirectives: "error",
@@ -76,6 +77,11 @@ export default defineConfig({
         command: lab + " --release",
         cache: false,
       },
+      // The scripts the crates embed, committed so Cargo needs no JavaScript.
+      "build:scripts": {
+        command: "",
+        dependsOn: ["@fetchlet-crates/fetchlet#build", "@fetchlet-crates/fetchlet-http#build"],
+      },
       "build:reference": {
         command: "node tools/docs/reference.ts",
         cache: false,
@@ -84,7 +90,7 @@ export default defineConfig({
       // check
       "check:types": {
         command:
-          "tsc --noEmit && tsc --noEmit -p tools && tsc --noEmit -p packages/node/tsconfig.json && tsc --noEmit -p packages/fetchlet/tsconfig.json && vp run --filter @fetchlet-internal/example-* check:types",
+          "tsc --noEmit && tsc --noEmit -p tools && tsc -p crates/fetchlet && tsc -p crates/fetchlet-http && tsc --noEmit -p packages/node/tsconfig.json && tsc --noEmit -p packages/fetchlet/tsconfig.json && vp run --filter @fetchlet-internal/example-* check:types",
         cache: false,
       },
       "check:format": {
@@ -100,7 +106,7 @@ export default defineConfig({
         cache: false,
       },
       "check:generated": {
-        command: "node tools/docs/reference.ts --check",
+        command: "node tools/docs/reference.ts --check && node tools/rust/scripts.ts",
         cache: false,
       },
       // Runs cargo metadata, whose inputs Vite+ cannot track.

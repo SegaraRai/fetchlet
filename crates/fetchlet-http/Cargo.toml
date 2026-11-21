@@ -6,8 +6,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = true
-# The version placeholder for pnpm change; see docs/releasing.md.
-exclude = ["package.json"]
+# package.json is the version placeholder for pnpm change (docs/releasing.md);
+# vite.config.ts compiles js-src/ into the committed js/.
+exclude = ["package.json", "vite.config.ts"]
 description = "Serve fetchlet applications through Tower, hyper, axum and actix-web"
 
 # The JavaScript engine is selected on the fetchlet crate. These features only

@@ -122,8 +122,8 @@ run inside it:
 | `fetch` completion, Streams              | Promise reactions, propagated by the engine                     |
 | Invocation start, response body pulls    | The empty context                                               |
 
-The invocation entry points (`__fetchletInvocation` in `host-bridge.js`,
-and `background.js`) and each host event loop step set the empty mapping
+The invocation entry points (`__fetchletInvocation` in `host-bridge/`,
+and `background.ts`) and each host event loop step set the empty mapping
 before calling into the application, so a mapping left current by a
 previous invocation or task cannot leak. Background work keeps its own
 context through its promise reactions.
