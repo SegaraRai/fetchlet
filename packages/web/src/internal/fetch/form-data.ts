@@ -2,7 +2,7 @@ import { runtime } from "../runtime/runtime";
 import "../file/blob";
 
 class FormDataImpl {
-  private data: [string, any][] = [];
+  #data: [string, any][] = [];
 
   constructor(form?: unknown) {
     // HTMLFormElement is outside the server profile; only an omitted form is valid.
@@ -24,26 +24,26 @@ class FormDataImpl {
     } else {
       value = String(value);
     }
-    this.data.push([String(name), value]);
+    this.#data.push([String(name), value]);
   }
 
   get(name: string) {
-    return this.data.find(([key]) => key === String(name))?.[1] ?? null;
+    return this.#data.find(([key]) => key === String(name))?.[1] ?? null;
   }
 
   getAll(name: string) {
-    return this.data.filter(([key]) => key === String(name)).map(([, v]) => v);
+    return this.#data.filter(([key]) => key === String(name)).map(([, v]) => v);
   }
 
   has(name: string) {
-    return this.data.some(([key]) => key === String(name));
+    return this.#data.some(([key]) => key === String(name));
   }
 
   delete(name: string) {
     name = String(name);
-    for (let index = this.data.length - 1; index >= 0; index--) {
-      if (this.data[index][0] === name) {
-        this.data.splice(index, 1);
+    for (let index = this.#data.length - 1; index >= 0; index--) {
+      if (this.#data[index][0] === name) {
+        this.#data.splice(index, 1);
       }
     }
   }
@@ -52,21 +52,21 @@ class FormDataImpl {
     const replacement = new FormDataImpl();
     replacement.append(name, value, filename);
     name = String(name);
-    const index = this.data.findIndex(([key]) => key === name);
+    const index = this.#data.findIndex(([key]) => key === name);
     if (index < 0) {
-      this.data.push(...replacement.data);
+      this.#data.push(...replacement.#data);
     } else {
-      this.data[index] = replacement.data[0];
-      for (let position = this.data.length - 1; position > index; position--) {
-        if (this.data[position][0] === name) {
-          this.data.splice(position, 1);
+      this.#data[index] = replacement.#data[0];
+      for (let position = this.#data.length - 1; position > index; position--) {
+        if (this.#data[position][0] === name) {
+          this.#data.splice(position, 1);
         }
       }
     }
   }
 
   *entries(): IterableIterator<[string, any]> {
-    yield* this.data;
+    yield* this.#data;
   }
 
   *keys() {

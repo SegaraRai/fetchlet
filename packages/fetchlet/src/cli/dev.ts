@@ -182,11 +182,11 @@ export function parseDevArguments(
  * generated route tables, do not start another build.
  */
 export class WatchedFiles {
-  private readonly roots: string[];
-  private readonly seen = new Map<string, string | undefined>();
+  readonly #roots: string[];
+  readonly #seen = new Map<string, string | undefined>();
 
   constructor(paths: readonly string[], cwd: string) {
-    this.roots = paths.map((path) => resolve(cwd, path));
+    this.#roots = paths.map((path) => resolve(cwd, path));
     this.snapshot();
   }
 
@@ -197,15 +197,15 @@ export class WatchedFiles {
   includes(file: string): boolean {
     return (
       extname(file) !== ".rs" &&
-      this.roots.some((root) => file === root || file.startsWith(root + sep))
+      this.#roots.some((root) => file === root || file.startsWith(root + sep))
     );
   }
 
   /** Record the current content of every watched file. */
   snapshot(): void {
-    this.seen.clear();
-    for (const file of this.roots.flatMap(filesUnder)) {
-      this.seen.set(file, contentHash(file));
+    this.#seen.clear();
+    for (const file of this.#roots.flatMap(filesUnder)) {
+      this.#seen.set(file, contentHash(file));
     }
   }
 
@@ -218,13 +218,13 @@ export class WatchedFiles {
       return false;
     }
     const hash = contentHash(file);
-    if (hash === undefined && !this.seen.has(file)) {
+    if (hash === undefined && !this.#seen.has(file)) {
       return false;
     }
-    if (this.seen.get(file) === hash) {
+    if (this.#seen.get(file) === hash) {
       return false;
     }
-    this.seen.set(file, hash);
+    this.#seen.set(file, hash);
     return true;
   }
 }
@@ -355,45 +355,45 @@ export function dev(options: DevOptions): Promise<number> {
 
 /** The processes of one `fetchlet dev` run, which stop together. */
 class Session {
-  private readonly options: DevOptions;
-  private readonly resolveExit: (code: number) => void;
-  private server: ChildProcess | undefined;
-  private builder: ChildProcess | undefined;
-  private readonly cleanups: (() => void)[] = [];
-  private exiting = false;
-  private readonly interrupt = () => this.stop(130);
-  private readonly terminate = () => this.stop(143);
+  readonly #options: DevOptions;
+  readonly #resolveExit: (code: number) => void;
+  #server: ChildProcess | undefined;
+  #builder: ChildProcess | undefined;
+  readonly #cleanups: (() => void)[] = [];
+  #exiting = false;
+  readonly #interrupt = () => this.#stop(130);
+  readonly #terminate = () => this.#stop(143);
 
   constructor(options: DevOptions, resolveExit: (code: number) => void) {
-    this.options = options;
-    this.resolveExit = resolveExit;
-    process.on("SIGINT", this.interrupt);
-    process.on("SIGTERM", this.terminate);
+    this.#options = options;
+    this.#resolveExit = resolveExit;
+    process.on("SIGINT", this.#interrupt);
+    process.on("SIGTERM", this.#terminate);
   }
 
   /** A full build now, then the server, then a full build per change. */
   rebuild(command: string, paths: readonly string[]): void {
     console.log("[fetchlet dev] building");
-    const first = runShell(command, this.options.cwd);
-    this.builder = first;
+    const first = runShell(command, this.#options.cwd);
+    this.#builder = first;
     first.on("error", (error) => {
       console.error(`[fetchlet dev] ${error.message}`);
-      this.stop(1);
+      this.#stop(1);
     });
     first.on("exit", (code) => {
-      this.builder = undefined;
+      this.#builder = undefined;
       if (code !== 0) {
         console.error(`[fetchlet dev] the build failed with exit code ${code}`);
-        this.stop(code ?? 1);
+        this.#stop(code ?? 1);
         return;
       }
-      this.watchSources(command, paths);
-      this.startServer();
+      this.#watchSources(command, paths);
+      this.#startServer();
     });
   }
 
-  private watchSources(command: string, paths: readonly string[]): void {
-    const cwd = this.options.cwd;
+  #watchSources(command: string, paths: readonly string[]): void {
+    const cwd = this.#options.cwd;
     const files = new WatchedFiles(paths, cwd);
     let building = false;
     let pending = false;
@@ -409,10 +409,10 @@ class Session {
       console.log("[fetchlet dev] building");
       const started = Date.now();
       const builder = runShell(command, cwd);
-      this.builder = builder;
+      this.#builder = builder;
       builder.on("exit", (code) => {
         building = false;
-        this.builder = undefined;
+        this.#builder = undefined;
         console.log(
           code === 0
             ? `[fetchlet dev] built in ${Date.now() - started} ms`
@@ -433,7 +433,7 @@ class Session {
         timer = setTimeout(build, SETTLE_MS);
       }
     });
-    this.cleanups.push(() => {
+    this.#cleanups.push(() => {
       watcher.close();
       clearTimeout(timer);
     });
@@ -444,26 +444,26 @@ class Session {
    * wrote its first build: a manifest no older than the command.
    */
   watchBuilds(command: string, out: string): void {
-    const manifest = resolve(this.options.cwd, out, "fetchlet.json");
+    const manifest = resolve(this.#options.cwd, out, "fetchlet.json");
     const started = Date.now();
     console.log("[fetchlet dev] starting the watching build");
-    const builder = runShell(command, this.options.cwd);
-    this.builder = builder;
+    const builder = runShell(command, this.#options.cwd);
+    this.#builder = builder;
     builder.on("error", (error) => {
       console.error(`[fetchlet dev] ${error.message}`);
-      this.stop(1);
+      this.#stop(1);
     });
     builder.on("exit", (code) => {
       console.error(`[fetchlet dev] the watching build stopped with exit code ${code}`);
-      this.stop(code === 0 || code === null ? 1 : code);
+      this.#stop(code === 0 || code === null ? 1 : code);
     });
     const poll = setInterval(() => {
       if (modifiedSince(manifest, started)) {
         clearInterval(poll);
-        this.startServer();
+        this.#startServer();
       }
     }, MANIFEST_POLL_MS);
-    this.cleanups.push(() => clearInterval(poll));
+    this.#cleanups.push(() => clearInterval(poll));
   }
 
   /**
@@ -475,26 +475,26 @@ class Session {
     const url = `http://127.0.0.1:${vitePort}`;
     console.log(`[fetchlet dev] starting the Vite dev server at ${url}`);
     // The port is a number, so the command line needs no quoting.
-    const vite = runShell(`${command} --host 127.0.0.1 --port ${vitePort}`, this.options.cwd);
-    this.builder = vite;
+    const vite = runShell(`${command} --host 127.0.0.1 --port ${vitePort}`, this.#options.cwd);
+    this.#builder = vite;
     vite.on("error", (error) => {
       console.error(`[fetchlet dev] ${error.message}`);
-      this.stop(1);
+      this.#stop(1);
     });
     vite.on("exit", (code) => {
       console.error(`[fetchlet dev] the Vite dev server stopped with exit code ${code}`);
-      this.stop(code === 0 || code === null ? 1 : code);
+      this.#stop(code === 0 || code === null ? 1 : code);
     });
     const deadline = Date.now() + VITE_START_MS;
-    while (!this.exiting) {
+    while (!this.#exiting) {
       try {
         await fetch(`${url}/@vite/client`, { method: "HEAD" });
-        this.startServer({ FETCHLET_VITE_URL: url });
+        this.#startServer({ FETCHLET_VITE_URL: url });
         return;
       } catch {
         if (Date.now() > deadline) {
           console.error(`[fetchlet dev] the Vite dev server did not answer at ${url}`);
-          this.stop(1);
+          this.#stop(1);
           return;
         }
         await new Promise((resolveDelay) => setTimeout(resolveDelay, MANIFEST_POLL_MS));
@@ -502,35 +502,35 @@ class Session {
     }
   }
 
-  private startServer(environment: NodeJS.ProcessEnv = {}): void {
-    if (this.exiting) {
+  #startServer(environment: NodeJS.ProcessEnv = {}): void {
+    if (this.#exiting) {
       return;
     }
-    const [program, ...args] = this.options.server;
-    const cwd = this.options.cwd;
+    const [program, ...args] = this.#options.server;
+    const cwd = this.#options.cwd;
     const env = { ...process.env, ...environment };
     // A Windows shell starts `.cmd` shims such as npm's, which spawn cannot.
     const server = windows
       ? spawn([program, ...args].map(quote).join(" "), { cwd, env, stdio: "inherit", shell: true })
       : spawn(program, args, { cwd, env, stdio: "inherit" });
-    this.server = server;
-    server.on("exit", (code) => this.stop(code ?? 1));
+    this.#server = server;
+    server.on("exit", (code) => this.#stop(code ?? 1));
     server.on("error", (error) => {
       console.error(`[fetchlet dev] ${error.message}`);
-      this.stop(1);
+      this.#stop(1);
     });
   }
 
-  private stop(code: number): void {
-    if (this.exiting) {
+  #stop(code: number): void {
+    if (this.#exiting) {
       return;
     }
-    this.exiting = true;
-    this.cleanups.forEach((cleanup) => cleanup());
-    kill(this.builder);
-    kill(this.server);
-    process.off("SIGINT", this.interrupt);
-    process.off("SIGTERM", this.terminate);
-    this.resolveExit(code);
+    this.#exiting = true;
+    this.#cleanups.forEach((cleanup) => cleanup());
+    kill(this.#builder);
+    kill(this.#server);
+    process.off("SIGINT", this.#interrupt);
+    process.off("SIGTERM", this.#terminate);
+    this.#resolveExit(code);
   }
 }

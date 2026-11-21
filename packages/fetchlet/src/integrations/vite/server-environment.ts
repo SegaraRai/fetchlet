@@ -179,32 +179,32 @@ class ClientBuildTracker {
   /** The last client build written. */
   written: ClientBuildOutput | undefined;
   /** Settles when the client build in progress ends; undefined between builds. */
-  private building: Deferred | undefined;
+  #building: Deferred | undefined;
   /** Whether a client build has ended, written or failed. */
-  private ended = false;
+  #ended = false;
   /** Client builds started so far. */
-  private started = 0;
+  #started = 0;
 
   constructor(stampFile: string) {
     this.stampFile = stampFile;
   }
 
   clientStarted(): void {
-    this.started++;
-    this.building ??= deferred();
+    this.#started++;
+    this.#building ??= deferred();
   }
 
   async clientWritten(output: ClientBuildOutput): Promise<void> {
     this.written = output;
     await mkdir(dirname(this.stampFile), { recursive: true });
-    await writeFile(this.stampFile, `${this.started}\n`);
+    await writeFile(this.stampFile, `${this.#started}\n`);
     this.clientEnded();
   }
 
   clientEnded(): void {
-    this.ended = true;
-    this.building?.resolve();
-    this.building = undefined;
+    this.#ended = true;
+    this.#building?.resolve();
+    this.#building = undefined;
   }
 
   /**
@@ -212,16 +212,16 @@ class ClientBuildTracker {
    * returns the number of client builds the server build follows.
    */
   async serverStarting(): Promise<number> {
-    if (!this.ended) {
-      this.building ??= deferred();
+    if (!this.#ended) {
+      this.#building ??= deferred();
     }
-    await this.building?.promise;
-    return this.started;
+    await this.#building?.promise;
+    return this.#started;
   }
 
   /** Whether a client build started after the server build that saw `started`. */
   clientStartedSince(started: number): boolean {
-    return this.started !== started;
+    return this.#started !== started;
   }
 }
 

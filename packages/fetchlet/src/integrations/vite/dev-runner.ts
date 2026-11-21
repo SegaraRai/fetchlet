@@ -49,15 +49,17 @@ const evaluateScript = eval;
  * artifact's own implementations.
  */
 class FetchletEvaluator implements ModuleEvaluator {
-  private readonly globalNames: string[];
-  private readonly globalValues: unknown[];
+  readonly #globalNames: string[];
+  readonly #globalValues: unknown[];
+  readonly #builtins: Readonly<Record<string, unknown>>;
 
   constructor(
-    private readonly builtins: Readonly<Record<string, unknown>>,
+    builtins: Readonly<Record<string, unknown>>,
     globals: Readonly<Record<string, unknown>>,
   ) {
-    this.globalNames = Object.keys(globals);
-    this.globalValues = Object.values(globals);
+    this.#builtins = builtins;
+    this.#globalNames = Object.keys(globals);
+    this.#globalValues = Object.values(globals);
   }
 
   async runInlinedModule(
@@ -66,7 +68,7 @@ class FetchletEvaluator implements ModuleEvaluator {
     module: Readonly<EvaluatedModuleNode>,
   ): Promise<void> {
     try {
-      await this.evaluate(context, code);
+      await this.#evaluate(context, code);
     } catch (error) {
       // The engines' stacks name no file for evaluated code, so the error
       // names the module whose evaluation failed.
@@ -77,7 +79,7 @@ class FetchletEvaluator implements ModuleEvaluator {
     }
   }
 
-  private async evaluate(context: ModuleRunnerContext, code: string): Promise<void> {
+  async #evaluate(context: ModuleRunnerContext, code: string): Promise<void> {
     const parameters = [
       ssrModuleExportsKey,
       ssrImportMetaKey,
@@ -85,7 +87,7 @@ class FetchletEvaluator implements ModuleEvaluator {
       ssrDynamicImportKey,
       ssrExportAllKey,
       ssrExportNameKey,
-      ...this.globalNames,
+      ...this.#globalNames,
     ].join(", ");
     // The block lets the module declare names the parameters also use.
     const run = evaluateScript(
@@ -98,15 +100,15 @@ class FetchletEvaluator implements ModuleEvaluator {
       context[ssrDynamicImportKey],
       context[ssrExportAllKey],
       context[ssrExportNameKey],
-      ...this.globalValues,
+      ...this.#globalValues,
     );
     Object.seal(context[ssrModuleExportsKey]);
   }
 
   async runExternalModule(file: string): Promise<unknown> {
     const name = file.startsWith("node:") ? file.slice("node:".length) : file;
-    if (Object.hasOwn(this.builtins, name)) {
-      return this.builtins[name];
+    if (Object.hasOwn(this.#builtins, name)) {
+      return this.#builtins[name];
     }
     throw new Error(
       `${file} is external to the Vite server environment; the engine loads only modules Vite transforms and the Node built-ins fetchlet implements`,

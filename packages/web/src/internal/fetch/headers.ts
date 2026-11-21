@@ -23,7 +23,7 @@ function headerRecord(init: object): [string, string][] {
 }
 
 class HeadersImpl {
-  private pairs: [string, string][] = [];
+  #pairs: [string, string][] = [];
 
   constructor(init?: any) {
     if (init === undefined) {
@@ -43,7 +43,7 @@ class HeadersImpl {
     }
   }
 
-  private key(name: string) {
+  #key(name: string) {
     name = byteString(name).toLowerCase();
     if (!/^[!#$%&'*+.^_`|~\da-z-]+$/.test(name)) {
       throw new TypeError("Invalid header name");
@@ -55,7 +55,7 @@ class HeadersImpl {
     if (arguments.length < 2) {
       throw new TypeError("append requires a name and value");
     }
-    name = this.key(name);
+    name = this.#key(name);
     value = byteString(value).replace(/^[\t\n\r ]+|[\t\n\r ]+$/g, "");
     if (/[\r\n\0]/.test(value)) {
       throw new TypeError("Invalid header value");
@@ -63,20 +63,20 @@ class HeadersImpl {
     if (immutableHeaders.has(this)) {
       throw new TypeError("Headers are immutable");
     }
-    this.pairs.push([name, value]);
+    this.#pairs.push([name, value]);
   }
 
   get(name: string) {
     if (arguments.length === 0) {
       throw new TypeError("get requires a name");
     }
-    name = this.key(name);
-    const values = this.pairs.filter(([n]) => n === name).map(([, v]) => v);
+    name = this.#key(name);
+    const values = this.#pairs.filter(([n]) => n === name).map(([, v]) => v);
     return values.length ? values.join(", ") : null;
   }
 
   getSetCookie() {
-    return this.pairs.filter(([n]) => n === "set-cookie").map(([, v]) => v);
+    return this.#pairs.filter(([n]) => n === "set-cookie").map(([, v]) => v);
   }
 
   has(name: string) {
@@ -90,11 +90,11 @@ class HeadersImpl {
     if (arguments.length === 0) {
       throw new TypeError("delete requires a name");
     }
-    name = this.key(name);
+    name = this.#key(name);
     if (immutableHeaders.has(this)) {
       throw new TypeError("Headers are immutable");
     }
-    this.pairs = this.pairs.filter(([n]) => n !== name);
+    this.#pairs = this.#pairs.filter(([n]) => n !== name);
   }
 
   set(name: string, value: string) {
@@ -102,22 +102,24 @@ class HeadersImpl {
       throw new TypeError("set requires a name and value");
     }
     const validated = new HeadersImpl([[name, value]]);
-    const key = this.key(name);
+    const key = this.#key(name);
     if (immutableHeaders.has(this)) {
       throw new TypeError("Headers are immutable");
     }
-    const index = this.pairs.findIndex(([stored]) => stored === key);
+    const index = this.#pairs.findIndex(([stored]) => stored === key);
     if (index < 0) {
-      this.pairs.push(...validated.pairs);
+      this.#pairs.push(...validated.#pairs);
     } else {
-      this.pairs[index] = validated.pairs[0];
-      this.pairs = this.pairs.filter(([stored], position) => stored !== key || position === index);
+      this.#pairs[index] = validated.#pairs[0];
+      this.#pairs = this.#pairs.filter(
+        ([stored], position) => stored !== key || position === index,
+      );
     }
   }
 
-  private sortedPairs(): [string, string][] {
+  #sortedPairs(): [string, string][] {
     const entries: [string, string][] = [];
-    for (const name of [...new Set(this.pairs.map(([name]) => name))].sort()) {
+    for (const name of [...new Set(this.#pairs.map(([name]) => name))].sort()) {
       if (name === "set-cookie") {
         for (const value of this.getSetCookie()) {
           entries.push([name, value]);
@@ -130,15 +132,15 @@ class HeadersImpl {
   }
 
   entries(): IterableIterator<[string, string]> {
-    return headerIterator(() => this.sortedPairs(), "entries");
+    return headerIterator(() => this.#sortedPairs(), "entries");
   }
 
   keys(): IterableIterator<string> {
-    return headerIterator(() => this.sortedPairs(), "keys");
+    return headerIterator(() => this.#sortedPairs(), "keys");
   }
 
   values(): IterableIterator<string> {
-    return headerIterator(() => this.sortedPairs(), "values");
+    return headerIterator(() => this.#sortedPairs(), "values");
   }
 
   [Symbol.iterator]() {

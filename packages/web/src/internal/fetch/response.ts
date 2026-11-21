@@ -44,16 +44,16 @@ class ResponseImpl extends BodyImpl {
     response.type = this.type;
     response.url = this.url;
     response.redirected = this.redirected;
-    if (this.type === "error" || this.immutable) {
-      response.freezeHeaders();
+    if (this.type === "error" || this.#immutable) {
+      response.#freezeHeaders();
     }
     return response;
   }
 
-  private immutable = false;
+  #immutable = false;
 
-  private freezeHeaders() {
-    this.immutable = true;
+  #freezeHeaders() {
+    this.#immutable = true;
     makeHeadersImmutable(this.headers);
   }
 
@@ -61,7 +61,7 @@ class ResponseImpl extends BodyImpl {
     const response = new ResponseImpl();
     response.status = 0;
     response.type = "error";
-    response.freezeHeaders();
+    response.#freezeHeaders();
     return response;
   }
 
@@ -99,7 +99,7 @@ class ResponseImpl extends BodyImpl {
         location,
       },
     });
-    response.freezeHeaders();
+    response.#freezeHeaders();
     return response;
   }
 }
