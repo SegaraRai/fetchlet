@@ -1,4 +1,5 @@
 import { concatBytes, decode, encode } from "../encoding/bytes";
+import { hostFunctions } from "../runtime/host";
 import { runtime } from "../runtime/runtime";
 import { isDisturbed, supportsByteStreams } from "../streams/stream-state";
 import { exposeAttributes } from "../webidl/idl";
@@ -144,16 +145,18 @@ export class BodyImpl {
    *
    * Reads go through pipeTo's internal read requests, and every intermediate
    * promise settles with undefined, so a patched Object.prototype.then cannot
-   * observe or replace chunks. Only the final result is resolved, as in Fetch.
+   * observe or replace chunks. A host body no one has read comes through
+   * callbacks instead of promises. Only the final result is resolved, as in
+   * Fetch.
    */
-  #consume<T>(convert: (bytes: Uint8Array) => T): Promise<T> {
+  #consume<T>(convert: (bytes: Uint8Array) => T, fromText?: (text: string) => T): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       if (this.bodyUsed || this.#stream?.locked) {
         throw new TypeError("Body already consumed or locked");
       }
-      const complete = (bytes: Uint8Array) => {
+      const complete = (value: Uint8Array | string) => {
         try {
-          resolve(convert(bytes));
+          resolve(typeof value === "string" ? fromText!(value) : convert(value));
         } catch (error) {
           reject(error);
         }
@@ -169,6 +172,13 @@ export class BodyImpl {
         return;
       }
       this.consumed = true;
+      // A stream over a host body no one has read arrives whole in one host
+      // operation; the reader keeps it locked, as a fully read stream is.
+      const host = hostFunctions();
+      if (host?.readWholeBody?.(this.#stream, fromText !== undefined, complete, reject)) {
+        this.#stream.getReader();
+        return;
+      }
       const chunks: Uint8Array[] = [];
       const sink = new runtime.WritableStream({
         write(chunk: unknown) {
@@ -183,7 +193,11 @@ export class BodyImpl {
   }
 
   arrayBuffer(): Promise<ArrayBuffer> {
-    return this.#consume((bytes) => bytes.buffer as ArrayBuffer);
+    return this.#consume((bytes) =>
+      bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
+        ? (bytes.buffer as ArrayBuffer)
+        : (bytes.slice().buffer as ArrayBuffer),
+    );
   }
 
   bytes() {
@@ -191,11 +205,14 @@ export class BodyImpl {
   }
 
   text() {
-    return this.#consume(decode);
+    return this.#consume(decode, (text) => text);
   }
 
   json() {
-    return this.#consume((bytes) => JSON.parse(decode(bytes)));
+    return this.#consume(
+      (bytes) => JSON.parse(decode(bytes)),
+      (text) => JSON.parse(text),
+    );
   }
 
   blob() {

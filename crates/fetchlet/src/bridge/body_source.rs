@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use http_body::Body as _;
 
 use crate::config::check_limit;
@@ -16,6 +16,8 @@ pub(super) struct BodySource {
     received: usize,
     limit: Option<usize>,
     resource: &'static str,
+    /// Chunks a whole-body read has taken so far.
+    collected: Vec<Bytes>,
 }
 
 /// The body sources of one invocation, by id.
@@ -70,6 +72,30 @@ impl BodySource {
             received: 0,
             limit,
             resource,
+            collected: Vec::new(),
+        }
+    }
+
+    /// The rest of the body as one buffer, counted against the body budget.
+    ///
+    /// Chunks taken before the body ends stay in the source, so a pending
+    /// read resumes where it stopped and dropping the source releases them.
+    pub fn poll_read_all(&mut self, context: &mut Context<'_>) -> Poll<Result<Bytes>> {
+        loop {
+            match self.poll_read(context) {
+                Poll::Pending => {
+                    return Poll::Pending;
+                }
+                Poll::Ready(Err(error)) => {
+                    return Poll::Ready(Err(error));
+                }
+                Poll::Ready(Ok(BodyRead::Chunk(chunk))) => {
+                    self.collected.push(chunk);
+                }
+                Poll::Ready(Ok(BodyRead::Done)) => {
+                    return Poll::Ready(Ok(concat(std::mem::take(&mut self.collected))));
+                }
+            }
         }
     }
 
@@ -100,4 +126,15 @@ impl BodySource {
             .ok_or(Error::LimitExceeded(self.resource))?;
         check_limit(self.limit, self.received, self.resource)
     }
+}
+
+fn concat(mut chunks: Vec<Bytes>) -> Bytes {
+    if chunks.len() <= 1 {
+        return chunks.pop().unwrap_or_default();
+    }
+    let mut bytes = BytesMut::with_capacity(chunks.iter().map(Bytes::len).sum());
+    for chunk in chunks {
+        bytes.extend_from_slice(&chunk);
+    }
+    bytes.freeze()
 }

@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::task::Poll;
 
 use bytes::Bytes;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{Value, json};
 
 use super::body_source::{BodyRead, BodySources};
@@ -20,6 +20,22 @@ struct PendingFetch {
     future: TransportFuture,
 }
 
+/// A read of a body source, of its next chunk or of all the rest.
+struct PendingRead {
+    id: u64,
+    whole: Option<Whole>,
+}
+
+/// How a whole-body read hands the body to JavaScript.
+#[derive(Clone, Copy)]
+pub(super) enum Whole {
+    /// One buffer in the byte store.
+    Bytes,
+    /// A string, decoded as Fetch's `text()` decodes: UTF-8 without a
+    /// leading byte order mark, with U+FFFD for invalid sequences.
+    Text,
+}
+
 struct InvocationState {
     generation: u64,
     next_ticket: u64,
@@ -29,8 +45,8 @@ struct InvocationState {
     bytes: ByteStore,
     /// Rust bodies that JavaScript reads on demand.
     bodies: BodySources,
-    /// Outstanding `body.read` tickets and the body each one reads.
-    pending_reads: BTreeMap<String, u64>,
+    /// Outstanding `body.read` and `body.readAll` tickets.
+    pending_reads: BTreeMap<String, PendingRead>,
     /// `fetchlet.waitUntil` registrations, and those not yet settled.
     background_registered: usize,
     background_pending: usize,
@@ -137,10 +153,17 @@ struct FetchStartRequest {
     service: Option<String>,
 }
 
-#[derive(Serialize)]
 struct FetchCompletion {
     id: String,
     result: Value,
+}
+
+impl FetchCompletion {
+    /// Moves the result into the message; a whole body read as text can be
+    /// megabytes long.
+    fn into_value(self) -> Value {
+        json!({ "id": self.id, "result": self.result })
+    }
 }
 
 /// Native callbacks retain this handle rather than request-scoped JS globals.
@@ -354,7 +377,9 @@ impl HostBridge {
             "fetch.start" => self.start_fetch(input),
             "fetch.poll" => self.poll_fetches(),
             "fetch.cancel" => self.cancel_fetch(input),
-            "body.read" => self.read_body(input),
+            "body.read" => self.read_body(input, None),
+            "body.readAll" => self.read_body(input, Some(Whole::Bytes)),
+            "body.readText" => self.read_body(input, Some(Whole::Text)),
             "body.cancel" => self.cancel_body(input),
             "background.register" => self.register_background(),
             "background.settle" => self.settle_background(),
@@ -522,8 +547,21 @@ impl HostBridge {
         }
 
         let InvocationTransport { bytes, bodies } = transport;
-        pending_reads.retain(|ticket, id| {
-            let result = match bodies.get_mut(*id) {
+        pending_reads.retain(|ticket, read| {
+            let id = read.id;
+            let result = match bodies.get_mut(id) {
+                Some(source) if let Some(whole) = read.whole => {
+                    match source.poll_read_all(&mut context) {
+                        Poll::Pending => return true,
+                        Poll::Ready(Ok(body)) => match whole {
+                            Whole::Bytes => bytes
+                                .put(body)
+                                .map(|handle| json!({ "chunk": handle, "done": true })),
+                            Whole::Text => Ok(json!({ "text": utf8_decode(&body), "done": true })),
+                        },
+                        Poll::Ready(Err(error)) => Err(error),
+                    }
+                }
                 Some(source) => match source.poll_read(&mut context) {
                     Poll::Pending => return true,
                     Poll::Ready(Ok(BodyRead::Chunk(chunk))) => bytes
@@ -536,7 +574,7 @@ impl HostBridge {
             };
             // A finished or failed body releases its producer now.
             if !matches!(result, Ok(ref value) if value["done"] == false) {
-                bodies.remove(*id);
+                bodies.remove(id);
             }
             completed.push(FetchCompletion {
                 id: ticket.clone(),
@@ -545,8 +583,12 @@ impl HostBridge {
             false
         });
 
-        serde_json::to_value(completed)
-            .map_err(|_| Error::Transport("invalid completion encoding".into()))
+        Ok(Value::Array(
+            completed
+                .into_iter()
+                .map(FetchCompletion::into_value)
+                .collect(),
+        ))
     }
 
     pub(super) fn cancel_fetch(&self, input: &str) -> Result<Value> {
@@ -587,7 +629,10 @@ impl HostBridge {
         Ok(Value::Null)
     }
 
-    pub(super) fn read_body(&self, input: &str) -> Result<Value> {
+    /// Read the next chunk of a body source, or with `whole` the rest of it
+    /// at once, which spares JavaScript a read per chunk and, as text, its
+    /// own UTF-8 decoding.
+    pub(super) fn read_body(&self, input: &str, whole: Option<Whole>) -> Result<Value> {
         let id: u64 = serde_json::from_str(input)
             .map_err(|_| Error::InvalidRequest("invalid body id".into()))?;
         let mut state = self.lock_state()?;
@@ -599,12 +644,14 @@ impl HostBridge {
         if invocation
             .pending_reads
             .values()
-            .any(|reading| *reading == id)
+            .any(|reading| reading.id == id)
         {
             return Err(Error::InvalidRequest("body is already being read".into()));
         }
         let ticket = invocation.next_ticket()?;
-        invocation.pending_reads.insert(ticket.clone(), id);
+        invocation
+            .pending_reads
+            .insert(ticket.clone(), PendingRead { id, whole });
         Ok(Value::String(ticket))
     }
 
@@ -615,7 +662,9 @@ impl HostBridge {
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
         // Dropping the body cancels its producer. Cancelling twice is harmless.
         invocation.bodies.remove(id);
-        invocation.pending_reads.retain(|_, reading| *reading != id);
+        invocation
+            .pending_reads
+            .retain(|_, reading| reading.id != id);
         Ok(Value::Null)
     }
 }
@@ -670,6 +719,13 @@ impl Drop for InvocationScope {
             state.invocation = None;
         }
     }
+}
+
+/// Fetch's UTF-8 decode: a leading byte order mark is dropped, and each
+/// maximal invalid subsequence becomes U+FFFD, as the Encoding Standard
+/// specifies and `String::from_utf8_lossy` implements.
+fn utf8_decode(bytes: &[u8]) -> std::borrow::Cow<'_, str> {
+    String::from_utf8_lossy(bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes))
 }
 
 fn encode_response(

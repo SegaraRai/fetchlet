@@ -349,12 +349,35 @@ and the runner loaded its modules once, at startup; the Astro `dev:vite`
 suite passes on Boa, navigation included.
 
 Two changes shorten every reload rather than avoiding it: reading a host
-fetch body without the stream machinery when the caller consumes all of it
-with `text()`, `json()` or `arrayBuffer()`, which would also speed up
-application fetches; and keeping the runner's transformed modules in Rust
-across instances, which saves the transport (about two thirds of the time
-on QuickJS) but not evaluation. Neither keeps the evaluated modules: those
-live in the engine heap of the retired instance.
+fetch body without the stream machinery when the caller consumes all of it,
+and keeping the runner's transformed modules in Rust across instances,
+which saves the transport (about two thirds of the time on QuickJS) but not
+evaluation. Neither keeps the evaluated modules: those live in the engine
+heap of the retired instance.
+
+The first is in place. `text()`, `json()`, `arrayBuffer()` and the other
+whole-body readers take a host body that no one has read in one host
+operation: Rust collects it under the same budget, and for `text()` and
+`json()` decodes it as UTF-8, so JavaScript makes no read per chunk and
+runs no decoder. Measured with the lab host on 284 sequential host fetches
+of a 17 KB body in four chunks, about the runner's traffic, each read with
+`text()`:
+
+| Build and engine | Stream path | Whole-body read | Response heads alone |
+| ---------------- | ----------- | --------------- | -------------------- |
+| Debug, QuickJS   | 510 ms      | 150 to 190 ms   | 100 ms               |
+| Debug, V8        | 95 ms       | 40 to 75 ms     | 25 to 45 ms          |
+| Release, QuickJS | 165 ms      | 39 ms           | 27 ms                |
+| Release, V8      | 36 ms       | 12 ms           | 6 ms                 |
+
+The body part, beyond the heads, fell by about 80 to 90 percent. On
+QuickJS, most of what remained after reading bytes whole was the
+JavaScript `TextDecoder` (170 of 310 ms in a debug build); decoding in Rust
+removes it. In debug builds that only pays off with `serde_json` optimized,
+since the text crosses the bridge as one JSON string: unoptimized, its
+escaping made the debug V8 run slower than decoding in JavaScript, so the
+workspace's dev profile builds `serde_json` at `opt-level = 3`. The Astro
+reload itself was not timed again.
 
 On Boa, the runner can spend longer than Node's 5-second keep-alive timeout
 evaluating one large module, such as the prebundled `react-dom/server.edge`,

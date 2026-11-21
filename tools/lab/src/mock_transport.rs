@@ -1,7 +1,11 @@
 //! Deterministic, network-free transport for the lab and framework regressions.
 
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use std::time::Duration;
 
+use bytes::Bytes;
+use http_body::Frame;
 use serde_json::json;
 
 use fetchlet::{Body, FetchPolicy, FetchService, HostServices, Response, http, transport_fn};
@@ -34,6 +38,8 @@ async fn respond(request: fetchlet::Request) -> fetchlet::Result<Response> {
         "/redirect-denied" => return redirect("http://127.0.0.1/private"),
         "/slow" => tokio::time::sleep(Duration::from_secs(60)).await,
         "/delayed" => tokio::time::sleep(Duration::from_millis(5)).await,
+        "/chunked" => return chunked(false),
+        "/chunked-open" => return chunked(true),
         _ => {}
     }
 
@@ -54,6 +60,47 @@ async fn respond(request: fetchlet::Request) -> fetchlet::Result<Response> {
         .header("set-cookie", "first=1")
         .header("set-cookie", "second=2")
         .body(Body::from(payload.to_string()))
+        .map_err(|error| fetchlet::Error::Transport(error.to_string()))
+}
+
+/// A body that arrives in chunks without a declared length, so the guest
+/// reads it from a Rust body source. With `open`, it stays open after the
+/// first chunk.
+struct Chunked {
+    chunks: Vec<Bytes>,
+    open: bool,
+}
+
+impl http_body::Body for Chunked {
+    type Data = Bytes;
+    type Error = std::convert::Infallible;
+
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        _context: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Bytes>, Self::Error>>> {
+        if self.chunks.is_empty() {
+            return if self.open {
+                Poll::Pending
+            } else {
+                Poll::Ready(None)
+            };
+        }
+        Poll::Ready(Some(Ok(Frame::data(self.chunks.remove(0)))))
+    }
+}
+
+fn chunked(open: bool) -> fetchlet::Result<Response> {
+    let chunks = if open {
+        vec![Bytes::from_static(b"alpha;")]
+    } else {
+        [&b"alpha;"[..], b"beta;", b"gamma;"]
+            .map(Bytes::from_static)
+            .to_vec()
+    };
+    http::Response::builder()
+        .header("content-type", "text/plain")
+        .body(Body::from_http_body(Chunked { chunks, open }))
         .map_err(|error| fetchlet::Error::Transport(error.to_string()))
 }
 

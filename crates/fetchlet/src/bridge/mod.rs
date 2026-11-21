@@ -5,7 +5,10 @@ mod dispatcher;
 #[cfg(feature = "fuzzing")]
 mod harness;
 
-pub(crate) use dispatcher::{Disconnect, HostBridge};
+pub(crate) use dispatcher::HostBridge;
+
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) use dispatcher::Disconnect;
 
 #[cfg(any(
     feature = "boa",

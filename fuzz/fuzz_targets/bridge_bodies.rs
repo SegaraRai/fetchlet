@@ -5,7 +5,9 @@
 //!
 //! - a guest buffer is taken once, and only the latest untaken one survives;
 //! - handles and body ids never reach across invocations;
-//! - a body read yields the producer's chunks in order, within its budget;
+//! - a body read yields the producer's chunks in order, within its budget,
+//!   and a whole-body read yields all of them as one buffer or as their
+//!   UTF-8 text;
 //! - finishing, failing, cancelling or ending the invocation releases the
 //!   producer; one read per body is outstanding at a time.
 
@@ -41,8 +43,16 @@ struct ModelBody {
     ended: bool,
     limit: Option<usize>,
     received: usize,
-    reading: Option<String>,
+    /// The outstanding read's ticket and kind.
+    reading: Option<(String, Read)>,
     open: bool,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Read {
+    Chunk,
+    Bytes,
+    Text,
 }
 
 #[derive(Default)]
@@ -165,10 +175,19 @@ fn poll(harness: &BridgeHarness, model: &mut Model) {
         let (&id, body) = model
             .bodies
             .iter_mut()
-            .find(|(_, body)| body.reading.as_deref() == Some(ticket))
+            .find(|(_, body)| {
+                body.reading
+                    .as_ref()
+                    .is_some_and(|(read, _)| read == ticket)
+            })
             .expect("completion for an outstanding read");
-        body.reading = None;
+        let (_, read) = body.reading.take().unwrap();
         let result = &completion["result"];
+        if read != Read::Chunk {
+            complete_whole_read(body, read, result, &mut model.chunks);
+            model.release(id);
+            continue;
+        }
         if !ok(result) {
             // Only a budget overrun or an aborted producer fails a read.
             let code = result["error"]["code"].as_str().unwrap();
@@ -196,6 +215,45 @@ fn poll(harness: &BridgeHarness, model: &mut Model) {
         let handle = value["chunk"].as_u64().expect("chunk handle");
         assert!(model.chunks.insert(handle, expected).is_none());
     }
+}
+
+/// A whole-body read ends with the rest of the body, a budget overrun or an
+/// aborted producer, and releases the body either way.
+fn complete_whole_read(
+    body: &mut ModelBody,
+    read: Read,
+    result: &Value,
+    chunks: &mut BTreeMap<u64, Vec<u8>>,
+) {
+    let mut received = body.received;
+    let mut over = false;
+    for chunk in &body.queued {
+        received += chunk.len();
+        over |= body.limit.is_some_and(|limit| received > limit);
+    }
+    if !ok(result) {
+        let code = result["error"]["code"].as_str().unwrap();
+        assert!(
+            (code == "LIMIT_EXCEEDED" && over)
+                || (code == "INVOCATION_CLOSED" && !over && !body.ended && body.feed.is_none()),
+            "{code}"
+        );
+        return;
+    }
+    assert!(body.ended && !over, "early end of a whole read");
+    assert_eq!(result["value"]["done"], true);
+    let expected: Vec<u8> = body.queued.drain(..).flatten().collect();
+    body.received = received;
+    if read == Read::Text {
+        let bytes = expected.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(&expected);
+        assert_eq!(
+            result["value"]["text"].as_str(),
+            Some(&*String::from_utf8_lossy(bytes))
+        );
+        return;
+    }
+    let handle = result["value"]["chunk"].as_u64().expect("body handle");
+    assert!(chunks.insert(handle, expected).is_none());
 }
 
 fuzz_target!(|data: &[u8]| {
@@ -328,13 +386,23 @@ fuzz_target!(|data: &[u8]| {
                 let current = model.bodies.get(&id).filter(|body| body.open);
                 let fits = model.fits(id.to_string().len());
                 if operation % 11 == 7 {
-                    let reply = harness.dispatch("body.read", &id.to_string());
+                    let read = match selector >> 5 & 3 {
+                        2 => Read::Bytes,
+                        3 => Read::Text,
+                        _ => Read::Chunk,
+                    };
+                    let operation = match read {
+                        Read::Chunk => "body.read",
+                        Read::Bytes => "body.readAll",
+                        Read::Text => "body.readText",
+                    };
+                    let reply = harness.dispatch(operation, &id.to_string());
                     let readable =
                         model.active && fits && current.is_some_and(|body| body.reading.is_none());
                     assert_eq!(ok(&reply), readable, "read {id}: {reply}");
                     if readable {
                         let ticket = reply["value"].as_str().expect("ticket").to_owned();
-                        model.bodies.get_mut(&id).unwrap().reading = Some(ticket);
+                        model.bodies.get_mut(&id).unwrap().reading = Some((ticket, read));
                     }
                 } else {
                     let reply = harness.dispatch("body.cancel", &id.to_string());

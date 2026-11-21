@@ -98,11 +98,21 @@ Rust Body (incoming request, upstream response)
     ──▶ body source owned by the Invocation
     ──▶ body.read on demand
     ──▶ JS ReadableStream
+
+text(), json(), arrayBuffer() … on a body no one has read
+    ──▶ body.readText or body.readAll ──▶ one string or buffer
 ```
 
 - A body that is not buffered — wrapped with `Body::from_http_body`, or
   passed through by `stream_request_bodies()` — reaches the handler as
   `request.body` and is read one chunk at a time.
+- `text()`, `json()`, `arrayBuffer()`, `bytes()`, `blob()` and `formData()`
+  on such a body, before any chunk was read from its stream, take it whole
+  instead: Rust collects the rest of the body under the same budget and
+  hands it over in one host step, as one buffer, or for `text()` and
+  `json()` as a string Rust decoded as UTF-8. The stream stays locked, as
+  a fully read stream is. A stream that was read, teed by `clone()` or
+  piped takes the chunk path.
 - A declared length (size hint or `Content-Length`) over
   `request_body_bytes` fails before execution with `LimitExceeded`.
   Undeclared excess is detected from the running total and errors the stream

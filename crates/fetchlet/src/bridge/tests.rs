@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use serde_json::{Value, json};
 
 use super::HostBridge;
+use super::dispatcher::Whole;
 use crate::host::{FetchPolicy, FetchService, transport_fn};
 use crate::{Body, Error, HostServices, Limits, Response};
 
@@ -343,10 +344,10 @@ fn body_sources_are_read_one_chunk_at_a_time_and_released() {
     let (sender, body) = Body::channel(bytes::Bytes::new(), 1);
     let id = bridge.open_body(body, None, "request body bytes").unwrap();
 
-    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    let ticket = bridge.read_body(&id.to_string(), None).unwrap();
     // A second read of the same body waits for the first.
     assert!(matches!(
-        bridge.read_body(&id.to_string()),
+        bridge.read_body(&id.to_string(), None),
         Err(Error::InvalidRequest(_))
     ));
     assert_eq!(read_completion(&bridge, &ticket), None);
@@ -358,12 +359,12 @@ fn body_sources_are_read_one_chunk_at_a_time_and_released() {
     assert_eq!(&bridge.take_guest_bytes(handle).unwrap()[..], b"abc");
 
     sender.try_send(Ok(("".into(), true))).unwrap();
-    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    let ticket = bridge.read_body(&id.to_string(), None).unwrap();
     let result = read_completion(&bridge, &ticket).unwrap();
     assert_eq!(result["value"], json!({ "chunk": null, "done": true }));
     // A finished body is gone.
     assert!(matches!(
-        bridge.read_body(&id.to_string()),
+        bridge.read_body(&id.to_string(), None),
         Err(Error::InvalidRequest(_))
     ));
     drop(scope);
@@ -371,7 +372,7 @@ fn body_sources_are_read_one_chunk_at_a_time_and_released() {
     // Ids name bodies of the current invocation only.
     let _scope = bridge.begin(Limits::default()).unwrap();
     assert!(matches!(
-        bridge.read_body(&id.to_string()),
+        bridge.read_body(&id.to_string(), None),
         Err(Error::InvalidRequest(_))
     ));
 }
@@ -382,7 +383,7 @@ fn cancelling_a_body_source_drops_its_producer() {
     let _scope = bridge.begin(Limits::default()).unwrap();
     let (sender, body) = Body::channel(bytes::Bytes::new(), 1);
     let id = bridge.open_body(body, None, "request body bytes").unwrap();
-    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    let ticket = bridge.read_body(&id.to_string(), None).unwrap();
     assert_eq!(read_completion(&bridge, &ticket), None);
 
     bridge.cancel_body(&id.to_string()).unwrap();
@@ -403,13 +404,108 @@ fn body_sources_apply_their_budget_to_bytes_read() {
     sender.try_send(Ok(("abc".into(), false))).unwrap();
     sender.try_send(Ok(("de".into(), false))).unwrap();
 
-    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    let ticket = bridge.read_body(&id.to_string(), None).unwrap();
     assert_eq!(read_completion(&bridge, &ticket).unwrap()["ok"], true);
-    let ticket = bridge.read_body(&id.to_string()).unwrap();
+    let ticket = bridge.read_body(&id.to_string(), None).unwrap();
     let result = read_completion(&bridge, &ticket).unwrap();
     assert_eq!(result["error"]["code"], "LIMIT_EXCEEDED");
     // The failed body released its producer.
     assert!(sender.is_closed());
+}
+
+#[test]
+fn a_whole_body_read_collects_the_rest_in_one_buffer() {
+    let bridge = HostBridge::default();
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    let (sender, body) = Body::channel(bytes::Bytes::new(), 1);
+    let id = bridge.open_body(body, None, "response body bytes").unwrap();
+
+    let ticket = bridge
+        .read_body(&id.to_string(), Some(Whole::Bytes))
+        .unwrap();
+    // The whole read is the body's one read in flight.
+    assert!(matches!(
+        bridge.read_body(&id.to_string(), None),
+        Err(Error::InvalidRequest(_))
+    ));
+    // Chunks wait in Rust until the body ends.
+    sender.try_send(Ok(("abc".into(), false))).unwrap();
+    assert_eq!(read_completion(&bridge, &ticket), None);
+    sender.try_send(Ok(("de".into(), true))).unwrap();
+    let result = read_completion(&bridge, &ticket).unwrap();
+    assert_eq!(result["value"]["done"], true);
+    let handle = result["value"]["chunk"].as_f64().unwrap();
+    assert_eq!(&bridge.take_guest_bytes(handle).unwrap()[..], b"abcde");
+    // The finished body is gone.
+    assert!(matches!(
+        bridge.read_body(&id.to_string(), Some(Whole::Bytes)),
+        Err(Error::InvalidRequest(_))
+    ));
+
+    // An empty body reads as an empty buffer.
+    let id = bridge
+        .open_body(Body::empty(), None, "response body bytes")
+        .unwrap();
+    let ticket = bridge
+        .read_body(&id.to_string(), Some(Whole::Bytes))
+        .unwrap();
+    let result = read_completion(&bridge, &ticket).unwrap();
+    let handle = result["value"]["chunk"].as_f64().unwrap();
+    assert!(bridge.take_guest_bytes(handle).unwrap().is_empty());
+}
+
+#[test]
+fn a_whole_body_read_as_text_decodes_as_fetch_does() {
+    let bridge = HostBridge::default();
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    let (sender, body) = Body::channel(bytes::Bytes::new(), 2);
+    let id = bridge.open_body(body, None, "response body bytes").unwrap();
+    // The byte order mark goes, and a sequence split across chunks decodes
+    // once the body is whole; invalid bytes become U+FFFD.
+    sender
+        .try_send(Ok((b"\xEF\xBB\xBFcaf\xC3"[..].into(), false)))
+        .unwrap();
+    sender
+        .try_send(Ok((b"\xA9 \xFF\xEF\xBB\xBF"[..].into(), true)))
+        .unwrap();
+    let ticket = bridge
+        .read_body(&id.to_string(), Some(Whole::Text))
+        .unwrap();
+    let result = read_completion(&bridge, &ticket).unwrap();
+    assert_eq!(
+        result["value"],
+        json!({ "text": "caf\u{e9} \u{fffd}\u{feff}", "done": true })
+    );
+}
+
+#[test]
+fn a_whole_body_read_keeps_the_budget_and_releases_on_cancel() {
+    let bridge = HostBridge::default();
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    let (sender, body) = Body::channel(bytes::Bytes::new(), 2);
+    let id = bridge
+        .open_body(body, Some(4), "response body bytes")
+        .unwrap();
+    sender.try_send(Ok(("abc".into(), false))).unwrap();
+    sender.try_send(Ok(("de".into(), false))).unwrap();
+    let ticket = bridge
+        .read_body(&id.to_string(), Some(Whole::Bytes))
+        .unwrap();
+    let result = read_completion(&bridge, &ticket).unwrap();
+    assert_eq!(result["error"]["code"], "LIMIT_EXCEEDED");
+    assert!(sender.is_closed());
+
+    // Cancelling drops the producer and the chunks collected so far.
+    let (sender, body) = Body::channel(bytes::Bytes::new(), 1);
+    let id = bridge.open_body(body, None, "response body bytes").unwrap();
+    bridge
+        .read_body(&id.to_string(), Some(Whole::Bytes))
+        .unwrap();
+    sender.try_send(Ok(("abc".into(), false))).unwrap();
+    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
+    bridge.cancel_body(&id.to_string()).unwrap();
+    assert!(sender.is_closed());
+    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
 }
 
 #[test]

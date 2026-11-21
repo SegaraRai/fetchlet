@@ -191,12 +191,12 @@ tanstack-start-axum, solid-axum and solidstart-axum keep
 ### Development reloads under `ViteDev`
 
 A new instance under `ViteDev` fetches and evaluates every module from Vite
-again: 2.4 seconds for Astro on QuickJS. Cancelled requests no longer cause
-one (`CancelledCalls::Finish`), but a call past its deadline still does.
-Reading a whole host fetch body without the guest's
-stream path would shorten each, about 1.1 of the 2.4 seconds
-([measurements](research/dev-loop.md#why-a-cancelled-request-costs-a-module-reload)),
-and would speed up application fetches too.
+again. Cancelled requests no longer cause one (`CancelledCalls::Finish`),
+but a call past its deadline still does, and host bodies are now read whole
+([measurements](research/dev-loop.md#why-a-cancelled-request-costs-a-module-reload)).
+Keeping the runner's transformed modules in Rust across instances would
+save the remaining transport; time an Astro reload on QuickJS first to see
+what is left of the 2.4 seconds.
 
 ### React Router
 

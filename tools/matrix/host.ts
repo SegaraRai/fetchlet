@@ -103,6 +103,40 @@ for (const backend of backends) {
       assert.deepEqual(streamed[1], { ok: true, value: 42 });
     });
 
+    const chunkedUrl = "https://api.fetchlet.test/chunked";
+    const chunked = runSession(backend, true, [
+      command("readChunkedBody", chunkedUrl, "text"),
+      command("readChunkedBody", chunkedUrl, "arrayBuffer"),
+      command("readChunkedBody", chunkedUrl, "clone"),
+      command("readChunkedBody", chunkedUrl, "reader"),
+      command("readChunkedBody", chunkedUrl, "released"),
+      command("abortChunkedBody", "https://api.fetchlet.test/chunked-open"),
+      command("add", 20, 22),
+    ]);
+    check(backend, "whole-host-body-read", () => {
+      assert.deepEqual(value(chunked[0]), {
+        text: "alpha;beta;gamma;",
+        used: true,
+        locked: true,
+        again: "TypeError",
+      });
+      assert.deepEqual(value(chunked[1]), { length: 17, text: "alpha;beta;gamma;" });
+    });
+    check(backend, "host-body-read-by-stream", () => {
+      assert.deepEqual(value(chunked[2]), {
+        texts: ["alpha;beta;gamma;", "alpha;beta;gamma;"],
+      });
+      assert.deepEqual(value(chunked[3]), { chunks: ["alpha;", "beta;", "gamma;"] });
+      assert.deepEqual(value(chunked[4]), { text: "alpha;beta;gamma;" });
+    });
+    check(backend, "abort-while-reading-host-body-whole", () => {
+      assert.deepEqual(chunked[5], {
+        ok: true,
+        value: { aborted: true, message: "body aborted" },
+      });
+      assert.deepEqual(chunked[6], { ok: true, value: 42 });
+    });
+
     const replies = runSession(backend, true, [
       command("hostEnvironment"),
       command("fetchThroughHost", "https://api.fetchlet.test/data", [0, 128, 255]),

@@ -78,3 +78,9 @@ opt-level = 3
 
 [profile.dev.package.curve25519-dalek]
 opt-level = 3
+
+# Every bridge message is JSON, and a host body read as text crosses as one
+# JSON string: unoptimized, escaping megabytes of transformed modules under
+# ViteDev costs more than decoding them in JavaScript.
+[profile.dev.package.serde_json]
+opt-level = 3

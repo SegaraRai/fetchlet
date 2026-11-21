@@ -93,7 +93,7 @@ async fn host_functions_are_claimed_once_by_the_bundle() -> anyhow::Result<()> {
         assert_eq!(
             host,
             json!({
-                "claimed": ["call", "putBytes", "takeBytes"],
+                "claimed": ["call", "putBytes", "readWholeBody", "takeBytes"],
                 "bindings": true,
                 "claimedAgain": "undefined",
                 "atLoad": ["undefined", "undefined", "undefined", "undefined"],

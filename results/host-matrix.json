@@ -10,7 +10,7 @@
     }
   },
   "summary": {
-    "passed": 36,
+    "passed": 45,
     "failed": 0
   },
   "results": [
@@ -31,6 +31,21 @@
     },
     {
       "backend": "quickjs",
+      "name": "whole-host-body-read",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "host-body-read-by-stream",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
+      "name": "abort-while-reading-host-body-whole",
+      "status": "pass"
+    },
+    {
+      "backend": "quickjs",
       "name": "explicit-frozen-bindings",
       "status": "pass"
     },
@@ -91,6 +106,21 @@
     },
     {
       "backend": "boa",
+      "name": "whole-host-body-read",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "host-body-read-by-stream",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
+      "name": "abort-while-reading-host-body-whole",
+      "status": "pass"
+    },
+    {
+      "backend": "boa",
       "name": "explicit-frozen-bindings",
       "status": "pass"
     },
@@ -147,6 +177,21 @@
     {
       "backend": "v8",
       "name": "streamed-request-body-through-web-runtime",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "whole-host-body-read",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "host-body-read-by-stream",
+      "status": "pass"
+    },
+    {
+      "backend": "v8",
+      "name": "abort-while-reading-host-body-whole",
       "status": "pass"
     },
     {

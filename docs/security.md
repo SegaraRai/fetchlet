@@ -77,14 +77,17 @@ headers and redirect count of every request that reaches the transport.
 
 `fuzz/fuzz_targets/bridge_bodies.rs` mutates sequences of operations a guest
 can perform through native callbacks: storing and claiming byte handles,
-`body.read`, `body.cancel` and `fetch.poll` on body sources, arbitrary host
-operations, producer chunks, ends and failures, and invocation start and
-end. It compares the results with a model and checks that:
+`body.read`, `body.readAll`, `body.readText`, `body.cancel` and
+`fetch.poll` on body sources, arbitrary host operations, producer chunks,
+ends and failures, and invocation start and end. It compares the results
+with a model and checks that:
 
 - a guest buffer is claimed at most once, and only the latest unclaimed
   buffer remains;
 - handles and body ids never cross invocations;
-- body reads return the producer's chunks in order, within budget;
+- body reads return the producer's chunks in order, within budget, and a
+  whole-body read returns all of them as one buffer or as their UTF-8
+  text;
 - completion, error, cancellation and invocation end release the producer,
   and a body has at most one read in flight.
 

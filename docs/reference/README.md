@@ -34,9 +34,9 @@ describes the suites. Each section names the versions its run recorded.
 
 | Engine  | Passed  |
 | ------- | ------- |
-| QuickJS | 12 / 12 |
-| Boa     | 12 / 12 |
-| V8      | 12 / 12 |
+| QuickJS | 15 / 15 |
+| Boa     | 15 / 15 |
+| V8      | 15 / 15 |
 
 ## Conformance
 

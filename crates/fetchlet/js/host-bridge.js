@@ -22,6 +22,8 @@
         call: (operation, input) => nativeDispatch(operation, input),
         putBytes: (bytes) => putBytes(bytes),
         takeBytes: (handle) => takeBytes(handle),
+        readWholeBody: (stream, text, onValue, onError) =>
+          readWholeBody(stream, text, onValue, onError),
       });
     },
     writable: false,
@@ -43,6 +45,9 @@
   const pendingFetches = new Map();
   // Outstanding reads of Rust bodies: ticket -> { id, resolve, reject }.
   const pendingReads = new Map();
+  // Streams over Rust bodies that no one has read yet, and how to read each
+  // whole at once.
+  const wholeReads = new WeakMap();
 
   function hostError(description) {
     const error = new Error(description.message);
@@ -320,6 +325,43 @@
     });
   }
 
+  // Read the rest of a Rust body as one buffer, or with `text` as a string
+  // Rust decoded as UTF-8. The callbacks run in the host pump, not as
+  // promise reactions, so they must not throw.
+  function readWholeHostBody(id, text, onValue, onError) {
+    const ticket = dispatch(text ? "body.readText" : "body.readAll", id);
+    pendingReads.set(ticket, {
+      id,
+      resolve(completion) {
+        if (text) {
+          onValue(completion.text);
+          return;
+        }
+        let bytes;
+        try {
+          bytes = takeBytes(completion.chunk);
+        } catch (error) {
+          onError(error);
+          return;
+        }
+        onValue(bytes);
+      },
+      reject: onError,
+    });
+  }
+
+  // Read a host body stream whole, sparing a host step and stream promises
+  // per chunk. Returns false when the stream is no host body or was read.
+  // The caller locks the stream right after, so no one else reads it.
+  function readWholeBody(stream, text, onValue, onError) {
+    const read = wholeReads.get(stream);
+    if (read === undefined) {
+      return false;
+    }
+    wholeReads.delete(stream);
+    return read(text === true, onValue, onError);
+  }
+
   function cancelHostBody(id) {
     for (const [ticket, pending] of pendingReads) {
       if (pending.id === id) {
@@ -340,9 +382,12 @@
   function hostBodyStream(id, signal) {
     let controller;
     let open = true;
+    // The error callback of a whole read in progress.
+    let wholeFailed = null;
 
     function finish() {
       open = false;
+      wholeReads.delete(stream);
       signal?.removeEventListener("abort", abort);
     }
 
@@ -353,6 +398,27 @@
       finish();
       cancelHostBody(id);
       controller.error(signal.reason);
+      const failed = wholeFailed;
+      wholeFailed = null;
+      failed?.(signal.reason);
+    }
+
+    function readWhole(text, onValue, onError) {
+      if (!open) {
+        return false;
+      }
+      const settle = (callback) => (value) => {
+        wholeFailed = null;
+        finish();
+        callback(value);
+      };
+      wholeFailed = settle(onError);
+      try {
+        readWholeHostBody(id, text, settle(onValue), wholeFailed);
+      } catch (error) {
+        wholeFailed(error);
+      }
+      return true;
     }
 
     const source = {
@@ -361,6 +427,8 @@
         signal?.addEventListener("abort", abort, { once: true });
       },
       pull(streamController) {
+        // A stream read by chunks is no longer whole.
+        wholeReads.delete(stream);
         return readHostBody(id).then(
           ({ chunk, done }) => {
             if (!open) {
@@ -386,9 +454,12 @@
         }
       },
     };
-    return supportsByteStreams()
+    // The callbacks above run only once the stream exists.
+    const stream = supportsByteStreams()
       ? new ReadableStream({ ...source, type: "bytes" })
       : new ReadableStream(source, { highWaterMark: 0 });
+    wholeReads.set(stream, readWhole);
+    return stream;
   }
 
   Object.defineProperty(globalThis, "__fetchletHostBodies", {

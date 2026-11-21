@@ -14,6 +14,19 @@ export interface Host {
   putBytes(bytes: Uint8Array): number;
   /** Take the bytes the host stored under `handle`. */
   takeBytes(handle: number): Uint8Array;
+  /**
+   * Read a stream over a host body whole, in one host operation: as bytes,
+   * or with `text` as a string the host decoded as Fetch's `text()` does.
+   * The caller locks the stream right after. Returns false, without calling
+   * either callback, when the stream is no unread host body. The callbacks
+   * run in the host's pump, so they must not throw.
+   */
+  readWholeBody?(
+    stream: ReadableStream<Uint8Array>,
+    text: boolean,
+    onValue: (value: Uint8Array | string) => void,
+    onError: (error: unknown) => void,
+  ): boolean;
 }
 
 let claimed: Host | null | undefined;
