@@ -1,6 +1,7 @@
 use std::num::NonZeroUsize;
+use std::time::Duration;
 
-/// Configuration of the thread that owns a shared application.
+/// Configuration of the threads that own a shared application.
 #[derive(Debug, Clone)]
 pub struct WorkerOptions {
     /// Commands waiting behind the currently executing call.
@@ -16,6 +17,47 @@ pub struct WorkerOptions {
     /// What the worker does with a call whose caller goes away while it
     /// runs. [`CancelledCalls::Retire`] by default.
     pub cancelled_calls: CancelledCalls,
+    /// How many instances serve the queue. One by default.
+    pub instances: Instances,
+}
+
+/// The instances of an [`AppHandle`](crate::AppHandle), each on its own
+/// worker thread and each running one call at a time.
+///
+/// Every instance is built from the same module, host services and limits.
+/// Instances share no JavaScript state: module-level state exists once per
+/// instance. Commands wait in one queue and go to whichever instance is free.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Instances {
+    /// Instances built at spawn and kept while idle. A retired instance is
+    /// rebuilt after the call that retired it, before its worker takes the
+    /// next command.
+    pub min: NonZeroUsize,
+    /// The most instances the pool runs. A caller budget: each instance holds
+    /// its own engine heap, so `max` times the heap configured in the engine
+    /// options bounds the pool's JavaScript memory. When every instance is
+    /// busy and fewer than `max` exist, a queued command starts another.
+    pub max: NonZeroUsize,
+    /// How long an instance above `min` stays idle before it retires. None
+    /// keeps every instance the pool started.
+    pub idle_timeout: Option<Duration>,
+}
+
+impl Instances {
+    /// Exactly `count` instances, all built at spawn.
+    pub fn fixed(count: NonZeroUsize) -> Self {
+        Self {
+            min: count,
+            max: count,
+            idle_timeout: None,
+        }
+    }
+}
+
+impl Default for Instances {
+    fn default() -> Self {
+        Self::fixed(NonZeroUsize::MIN)
+    }
 }
 
 /// What the worker does with a call or Fetch request whose caller goes away
@@ -50,6 +92,7 @@ impl WorkerOptions {
             stack_size_bytes: None,
             response_body_queue: NonZeroUsize::MIN,
             cancelled_calls: CancelledCalls::Retire,
+            instances: Instances::default(),
         }
     }
 }

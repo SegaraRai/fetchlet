@@ -11,4 +11,4 @@ mod runtime;
 mod streaming;
 
 pub use handle::AppHandle;
-pub use options::{CancelledCalls, WorkerOptions};
+pub use options::{CancelledCalls, Instances, WorkerOptions};

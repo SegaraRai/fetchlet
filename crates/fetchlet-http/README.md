@@ -50,6 +50,7 @@ Server::new("build")
 | `backend(backend)`      | `Backend::for_target` of the artifact's `backend`; with the default worker, a 4 MiB QuickJS stack limit; for Boa, 131,072 value stack slots and 10,000 calls |
 | `worker(options)`       | A queue of 8 commands and a 64 MiB native stack                                                                                                              |
 | `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                              |
+| `instances(i)`          | One instance; changes only the instances of the worker options                                                                                               |
 
 The stack defaults are the depth the repository's framework examples need:
 React's server renderer retries an element after a QuickJS stack overflow
@@ -63,9 +64,16 @@ that point beyond `JSON.stringify` of 10,000 nested arrays in debug builds
 and 50,000 in release builds. QuickJS and V8 throw a catchable `RangeError`
 instead.
 
-The queue bounds the commands waiting for the engine thread, which runs one
-request at a time. When it is full, further requests wait for room rather
-than fail, so a slow handler shows up as latency.
+The queue bounds the commands waiting for the instances. Each instance runs
+one request at a time, and the default worker options have one; set
+more with `instances`. Each instance keeps its own module state and heap;
+[sizing](../../docs/research/instance-pools.md#sizing) gives measured
+throughput by pool size and how to choose `max`. When the
+queue is full, further requests wait for room rather than fail, so a slow
+handler shows up as latency. When the server runs on a multi-thread Tokio
+runtime, it passes that runtime to `AppBuilder::host_runtime`, so tasks that
+host transports spawn, such as pooled connections, keep running while an
+instance runs JavaScript.
 
 The crate's development features change how `serve` serves the build, with
 the same routes and services:

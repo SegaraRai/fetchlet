@@ -176,6 +176,9 @@ pub(crate) struct HostBridge {
     clock: Clock,
     /// The application identity used to refuse reentrant calls.
     key: u64,
+    /// The runtime whose context host futures are polled in, if not the
+    /// instance's own ([`AppBuilder::host_runtime`](crate::AppBuilder::host_runtime)).
+    runtime: Option<tokio::runtime::Handle>,
 }
 
 impl Default for HostBridge {
@@ -197,6 +200,7 @@ impl HostBridge {
             wake: WakeSignal::default(),
             clock: Clock::default(),
             key: reentry::new_key(),
+            runtime: None,
         }
     }
 
@@ -207,6 +211,16 @@ impl HostBridge {
     )]
     pub fn with_key(mut self, key: u64) -> Self {
         self.key = key;
+        self
+    }
+
+    /// Poll host futures in the context of `runtime`.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn with_runtime(mut self, runtime: tokio::runtime::Handle) -> Self {
+        self.runtime = Some(runtime);
         self
     }
 
@@ -517,6 +531,9 @@ impl HostBridge {
         let mut completed = Vec::new();
         // Host code polled here must not call this application again.
         let _polling = reentry::enter(self.key);
+        // Tasks, timers and I/O that host futures create belong to the host
+        // runtime, so they progress while this instance runs JavaScript.
+        let _runtime = self.runtime.as_ref().map(tokio::runtime::Handle::enter);
 
         let InvocationState {
             pending_fetches,

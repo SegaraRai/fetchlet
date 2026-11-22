@@ -47,7 +47,7 @@ client ──HTTP──▶ server (axum, hyper, actix, Tower)
                    │ request body collected within request_body_bytes,
                    │   or streamed with stream_request_bodies()
                    ▼
-                 AppHandle ──queue──▶ worker thread
+                 AppHandle ──queue──▶ a free worker thread
                                         │ Instance, new Invocation
                                         ▼
                                       wire request ──▶ Fetch entry (JS)

@@ -65,12 +65,16 @@ calls take `&mut self` and run one at a time.
 
 ### AppHandle and WorkerOptions
 
-`AppBuilder::spawn(WorkerOptions)` starts the app on its own thread and
+`AppBuilder::spawn(WorkerOptions)` starts the app on worker threads and
 returns an `AppHandle`, which is `Clone + Send + Sync`. The handle owns the
-queue (`queue_capacity`), the worker's native stack size and
-`response_body_queue`. Dropping a call's future cancels that call. An
-instance that became unusable is rebuilt from the same module, bindings and
-settings before the next call. `shutdown()` stops accepting calls and waits
+queue (`queue_capacity`), the workers' native stack size,
+`response_body_queue` and `instances`: each worker thread owns one instance
+and runs one call at a time, and the queue goes to whichever is free. The
+pool starts `min` instances, adds one when a command waits and every
+instance is busy, up to `max`, and retires instances above `min` after
+`idle_timeout`. Dropping a call's future cancels that call. An instance
+that became unusable is rebuilt from the same module, bindings and settings
+after that call. `shutdown()` stops accepting calls and waits
 for accepted ones and their resources.
 
 ### Instance

@@ -18,18 +18,22 @@ use {
 
 struct Shared {
     sender: mpsc::Sender<Command>,
-    shutdown: watch::Sender<bool>,
+    shutdown: Arc<watch::Sender<bool>>,
     status: watch::Receiver<WorkerStatus>,
     limits: Limits,
     /// The application identity, to refuse calls from its own host fetches.
     key: u64,
+    /// The workers, which a queued command may ask to grow.
+    #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+    pool: Arc<runtime::Pool>,
 }
 
-/// A cloneable Send + Sync handle to one application on its owning thread.
+/// A cloneable Send + Sync handle to one application on its worker threads.
 ///
-/// Calls execute serially. The configured mailbox applies backpressure before
-/// accepting more work. Dropping a call future cancels that call; the worker
-/// recreates a retired instance before the next call.
+/// Each instance executes one call at a time; [`WorkerOptions::instances`]
+/// sets how many serve the queue. The configured queue applies backpressure
+/// before accepting more work. Dropping a call future cancels that call; a
+/// worker replaces a retired instance after the call that retired it.
 #[derive(Clone)]
 pub struct AppHandle {
     shared: Arc<Shared>,
@@ -43,29 +47,30 @@ impl AppHandle {
         limits: Limits,
     ) -> Result<Self> {
         let (sender, receiver) = mpsc::channel(options.queue_capacity.get());
-        let (shutdown, stopping) = watch::channel(false);
+        let shutdown = Arc::new(watch::channel(false).0);
         let (report, status) = watch::channel(WorkerStatus::Running);
-        let (initialized, ready) = oneshot::channel();
         let key = new_key();
         let builder = builder.keyed(key);
-        runtime::spawn(builder, options, receiver, stopping, initialized, report)?;
-        let handle = Self {
+        let pool = match runtime::Pool::start(builder, options, receiver, shutdown.clone(), report)
+            .await
+        {
+            Ok(pool) => pool,
+            Err(Error::WorkerClosed) => {
+                wait_for_shutdown(status).await?;
+                return Err(Error::WorkerClosed);
+            }
+            Err(error) => return Err(error),
+        };
+        Ok(Self {
             shared: Arc::new(Shared {
                 sender,
                 shutdown,
                 status,
                 limits,
                 key,
+                pool,
             }),
-        };
-        match ready.await {
-            Ok(result) => result?,
-            Err(_) => {
-                wait_for_shutdown(handle.shared.status.clone()).await?;
-                return Err(Error::WorkerClosed);
-            }
-        }
-        Ok(handle)
+        })
     }
 
     pub fn limits(&self) -> &Limits {
@@ -147,6 +152,13 @@ impl AppHandle {
             return Err(Error::WorkerClosed);
         }
         permit.send(command);
+        #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+        {
+            let sender = &self.shared.sender;
+            self.shared
+                .pool
+                .grow(sender.max_capacity() - sender.capacity());
+        }
         Ok(())
     }
 

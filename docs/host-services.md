@@ -157,6 +157,14 @@ with host fetches still pending retires it; `App::is_reusable()` reports
 this, and calls on a retired `App` fail with `InstanceUnavailable`.
 `AppHandle` rebuilds the instance instead.
 
+Host futures are polled on the thread that runs the instance, in the
+context of its runtime. `AppBuilder::host_runtime(handle)` polls them in the
+context of a shared runtime instead, so that what a transport spawns, such
+as the connection task of a pooled HTTP client, keeps running while an
+instance runs JavaScript. Other instances that reuse the connection then do
+not wait for it ([instance pools](research/instance-pools.md#host-transport-tasks)).
+fetchlet-http's `Server` passes its runtime when it is a multi-thread one.
+
 Timers left when a call ends are discarded. A streaming body holds its
 invocation until it completes or is cancelled, and work registered with
 `fetchlet.waitUntil` keeps the invocation open within `background_timeout`

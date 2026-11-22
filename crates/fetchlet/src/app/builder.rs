@@ -12,6 +12,7 @@ pub struct AppBuilder {
     pub(super) handler: Option<String>,
     /// The identity a worker keeps across the instances it recreates.
     pub(super) key: Option<u64>,
+    pub(super) host_runtime: Option<tokio::runtime::Handle>,
 }
 
 impl AppBuilder {
@@ -39,6 +40,24 @@ impl AppBuilder {
         self
     }
 
+    /// Poll host fetches, host bodies and the work they start in the context
+    /// of `runtime`.
+    ///
+    /// By default host futures run in the context of the runtime that drives
+    /// the instance: an `AppHandle` worker's own current-thread runtime, or
+    /// the caller's for an `App`. On QuickJS and Boa, JavaScript runs on that
+    /// runtime's thread, so a task that a transport spawns there, such as the
+    /// connection task of a pooled HTTP client, makes progress only while that
+    /// instance's JavaScript yields, and another instance that reuses the
+    /// connection waits for it. With a host runtime, `tokio::spawn`, timers and
+    /// I/O inside host futures use `runtime` instead. It must be driven by
+    /// threads of its own, as a multi-thread runtime is, and outlive the
+    /// application.
+    pub fn host_runtime(mut self, runtime: tokio::runtime::Handle) -> Self {
+        self.host_runtime = Some(runtime);
+        self
+    }
+
     /// Keep one application identity across the instances a worker builds.
     pub(crate) fn keyed(mut self, key: u64) -> Self {
         self.key = Some(key);
@@ -60,6 +79,9 @@ impl AppBuilder {
         let mut host = HostBridge::with_limits(self.hosts, self.limits.clone());
         if let Some(key) = self.key {
             host = host.with_key(key);
+        }
+        if let Some(runtime) = self.host_runtime {
+            host = host.with_runtime(runtime);
         }
         let engine = Engine::new(self.backend, &module, host.clone())?;
         Ok(App {

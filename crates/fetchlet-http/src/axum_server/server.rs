@@ -8,7 +8,7 @@ use axum::Router;
 use tokio::net::TcpListener;
 
 use fetchlet::{
-    App, AppHandle, Backend, CancelledCalls, HostServices, Limits, Module, WorkerOptions,
+    App, AppHandle, Backend, CancelledCalls, HostServices, Instances, Limits, Module, WorkerOptions,
 };
 
 use super::{AxumService, artifact_router};
@@ -112,6 +112,7 @@ pub struct Server {
     limits: Limits,
     worker: Option<WorkerOptions>,
     queue_capacity: Option<NonZeroUsize>,
+    instances: Option<Instances>,
     public_origin: Option<String>,
     rendering: Arc<RenderingFn>,
 }
@@ -129,6 +130,7 @@ impl Server {
             limits: Limits::default(),
             worker: None,
             queue_capacity: None,
+            instances: None,
             public_origin: None,
             rendering: Arc::new(|service| service),
         }
@@ -168,8 +170,8 @@ impl Server {
         self
     }
 
-    /// The application's worker thread. By default, a queue of 8 commands
-    /// and a 64 MiB native stack.
+    /// The application's worker options. By default, a queue of 8 commands,
+    /// one instance and a 64 MiB native stack for each worker thread.
     pub fn worker(mut self, worker: WorkerOptions) -> Self {
         self.worker = Some(worker);
         self
@@ -179,6 +181,14 @@ impl Server {
     /// worker options. 8 by default.
     pub fn queue_capacity(mut self, capacity: NonZeroUsize) -> Self {
         self.queue_capacity = Some(capacity);
+        self
+    }
+
+    /// The instances that serve requests, keeping the rest of the worker
+    /// options. One by default. Each runs one request at a time and has its
+    /// own engine heap and module state; see [`Instances`].
+    pub fn instances(mut self, instances: Instances) -> Self {
+        self.instances = Some(instances);
         self
     }
 
@@ -265,6 +275,7 @@ impl Server {
             limits: self.limits,
             worker: self.worker,
             queue_capacity: self.queue_capacity,
+            instances: self.instances,
             origin,
             rendering: self.rendering,
         });
@@ -399,6 +410,7 @@ struct Settings {
     limits: Limits,
     worker: Option<WorkerOptions>,
     queue_capacity: Option<NonZeroUsize>,
+    instances: Option<Instances>,
     origin: String,
     rendering: Arc<RenderingFn>,
 }
@@ -429,6 +441,9 @@ impl Settings {
         if let Some(capacity) = self.queue_capacity {
             worker.queue_capacity = capacity;
         }
+        if let Some(instances) = self.instances {
+            worker.instances = instances;
+        }
         if let Some(cancelled_calls) = cancelled_calls {
             worker.cancelled_calls = cancelled_calls;
         }
@@ -436,7 +451,7 @@ impl Settings {
             Some(backend) => backend,
             None => default_backend(artifact, &worker)?,
         };
-        let app = App::builder(backend)
+        let mut builder = App::builder(backend)
             .module(Module::new(artifact.server_source().map_err(|source| {
                 ServerError::Artifact {
                     directory: artifact.directory().map(PathBuf::from).unwrap_or_default(),
@@ -445,9 +460,17 @@ impl Settings {
             })?))
             .fetch_handler(artifact.handler())
             .host_services(services)
-            .limits(self.limits.clone())
-            .spawn(worker)
-            .await?;
+            .limits(self.limits.clone());
+        // Host transport tasks, such as pooled connections, run on the
+        // server's runtime, so no instance's JavaScript holds them up. A
+        // current-thread runtime progresses only while its own thread waits,
+        // so it is left to the workers.
+        if let Ok(runtime) = tokio::runtime::Handle::try_current()
+            && runtime.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread
+        {
+            builder = builder.host_runtime(runtime);
+        }
+        let app = builder.spawn(worker).await?;
         let rendering = AxumService::new(app.clone(), &self.origin)?
             .on_error(|error| eprintln!("fetchlet: request failed: {error:#}"));
         let rendering = (self.rendering)(rendering);

@@ -3,10 +3,11 @@
 //
 //   vp run bench [-- --frameworks honox,waku] [--backends quickjs,v8]
 //     [--endpoints ssr,context] [--connections 8] [--warmup-ms 2000]
-//     [--duration-ms 10000] [--skip-build] [--merge]
+//     [--duration-ms 10000] [--instances 1] [--skip-build] [--merge]
 //
 // Each (framework, backend) pair gets an artifact built for that backend and
-// one server process with one App instance on one worker thread. `bare` is a
+// one server process whose App runs --instances instances, each on its own
+// worker thread. `bare` is a
 // handler without a framework, served by the HonoX example's binary. The
 // `node` backend serves the v8 artifact (bare: the handler itself) from
 // node:http without fetchlet's Rust host; see node-server.ts. Results go
@@ -52,6 +53,7 @@ interface Report {
   environment: Environment;
   machine: { cpu: string | undefined; threads: number; platform: string };
   connections: number;
+  instances: number;
   warmupMs: number;
   durationMs: number;
   endpoints: string[];
@@ -105,6 +107,7 @@ function parseArgs(args: string[]) {
     backends: allBackends,
     endpoints: Object.keys(endpoints),
     connections: 8,
+    instances: 1,
     warmupMs: 2000,
     durationMs: 10000,
     skipBuild: false,
@@ -132,6 +135,8 @@ function parseArgs(args: string[]) {
       parsed.endpoints = value.split(",");
     } else if (flag === "--connections") {
       parsed.connections = Number(value);
+    } else if (flag === "--instances") {
+      parsed.instances = Number(value);
     } else if (flag === "--warmup-ms") {
       parsed.warmupMs = Number(value);
     } else if (flag === "--duration-ms") {
@@ -228,6 +233,11 @@ async function startServer(framework: string, backend: string) {
   // The queue must hold every connection's request so overload is not measured.
   // The Rust server's default queue is 8.
   config.queue_capacity = Math.max(config.queue_capacity ?? 8, options.connections);
+  // A fixed pool, so growth does not count in the measurement.
+  if (options.instances > 1) {
+    config.min_instances = options.instances;
+    config.max_instances = options.instances;
+  }
   // The Rust server runs the engine the copied build was made for.
   if (backend === "node") {
     config.node = framework === "bare" ? "bare" : "artifact";
@@ -347,7 +357,7 @@ function markdown(report: Report): string {
     ``,
     `${report.environment.rustc} / Node ${report.environment.node} / ${Object.values(report.environment.engines).join(", ")}`,
     ``,
-    `Release build, axum on a current_thread tokio runtime, one App instance on one worker thread; ` +
+    `Release build, axum on a current_thread tokio runtime, ${report.instances} App instance(s), each on its own worker thread; ` +
       `\`node\` rows serve the v8 artifact (bare: the handler itself) from node:http in one process. ` +
       `${report.connections} keep-alive connections, ${report.warmupMs} ms warmup, ${report.durationMs} ms measured per endpoint. ` +
       `Values are successful req/s (p50 latency ms); \`-\` marks a failure listed below.`,
@@ -384,7 +394,7 @@ function markdown(report: Report): string {
 /** Replace the measured rows in the existing report, keeping its order and settings. */
 async function mergeInto(report: Report): Promise<void> {
   const previous = JSON.parse(await readFile(resolve(cache, "bench.json"), "utf8")) as Report;
-  for (const key of ["connections", "warmupMs", "durationMs"] as const) {
+  for (const key of ["connections", "instances", "warmupMs", "durationMs"] as const) {
     if (previous[key] !== report[key]) {
       throw new Error(
         `--merge needs the same ${key} as .cache/bench/bench.json (${previous[key]})`,
@@ -441,6 +451,7 @@ async function main() {
       platform: `${process.platform} ${os.release()}`,
     },
     connections: options.connections,
+    instances: options.instances,
     warmupMs: options.warmupMs,
     durationMs: options.durationMs,
     endpoints: options.endpoints,

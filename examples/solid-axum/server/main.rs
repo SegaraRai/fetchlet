@@ -15,7 +15,7 @@ use axum::routing::get;
 use serde::Deserialize;
 use tokio::net::TcpListener;
 
-use fetchlet::Limits;
+use fetchlet::{Instances, Limits};
 use fetchlet_http::Server;
 
 /// `config.json` beside `Cargo.toml`, or the file the first argument names.
@@ -36,6 +36,13 @@ struct Config {
     background_tasks: Option<usize>,
     /// Requests waiting for the engine thread; 8 by default.
     queue_capacity: Option<NonZeroUsize>,
+    /// The most instances serving requests, each with its own engine and
+    /// module state; one by default. More start while every instance is busy.
+    max_instances: Option<NonZeroUsize>,
+    /// Instances kept while idle, up to `max_instances`; 1 by default.
+    min_instances: Option<NonZeroUsize>,
+    /// How long an instance above `min_instances` stays idle before it stops.
+    instance_idle_timeout_ms: Option<u64>,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -59,6 +66,13 @@ async fn main() -> Result<()> {
         .rendering(|service| service.stream_request_bodies());
     if let Some(capacity) = config.queue_capacity {
         server = server.queue_capacity(capacity);
+    }
+    if let Some(max) = config.max_instances {
+        server = server.instances(Instances {
+            min: config.min_instances.unwrap_or(NonZeroUsize::MIN),
+            max,
+            idle_timeout: config.instance_idle_timeout_ms.map(Duration::from_millis),
+        });
     }
     if let Some(origin) = config.public_origin {
         server = server.public_origin(origin);

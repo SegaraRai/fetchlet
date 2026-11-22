@@ -47,6 +47,7 @@ impl App {
             limits: Limits::default(),
             handler: Some("handle".into()),
             key: None,
+            host_runtime: None,
         }
     }
 

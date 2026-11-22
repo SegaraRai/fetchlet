@@ -142,34 +142,33 @@ retires the instance.
 
 ### Instance pools
 
-`App` and `AppHandle` run one instance serially.
-[Instance pools](research/instance-pools.md) designs several instances
-behind one `AppHandle`, each still running one invocation at a time, so no
-async context is needed. The order of work:
+`WorkerOptions::instances` runs several instances behind one `AppHandle`,
+each running one invocation at a time, with a shared queue, growth to `max`
+and retirement after `idle_timeout` (`crates/fetchlet/tests/pool.rs`).
+[Instance pools](research/instance-pools.md) designs the rest:
 
-1. A shared queue over `min` to `max` instances with `idle_timeout`,
-   background replacement of retired instances, and the reentrancy key per
-   pool, with tests on every engine.
-2. `AppBuilder::host_runtime` for host transport tasks, with a test that
-   reuses a connection across a busy instance
-   ([tasks that host transports spawn](#tasks-that-host-transports-spawn)).
-3. Pool settings in fetchlet-http's server builders, with measurements
-   that recommend defaults.
-4. `max_held_connections` for [host channels](#host-channels-and-resources).
-5. Compiled code caching, if measurements show build time matters.
+`AppBuilder::host_runtime` runs what host transports spawn on a shared
+runtime, which fetchlet-http's `Server` passes
+(`crates/fetchlet/tests/host_runtime.rs`). `Server::instances` sets the pool
+for a server, and [sizing](research/instance-pools.md#sizing) records the
+throughput by pool size that its recommendation rests on.
+
+1. `max_held_connections` for [host channels](#host-channels-and-resources).
+2. Compiled code caching, if measurements show build time matters.
+3. Pool state for operators, such as instances by state and queue length,
+   so a deployment can size `max` from its own load.
+4. Seed each QuickJS context from host entropy. QuickJS seeds
+   `Math.random` and its property hash seed from the time in microseconds,
+   and quickjs-ng has no API to set them, so instances that a pool builds at
+   the same moment on two threads, such as a replacement and a new instance,
+   can share both. The spawn builds its instances one after another for this
+   reason. quickjs-ng [pull request #1931](https://github.com/quickjs-ng/quickjs/pull/1931)
+   seeds both from operating system entropy and adds a `random_bytes` hook
+   for embedders; once an rquickjs release includes it, update rquickjs and
+   start the spawn's instances together again.
 
 Concurrent invocations within one instance wait until async context is
 available on every engine.
-
-### Tasks that host transports spawn
-
-Each worker of an `AppHandle` runs its own current-thread runtime, and a
-task a host transport spawns there, such as the connection a pooled HTTP
-client keeps, runs only while that worker's engine yields. A connection
-another worker reuses then waits for the first worker's evaluation to end;
-fetchlet-http's `ViteDev` avoids it by sending on the server's runtime. A
-shared runtime for host futures, or guidance for transports, with a test
-that reuses a connection across a busy worker, remains.
 
 ### Streaming outbound request bodies
 

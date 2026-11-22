@@ -54,12 +54,30 @@ app.shutdown().await?;
 ```
 
 `queue_capacity` is the number of waiting commands; while the queue is full,
-callers wait asynchronously. Calls run serially within one app. The worker's
+callers wait asynchronously. Each instance runs one call at a time on its own
+worker thread. `WorkerOptions::instances` sets how many instances serve the
+queue: one by default, or from `min` up to `max`, started on demand when
+every instance is busy and retired after `idle_timeout`. Instances share no
+JavaScript state; module-level state exists once per instance. The workers'
 native stack size is set in `WorkerOptions` and defaults to the platform's.
+
+```rust
+let mut options = WorkerOptions::new(NonZeroUsize::new(8).unwrap());
+options.instances = Instances {
+    min: NonZeroUsize::new(1).unwrap(),
+    max: NonZeroUsize::new(4).unwrap(),
+    idle_timeout: Some(Duration::from_secs(60)),
+};
+```
+
+`max` is a caller budget: each instance has its own engine heap. A host
+fetch that calls its own app fails with `Reentrant` even when another
+instance is idle.
 
 Dropping a call's future cancels that call. An instance retired by
 cancellation, an expired deadline or unfinished work is rebuilt from the
-same module, bindings and settings before the next call. After an ordinary
+same module, bindings and settings right after that call, before its worker
+takes the next one. After an ordinary
 JavaScript exception the state is reused. With
 `WorkerOptions::cancelled_calls` set to `CancelledCalls::Finish`, the worker
 instead lets a cancelled call's evaluation return within its deadline and
@@ -67,7 +85,7 @@ then cancels its body, keeping the instance; development hosts whose
 instances are expensive to build use it.
 
 `shutdown` stops accepting calls on every clone and waits for accepted calls
-and their resources. Calls waiting for queue capacity receive
+on every instance and their resources. Calls waiting for queue capacity receive
 `WorkerClosed`. Dropping the last handle also ends the thread.
 
 The `Limits::timeout` deadline is cooperative and counts from the start of

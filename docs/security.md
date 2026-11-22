@@ -12,7 +12,7 @@ that fits the deployment, and tests and fuzzing that keep checking them.
 | Env and services    | Bindings Rust chose, fixed before the module is evaluated                                                                                                                  |
 | Engine globals      | Only fetchlet's host operations; V8 builds remove deno_core's `Deno` and `__bootstrap`, whose built-in ops include `op_panic` and `op_print`                               |
 | Host functions      | Off the global object; the bundle's runtime claims them once while the bundle is evaluated, and later code reaches the host only through the APIs built on them            |
-| JavaScript state    | Reused within an app; assign one app per application, tenant and authority configuration                                                                                   |
+| JavaScript state    | Reused within an app, by each of its instances; assign one app per application, tenant and authority configuration                                                         |
 | Async resources     | The invocation owns transport futures and drops them when it ends                                                                                                          |
 | Tickets             | Bound to the invocation's generation; each completion is delivered once within the call                                                                                    |
 | Cancellation        | Instances with cancelled or unfinished work are retired; `CancelledCalls::Finish` lets a cancelled call end in its own invocation first, within its deadline               |

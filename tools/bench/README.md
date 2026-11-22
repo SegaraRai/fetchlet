@@ -19,6 +19,7 @@ vp run bench -- --frameworks honox,waku --backends quickjs,v8 --endpoints ssr,co
 | `--backends`                    | `quickjs,boa,v8,node`          | The artifact build and Rust `Backend`; `node` is the baseline below                               |
 | `--endpoints`                   | `ssr,context,echo,rust,static` | The table below                                                                                   |
 | `--connections`                 | 8                              | Concurrent keep-alive connections                                                                 |
+| `--instances`                   | 1                              | A fixed pool of this many instances (`min_instances` and `max_instances` in the server config)    |
 | `--warmup-ms` / `--duration-ms` | 2000 / 10000                   | Unmeasured and measured time per endpoint                                                         |
 | `--skip-build`                  |                                | Reuse the previous release binaries and the artifacts in `.cache/bench`                           |
 | `--merge`                       |                                | Replace only the measured rows of the existing results (same connections, durations and versions) |
@@ -48,7 +49,8 @@ For each combination:
    applies load.
 
 The server matches the examples: axum on tokio's `current_thread` runtime,
-with one App running requests in order on one worker thread.
+with one App whose instances each run requests in order on their own worker
+thread; one instance unless `--instances` says otherwise.
 `fetchlet-bench` is a closed loop that reads each response body before
 sending the next request on that connection, with a two-thread tokio
 client. Requests per second count the 2xx responses completed in the
