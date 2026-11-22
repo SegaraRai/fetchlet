@@ -55,6 +55,10 @@
 
 - [Open work](TODO.md): remaining limitations and the evidence that would
   resolve them.
+- [Instance pools](research/instance-pools.md): several instances behind
+  one `AppHandle`, scheduling, held instances and reentrancy.
+- [Host channels and resources](research/host-channels.md): the design of
+  handles, host channels, `connect()`, `WebSocket` and server upgrades.
 - [Web API implementations](research/web-api-implementations.md): a survey
   of LLRT, Deno and Boa runtimes.
 - [URL parsing in the host](research/host-url-parser.md): the measurement

@@ -101,29 +101,26 @@ Deferred until an adapter or application needs them:
 
 ### Host channels and resources
 
-Connections that outlive one Request → Response call go through Rust, as
-fetch does: the network stays in the host, and JavaScript gets one channel
-primitive with the APIs built on it.
+Connections go through Rust, as fetch does: the network stays in the host,
+and JavaScript gets one channel primitive with the APIs built on it.
+[Host channels and resources](research/host-channels.md) designs the handle
+table, the two channel lifetimes (request-scoped, and held connections that
+keep their invocation and instance until they close) and the order of work:
 
-- A channel binding. `HostServices` registers a named handler that receives
-  a bidirectional stream of text and binary messages with backpressure,
-  close and cancellation; JavaScript sees an object shaped like
-  `WebSocket`, with `send`, `close` and `message` and `close` events.
-- The client `WebSocket` and the TC55 Sockets API `connect()`, which
-  postgres.js, pg and Redis clients use on edge runtimes, as host transports
-  over channels. They open the connection in Rust and authorize its
-  destination with a policy, as `FetchPolicy` does for fetch.
-- Server upgrades as crossws and framework WebSocket routes use them. A
-  response carries one end of a channel, in the manner of Workers'
-  `WebSocketPair`, and fetchlet-http performs the upgrade.
-- An open channel keeps its instance alive after the invocation. Define how
-  `Limits` bound open channels and how they interact with
-  [instance pools](#instance-pools).
-- Channels are the first host resource JavaScript holds, so their boundary
-  is also the one for [values beyond JSON](#values-beyond-json):
-  identifiers JavaScript cannot forge, with a generation; lifetimes tied to
-  the instance or the call; release when an instance resets; revocation and
-  cancellation; regression tests and fuzzing of that boundary.
+1. One handle table per invocation, with generations and kinds, and body
+   sources moved onto it.
+2. Request-scoped channels: `HostServices::channel`, the message and
+   stream views, and the `open_channels`, `channel_message_bytes` and
+   `channel_buffer_bytes` budgets.
+3. `connect()` over a `SocketService` with a `SocketPolicy`.
+4. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`.
+5. Held connections with `upgradeWebSocket` and server upgrades in
+   fetchlet-http, after [instance pools](#instance-pools).
+6. Resources in function arguments and results
+   ([values beyond JSON](#values-beyond-json)).
+
+Several connections per instance wait until async context is available on
+every engine ([concurrent request context](#framework-runtime-needs-beyond-wintertc)).
 
 ### Capability negotiation
 
@@ -145,11 +142,24 @@ retires the instance.
 
 ### Instance pools
 
-`App` and `AppHandle` run one instance serially. A pool would key compiled
-code by code, engine version and profile, and reuse instances only within
-one application, tenant and authority configuration. Reentrancy under a
-pool (waiting for capacity) and calls from tasks spawned by host futures,
-which are not detected today, need defined behavior and tests.
+`App` and `AppHandle` run one instance serially.
+[Instance pools](research/instance-pools.md) designs several instances
+behind one `AppHandle`, each still running one invocation at a time, so no
+async context is needed. The order of work:
+
+1. A shared queue over `min` to `max` instances with `idle_timeout`,
+   background replacement of retired instances, and the reentrancy key per
+   pool, with tests on every engine.
+2. `AppBuilder::host_runtime` for host transport tasks, with a test that
+   reuses a connection across a busy instance
+   ([tasks that host transports spawn](#tasks-that-host-transports-spawn)).
+3. Pool settings in fetchlet-http's server builders, with measurements
+   that recommend defaults.
+4. `max_held_connections` for [host channels](#host-channels-and-resources).
+5. Compiled code caching, if measurements show build time matters.
+
+Concurrent invocations within one instance wait until async context is
+available on every engine.
 
 ### Tasks that host transports spawn
 
@@ -175,10 +185,10 @@ and `call_json` have no way to pass one; add an entry point and cover it in
 
 ### Values beyond JSON
 
-Function arguments and results are JSON-compatible values. Handles and host
-resources need a boundary with explicit ownership and lifetime, which
-fetchlet provides rather than each application; it follows the boundary
-[host channels](#host-channels-and-resources) define.
+Function arguments and results are JSON-compatible values. Resources lent
+to a call or returned from it follow the handle table of
+[host channels](research/host-channels.md#values-beyond-json), with
+resource positions listed out of band rather than in reserved JSON keys.
 
 ## Frameworks
 
