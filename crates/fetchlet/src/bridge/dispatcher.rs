@@ -7,9 +7,10 @@ use bytes::Bytes;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::body_source::{BodyRead, BodySources};
-use super::channels::{Channels, GuestClose, GuestMessage};
+use super::body_source::{BodyRead, BodySource};
+use super::channels::{GuestClose, GuestMessage};
 use super::clock::Clock;
+use super::handles::{Handles, Resource};
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
 use crate::host::{Redirect, TransportFuture, pair};
@@ -47,8 +48,9 @@ struct InvocationState {
     limits: Limits,
     pending_fetches: BTreeMap<String, PendingFetch>,
     bytes: ByteStore,
-    /// Rust bodies that JavaScript reads on demand.
-    bodies: BodySources,
+    /// What JavaScript reaches by handle: Rust bodies it reads on demand and
+    /// channels it holds, such as an accepted WebSocket.
+    handles: Handles,
     /// Outstanding `body.read` and `body.readAll` tickets.
     pending_reads: BTreeMap<String, PendingRead>,
     /// `fetchlet.waitUntil` registrations, and those not yet settled.
@@ -62,8 +64,6 @@ struct InvocationState {
     /// Web API state, such as open compression streams.
     #[cfg(feature = "web")]
     web: fetchlet_web::WebState,
-    /// Channels JavaScript holds, such as an accepted WebSocket.
-    channels: Channels,
     /// Whether this Fetch invocation may accept a WebSocket upgrade.
     upgrade: Upgrade,
 }
@@ -118,7 +118,7 @@ impl InvocationState {
     fn transport(&mut self) -> InvocationTransport<'_> {
         InvocationTransport {
             bytes: &mut self.bytes,
-            bodies: &mut self.bodies,
+            handles: &mut self.handles,
         }
     }
 }
@@ -126,7 +126,7 @@ impl InvocationState {
 /// Byte transport within the locked state of an invocation.
 struct InvocationTransport<'a> {
     bytes: &'a mut ByteStore,
-    bodies: &'a mut BodySources,
+    handles: &'a mut Handles,
 }
 
 impl ByteTransport for InvocationTransport<'_> {
@@ -152,8 +152,8 @@ impl ByteTransport for InvocationTransport<'_> {
         }
         // A declared length over the budget fails before JavaScript reads it.
         check_limit(limit, body.declared_len(), resource)?;
-        self.bodies
-            .open(body, limit, resource)
+        self.handles
+            .insert(Resource::Body(BodySource::new(body, limit, resource)))
             .map(BodyTransfer::Stream)
     }
 }
@@ -162,6 +162,9 @@ impl ByteTransport for InvocationTransport<'_> {
 struct BridgeState {
     generation: u64,
     invocation: Option<InvocationState>,
+    /// The handle table between invocations, every entry released. Its
+    /// generations carry over, so an earlier invocation's handles stay stale.
+    handles: Handles,
 }
 
 #[derive(Deserialize)]
@@ -284,7 +287,10 @@ impl HostBridge {
     pub fn allow_upgrade(&self) -> Result<()> {
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
-        invocation.upgrade = Upgrade::Available;
+        // An upgrade already accepted stays accepted.
+        if matches!(invocation.upgrade, Upgrade::Unavailable) {
+            invocation.upgrade = Upgrade::Available;
+        }
         Ok(())
     }
 
@@ -313,7 +319,7 @@ impl HostBridge {
         if let Ok(mut state) = self.lock_state()
             && let Some(invocation) = state.invocation.as_mut()
         {
-            invocation.channels.force_all(frame);
+            invocation.handles.force_channels(frame);
         }
         self.wake.notify();
     }
@@ -348,6 +354,7 @@ impl HostBridge {
             .ok_or(Error::LimitExceeded("invocation IDs"))?;
 
         let generation = state.generation;
+        let handles = std::mem::take(&mut state.handles);
         state.invocation = Some(InvocationState {
             generation,
             next_ticket: 0,
@@ -355,7 +362,7 @@ impl HostBridge {
             limits,
             pending_fetches: BTreeMap::new(),
             bytes: ByteStore::default(),
-            bodies: BodySources::default(),
+            handles,
             pending_reads: BTreeMap::new(),
             background_registered: 0,
             background_pending: 0,
@@ -363,7 +370,6 @@ impl HostBridge {
             disconnect: None,
             #[cfg(feature = "web")]
             web: fetchlet_web::WebState::default(),
-            channels: Channels::default(),
             upgrade: Upgrade::Unavailable,
         });
 
@@ -418,7 +424,9 @@ impl HostBridge {
     ) -> Result<u64> {
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
-        invocation.bodies.open(body, limit, resource)
+        invocation
+            .handles
+            .insert(Resource::Body(BodySource::new(body, limit, resource)))
     }
 
     fn with_transport<T>(
@@ -607,12 +615,11 @@ impl HostBridge {
             pending_fetches,
             limits,
             bytes,
-            bodies,
+            handles,
             pending_reads,
-            channels,
             ..
         } = invocation;
-        let mut transport = InvocationTransport { bytes, bodies };
+        let mut transport = InvocationTransport { bytes, handles };
 
         for (ticket, pending) in pending_fetches.iter_mut() {
             let Poll::Ready(response) = pending.future.as_mut().poll(&mut context) else {
@@ -632,10 +639,10 @@ impl HostBridge {
             pending_fetches.remove(&completion.id);
         }
 
-        let InvocationTransport { bytes, bodies } = transport;
+        let InvocationTransport { bytes, handles } = transport;
         pending_reads.retain(|ticket, read| {
             let id = read.id;
-            let result = match bodies.get_mut(id) {
+            let result = match handles.body_mut(id) {
                 Some(source) if let Some(whole) = read.whole => {
                     match source.poll_read_all(&mut context) {
                         Poll::Pending => return true,
@@ -660,7 +667,7 @@ impl HostBridge {
             };
             // A finished or failed body releases its producer now.
             if !matches!(result, Ok(ref value) if value["done"] == false) {
-                bodies.remove(id);
+                handles.release_body(id);
             }
             completed.push(FetchCompletion {
                 id: ticket.clone(),
@@ -674,8 +681,8 @@ impl HostBridge {
             .map(FetchCompletion::into_value)
             .collect();
         // Messages and closes of channels, each channel's in order.
-        if !channels.is_empty() {
-            channels.poll(&mut context, bytes, &mut events)?;
+        if handles.has_channels() {
+            handles.poll_channels(&mut context, bytes, &mut events)?;
         }
         Ok(Value::Array(events))
     }
@@ -709,7 +716,7 @@ impl HostBridge {
         }
         let (end, guest) = pair(&invocation.limits);
         let id = invocation
-            .channels
+            .handles
             .open_connection(guest, &invocation.limits)?;
         invocation.upgrade = Upgrade::Accepted { id, end: Some(end) };
         Ok(Value::from(id))
@@ -720,7 +727,9 @@ impl HostBridge {
             .map_err(|_| Error::InvalidRequest("invalid channel message".into()))?;
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
-        let result = invocation.channels.send(message, &mut invocation.bytes);
+        let result = invocation
+            .handles
+            .send_channel(message, &mut invocation.bytes);
         // A close the send forced reaches JavaScript at the next poll.
         self.wake.notify();
         result
@@ -731,7 +740,7 @@ impl HostBridge {
             .map_err(|_| Error::InvalidRequest("invalid channel close".into()))?;
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
-        invocation.channels.close(close)
+        invocation.handles.close_channel(close)
     }
 
     fn channel_buffered(&self, input: &str) -> Result<Value> {
@@ -739,7 +748,7 @@ impl HostBridge {
             .map_err(|_| Error::InvalidRequest("invalid channel id".into()))?;
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
-        invocation.channels.buffered(id)
+        invocation.handles.channel_buffered(id)
     }
 
     pub(super) fn register_background(&self) -> Result<Value> {
@@ -774,7 +783,7 @@ impl HostBridge {
             .map_err(|_| Error::InvalidRequest("invalid body id".into()))?;
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
-        if !invocation.bodies.contains(id) {
+        if invocation.handles.body_mut(id).is_none() {
             return Err(Error::InvalidRequest("unknown body".into()));
         }
         // One read at a time, as a ReadableStream pulls.
@@ -798,7 +807,7 @@ impl HostBridge {
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
         // Dropping the body cancels its producer. Cancelling twice is harmless.
-        invocation.bodies.remove(id);
+        invocation.handles.release_body(id);
         invocation
             .pending_reads
             .retain(|_, reading| reading.id != id);
@@ -852,8 +861,12 @@ impl Drop for InvocationScope {
             .as_ref()
             .is_some_and(|invocation| invocation.generation == self.generation);
 
-        if owns_invocation {
-            state.invocation = None;
+        if owns_invocation && let Some(mut invocation) = state.invocation.take() {
+            // Releasing every handle drops the invocation's bodies and
+            // channels, and keeps the table's generations for the next one.
+            let mut handles = std::mem::take(&mut invocation.handles);
+            handles.release_all();
+            state.handles = handles;
         }
     }
 }

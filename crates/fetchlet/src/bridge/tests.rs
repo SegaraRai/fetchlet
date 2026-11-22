@@ -378,6 +378,68 @@ fn body_sources_are_read_one_chunk_at_a_time_and_released() {
 }
 
 #[test]
+fn handles_name_one_kind_in_one_invocation() {
+    let bridge = HostBridge::default();
+    let scope = bridge.begin(Limits::default()).unwrap();
+    let (sender, body) = Body::channel(bytes::Bytes::new(), 1);
+    let body = bridge.open_body(body, None, "request body bytes").unwrap();
+    bridge.allow_upgrade().unwrap();
+    let channel = bridge
+        .dispatch_operation("websocket.upgrade", "null")
+        .unwrap()
+        .as_u64()
+        .unwrap();
+    let _end = bridge.take_upgrade(channel).unwrap();
+    assert_ne!(body, channel);
+
+    // A body's handle is not a channel's, nor the other way round.
+    assert!(matches!(
+        bridge.dispatch_operation("channel.buffered", &body.to_string()),
+        Err(Error::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        bridge.read_body(&channel.to_string(), None),
+        Err(Error::InvalidRequest(_))
+    ));
+    // Cancelling a channel's handle as a body releases nothing.
+    bridge.cancel_body(&channel.to_string()).unwrap();
+    assert_eq!(
+        bridge
+            .dispatch_operation("channel.buffered", &channel.to_string())
+            .unwrap(),
+        json!(0)
+    );
+
+    // A released body's handle stays stale when its slot is reused.
+    bridge.cancel_body(&body.to_string()).unwrap();
+    assert!(sender.is_closed());
+    let (_sender, again) = Body::channel(bytes::Bytes::new(), 1);
+    let again = bridge.open_body(again, None, "request body bytes").unwrap();
+    assert_ne!(again, body);
+    assert!(matches!(
+        bridge.read_body(&body.to_string(), None),
+        Err(Error::InvalidRequest(_))
+    ));
+    drop(scope);
+
+    // Nothing of an earlier invocation resolves in the next one.
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    let (_sender, next) = Body::channel(bytes::Bytes::new(), 1);
+    let next = bridge.open_body(next, None, "request body bytes").unwrap();
+    for stale in [body, again, channel] {
+        assert_ne!(stale, next);
+        assert!(matches!(
+            bridge.read_body(&stale.to_string(), None),
+            Err(Error::InvalidRequest(_))
+        ));
+    }
+    assert!(matches!(
+        bridge.dispatch_operation("channel.buffered", &channel.to_string()),
+        Err(Error::InvalidRequest(_))
+    ));
+}
+
+#[test]
 fn cancelling_a_body_source_drops_its_producer() {
     let bridge = HostBridge::default();
     let _scope = bridge.begin(Limits::default()).unwrap();

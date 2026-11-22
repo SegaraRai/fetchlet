@@ -128,6 +128,12 @@ impl ChannelEnd {
     pub fn is_closed(&self) -> bool {
         self.closed
     }
+
+    /// Whether JavaScript's end went away.
+    #[cfg(feature = "fuzzing")]
+    pub(crate) fn peer_gone(&self) -> bool {
+        self.to_guest.is_closed()
+    }
 }
 
 /// JavaScript's end of a channel, kept in its invocation's state.

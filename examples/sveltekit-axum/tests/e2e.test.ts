@@ -1,4 +1,8 @@
-import { assertStreams } from "@fetchlet-internal/tools-examples/common-checks";
+import {
+  assertStreams,
+  completedOnItsInstance,
+  websocketCheck,
+} from "@fetchlet-internal/tools-examples/common-checks";
 import { exampleSuite } from "@fetchlet-internal/tools-examples/suite";
 import { expect } from "vite-plus/test";
 
@@ -184,8 +188,7 @@ check(
     const accepted = await response.json();
     expect(accepted.accepted).toBe(label);
     expect(!accepted.completed.includes(label), "sent before the work finished").toBeTruthy();
-    const { completed } = await (await fetch(suite.base + "/api/background")).json();
-    expect(completed.includes(label)).toBeTruthy();
+    expect(await completedOnItsInstance(suite.base, label)).toBeTruthy();
   },
 );
 
@@ -236,3 +239,5 @@ check(
     await page.close();
   },
 );
+
+websocketCheck(suite, "SvelteKit");

@@ -15,7 +15,11 @@
 //   such as Qwik City's require;
 // - the Rust server serves `/api/rust` and `/health.txt`;
 // - with `streaming`, `/deferred` sends `Loading…` first and
-//   `A value that arrived late` about 200 ms later, in the same response.
+//   `A value that arrived late` about 200 ms later, in the same response;
+// - with `websocket`, `/api/socket` accepts a WebSocket that sends `ready`,
+//   echoes each message as `#{n}: {data}` with a count kept in the
+//   connection's scope, and closes with 1000 `goodbye` on `bye`. The
+//   example's configuration holds it on one of two instances.
 
 import { expect } from "vite-plus/test";
 
@@ -31,6 +35,8 @@ export interface CommonCheckOptions {
   clientNavigation?: boolean;
   /** Whether `/deferred` streams its slow part after the shell. */
   streaming?: boolean;
+  /** Whether `/api/socket` accepts a WebSocket. */
+  websocket?: boolean;
 }
 
 declare global {
@@ -196,19 +202,7 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
       const accepted = await response.json();
       expect(accepted.accepted).toBe(label);
       expect(!accepted.completed.includes(label), "sent before the work finished").toBeTruthy();
-      // The work finishes before its instance takes the next request. Each
-      // instance keeps its own list: in an example with several, other
-      // instances serve requests while this one finishes, and it serves its
-      // share once it is free again.
-      let seen = false;
-      for (let attempt = 0; attempt < 8 && !seen; attempt++) {
-        if (attempt > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        const { completed } = await (await fetch(suite.base + "/api/background")).json();
-        seen = completed.includes(label);
-      }
-      expect(seen, "completed before the instance's next request").toBeTruthy();
+      expect(await completedOnItsInstance(suite.base, label)).toBeTruthy();
     },
   );
 
@@ -254,12 +248,90 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
       await assertStreams(await fetch(suite.base + "/deferred", { headers: browserHeaders }));
     });
   }
+
+  if (options.websocket) {
+    websocketCheck(suite, framework);
+  }
 }
 
 /**
  * Asserts that a response sends its `Loading…` shell before the slow value:
  * the shell must arrive while the value is still pending on the server.
  */
+/**
+ * Whether `GET /api/background` lists `label`. The work finishes before its
+ * instance takes the next request, and each instance keeps its own list: in
+ * an example with several, other instances serve requests while this one
+ * finishes, and it serves its share once it is free again.
+ */
+export async function completedOnItsInstance(base: string, label: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    const { completed } = await (await fetch(base + "/api/background")).json();
+    if (completed.includes(label)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** A WebSocket's messages as they arrive, and a wait for the next ones. */
+function collect(socket: WebSocket): {
+  messages: string[];
+  arrived: (count: number) => Promise<void>;
+} {
+  const messages: string[] = [];
+  socket.addEventListener("message", (event) => messages.push(String(event.data)));
+  return {
+    messages,
+    arrived: (count) =>
+      new Promise<void>((resolve) => {
+        const check = () => {
+          if (messages.length >= count) {
+            socket.removeEventListener("message", check);
+            resolve();
+          }
+        };
+        socket.addEventListener("message", check);
+        check();
+      }),
+  };
+}
+
+/**
+ * The WebSocket check of `websocket`, for examples that register their own
+ * checks: `/api/socket` as described above.
+ */
+export function websocketCheck(suite: ExampleSuite, framework: string): void {
+  suite.check(
+    `a ${framework} WebSocket holds its instance while others serve requests`,
+    ["websocket"],
+    async () => {
+      const socket = new WebSocket(suite.base.replace(/^http/, "ws") + "/api/socket");
+      const closed = new Promise<CloseEvent>((resolve) =>
+        socket.addEventListener("close", resolve),
+      );
+      const { messages, arrived } = collect(socket);
+      await arrived(1);
+      expect(messages).toStrictEqual(["ready"]);
+
+      // Another instance answers while this connection is open.
+      const page = await fetch(suite.base + "/about", { headers: browserHeaders });
+      expect(page.status).toBe(200);
+
+      socket.send("one");
+      socket.send("two");
+      await arrived(3);
+      expect(messages).toStrictEqual(["ready", "#1: one", "#2: two"]);
+      socket.send("bye");
+      const close = await closed;
+      expect([close.code, close.reason, close.wasClean]).toStrictEqual([1000, "goodbye", true]);
+    },
+  );
+}
+
 export async function assertStreams(response: Response): Promise<void> {
   expect(response.status).toBe(200);
   if (!response.body) {

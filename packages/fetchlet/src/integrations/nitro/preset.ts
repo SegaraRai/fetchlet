@@ -6,6 +6,7 @@ import type { NitroPreset, NitroPresetMeta } from "nitropack/types";
 
 import { implementedNodeBuiltins, nodeGlobals } from "../../build/node-builtins.ts";
 import { writeArtifact } from "./artifact.ts";
+import { websocketUpgrades } from "./websocket.ts";
 
 /**
  * The Nitro preset; apps select it with `preset: "fetchlet/nitro"`. It is the
@@ -53,6 +54,7 @@ const preset: NitroPreset & { _meta: NitroPresetMeta } = {
     },
   },
   hooks: {
+    "rollup:before": websocketUpgrades,
     compiled: writeArtifact,
   },
   _meta: {

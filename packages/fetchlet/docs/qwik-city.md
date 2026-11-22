@@ -61,4 +61,9 @@ The app's request budget limits the body. Rust serves static files, and a
 path that reaches Qwik City without matching a route is a 404. Qwik City's
 CSRF check requires `Origin` on POST and similar requests.
 
+An endpoint accepts a WebSocket with `upgradeWebSocket` from
+`fetchlet/runtime/handler` and `send(response)`. Qwik City copies the sent
+response into its own, and the middleware rebuilds the 101 for the socket
+the handler accepted.
+
 Qwik 2 (`@qwik.dev/router`) is not supported yet.

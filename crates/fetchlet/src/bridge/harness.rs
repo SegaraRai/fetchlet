@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use super::{HostBridge, InvocationScope};
 use crate::fetch::BodySender;
-use crate::{Body, HostServices, Limits, Result};
+use crate::{Body, ChannelEnd, Error, HostServices, Limits, Result};
 
 /// Drives the host bridge as a guest would, for fuzz targets.
 ///
@@ -68,6 +68,30 @@ impl BridgeHarness {
         let (sender, body) = Body::channel(Bytes::new(), capacity.max(1));
         let id = self.open_body(body, limit)?;
         Ok((BodyFeed(sender), id))
+    }
+}
+
+impl BridgeHarness {
+    /// Accept a WebSocket upgrade in the current invocation, as a Fetch
+    /// handler does for a request Rust lets it hold, through the guest's
+    /// `websocket.upgrade` operation.
+    pub fn open_connection(&self) -> Result<(ChannelFeed, u64)> {
+        self.bridge.allow_upgrade()?;
+        let reply = self.dispatch("websocket.upgrade", "null");
+        let Some(id) = reply["value"].as_u64() else {
+            return Err(Error::InvalidRequest(reply.to_string()));
+        };
+        Ok((ChannelFeed(self.bridge.take_upgrade(id)?), id))
+    }
+}
+
+/// Rust's end of a channel opened with [`BridgeHarness::open_connection`].
+pub struct ChannelFeed(ChannelEnd);
+
+impl ChannelFeed {
+    /// Whether the bridge released JavaScript's end of the channel.
+    pub fn is_released(&self) -> bool {
+        self.0.peer_gone()
     }
 }
 

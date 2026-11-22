@@ -16,7 +16,7 @@ vite-dev = ["fetchlet-http/vite-dev"]
 
 [dependencies]
 fetchlet = { workspace = true, features = ["quickjs", "web-apis"] }
-fetchlet-http = { workspace = true, features = ["axum"] }
+fetchlet-http = { workspace = true, features = ["axum", "websocket"] }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

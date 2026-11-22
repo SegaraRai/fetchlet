@@ -25,6 +25,9 @@ export interface FetchletBuildOptions extends ViteArtifactOptions {
   functions?: string;
 }
 
+/** The Web API profile, which app modules import for `upgradeWebSocket`. */
+const RUNTIME_MODULE = "fetchlet/runtime";
+
 /** Build a Hono app into a fetchlet artifact. */
 export default function fetchletBuild({
   entry = ["./src/index.ts", "./src/index.tsx", "./app/server.ts"],
@@ -37,7 +40,9 @@ export default function fetchletBuild({
     entry,
     output: "index.mjs",
     outputDir: "./node_modules/.cache/fetchlet-hono",
-    external,
+    // The artifact build bundles the profile once, with the entry's own
+    // import of it; inlined here, it would install twice.
+    external: [RUNTIME_MODULE, ...external],
     minify: false,
     emptyOutDir: true,
     // Rust serves the public files.

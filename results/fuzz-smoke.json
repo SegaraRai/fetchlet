@@ -1,8 +1,18 @@
 {
+  "environment": {
+    "node": "v26.13.1",
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "platform": "win32-x64",
+    "engines": {
+      "quickjs": "rquickjs 0.14.0",
+      "boa": "boa_engine 0.22.0",
+      "v8": "v8 150.4.0"
+    }
+  },
   "sanitizer": "address",
   "requestedRuns": 1000000,
   "timeBudgetSeconds": 30,
-  "compiler": "rustc 1.102.0-nightly (8eb778d04 2026-11-12)",
+  "compiler": "rustc 1.102.0-nightly (65ce8611f 2026-11-18)",
   "maxInputBytes": 16384,
   "targets": [
     {

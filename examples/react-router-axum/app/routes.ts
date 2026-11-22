@@ -8,4 +8,5 @@ export default [
   route("api/context", "routes/api.context.ts"),
   route("api/upload", "routes/api.upload.ts"),
   route("api/background", "routes/api.background.ts"),
+  route("api/socket", "routes/api.socket.ts"),
 ] satisfies RouteConfig;

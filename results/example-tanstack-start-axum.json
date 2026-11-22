@@ -26,7 +26,7 @@
   "backend": "quickjs",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 11,
+    "passed": 12,
     "failed": 0
   },
   "results": [
@@ -83,6 +83,11 @@
     {
       "name": "TanStack Start streams deferred content after the shell",
       "features": ["streaming-ssr"],
+      "status": "pass"
+    },
+    {
+      "name": "a TanStack Start WebSocket holds its instance while others serve requests",
+      "features": ["websocket"],
       "status": "pass"
     }
   ]

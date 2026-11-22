@@ -5,5 +5,7 @@
   "background_timeout_ms": 5000,
   "background_tasks": 8,
   "message": "Welcome to HonoX and Rust.",
-  "build_directory": "build"
+  "build_directory": "build",
+  "max_instances": 2,
+  "max_held_connections": 1
 }

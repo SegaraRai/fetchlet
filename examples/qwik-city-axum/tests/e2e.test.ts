@@ -11,4 +11,5 @@ commonChecks(suite, {
   assetPrefix: "/build/",
   requireCss: false,
   streaming: true,
+  websocket: true,
 });

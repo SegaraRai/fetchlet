@@ -13,6 +13,8 @@ interface ChannelEntry {
 }
 
 const channels = new Map<number, ChannelEntry>();
+// The WebSocket upgrade the current invocation accepted, until it ends.
+let acceptedUpgrade: number | undefined;
 
 export function hasOpenChannels(): boolean {
   return channels.size > 0;
@@ -61,7 +63,11 @@ export const channelRegistry: ChannelRegistry = Object.freeze<ChannelRegistry>({
       resolveClosed = resolve;
     });
     channels.set(id, { listener, closed, resolveClosed });
+    acceptedUpgrade = id;
     return id;
+  },
+  accepted() {
+    return acceptedUpgrade;
   },
   send(id, data) {
     if (!channels.has(id)) {
@@ -99,6 +105,7 @@ export const channelRegistry: ChannelRegistry = Object.freeze<ChannelRegistry>({
     await entry.closed;
   },
   closeAll() {
+    acceptedUpgrade = undefined;
     for (const id of channels.keys()) {
       forget(id);
     }

@@ -2,9 +2,8 @@
 
 import "@fetchlet/web";
 
-export { type UpgradeWebSocketOptions, upgradeWebSocket } from "@fetchlet/web/websocket";
 export { wireRequest, wireResponse } from "@fetchlet/web/wire";
-export { getBindings, waitUntil } from "./handler";
+export { getBindings, type UpgradeWebSocketOptions, upgradeWebSocket, waitUntil } from "./handler";
 export type {
   ExecutionContext,
   ExportedHandler,

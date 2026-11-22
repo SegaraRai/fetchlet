@@ -3,6 +3,15 @@ import type { FetchletBindings, ServiceBinding } from "fetchlet/bindings";
 
 export type { FetchletBindings, ServiceBinding };
 
+// Framework apps take upgradeWebSocket from here: a framework build that
+// bundles this module keeps the profile out, and the response it returns
+// reaches the profile's wire encoder all the same.
+export {
+  type UpgradeWebSocketOptions,
+  upgradeResponse,
+  upgradeWebSocket,
+} from "@fetchlet/web/websocket";
+
 /**
  * The third argument of `fetch` in a module with the Workers module shape,
  * as `exportedHandler` in fetchlet/build and fetchlet/vite call it.

@@ -36,7 +36,7 @@ pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, WorkerOpt
 
 #[cfg(feature = "fuzzing")]
 #[doc(hidden)]
-pub use bridge::{BodyFeed, BridgeHarness};
+pub use bridge::{BodyFeed, BridgeHarness, ChannelFeed};
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub use app::{App, AppBuilder, Module};

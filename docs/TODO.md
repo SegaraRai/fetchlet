@@ -107,24 +107,22 @@ and JavaScript gets one channel primitive with the APIs built on it.
 table, the two channel lifetimes (request-scoped, and held connections that
 keep their invocation and instance until they close) and the order of work.
 
-Held connections are implemented: `upgradeWebSocket` from
-`fetchlet/runtime`, `Instances::max_held_connections`, the channel and
-connection budgets, and server upgrades in fetchlet-http's axum integration
-behind the `websocket` feature
+The handle table and held connections are implemented:
+`upgradeWebSocket` from `fetchlet/runtime`, `Instances::max_held_connections`,
+the channel and connection budgets, server upgrades in fetchlet-http's axum
+integration behind the `websocket` feature, and a WebSocket route with an
+end-to-end check in every axum example
 ([status](research/host-channels.md#status)). The rest:
 
-1. One handle table per invocation, with generations and kinds, and body
-   sources and the channels of `bridge/channels.rs` moved onto it.
-2. Request-scoped channels: `HostServices::channel`, the message and
-   stream views, and the `open_channels` budget.
-3. `connect()` over a `SocketService` with a `SocketPolicy`.
-4. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`.
-5. Server upgrades in the actix integration, and `Stream` and `Sink` for
-   `ChannelEnd`.
-6. Resources in function arguments and results
+1. Request-scoped channels: `HostServices::channel`, the message and
+   stream views, the `open_channels` budget, and wrappers that keep numeric
+   handles away from application code.
+2. `connect()` over a `SocketService` with a `SocketPolicy`.
+3. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`.
+4. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
+   and `Sink` for `ChannelEnd`.
+5. Resources in function arguments and results
    ([values beyond JSON](#values-beyond-json)).
-7. Framework helpers over `upgradeWebSocket`, such as Hono's, each with an
-   example check.
 
 Several connections per instance wait until async context is available on
 every engine ([concurrent request context](#framework-runtime-needs-beyond-wintertc)).

@@ -79,24 +79,24 @@ Unexpected results: 0.
 
 | Example                      | QuickJS | Boa     | V8      | Framework                     | Browser       |
 | ---------------------------- | ------- | ------- | ------- | ----------------------------- | ------------- |
-| sveltekit-axum               | 17 / 17 | 17 / 17 | 17 / 17 | @sveltejs/kit 3.4.0           | 159.0.8154.6  |
+| sveltekit-axum               | 18 / 18 | 18 / 18 | 18 / 18 | @sveltejs/kit 3.4.0           | 159.0.8154.6  |
 | sveltekit-axum-tauri         | 15 / 15 | 15 / 15 | 15 / 15 | @sveltejs/kit 3.4.0           | 159.0.8154.6  |
 | sveltekit-axum-tauri-desktop | 5 / 5   | 5 / 5   | 5 / 5   | @sveltejs/kit 3.4.0           | 157.0.4341.60 |
-| astro-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | astro 7.4.13                  | 159.0.8154.6  |
+| astro-axum                   | 13 / 13 | 13 / 13 | 13 / 13 | astro 7.4.13                  | 159.0.8154.6  |
 | astro-axum-vite-dev          | 4 / 4   | 4 / 4   | 4 / 4   | astro 7.4.13                  | 159.0.8154.6  |
-| nuxt-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | nuxt 4.6.4                    | 159.0.8154.6  |
-| react-router-axum            | 12 / 12 | 12 / 12 | 12 / 12 | react-router 8.5.2            | 159.0.8154.6  |
+| nuxt-axum                    | 12 / 12 | 12 / 12 | 12 / 12 | nuxt 4.6.4                    | 159.0.8154.6  |
+| react-router-axum            | 13 / 13 | 13 / 13 | 13 / 13 | react-router 8.5.2            | 159.0.8154.6  |
 | react-router-axum-vite-dev   | 4 / 4   | 4 / 4   | 4 / 4   | react-router 8.5.2            | 159.0.8154.6  |
-| honox-axum                   | 11 / 11 | 11 / 11 | 11 / 11 | honox 0.1.62                  | 159.0.8154.6  |
+| honox-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | honox 0.1.62                  | 159.0.8154.6  |
 | honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 157.0.4341.60 |
-| tanstack-start-axum          | 11 / 11 | 11 / 11 | 11 / 11 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
+| tanstack-start-axum          | 12 / 12 | 12 / 12 | 12 / 12 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
 | tanstack-start-axum-vite-dev | 4 / 4   | —       | 4 / 4   | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
-| solidstart-axum              | 11 / 11 | 11 / 11 | 11 / 11 | @solidjs/start 2.2.3          | 159.0.8154.6  |
+| solidstart-axum              | 12 / 12 | 12 / 12 | 12 / 12 | @solidjs/start 2.2.3          | 159.0.8154.6  |
 | solidstart-axum-vite-dev     | 4 / 4   | 4 / 4   | 4 / 4   | @solidjs/start 2.2.3          | 159.0.8154.6  |
-| solid-axum                   | 11 / 11 | 11 / 11 | 11 / 11 | solid-js 2.0.1                | 159.0.8154.6  |
-| qwik-city-axum               | 11 / 11 | 11 / 11 | 11 / 11 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
-| waku-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | waku 1.0.0-rc.5               | 159.0.8154.6  |
-| vinext-axum                  | 11 / 11 | 11 / 11 | 11 / 11 | vinext 1.4.6                  | 159.0.8154.6  |
+| solid-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | solid-js 2.0.1                | 159.0.8154.6  |
+| qwik-city-axum               | 12 / 12 | 12 / 12 | 12 / 12 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
+| waku-axum                    | 12 / 12 | 12 / 12 | 12 / 12 | waku 1.0.0-rc.5               | 159.0.8154.6  |
+| vinext-axum                  | 12 / 12 | 12 / 12 | 12 / 12 | vinext 1.4.6                  | 159.0.8154.6  |
 | vanilla-axum                 | 14 / 14 | 14 / 14 | 14 / 14 | —                             | 159.0.8154.6  |
 | vanilla-axum-vite-dev        | 5 / 5   | 5 / 5   | 5 / 5   | —                             | 159.0.8154.6  |
 | vanilla-cli                  | 5 / 5   | 5 / 5   | 5 / 5   | —                             | —             |
@@ -125,7 +125,7 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 | Streaming uploads   | —         | —               | n/a (5)           | ✓     | —              | ✓       | ✓            | —                     | ✓     | n/a (5)     | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
 | waitUntil           | ✓         | —               | —                 | ✓     | —              | ✓       | ✓            | —                     | ✓     | ✓           | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
 | Concurrency         | ✓         | —               | —                 | ✓     | —              | ✓       | ✓            | —                     | ✓     | ✓           | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
-| WebSockets          | —         | —               | —                 | —     | —              | —       | —            | —                     | —     | —           | —              | —                       | —          | —                   | —     | —         | —    | —      | ✓       | —                | n/a (1)     |
+| WebSockets          | ✓         | —               | —                 | ✓     | —              | ✓       | ✓            | —                     | ✓     | —           | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
 
 1. A command line program calls functions without HTTP requests.
 2. Tauri's UriSchemeResponder takes a complete body.
@@ -135,7 +135,7 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 
 ## Fuzzing
 
-`vp run test:fuzz`. The run predates version recording. AddressSanitizer, up to 1,000,000 runs or 30 s per target, rustc 1.102.0-nightly (8eb778d04 2026-11-12).
+`vp run test:fuzz`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. AddressSanitizer, up to 1,000,000 runs or 30 s per target, rustc 1.102.0-nightly (65ce8611f 2026-11-18).
 
 | Target        | Status |
 | ------------- | ------ |

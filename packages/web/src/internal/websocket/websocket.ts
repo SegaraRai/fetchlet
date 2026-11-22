@@ -30,6 +30,7 @@ interface ChannelRegistry {
     message(data: string | Uint8Array): void;
     close(code: number, reason: string): void;
   }): number;
+  accepted(): number | undefined;
   send(id: number, data: string | Uint8Array): void;
   close(id: number, code: number, reason: string): void;
   buffered(id: number): number;
@@ -48,8 +49,12 @@ interface SocketState {
 
 const sockets = new WeakMap<object, SocketState>();
 
-/** Upgrade responses by the channel each hands to the host. */
-const upgrades = new WeakMap<object, number>();
+/**
+ * The channel an upgrade response hands to the host. A registered symbol, so
+ * that the wire encoder finds it when a framework build bundles another copy
+ * of this module. A forged value names no upgrade the host accepted.
+ */
+const UPGRADE = Symbol.for("fetchlet.websocket.upgrade");
 
 function socket(value: unknown): SocketState {
   const found = sockets.get(value as object);
@@ -250,6 +255,12 @@ function asksForWebSocket(request: Request): boolean {
 export interface UpgradeWebSocketOptions {
   /** The subprotocol the server selects, sent as `Sec-WebSocket-Protocol`. */
   protocol?: string;
+  /**
+   * Other headers of the 101 response, such as cookies. A
+   * `Sec-WebSocket-Protocol` among them selects the subprotocol when
+   * `protocol` does not.
+   */
+  headers?: HeadersInit;
 }
 
 /**
@@ -273,7 +284,11 @@ export function upgradeWebSocket(
   if (!registry) {
     throw new TypeError("This host does not hold WebSocket connections");
   }
-  const protocol = options.protocol === undefined ? "" : domString(options.protocol);
+  const headers = new runtime.Headers(options.headers);
+  const protocol =
+    options.protocol === undefined
+      ? (headers.get("sec-websocket-protocol") ?? "")
+      : domString(options.protocol);
   const url = new runtime.URL(request.url);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
 
@@ -339,10 +354,18 @@ export function upgradeWebSocket(
   opened.target = target;
   opened.state = socket(target);
 
-  const headers = new runtime.Headers();
+  headers.delete("sec-websocket-protocol");
   if (protocol !== "") {
     headers.set("sec-websocket-protocol", protocol);
   }
+  return {
+    socket: target as unknown as WebSocket,
+    response: switchingProtocols(channel, headers),
+  };
+}
+
+/** The 101 response that hands `channel` to the host. */
+function switchingProtocols(channel: number, headers: Headers): Response {
   const response = new runtime.Response(null, {
     status: 200,
     headers,
@@ -353,16 +376,29 @@ export function upgradeWebSocket(
     configurable: true,
     writable: true,
   });
-  upgrades.set(response, channel);
-  return {
-    socket: target as unknown as WebSocket,
-    response,
-  };
+  Object.defineProperty(response, UPGRADE, {
+    value: channel,
+  });
+  return response;
+}
+
+/**
+ * The upgrade response of the WebSocket the current invocation accepted, with
+ * `headers`. For framework integrations whose framework copies the handler's
+ * response into one of its own, which cannot be constructed with status 101.
+ */
+export function upgradeResponse(headers?: HeadersInit): Response {
+  const channel = (runtime.__fetchletChannels as ChannelRegistry | undefined)?.accepted();
+  if (channel === undefined) {
+    throw new TypeError("No WebSocket upgrade was accepted");
+  }
+  return switchingProtocols(channel, new runtime.Headers(headers));
 }
 
 /** The channel of an upgrade response from upgradeWebSocket, if it is one. */
 export function upgradeOf(response: Response): number | undefined {
-  return upgrades.get(response);
+  const channel = (response as unknown as Record<symbol, unknown>)[UPGRADE];
+  return typeof channel === "number" ? channel : undefined;
 }
 
 export { CloseEventImpl, WebSocketImpl };

@@ -86,14 +86,23 @@ A socket the handler accepts but does not return closes when the invocation
 ends. The profile has no global
 `WebSocket` for outgoing connections yet; those need a host transport.
 
+In a framework app, import `upgradeWebSocket` from `fetchlet/runtime/handler`,
+which does not install the profile: a framework build that bundles the
+module then keeps a single profile, and the response still reaches the
+profile's wire encoder. Hono apps use `upgradeWebSocket` from
+`fetchlet/hono/websocket`, and Nitro apps `defineWebSocketHandler` with
+`experimental.websocket`. `upgradeResponse(headers)` rebuilds the upgrade
+response of the socket the invocation accepted, for integrations whose
+framework copies the handler's response; the Qwik City middleware uses it.
+
 ## Subpaths
 
-| Subpath                    | Contents                                                                            |
-| -------------------------- | ----------------------------------------------------------------------------------- |
-| `fetchlet/runtime`         | The profile itself: installs the Web APIs, and exports the wire helpers             |
-| `fetchlet/runtime/adapter` | Installs the profile, then exports `createFetchHandler`, `getBindings`, `waitUntil` |
-| `fetchlet/runtime/handler` | The same exports without installing the profile                                     |
-| `fetchlet/bindings`        | Types only: `ServiceBinding` and `FetchletBindings`                                 |
+| Subpath                    | Contents                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `fetchlet/runtime`         | The profile itself: installs the Web APIs, and exports the wire helpers                                                    |
+| `fetchlet/runtime/adapter` | Installs the profile, then exports `createFetchHandler`, `getBindings`, `waitUntil`, `upgradeWebSocket`, `upgradeResponse` |
+| `fetchlet/runtime/handler` | The same exports without installing the profile                                                                            |
+| `fetchlet/bindings`        | Types only: `ServiceBinding` and `FetchletBindings`                                                                        |
 
 Framework integrations whose builder initializes the profile first use the
 side-effect-free `fetchlet/runtime/handler`. That keeps Node-only polyfills

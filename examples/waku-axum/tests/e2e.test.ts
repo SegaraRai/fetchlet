@@ -9,4 +9,5 @@ commonChecks(suite, {
   message: "From Waku",
   assetPrefix: "/",
   streaming: true,
+  websocket: true,
 });

@@ -24,7 +24,9 @@ example by running the program.
 | [SvelteKit + axum / Tauri](sveltekit-axum-tauri/README.md) | QuickJS           | A Markdown workspace: one router over CLI HTTP and a Tauri URI scheme, types from OpenAPI, remote functions, async SSR, Rust highlighting, file watching |
 
 The framework examples share ten checks in `tools/examples/common-checks.ts`
-for the same application shape. Next.js itself (`next build` output), Qwik 2
+for the same application shape. Every axum example also serves a WebSocket
+at `/api/socket` through its framework's routes, runs two instances and
+holds the socket on one while the other serves requests. Next.js itself (`next build` output), Qwik 2
 and SolidStart builds through Nitro are not covered.
 
 Each axum example also has a `dev` task:

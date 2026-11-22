@@ -1,22 +1,25 @@
 #![no_main]
 
-//! Drive the host bridge's byte store and body sources the way a guest
+//! Drive the host bridge's byte store and handle table the way a guest
 //! could, and check them against a model:
 //!
 //! - a guest buffer is taken once, and only the latest untaken one survives;
 //! - handles and body ids never reach across invocations;
+//! - a handle of one kind, a body or a channel, never reaches a resource of
+//!   the other, and a released handle names nothing;
 //! - a body read yields the producer's chunks in order, within its budget,
 //!   and a whole-body read yields all of them as one buffer or as their
 //!   UTF-8 text;
 //! - finishing, failing, cancelling or ending the invocation releases the
-//!   producer; one read per body is outstanding at a time.
+//!   producer; one read per body is outstanding at a time;
+//! - ending the invocation releases JavaScript's end of each channel.
 
 use std::collections::{BTreeMap, VecDeque};
 
 use libfuzzer_sys::fuzz_target;
 use serde_json::Value;
 
-use fetchlet::{BodyFeed, BridgeHarness, HostServices, Limits};
+use fetchlet::{BodyFeed, BridgeHarness, ChannelFeed, HostServices, Limits};
 
 struct Input<'a>(&'a [u8]);
 
@@ -66,6 +69,14 @@ struct Model {
     stale_handles: Vec<u64>,
     stale_bodies: Vec<u64>,
     released: Vec<BodyFeed>,
+    /// Open channels by handle, and whether this invocation accepted its
+    /// upgrade.
+    channels: BTreeMap<u64, ChannelFeed>,
+    upgraded: bool,
+    /// Handles of channels that are gone, and channels whose guest end the
+    /// bridge must have released.
+    stale_channels: Vec<u64>,
+    released_channels: Vec<ChannelFeed>,
     active: bool,
     /// bridge_message_bytes of the current invocation.
     message_limit: Option<usize>,
@@ -82,6 +93,11 @@ impl Model {
             .extend(self.guest.take().map(|(handle, _)| handle));
         self.stale_handles
             .extend(std::mem::take(&mut self.chunks).into_keys());
+        for (id, channel) in std::mem::take(&mut self.channels) {
+            self.stale_channels.push(id);
+            self.released_channels.push(channel);
+        }
+        self.upgraded = false;
         self.active = false;
         self.message_limit = None;
     }
@@ -171,6 +187,13 @@ fn poll(harness: &BridgeHarness, model: &mut Model) {
     }
     assert!(ok(&reply), "{reply}");
     for completion in reply["value"].as_array().expect("completions") {
+        if let Some(id) = completion["channel"].as_u64() {
+            // Nothing sends from Rust, so only the close a guest asked for
+            // can arrive. Rust has not answered it, so the channel stays.
+            assert!(model.channels.contains_key(&id), "{completion}");
+            assert!(completion["close"].is_object(), "{completion}");
+            continue;
+        }
         let ticket = completion["id"].as_str().expect("ticket");
         let (&id, body) = model
             .bodies
@@ -262,7 +285,7 @@ fuzz_target!(|data: &[u8]| {
     let mut model = Model::default();
 
     while let Some(operation) = input.byte() {
-        match operation % 12 {
+        match operation % 14 {
             0 => {
                 let budget = input.byte().unwrap_or(0);
                 let limits = Limits {
@@ -382,10 +405,12 @@ fuzz_target!(|data: &[u8]| {
                 let selector = input.byte().unwrap_or(0);
                 let mut ids: Vec<u64> = model.bodies.keys().copied().collect();
                 ids.extend(&model.stale_bodies);
+                // A channel's handle is never a body's.
+                ids.extend(model.channels.keys());
                 let id = pick(&ids, selector).unwrap_or(u64::from(selector));
                 let current = model.bodies.get(&id).filter(|body| body.open);
                 let fits = model.fits(id.to_string().len());
-                if operation % 11 == 7 {
+                if operation % 14 == 7 {
                     let read = match selector >> 5 & 3 {
                         2 => Read::Bytes,
                         3 => Read::Text,
@@ -414,13 +439,49 @@ fuzz_target!(|data: &[u8]| {
             }
             9 => poll(&harness, &mut model),
             10 => url_operation(&mut input, &harness),
+            12 => match harness.open_connection() {
+                Ok((channel, id)) => {
+                    assert!(model.active && !model.upgraded && model.fits(4));
+                    assert!(!model.channels.contains_key(&id) && !model.bodies.contains_key(&id));
+                    model.upgraded = true;
+                    model.channels.insert(id, channel);
+                }
+                Err(_) => assert!(!model.active || model.upgraded || !model.fits(4)),
+            },
+            13 => {
+                let selector = input.byte().unwrap_or(0);
+                let mut ids: Vec<u64> = model.channels.keys().copied().collect();
+                ids.extend(&model.stale_channels);
+                // A body's handle is never a channel's.
+                ids.extend(model.bodies.keys());
+                let id = pick(&ids, selector).unwrap_or(u64::from(selector));
+                let (operation, message) = if selector & 0x80 == 0 {
+                    ("channel.buffered", id.to_string())
+                } else {
+                    (
+                        "channel.close",
+                        serde_json::json!({ "id": id, "code": 1000, "reason": "" }).to_string(),
+                    )
+                };
+                let reply = harness.dispatch(operation, &message);
+                let expected =
+                    model.active && model.fits(message.len()) && model.channels.contains_key(&id);
+                assert_eq!(ok(&reply), expected, "{operation} {id}: {reply}");
+                if expected && operation == "channel.buffered" {
+                    assert_eq!(reply["value"], 0);
+                }
+            }
             _ => {
                 let length = usize::from(input.byte().unwrap_or(0) % 64);
                 let raw = String::from_utf8_lossy(input.bytes(length)).into_owned();
                 let (operation, message) = raw.split_once('\n').unwrap_or((&raw, "null"));
-                // Reads and cancels are modelled above; other operations
-                // must not disturb the bodies or the store.
-                if !operation.starts_with("body.") && operation != "fetch.poll" {
+                // Body and channel operations are modelled above; other
+                // operations must not disturb the handles or the store.
+                if !["body.", "channel.", "websocket."]
+                    .iter()
+                    .any(|prefix| operation.starts_with(prefix))
+                    && operation != "fetch.poll"
+                {
                     let reply = harness.dispatch(operation, message);
                     let _ = ok(&reply);
                 }
@@ -431,6 +492,13 @@ fuzz_target!(|data: &[u8]| {
             assert!(feed.is_released(), "a released body kept its producer");
         }
         model.released.clear();
+        for channel in &model.released_channels {
+            assert!(channel.is_released(), "an ended invocation kept a channel");
+        }
+        model.released_channels.clear();
+        for channel in model.channels.values() {
+            assert!(!channel.is_released(), "an open channel was released");
+        }
         assert!(!harness.has_pending());
     }
 });

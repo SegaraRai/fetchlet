@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -10,7 +9,9 @@ use crate::{Body, Error, Result};
 
 /// A Rust body that JavaScript in the current invocation reads on demand.
 ///
-/// Dropping the source drops the body, which cancels its producer.
+/// Rust opens each one for the invocation's request or a host fetch response,
+/// so their number is bounded by those, not by the guest. Dropping the
+/// source drops the body, which cancels its producer.
 pub(super) struct BodySource {
     body: Body,
     received: usize,
@@ -18,46 +19,6 @@ pub(super) struct BodySource {
     resource: &'static str,
     /// Chunks a whole-body read has taken so far.
     collected: Vec<Bytes>,
-}
-
-/// The body sources of one invocation, by id.
-///
-/// Rust opens each one for the invocation's request or a host fetch response,
-/// so their number is bounded by those, not by the guest.
-#[derive(Default)]
-pub(super) struct BodySources {
-    next: u64,
-    sources: BTreeMap<u64, BodySource>,
-}
-
-impl BodySources {
-    pub fn open(
-        &mut self,
-        body: Body,
-        limit: Option<usize>,
-        resource: &'static str,
-    ) -> Result<u64> {
-        self.next = self
-            .next
-            .checked_add(1)
-            .ok_or(Error::LimitExceeded("body sources"))?;
-        self.sources
-            .insert(self.next, BodySource::new(body, limit, resource));
-        Ok(self.next)
-    }
-
-    pub fn contains(&self, id: u64) -> bool {
-        self.sources.contains_key(&id)
-    }
-
-    pub fn get_mut(&mut self, id: u64) -> Option<&mut BodySource> {
-        self.sources.get_mut(&id)
-    }
-
-    /// Dropping the source cancels the body's producer.
-    pub fn remove(&mut self, id: u64) {
-        self.sources.remove(&id);
-    }
 }
 
 pub(super) enum BodyRead {

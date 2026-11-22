@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
@@ -6,20 +5,14 @@ use std::time::{Duration, Instant};
 use serde_json::{Value, json};
 use tokio::time::Sleep;
 
+use super::handles::{Handles, Resource};
 use crate::host::{GuestEnd, Refused};
 use crate::wire::ByteStore;
 use crate::{ChannelEvent, CloseFrame, Error, Limits, Message, Result};
 
-/// The channels of one invocation, by identifiers that mean nothing in any
-/// other invocation.
-#[derive(Default)]
-pub(super) struct Channels {
-    next_id: u64,
-    open: BTreeMap<u64, OpenChannel>,
-}
-
-/// JavaScript's end of one channel and the budgets that close it.
-struct OpenChannel {
+/// JavaScript's end of one channel and the budgets that close it, held in
+/// the invocation's [`Handles`].
+pub(super) struct OpenChannel {
     end: GuestEnd,
     /// A close the host decided, delivered to JavaScript at the next poll.
     forced: Option<CloseFrame>,
@@ -82,48 +75,36 @@ pub(super) struct GuestClose {
     reason: String,
 }
 
-impl Channels {
+/// Channel operations on the invocation's handle table.
+impl Handles {
     /// Add JavaScript's end of a held connection, whose budgets count from
     /// now.
     pub fn open_connection(&mut self, end: GuestEnd, limits: &Limits) -> Result<u64> {
-        self.next_id = self
-            .next_id
-            .checked_add(1)
-            .ok_or(Error::LimitExceeded("channel identifiers"))?;
         let end_of_life = limits
             .connection_lifetime
             .and_then(|lifetime| Instant::now().checked_add(lifetime));
-        self.open.insert(
-            self.next_id,
-            OpenChannel {
-                end,
-                forced: None,
-                idle_timeout: limits.connection_idle_timeout,
-                idle: None,
-                end_of_life,
-                lifetime: None,
-            },
-        );
-        Ok(self.next_id)
+        self.insert(Resource::Channel(Box::new(OpenChannel {
+            end,
+            forced: None,
+            idle_timeout: limits.connection_idle_timeout,
+            idle: None,
+            end_of_life,
+            lifetime: None,
+        })))
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.open.is_empty()
-    }
-
-    fn get(&mut self, id: u64) -> Result<&mut OpenChannel> {
-        self.open
-            .get_mut(&id)
+    fn channel(&mut self, id: u64) -> Result<&mut OpenChannel> {
+        self.channel_mut(id)
             .ok_or_else(|| Error::InvalidRequest("unknown channel".into()))
     }
 
-    pub fn send(&mut self, message: GuestMessage, bytes: &mut ByteStore) -> Result<Value> {
+    pub fn send_channel(&mut self, message: GuestMessage, bytes: &mut ByteStore) -> Result<Value> {
         let payload = match (message.text, message.bytes) {
             (Some(text), None) => Message::Text(text),
             (None, Some(handle)) => Message::Binary(bytes.take(handle)?),
             _ => return Err(Error::InvalidRequest("invalid channel message".into())),
         };
-        let channel = self.get(message.id)?;
+        let channel = self.channel(message.id)?;
         match channel.end.send(payload) {
             Ok(()) => channel.touch(),
             Err(Refused::Closed) => {}
@@ -135,19 +116,19 @@ impl Channels {
         Ok(Value::Null)
     }
 
-    pub fn close(&mut self, close: GuestClose) -> Result<Value> {
-        let channel = self.get(close.id)?;
+    pub fn close_channel(&mut self, close: GuestClose) -> Result<Value> {
+        let channel = self.channel(close.id)?;
         channel.end.close(CloseFrame::new(close.code, close.reason));
         Ok(Value::Null)
     }
 
-    pub fn buffered(&mut self, id: u64) -> Result<Value> {
-        Ok(json!(self.get(id)?.end.buffered()))
+    pub fn channel_buffered(&mut self, id: u64) -> Result<Value> {
+        Ok(json!(self.channel(id)?.end.buffered()))
     }
 
     /// Close every channel on the host's behalf, such as at shutdown.
-    pub fn force_all(&mut self, frame: &CloseFrame) {
-        for channel in self.open.values_mut() {
+    pub fn force_channels(&mut self, frame: &CloseFrame) {
+        for (_, channel) in self.channels_mut() {
             channel.force(frame.clone());
         }
     }
@@ -156,14 +137,14 @@ impl Channels {
     /// end channels. A channel leaves the table with its close; one that Rust
     /// closed gets JavaScript's close in reply, as a WebSocket endpoint
     /// answers a close frame.
-    pub fn poll(
+    pub fn poll_channels(
         &mut self,
         context: &mut Context<'_>,
         bytes: &mut ByteStore,
         events: &mut Vec<Value>,
     ) -> Result<()> {
         let mut ended = Vec::new();
-        for (&id, channel) in &mut self.open {
+        for (id, channel) in self.channels_mut() {
             if channel.forced.is_none()
                 && let Some(reason) = channel.poll_budgets(context)
             {
@@ -202,7 +183,7 @@ impl Channels {
             }
         }
         for id in ended {
-            self.open.remove(&id);
+            self.release_channel(id);
         }
         Ok(())
     }

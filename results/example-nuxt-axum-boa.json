@@ -22,7 +22,7 @@
   "backend": "boa",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 11,
+    "passed": 12,
     "failed": 0
   },
   "results": [
@@ -79,6 +79,11 @@
     {
       "name": "hydration, form submission and Nuxt navigation",
       "features": ["form", "hydration", "navigation"],
+      "status": "pass"
+    },
+    {
+      "name": "a Nuxt WebSocket holds its instance while others serve requests",
+      "features": ["websocket"],
       "status": "pass"
     }
   ]

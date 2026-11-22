@@ -23,7 +23,7 @@
   "backend": "quickjs",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 17,
+    "passed": 18,
     "failed": 0
   },
   "results": [
@@ -110,6 +110,11 @@
     {
       "name": "browser hydration, form submission and client navigation",
       "features": ["form", "hydration", "navigation"],
+      "status": "pass"
+    },
+    {
+      "name": "a SvelteKit WebSocket holds its instance while others serve requests",
+      "features": ["websocket"],
       "status": "pass"
     }
   ]

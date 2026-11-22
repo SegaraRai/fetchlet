@@ -18,9 +18,9 @@ the semantics chosen, the alternatives rejected and the order of work.
 
 ## Status
 
-Held connections (step 5 of the [order of work](#order-of-work)) are
-implemented for the axum integration, ahead of the handle table and
-request-scoped channels:
+The handle table (step 1 of the [order of work](#order-of-work)) and held
+connections (step 5) are implemented, the latter for the axum integration,
+ahead of request-scoped channels:
 
 - `Instances::max_held_connections` bounds held connections, and
   `AppHandle::reserve_connection` takes one place as a `HeldConnection`
@@ -29,12 +29,14 @@ request-scoped channels:
 - `upgradeWebSocket` from `fetchlet/runtime` (`@fetchlet/web/websocket`)
   returns the socket and the response. The `http::Response` that Rust gets
   is a 101 with a `ServerWebSocket` extension, from which the caller takes
-  the `ChannelEnd`.
-- Channels of an invocation live in a table of their own in
-  `bridge/channels.rs`, with numeric identifiers, beside the body sources.
-  The bridge operations are `websocket.upgrade`, `channel.send`,
-  `channel.close` and `channel.buffered`. Arrivals come with the
-  completions of `fetch.poll`.
+  the `ChannelEnd`. The response carries its channel under a registered
+  symbol, so the wire encoder finds it when a framework build bundles
+  another copy of the module; `upgradeResponse` rebuilds it for a
+  framework that copies responses, as Qwik City does.
+- Body sources and channels share the invocation's handle table
+  (`bridge/handles.rs`), as designed below. The bridge operations are
+  `websocket.upgrade`, `channel.send`, `channel.close` and
+  `channel.buffered`. Arrivals come with the completions of `fetch.poll`.
 - `Limits::channel_message_bytes`, `channel_buffer_bytes`,
   `connection_idle_timeout` and `connection_lifetime` apply as designed
   below. A JavaScript message over either byte budget closes the channel
@@ -45,10 +47,21 @@ request-scoped channels:
   sees upgrade requests as ordinary requests, and `upgradeWebSocket`
   throws.
 
+Framework support: Hono's helper (`fetchlet/hono/websocket`), Nitro's
+`defineWebSocketHandler` through crossws's Deno adapter in the fetchlet
+preset, and route handlers that return `upgradeWebSocket`'s response in
+Astro, React Router, SvelteKit, Qwik City, Solid, SolidStart, TanStack
+Start, vinext and Waku. Each axum example checks a socket held on one of two
+instances while the other serves requests.
+
 Tests: `crates/fetchlet/tests/websocket.rs` on every engine,
-`crates/fetchlet-http/tests/websocket.rs` over a real socket, and the
-vanilla-axum example's end-to-end check. `ChannelEnd` does not implement
-`Stream` and `Sink` yet, and the actix integration does not upgrade.
+`crates/fetchlet-http/tests/websocket.rs` over a real socket, the handle
+table's tests in `bridge/handles.rs` and `bridge/tests.rs`, the
+`bridge_bodies` fuzz target, and the examples' end-to-end checks.
+`ChannelEnd` does not implement `Stream` and `Sink` yet, the actix
+integration does not upgrade, `ViteDev` does not serve upgrades, and the
+bridge hands JavaScript numeric handles rather than the wrappers described
+below.
 
 ## Constraints
 
@@ -99,16 +112,19 @@ vanilla-axum example's end-to-end check. `ChannelEnd` does not implement
 ## Handles
 
 A handle is a reference from JavaScript to something Rust owns: a body
-source today, and a channel next. The per-kind tables become one handle
-table in `InvocationState`. Every resource JavaScript can reach belongs to an
-invocation, so there is no table at instance level.
+source or a channel. Both live in one handle table in `InvocationState`
+(`bridge/handles.rs`). Every resource JavaScript can reach belongs to an
+invocation; the table's slots outlive it only as empty slots with their
+generations.
 
-- **Identifiers.** A handle is a slot index and a generation, packed into an
-  integer below 2^53, so a JavaScript number carries it exactly, as byte
-  handles are carried today. Reusing a slot increments its generation, so a
-  stale identifier names nothing instead of a newer resource. The
-  invocation's generation is part of the check, so an identifier from an
-  earlier invocation never resolves.
+- **Identifiers.** A handle is a slot index (20 bits) and the slot's
+  generation (33 bits), packed into an integer below 2^53, so a JavaScript
+  number carries it exactly, as byte handles are carried. Releasing a slot
+  increments its generation, so a stale identifier names nothing instead of
+  a newer resource. The end of an invocation releases every entry, so an
+  identifier from an earlier invocation never resolves. A slot whose
+  generation runs out is retired, and an invocation holds at most 2^20
+  entries at once.
 - **Kinds.** Each entry has a kind: body source, channel, and later others.
   An operation names the kind it expects, and a handle of another kind fails
   with `InvalidRequest`, as an unknown body does now.
@@ -418,7 +434,8 @@ Each step lands with tests at its own boundary:
 ## Order of work
 
 1. The handle table, with body sources moved onto it. This changes no
-   behavior, and the existing tests and fuzz targets cover it.
+   behavior, and the existing tests and fuzz targets cover it. Done, with
+   channels on it too.
 2. Request-scoped channels with `HostServices::channel`, both views and the
    new `Limits`.
 3. `connect()` with `SocketService` and `SocketPolicy` in fetchlet-http

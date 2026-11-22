@@ -8,7 +8,7 @@ import {
 } from "@builder.io/qwik-city/middleware/request-handler";
 import { setServerPlatform } from "@builder.io/qwik/server";
 import type { FetchletBindings as Bindings, ServiceBinding } from "fetchlet/bindings";
-import { getBindings, waitUntil } from "fetchlet/runtime/adapter";
+import { getBindings, upgradeResponse, waitUntil } from "fetchlet/runtime/adapter";
 
 /**
  * The fixed host bindings of the fetchlet App: the keys applications declare
@@ -83,6 +83,12 @@ export function createQwikCity(options: QwikCityFetchletOptions): QwikCityFetchl
       }),
       getWritableStream: (status, headers, cookies, resolve) => {
         const { readable, writable } = new TransformStream();
+        // Qwik City copies a sent upgrade response; the host completes the
+        // handshake of the WebSocket the handler accepted.
+        if (status === 101) {
+          resolve(upgradeResponse(mergeHeadersCookies(headers, cookies)));
+          return writable;
+        }
         resolve(
           new Response(readable, {
             status,

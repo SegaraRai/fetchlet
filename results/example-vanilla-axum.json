@@ -79,6 +79,11 @@
       "status": "pass"
     },
     {
+      "name": "a vanilla JavaScript WebSocket holds its instance while others serve requests",
+      "features": ["websocket"],
+      "status": "pass"
+    },
+    {
       "name": "Rust calls a named export beside the Fetch handler",
       "features": ["functions"],
       "status": "pass"
@@ -86,11 +91,6 @@
     {
       "name": "unknown paths answer 404 from the handler",
       "features": ["ssr"],
-      "status": "pass"
-    },
-    {
-      "name": "a WebSocket holds its instance while others serve requests",
-      "features": ["websocket"],
       "status": "pass"
     }
   ]

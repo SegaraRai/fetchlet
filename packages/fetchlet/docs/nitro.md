@@ -77,7 +77,12 @@ for example) for that age ([asset archive](../../../docs/asset-archive.md)).
 [examples/nuxt-axum](../../../examples/nuxt-axum/README.md) checks SSR,
 assets, server routes, cookies, runtime config, the Rust service binding,
 streaming uploads, `event.waitUntil`, hydration and client navigation on
-QuickJS. Rendering uses Vue's `renderToString`, so responses are buffered.
+QuickJS, and a `defineWebSocketHandler` route held on one of two
+instances. Rendering uses Vue's `renderToString`, so responses are buffered.
 
-Nitro 3 with h3 2, streaming response bodies, WebSockets and scheduled
-tasks are next ([open work](../../../docs/TODO.md#nitro-3-and-h3-2)).
+With `experimental.websocket`, the preset serves WebSocket upgrades through
+crossws's Deno adapter, whose `Deno.upgradeWebSocket` it replaces in that
+module with `upgradeWebSocket` from `fetchlet/runtime/handler`. Rust bounds
+the connections with `Instances::max_held_connections`.
+
+Nitro 3 with h3 2, streaming response bodies and scheduled tasks are next ([open work](../../../docs/TODO.md#nitro-3-and-h3-2)).

@@ -9,4 +9,5 @@ commonChecks(suite, {
   message: "From Solid",
   assetPrefix: "/",
   streaming: true,
+  websocket: true,
 });

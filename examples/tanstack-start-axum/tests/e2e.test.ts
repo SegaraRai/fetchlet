@@ -9,4 +9,5 @@ commonChecks(suite, {
   message: "Welcome to TanStack Start and Rust.",
   assetPrefix: "/",
   streaming: true,
+  websocket: true,
 });

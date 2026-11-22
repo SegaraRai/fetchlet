@@ -17,6 +17,10 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: "fetchlet/nitro",
+    // defineWebSocketHandler routes; Rust holds their connections.
+    experimental: {
+      websocket: true,
+    },
     fetchlet: {
       backend: (process.env.FETCHLET_BACKEND ?? "quickjs") as "quickjs" | "boa" | "v8",
       assets: true,

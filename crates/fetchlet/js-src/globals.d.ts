@@ -59,6 +59,8 @@ interface ChannelListener {
 /** Channels of the current invocation, such as an accepted WebSocket. */
 interface ChannelRegistry {
   upgrade(listener: ChannelListener): number;
+  /** The channel of the upgrade this invocation accepted, if any. */
+  accepted(): number | undefined;
   send(id: number, data: string | Uint8Array): void;
   close(id: number, code: number, reason: string): void;
   buffered(id: number): number;

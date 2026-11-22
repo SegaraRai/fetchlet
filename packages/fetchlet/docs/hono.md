@@ -46,6 +46,25 @@ not necessarily hashed, so there is no default caching rule; set it with
 | `getConnInfo(c)`           | From `fetchlet/hono/conninfo`: the client address of the request context |
 | `getRequestContext(c)`     | From `fetchlet/hono/conninfo`: the request context                       |
 
+`upgradeWebSocket` from `fetchlet/hono/websocket` is Hono's WebSocket helper
+for the fetchlet App host. The connection holds the handler's invocation and
+instance until it closes, so the closures of its events belong to one
+connection; Rust bounds such connections with
+`Instances::max_held_connections`:
+
+```ts
+import { upgradeWebSocket } from "fetchlet/hono/websocket";
+
+app.get(
+  "/socket",
+  upgradeWebSocket(() => ({
+    onMessage(event, ws) {
+      ws.send(`echo: ${String(event.data)}`);
+    },
+  })),
+);
+```
+
 HonoX keeps its context in `AsyncLocalStorage` from `node:async_hooks`. The
 builder's `asyncContext: "serialized"` replaces it with an implementation
 that keeps the store for one invocation.

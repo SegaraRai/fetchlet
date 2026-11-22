@@ -23,7 +23,7 @@
   "backend": "boa",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 12,
+    "passed": 13,
     "failed": 0
   },
   "results": [
@@ -85,6 +85,11 @@
     {
       "name": "island hydration, form submission and Astro navigation",
       "features": ["form", "hydration", "navigation"],
+      "status": "pass"
+    },
+    {
+      "name": "a Astro WebSocket holds its instance while others serve requests",
+      "features": ["websocket"],
       "status": "pass"
     }
   ]

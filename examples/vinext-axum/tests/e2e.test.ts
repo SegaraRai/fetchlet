@@ -9,4 +9,5 @@ commonChecks(suite, {
   message: "From vinext",
   assetPrefix: "/",
   streaming: true,
+  websocket: true,
 });

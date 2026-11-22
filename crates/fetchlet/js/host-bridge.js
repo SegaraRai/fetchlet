@@ -43,6 +43,7 @@
 	});
 	// js-src/host-bridge/channels.ts
 	const channels = /* @__PURE__ */ new Map();
+	let acceptedUpgrade;
 	function hasOpenChannels() {
 		return channels.size > 0;
 	}
@@ -81,7 +82,11 @@
 				closed,
 				resolveClosed
 			});
+			acceptedUpgrade = id;
 			return id;
+		},
+		accepted() {
+			return acceptedUpgrade;
 		},
 		send(id, data) {
 			if (!channels.has(id)) return;
@@ -115,6 +120,7 @@
 			await entry.closed;
 		},
 		closeAll() {
+			acceptedUpgrade = void 0;
 			for (const id of channels.keys()) forget(id);
 		}
 	});
