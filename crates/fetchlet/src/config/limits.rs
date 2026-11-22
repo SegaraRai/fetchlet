@@ -47,13 +47,32 @@ pub struct Limits {
     pub background_timeout: Option<Duration>,
     /// `fetchlet.waitUntil` registrations during one invocation.
     pub background_tasks: Option<usize>,
+    /// Bytes of one message on a channel, such as a WebSocket message, in
+    /// either direction. A caller budget: neither RFC 6455 nor TCP sets a
+    /// maximum. A message from JavaScript over it closes the channel with
+    /// code 1009.
+    pub channel_message_bytes: Option<usize>,
+    /// Bytes queued in each direction of a channel. Rust's sender waits for
+    /// room; a JavaScript send past it closes the channel with code 1009, as
+    /// WebSocket has no way to make `send` wait.
+    pub channel_buffer_bytes: Option<usize>,
+    /// How long a held connection, such as a server WebSocket, stays open
+    /// without a message in either direction. Running out closes it with
+    /// code 1001.
+    pub connection_idle_timeout: Option<Duration>,
+    /// How long a held connection stays open from its upgrade. Running out
+    /// closes it with code 1001. JavaScript then has `timeout` more to handle
+    /// the close before the instance retires.
+    pub connection_lifetime: Option<Duration>,
 }
 
 impl Limits {
     pub(crate) fn validate(&self) -> Result<()> {
         for (name, timeout) in [
-            ("timeout", self.timeout),
             ("background_timeout", self.background_timeout),
+            ("connection_idle_timeout", self.connection_idle_timeout),
+            ("connection_lifetime", self.connection_lifetime),
+            ("timeout", self.timeout),
         ] {
             let exceeds_clock_range =
                 timeout.is_some_and(|timeout| Instant::now().checked_add(timeout).is_none());

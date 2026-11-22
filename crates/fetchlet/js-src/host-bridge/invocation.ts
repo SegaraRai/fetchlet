@@ -1,6 +1,7 @@
 // The entry points Rust evaluates for each invocation (src/execution/script.rs).
 
 import { backgroundRegistry } from "./background.ts";
+import { channelRegistry } from "./channels.ts";
 import { hostBodyStream } from "./host-bodies.ts";
 import { dispatch, putBytes, takeBytes } from "./host.ts";
 import { responseBodyRegistry } from "./response-bodies.ts";
@@ -29,6 +30,7 @@ export function abortIfDisconnected(): boolean {
 function clearInvocation(): void {
   requestAbort = null;
   responseBodyRegistry.closeAll();
+  channelRegistry.closeAll();
   // Background work keeps its timers until Rust settles it.
   if (backgroundRegistry.pending() === 0) {
     globalThis.__fetchletClearTimers?.();
@@ -51,6 +53,7 @@ export async function invokeExport(
   const exports = globalThis.fetchletExports;
   let invocationRemainsOpen = false;
   responseBodyRegistry.beginCall(streamResponseBody === true);
+  channelRegistry.closeAll();
 
   try {
     if (!Object.hasOwn(exports, exportName)) {
@@ -97,10 +100,12 @@ export async function invokeExport(
       throw new TypeError("Result is not JSON serializable");
     }
 
-    // Only the body the result hands to the host stays open with the
-    // invocation.
+    // Only the body or the upgrade the result hands to the host stays open
+    // with the invocation.
     if (streamResponseBody === true) {
-      invocationRemainsOpen = responseBodyRegistry.retain(result?.stream);
+      const bodyOpen = responseBodyRegistry.retain(result?.stream);
+      const connectionOpen = channelRegistry.retain(result?.upgrade);
+      invocationRemainsOpen = bodyOpen || connectionOpen;
     }
     return serializedResult;
   } finally {
@@ -108,6 +113,18 @@ export async function invokeExport(
     if (!invocationRemainsOpen) {
       clearInvocation();
     }
+  }
+}
+
+// Hold the connection a Fetch invocation accepted until it closes. Its
+// messages, timers and host operations run in the invocation meanwhile.
+export async function invokeConnection(channel: number): Promise<string> {
+  globalThis.__fetchletAsyncContext?.set(undefined);
+  try {
+    await channelRegistry.hold(channel);
+    return "null";
+  } finally {
+    clearInvocation();
   }
 }
 

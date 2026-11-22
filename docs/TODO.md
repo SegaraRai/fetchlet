@@ -79,7 +79,7 @@ documented refusal, and a check in a framework example:
     engine against the serialized implementation.
 - Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
   QuickJS and Boa, which libraries such as depd call at load time.
-- WebSocket and TCP sockets, through
+- Client WebSockets and TCP sockets, through
   [host channels](#host-channels-and-resources).
 - A runtime key for package `exports`: choose fetchlet's condition name
   following WinterTC Runtime Keys and which of `worker`, `edge-light` and
@@ -105,19 +105,26 @@ Connections go through Rust, as fetch does: the network stays in the host,
 and JavaScript gets one channel primitive with the APIs built on it.
 [Host channels and resources](research/host-channels.md) designs the handle
 table, the two channel lifetimes (request-scoped, and held connections that
-keep their invocation and instance until they close) and the order of work:
+keep their invocation and instance until they close) and the order of work.
+
+Held connections are implemented: `upgradeWebSocket` from
+`fetchlet/runtime`, `Instances::max_held_connections`, the channel and
+connection budgets, and server upgrades in fetchlet-http's axum integration
+behind the `websocket` feature
+([status](research/host-channels.md#status)). The rest:
 
 1. One handle table per invocation, with generations and kinds, and body
-   sources moved onto it.
+   sources and the channels of `bridge/channels.rs` moved onto it.
 2. Request-scoped channels: `HostServices::channel`, the message and
-   stream views, and the `open_channels`, `channel_message_bytes` and
-   `channel_buffer_bytes` budgets.
+   stream views, and the `open_channels` budget.
 3. `connect()` over a `SocketService` with a `SocketPolicy`.
 4. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`.
-5. Held connections with `upgradeWebSocket` and server upgrades in
-   fetchlet-http, after [instance pools](#instance-pools).
+5. Server upgrades in the actix integration, and `Stream` and `Sink` for
+   `ChannelEnd`.
 6. Resources in function arguments and results
    ([values beyond JSON](#values-beyond-json)).
+7. Framework helpers over `upgradeWebSocket`, such as Hono's, each with an
+   example check.
 
 Several connections per instance wait until async context is available on
 every engine ([concurrent request context](#framework-runtime-needs-beyond-wintertc)).
@@ -153,11 +160,11 @@ runtime, which fetchlet-http's `Server` passes
 for a server, and [sizing](research/instance-pools.md#sizing) records the
 throughput by pool size that its recommendation rests on.
 
-1. `max_held_connections` for [host channels](#host-channels-and-resources).
-2. Compiled code caching, if measurements show build time matters.
-3. Pool state for operators, such as instances by state and queue length,
-   so a deployment can size `max` from its own load.
-4. Seed each QuickJS context from host entropy. QuickJS seeds
+1. Compiled code caching, if measurements show build time matters.
+2. Pool state for operators, such as instances by state and queue length,
+   held connections included, so a deployment can size `max` from its own
+   load.
+3. Seed each QuickJS context from host entropy. QuickJS seeds
    `Math.random` and its property hash seed from the time in microseconds,
    and quickjs-ng has no API to set them, so instances that a pool builds at
    the same moment on two threads, such as a replacement and a new instance,

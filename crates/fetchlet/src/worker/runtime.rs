@@ -10,6 +10,7 @@ use super::lifecycle::WorkerStatus;
 use super::protocol::Command;
 use super::streaming::stream_response_body;
 use super::{CancelledCalls, WorkerOptions};
+use crate::app::Opened;
 use crate::{App, AppBuilder, Body, Error, Response, Result};
 
 /// The worker threads of one [`AppHandle`](super::AppHandle), each owning one
@@ -54,6 +55,13 @@ impl Pool {
         if instances.min > instances.max {
             return Err(Error::Configuration(
                 "worker instances: min exceeds max".into(),
+            ));
+        }
+        if instances.max_held_connections >= instances.max.get()
+            && instances.max_held_connections > 0
+        {
+            return Err(Error::Configuration(
+                "worker instances: max_held_connections must be below max".into(),
             ));
         }
         let pool = Arc::new(Self {
@@ -228,7 +236,7 @@ impl Pool {
                     }
                 },
             };
-            command.execute(instance, execution).await;
+            command.execute(instance, execution, stopping.clone()).await;
             // Background work runs after the reply, before the next command.
             let _ = instance.finish_background().await;
             // A retired instance is replaced now, while other workers serve
@@ -330,8 +338,15 @@ impl Command {
     }
 
     /// Execute on the worker. A streaming Fetch response keeps the worker,
-    /// and with it the instance, until its body finishes or is dropped.
-    pub async fn execute(self, app: &mut App, execution: Execution) {
+    /// and with it the instance, until its body finishes or is dropped; an
+    /// accepted connection keeps them until it closes, or `stopping` asks
+    /// it to close.
+    pub async fn execute(
+        self,
+        app: &mut App,
+        execution: Execution,
+        stopping: watch::Receiver<bool>,
+    ) {
         let finish = execution.cancelled_calls == CancelledCalls::Finish;
         match self {
             Self::Call {
@@ -351,7 +366,7 @@ impl Command {
                     // The handler sees its request's signal abort when the
                     // caller leaves, and the closed reply fails the send
                     // below, which cancels an open body.
-                    let head = app.fetch_head(*request, context, Some(disconnect.clone()));
+                    let head = app.fetch_head(*request, context, Some(disconnect.clone()), true);
                     tokio::pin!(head);
                     tokio::select! {
                         head = &mut head => head,
@@ -362,7 +377,7 @@ impl Command {
                     }
                 } else {
                     tokio::select! {
-                        head = app.fetch_head(*request, context, None) => head,
+                        head = app.fetch_head(*request, context, None, true) => head,
                         () = reply.closed() => return,
                     }
                 };
@@ -373,9 +388,20 @@ impl Command {
                         return;
                     }
                 };
-                let Some(open) = open else {
-                    let _ = reply.send(Ok(response));
-                    return;
+                let open = match open {
+                    None => {
+                        let _ = reply.send(Ok(response));
+                        return;
+                    }
+                    Some(Opened::Body(open)) => open,
+                    Some(Opened::Connection(open)) => {
+                        // A caller that left drops the response and with it
+                        // Rust's end, which closes the connection at once.
+                        let _ = reply.send(Ok(response));
+                        app.hold_connection(open, shutdown_requested(stopping))
+                            .await;
+                        return;
+                    }
                 };
                 let (parts, body) = response.into_parts();
                 let prefix = match body.collect_within(None, "response body bytes").await {
@@ -394,6 +420,14 @@ impl Command {
                 stream_response_body(app, open, sender, finish.then_some(disconnect)).await;
             }
         }
+    }
+}
+
+/// Completes once shutdown is requested.
+async fn shutdown_requested(mut stopping: watch::Receiver<bool>) {
+    if stopping.wait_for(|requested| *requested).await.is_err() {
+        // The pool keeps the sender while any worker runs.
+        std::future::pending::<()>().await;
     }
 }
 

@@ -32,6 +32,12 @@ pub(crate) fn response_body_operation(operation: ResponseBodyOperation, body: u6
     format!("globalThis.__fetchletInvocation.responseBody({operation:?}, {body})")
 }
 
+/// Hold the connection a Fetch invocation accepted until it closes.
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) fn connection_invocation(channel: u64) -> String {
+    format!("globalThis.__fetchletInvocation.connection({channel})")
+}
+
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 #[derive(Clone, Copy)]
 pub(crate) enum ResponseBodyOperation {

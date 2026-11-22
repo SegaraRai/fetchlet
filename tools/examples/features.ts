@@ -22,6 +22,7 @@ export const features = {
   "streaming-upload": "Streaming uploads",
   "wait-until": "waitUntil",
   concurrency: "Concurrency",
+  websocket: "WebSockets",
 } as const;
 
 export type Feature = keyof typeof features;

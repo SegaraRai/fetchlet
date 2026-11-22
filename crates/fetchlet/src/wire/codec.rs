@@ -28,6 +28,10 @@ pub(crate) struct WireResponse {
     /// A JavaScript response body that remains open in the current invocation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stream: Option<u64>,
+    /// The channel of the WebSocket upgrade a Fetch handler accepted; the
+    /// response is then a 101 without a body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upgrade: Option<u64>,
 }
 
 /// Apply Fetch's method rules: https://fetch.spec.whatwg.org/#concept-method-normalize
@@ -189,10 +193,14 @@ impl WireResponse {
             body.len(),
             "response body bytes",
         )?;
-        if !(200..=599).contains(&self.status) {
+        let has_body = !body.is_empty() || self.stream.is_some();
+        if self.upgrade.is_some() {
+            if self.status != 101 || has_body {
+                return Err(Error::InvalidRequest("invalid upgrade response".into()));
+            }
+        } else if !(200..=599).contains(&self.status) {
             return Err(Error::InvalidRequest("invalid response status".into()));
         }
-        let has_body = !body.is_empty() || self.stream.is_some();
         if matches!(self.status, 204 | 205 | 304) && has_body {
             return Err(Error::InvalidRequest("body on a null-body response".into()));
         }
@@ -256,6 +264,7 @@ impl WireResponse {
                 .collect::<Result<_>>()?,
             body,
             stream,
+            upgrade: None,
         })
     }
 }

@@ -1,4 +1,5 @@
 import { runtime } from "../runtime/runtime";
+import { upgradeOf } from "../websocket/websocket";
 import { BodyImpl } from "./body";
 
 export interface WireRequest {
@@ -25,6 +26,8 @@ export interface WireResponse {
   body: Uint8Array | number[];
   /** A body left open for the Rust host to pull. */
   stream?: number;
+  /** The channel of a WebSocket upgrade the handler accepted. */
+  upgrade?: number;
 }
 
 /** Response body registry installed by the fetchlet Rust host. */
@@ -78,6 +81,16 @@ export async function wireResponse(response: Response): Promise<WireResponse> {
   });
   for (const value of response.headers.getSetCookie()) {
     headers.push(["set-cookie", value]);
+  }
+
+  const upgrade = upgradeOf(response);
+  if (upgrade !== undefined) {
+    return {
+      status: 101,
+      headers,
+      body: new Uint8Array(0),
+      upgrade,
+    };
   }
 
   const registry = responseBodyRegistry();

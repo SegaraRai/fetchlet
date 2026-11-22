@@ -2,12 +2,13 @@
 
 Serves a shared fetchlet application (`fetchlet::AppHandle`) over HTTP. The Tower service is always available; Cargo features add thin layers for specific servers. The JavaScript engine is selected on the `fetchlet` crate, so this crate has no engine features.
 
-| Feature | Adds                                                                           |
-| ------- | ------------------------------------------------------------------------------ |
-| (none)  | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`           |
-| `hyper` | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
-| `axum`  | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
-| `actix` | `ActixService` for actix-web 4                                                 |
+| Feature     | Adds                                                                           |
+| ----------- | ------------------------------------------------------------------------------ |
+| (none)      | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`           |
+| `hyper`     | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
+| `axum`      | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
+| `actix`     | `ActixService` for actix-web 4                                                 |
+| `websocket` | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)              |
 
 ```toml
 [dependencies]
@@ -161,6 +162,34 @@ axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>()
 
 Manifest paths that leave the artifact directory are refused. Client files answer GET and HEAD; other methods and missing files reach the application, so the framework handles its own routes, actions and 404 pages.
 
+## WebSocket upgrades
+
+With the `websocket` feature, a Fetch handler accepts a WebSocket with
+`upgradeWebSocket(request)` from `fetchlet/runtime`, and `AxumService`
+completes the handshake and relays frames between the connection and the
+handler's socket. The invocation, and its instance, stay held until the
+connection closes, so the pool must leave instances for requests:
+
+```rust
+options.instances = Instances {
+    max_held_connections: 3,
+    ..Instances::fixed(NonZeroUsize::new(4).unwrap())
+};
+```
+
+`max_held_connections` must be below `max`, and defaults to 0. With 0, upgrade
+requests reach the handler as ordinary requests and `upgradeWebSocket`
+throws. Otherwise each upgrade request takes a place before JavaScript runs;
+with every place taken, the answer is 503. The 101 carries the handler's
+headers and its `Sec-WebSocket-Protocol`. A close from either side goes to
+the other, and a connection that fails without a closing handshake reaches
+JavaScript as code 1006 and the peer as 1011. `Limits::channel_message_bytes`
+also sets axum's frame and message size, and `connection_idle_timeout` and
+`connection_lifetime` close the connection with 1001. `tests/websocket.rs`
+covers the handshake, both closing handshakes, a client that goes away, the
+503 and shutdown over a real socket on every engine. The actix integration
+does not upgrade yet.
+
 ## Reloading during development
 
 The `dev` feature adds `DevReload`, which serves an artifact while a build tool such as `vite build --watch` rewrites it. `fetchlet/build` writes `fetchlet.json` last, through a rename. When its modification time changes, `DevReload` opens the artifact again and builds a new `Generation` with the caller's function, serves it from then on and shuts the previous applications down after their accepted calls finish. A build that fails to open or start is reported, and the previous generation keeps serving.
@@ -265,6 +294,7 @@ actix-web services are not `Send`, so there is no actix transport. Use `fetchlet
 | Request body over budget                      | 413    |
 | URL over budget                               | 414    |
 | Worker closed, failed or instance unavailable | 503    |
+| WebSocket upgrade with every held place taken | 503    |
 | Deadline exceeded                             | 504    |
 | Anything else                                 | 500    |
 

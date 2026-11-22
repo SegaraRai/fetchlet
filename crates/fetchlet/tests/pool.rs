@@ -173,6 +173,7 @@ async fn the_pool_grows_on_demand_and_retires_idle_instances() -> anyhow::Result
             min: count(1),
             max: count(2),
             idle_timeout: Some(Duration::from_millis(100)),
+            max_held_connections: 0,
         };
         let mut pool = Pool::spawn(backend, instances).await?;
         let first = pool.instance().await?;
@@ -281,6 +282,7 @@ async fn min_above_max_is_a_configuration_error() -> anyhow::Result<()> {
             min: count(2),
             max: count(1),
             idle_timeout: None,
+            max_held_connections: 0,
         };
         assert!(matches!(
             Pool::spawn(backend, instances).await,

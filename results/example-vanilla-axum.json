@@ -19,7 +19,7 @@
   "backend": "quickjs",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 13,
+    "passed": 14,
     "failed": 0
   },
   "results": [
@@ -86,6 +86,11 @@
     {
       "name": "unknown paths answer 404 from the handler",
       "features": ["ssr"],
+      "status": "pass"
+    },
+    {
+      "name": "a WebSocket holds its instance while others serve requests",
+      "features": ["websocket"],
       "status": "pass"
     }
   ]

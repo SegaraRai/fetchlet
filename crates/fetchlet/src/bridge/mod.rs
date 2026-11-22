@@ -1,4 +1,5 @@
 mod body_source;
+mod channels;
 mod clock;
 mod dispatcher;
 

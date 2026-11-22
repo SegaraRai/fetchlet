@@ -21,6 +21,18 @@ export interface WireResponse {
   stream?: number;
 }
 
+/** A message or the close of a channel, delivered with the completions. */
+export interface ChannelArrival {
+  channel: number;
+  text?: string;
+  /** A byte store handle for a binary message. */
+  bytes?: number;
+  close?: {
+    code: number;
+    reason: string;
+  };
+}
+
 /** A finished fetch or body read, by the ticket its start returned. */
 export interface Completion {
   id: number;
@@ -38,4 +50,6 @@ export interface InvocationRequest {
 export interface InvocationResult {
   body?: unknown;
   stream?: number;
+  /** The channel of an accepted WebSocket upgrade. */
+  upgrade?: number;
 }

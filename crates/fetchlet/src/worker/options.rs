@@ -41,6 +41,12 @@ pub struct Instances {
     /// How long an instance above `min` stays idle before it retires. None
     /// keeps every instance the pool started.
     pub idle_timeout: Option<Duration>,
+    /// The most instances held at once by connections that outlive their
+    /// request, such as server WebSockets. A caller budget, 0 by default:
+    /// each held connection keeps its instance until it closes, so this must
+    /// stay below `max` to leave instances for requests. An upgrade past it
+    /// is refused before JavaScript runs.
+    pub max_held_connections: usize,
 }
 
 impl Instances {
@@ -50,6 +56,7 @@ impl Instances {
             min: count,
             max: count,
             idle_timeout: None,
+            max_held_connections: 0,
         }
     }
 }

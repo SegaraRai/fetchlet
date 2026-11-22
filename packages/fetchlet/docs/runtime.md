@@ -45,6 +45,47 @@ declare module "fetchlet/bindings" {
 }
 ```
 
+## Server WebSockets
+
+`upgradeWebSocket(request, { protocol })` from `fetchlet/runtime` accepts the
+WebSocket upgrade a Fetch request asks for. It returns the socket and the
+response to return from the handler, as Deno's does:
+
+```ts
+import { upgradeWebSocket } from "fetchlet/runtime";
+
+export default {
+  fetch(request: Request): Response {
+    if (request.headers.get("upgrade")?.toLowerCase() !== "websocket") {
+      return new Response("expected a WebSocket", { status: 426 });
+    }
+    const { socket, response } = upgradeWebSocket(request);
+    let count = 0;
+    socket.addEventListener("message", (event) => {
+      count++;
+      socket.send(`#${count}: ${event.data}`);
+    });
+    return response;
+  },
+};
+```
+
+The socket follows the WebSocket interface: `open`, `message`, `error` and
+`close` events, text and binary messages with `binaryType`,
+`bufferedAmount`, and `close(code, reason)`. It opens once the host has sent
+the 101. Rust performs the handshake, framing and pings. The handler's
+invocation, and the instance with its timers and closures, stay held until
+the connection closes, so state in the handler's scope belongs to one
+connection.
+
+`upgradeWebSocket` throws unless the request asks for a WebSocket and the
+host holds connections: Rust sets `Instances::max_held_connections` and
+serves the upgrade, as fetchlet-http's `websocket` feature does for axum
+([WebSocket upgrades](../../../crates/fetchlet-http/README.md#websocket-upgrades)).
+A socket the handler accepts but does not return closes when the invocation
+ends. The profile has no global
+`WebSocket` for outgoing connections yet; those need a host transport.
+
 ## Subpaths
 
 | Subpath                    | Contents                                                                            |

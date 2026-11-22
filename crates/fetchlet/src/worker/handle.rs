@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{Semaphore, mpsc, oneshot, watch};
 
+use super::HeldConnection;
 use super::lifecycle::{WorkerStatus, wait_for_shutdown};
 use super::protocol::Command;
 use crate::reentry::is_polling;
@@ -23,6 +24,9 @@ struct Shared {
     limits: Limits,
     /// The application identity, to refuse calls from its own host fetches.
     key: u64,
+    /// Places for connections that hold an instance.
+    held: Arc<Semaphore>,
+    max_held: usize,
     /// The workers, which a queued command may ask to grow.
     #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
     pool: Arc<runtime::Pool>,
@@ -50,6 +54,8 @@ impl AppHandle {
         let shutdown = Arc::new(watch::channel(false).0);
         let (report, status) = watch::channel(WorkerStatus::Running);
         let key = new_key();
+        let max_held = options.instances.max_held_connections;
+        let held = Arc::new(Semaphore::new(max_held));
         let builder = builder.keyed(key);
         let pool = match runtime::Pool::start(builder, options, receiver, shutdown.clone(), report)
             .await
@@ -68,6 +74,8 @@ impl AppHandle {
                 status,
                 limits,
                 key,
+                held,
+                max_held,
                 pool,
             }),
         })
@@ -75,6 +83,21 @@ impl AppHandle {
 
     pub fn limits(&self) -> &Limits {
         &self.shared.limits
+    }
+
+    /// Reserve a place for a connection that holds an instance, such as a
+    /// server WebSocket, or None when
+    /// [`Instances::max_held_connections`](super::Instances::max_held_connections)
+    /// are all taken. Put it in the extensions of the upgrade request; see
+    /// [`HeldConnection`].
+    pub fn reserve_connection(&self) -> Option<HeldConnection> {
+        HeldConnection::try_reserve(&self.shared.held)
+    }
+
+    /// [`Instances::max_held_connections`](super::Instances::max_held_connections):
+    /// 0 when this application holds no connections.
+    pub fn max_held_connections(&self) -> usize {
+        self.shared.max_held
     }
 
     pub async fn call_json(&self, export: &str, arguments: &[Value]) -> Result<Value> {

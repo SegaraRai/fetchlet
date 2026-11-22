@@ -17,6 +17,8 @@ description = "Serve fetchlet applications through Tower, hyper, axum and actix-
 default = []
 hyper = ["dep:hyper"]
 axum = ["dep:axum", "dep:tower-http", "dep:tokio", "tokio/net", "tokio/signal"]
+# Accept WebSocket upgrades in the axum service and server.
+websocket = ["axum", "axum/ws"]
 actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
 # Serve an artifact while a build tool rewrites it, for development.
 dev = ["dep:tokio"]
@@ -49,9 +51,11 @@ actix-http = "3"
 actix-web = { workspace = true, features = ["macros"] }
 anyhow.workspace = true
 brotli-decompressor = "6"
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 hyper = { workspace = true, features = ["client"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 tokio = { workspace = true, features = ["net", "io-util"] }
+tokio-tungstenite = "0.30"
 tower.workspace = true
 
 [[test]]
@@ -61,6 +65,10 @@ required-features = ["hyper"]
 [[test]]
 name = "axum"
 required-features = ["axum"]
+
+[[test]]
+name = "websocket"
+required-features = ["websocket"]
 
 [[test]]
 name = "axum_router"

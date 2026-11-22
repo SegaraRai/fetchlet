@@ -67,8 +67,18 @@ options.instances = Instances {
     min: NonZeroUsize::new(1).unwrap(),
     max: NonZeroUsize::new(4).unwrap(),
     idle_timeout: Some(Duration::from_secs(60)),
+    max_held_connections: 0,
 };
 ```
+
+`max_held_connections` bounds the instances that server WebSockets hold.
+A handler that accepts an upgrade with `upgradeWebSocket` keeps its
+invocation and instance until the connection closes, so the value must be
+below `max`. The caller takes a place with `AppHandle::reserve_connection`
+and puts the `HeldConnection` in the request's extensions; the 101 response
+carries a `ServerWebSocket` extension whose `ChannelEnd` sends and receives
+the socket's messages. fetchlet-http's `websocket` feature does this for
+axum.
 
 `max` is a caller budget: each instance has its own engine heap. A host
 fetch that calls its own app fails with `Reentrant` even when another

@@ -1,6 +1,7 @@
 //! Explicit host services and the policies applied before transport dispatch.
 
 mod bindings;
+mod channel;
 mod console;
 mod context;
 mod policy;
@@ -9,6 +10,7 @@ mod service;
 mod transport;
 
 pub use bindings::HostServices;
+pub use channel::{ChannelEnd, ChannelEvent, CloseFrame, Message, ServerWebSocket};
 pub use console::ConsoleLevel;
 pub use context::Context;
 pub use policy::FetchPolicy;
@@ -16,6 +18,14 @@ pub use router::OriginRouter;
 pub use service::FetchService;
 pub use transport::{FetchTransport, TransportFuture, transport_fn};
 
+#[cfg(any(
+    feature = "boa",
+    feature = "quickjs",
+    feature = "v8",
+    feature = "fuzzing",
+    test
+))]
+pub(crate) use channel::{GuestEnd, Refused, pair};
 #[cfg(any(
     feature = "boa",
     feature = "quickjs",

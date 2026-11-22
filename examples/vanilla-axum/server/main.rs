@@ -46,6 +46,9 @@ struct Config {
     min_instances: Option<NonZeroUsize>,
     /// How long an instance above `min_instances` stays idle before it stops.
     instance_idle_timeout_ms: Option<u64>,
+    /// Instances that open WebSockets may hold, below `max_instances`; none
+    /// by default.
+    max_held_connections: Option<usize>,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -79,6 +82,7 @@ async fn main() -> Result<()> {
             min: config.min_instances.unwrap_or(NonZeroUsize::MIN),
             max,
             idle_timeout: config.instance_idle_timeout_ms.map(Duration::from_millis),
+            max_held_connections: config.max_held_connections.unwrap_or(0),
         });
     }
     if let Some(origin) = config.public_origin {

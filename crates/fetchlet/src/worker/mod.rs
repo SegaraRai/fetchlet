@@ -1,4 +1,5 @@
 mod handle;
+mod held;
 mod lifecycle;
 mod options;
 mod protocol;
@@ -11,4 +12,5 @@ mod runtime;
 mod streaming;
 
 pub use handle::AppHandle;
+pub use held::HeldConnection;
 pub use options::{CancelledCalls, Instances, WorkerOptions};

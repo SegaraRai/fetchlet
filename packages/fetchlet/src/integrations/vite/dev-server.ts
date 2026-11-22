@@ -32,6 +32,11 @@ const devRunner = createRequire(import.meta.url).resolve("fetchlet/vite/dev-runn
 
 const modulePath = (file: string): string => file.replaceAll("\\", "/");
 
+// The Web API profile and its exports, such as upgradeWebSocket. The
+// development artifact installs it once; server modules that import it get
+// that instance, as fetchlet/build externalizes it for production builds.
+const RUNTIME_MODULE = "fetchlet/runtime";
+
 /** Files Vite handles as stylesheets, whose edits it applies in place. */
 const STYLESHEET = /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss|sss)(?:$|\?)/;
 
@@ -180,6 +185,8 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
       const resolve = resolved.environments[environmentName]?.resolve;
       if (resolve) {
         resolve.external = [];
+        // Provided by the artifact, as the Node built-ins are.
+        resolve.builtins = [...(resolve.builtins ?? []), RUNTIME_MODULE];
       }
       // Framework packages whose imports the framework's plugins rewrite stay
       // out of prebundling, as frameworks arrange for the browser.
@@ -346,9 +353,10 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
       : "/" + modulePath(relative(root, resolve(root, options.entry)));
     const names = options.functions ? await exportedNames(environment, entry) : [];
     const builtins = nodeBuiltinNames(options.asyncContext);
-    const builtinTable = builtins
-      .map((name, index) => `${JSON.stringify(name)}: builtin${index}`)
-      .join(", ");
+    const builtinTable = [
+      ...builtins.map((name, index) => `${JSON.stringify(name)}: builtin${index}`),
+      `${JSON.stringify(RUNTIME_MODULE)}: fetchletRuntime`,
+    ].join(", ");
     const globalTable = Object.entries(nodeGlobals)
       .map(([name, source]) => {
         const [module, member] = typeof source === "string" ? [source, "default"] : source;
@@ -364,6 +372,7 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
           ...builtins.map((name, index) => `import * as builtin${index} from "node:${name}";`),
           // Dependencies choose their development builds, as under `vite dev` in Node.
           `import process from "node:process";`,
+          `import * as fetchletRuntime from ${JSON.stringify(RUNTIME_MODULE)};`,
           `import { devServer } from ${JSON.stringify(modulePath(devRunner))};`,
           `process.env.NODE_ENV = "development";`,
           `const dev = devServer(${JSON.stringify(entry)}, {`,

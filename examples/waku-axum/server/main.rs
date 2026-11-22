@@ -72,6 +72,7 @@ async fn main() -> Result<()> {
             min: config.min_instances.unwrap_or(NonZeroUsize::MIN),
             max,
             idle_timeout: config.instance_idle_timeout_ms.map(Duration::from_millis),
+            max_held_connections: 0,
         });
     }
     if let Some(origin) = config.public_origin {

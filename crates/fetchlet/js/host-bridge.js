@@ -41,6 +41,83 @@
 			backgroundTasks.clear();
 		}
 	});
+	// js-src/host-bridge/channels.ts
+	const channels = /* @__PURE__ */ new Map();
+	function hasOpenChannels() {
+		return channels.size > 0;
+	}
+	function forget(id) {
+		const entry = channels.get(id);
+		channels.delete(id);
+		entry?.resolveClosed();
+	}
+	/** Deliver an arrival if the event is one. Returns whether it was. */
+	function completeChannel(event) {
+		if (!("channel" in event)) return false;
+		const arrival = event;
+		const bytes = arrival.bytes === void 0 ? void 0 : takeBytes(arrival.bytes);
+		const entry = channels.get(arrival.channel);
+		if (!entry) return true;
+		if (arrival.close !== void 0) {
+			channels.delete(arrival.channel);
+			try {
+				entry.listener.close(arrival.close.code, arrival.close.reason);
+			} finally {
+				entry.resolveClosed();
+			}
+		} else if (bytes !== void 0) entry.listener.message(bytes);
+		else if (arrival.text !== void 0) entry.listener.message(arrival.text);
+		return true;
+	}
+	const channelRegistry = Object.freeze({
+		upgrade(listener) {
+			const id = dispatch("websocket.upgrade", null);
+			let resolveClosed;
+			const closed = new Promise((resolve) => {
+				resolveClosed = resolve;
+			});
+			channels.set(id, {
+				listener,
+				closed,
+				resolveClosed
+			});
+			return id;
+		},
+		send(id, data) {
+			if (!channels.has(id)) return;
+			if (typeof data === "string") dispatch("channel.send", {
+				id,
+				text: data
+			});
+			else dispatch("channel.send", {
+				id,
+				bytes: putBytes(data)
+			});
+		},
+		close(id, code, reason) {
+			if (channels.has(id)) dispatch("channel.close", {
+				id,
+				code,
+				reason
+			});
+		},
+		buffered(id) {
+			return channels.has(id) ? dispatch("channel.buffered", id) : 0;
+		},
+		retain(id) {
+			for (const key of channels.keys()) if (key !== id) forget(key);
+			return id !== void 0 && channels.has(id);
+		},
+		async hold(id) {
+			const entry = channels.get(id);
+			if (!entry) return;
+			entry.listener.open();
+			await entry.closed;
+		},
+		closeAll() {
+			for (const id of channels.keys()) forget(id);
+		}
+	});
 	// js-src/host-bridge/console.ts
 	function formatConsoleValue(value) {
 		if (typeof value === "string") return value;
@@ -454,6 +531,7 @@
 	function clearInvocation() {
 		requestAbort = null;
 		responseBodyRegistry.closeAll();
+		channelRegistry.closeAll();
 		if (backgroundRegistry.pending() === 0) {
 			globalThis.__fetchletClearTimers?.();
 			globalThis.__fetchletClearPerformanceEntries?.();
@@ -464,6 +542,7 @@
 		const exports = globalThis.fetchletExports;
 		let invocationRemainsOpen = false;
 		responseBodyRegistry.beginCall(streamResponseBody === true);
+		channelRegistry.closeAll();
 		try {
 			if (!Object.hasOwn(exports, exportName)) throw new TypeError("Unknown function");
 			const exportedFunction = exports[exportName];
@@ -493,11 +572,24 @@
 			}
 			const serializedResult = JSON.stringify(result);
 			if (serializedResult === void 0) throw new TypeError("Result is not JSON serializable");
-			if (streamResponseBody === true) invocationRemainsOpen = responseBodyRegistry.retain(result?.stream);
+			if (streamResponseBody === true) {
+				const bodyOpen = responseBodyRegistry.retain(result?.stream);
+				const connectionOpen = channelRegistry.retain(result?.upgrade);
+				invocationRemainsOpen = bodyOpen || connectionOpen;
+			}
 			return serializedResult;
 		} finally {
 			responseBodyRegistry.endCall();
 			if (!invocationRemainsOpen) clearInvocation();
+		}
+	}
+	async function invokeConnection(channel) {
+		globalThis.__fetchletAsyncContext?.set(void 0);
+		try {
+			await channelRegistry.hold(channel);
+			return "null";
+		} finally {
+			clearInvocation();
 		}
 	}
 	async function invokeResponseBody(operation, bodyId) {
@@ -526,9 +618,12 @@
 	/** Returns how many host events it delivered. */
 	function pumpHostOperations() {
 		const progress = abortIfDisconnected() ? 1 : 0;
-		if (!hasPendingFetches() && !hasPendingReads()) return progress;
+		if (!hasPendingFetches() && !hasPendingReads() && !hasOpenChannels()) return progress;
 		const completions = dispatch("fetch.poll", null);
-		for (const completion of completions) if (!completeRead(completion)) completeFetch(completion);
+		for (const completion of completions) {
+			if (completeChannel(completion)) continue;
+			if (!completeRead(completion)) completeFetch(completion);
+		}
 		return completions.length + progress;
 	}
 	// js-src/host-bridge/index.ts
@@ -557,6 +652,11 @@
 		writable: false,
 		configurable: false
 	});
+	Object.defineProperty(globalThis, "__fetchletChannels", {
+		value: channelRegistry,
+		writable: false,
+		configurable: false
+	});
 	Object.defineProperty(globalThis, "__fetchletBackground", {
 		value: backgroundRegistry,
 		writable: false,
@@ -565,7 +665,8 @@
 	Object.defineProperty(globalThis, "__fetchletInvocation", {
 		value: Object.freeze({
 			call: invokeExport,
-			responseBody: invokeResponseBody
+			responseBody: invokeResponseBody,
+			connection: invokeConnection
 		}),
 		writable: false,
 		configurable: false

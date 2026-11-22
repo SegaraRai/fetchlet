@@ -8,13 +8,17 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use super::body_source::{BodyRead, BodySources};
+use super::channels::{Channels, GuestClose, GuestMessage};
 use super::clock::Clock;
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
-use crate::host::{Redirect, TransportFuture};
+use crate::host::{Redirect, TransportFuture, pair};
 use crate::reentry;
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
-use crate::{Body, ConsoleLevel, Context, Error, HostServices, Limits, Response, Result};
+use crate::{
+    Body, ChannelEnd, CloseFrame, ConsoleLevel, Context, Error, HostServices, Limits, Response,
+    Result,
+};
 
 struct PendingFetch {
     future: TransportFuture,
@@ -58,6 +62,22 @@ struct InvocationState {
     /// Web API state, such as open compression streams.
     #[cfg(feature = "web")]
     web: fetchlet_web::WebState,
+    /// Channels JavaScript holds, such as an accepted WebSocket.
+    channels: Channels,
+    /// Whether this Fetch invocation may accept a WebSocket upgrade.
+    upgrade: Upgrade,
+}
+
+/// The WebSocket upgrade of a Fetch invocation.
+enum Upgrade {
+    /// The request did not ask for one, or the host cannot hold it.
+    Unavailable,
+    Available,
+    /// JavaScript accepted it; Rust's end waits for the response.
+    Accepted {
+        id: u64,
+        end: Option<ChannelEnd>,
+    },
 }
 
 /// Tells a running Fetch invocation that its client went away.
@@ -256,6 +276,48 @@ impl HostBridge {
         Ok(())
     }
 
+    /// Let the current Fetch invocation accept a WebSocket upgrade.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn allow_upgrade(&self) -> Result<()> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.upgrade = Upgrade::Available;
+        Ok(())
+    }
+
+    /// Rust's end of the upgrade that the Fetch result returned as `id`.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn take_upgrade(&self, id: u64) -> Result<ChannelEnd> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        match &mut invocation.upgrade {
+            Upgrade::Accepted { id: accepted, end } if *accepted == id => end
+                .take()
+                .ok_or_else(|| Error::InvalidRequest("upgrade already returned".into())),
+            _ => Err(Error::InvalidRequest("unknown upgrade".into())),
+        }
+    }
+
+    /// Close the current invocation's channels on the host's behalf.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn close_channels(&self, frame: &CloseFrame) {
+        if let Ok(mut state) = self.lock_state()
+            && let Some(invocation) = state.invocation.as_mut()
+        {
+            invocation.channels.force_all(frame);
+        }
+        self.wake.notify();
+    }
+
     fn effective_limits(&self) -> Result<Limits> {
         let state = self.lock_state()?;
         Ok(state
@@ -301,6 +363,8 @@ impl HostBridge {
             disconnect: None,
             #[cfg(feature = "web")]
             web: fetchlet_web::WebState::default(),
+            channels: Channels::default(),
+            upgrade: Upgrade::Unavailable,
         });
 
         Ok(InvocationScope {
@@ -384,20 +448,24 @@ impl HostBridge {
         }
 
         match operation {
+            "background.register" => self.register_background(),
+            "background.settle" => self.settle_background(),
             "bindings" => Ok(self.bindings()),
-            "clock" => Ok(self.clock.read()),
-            "invocation.limits" => self.invocation_limits(),
-            "invocation.disconnected" => self.invocation_disconnected(),
-            "fetch.start" => self.start_fetch(input),
-            "fetch.poll" => self.poll_fetches(),
-            "fetch.cancel" => self.cancel_fetch(input),
+            "body.cancel" => self.cancel_body(input),
             "body.read" => self.read_body(input, None),
             "body.readAll" => self.read_body(input, Some(Whole::Bytes)),
             "body.readText" => self.read_body(input, Some(Whole::Text)),
-            "body.cancel" => self.cancel_body(input),
-            "background.register" => self.register_background(),
-            "background.settle" => self.settle_background(),
+            "channel.buffered" => self.channel_buffered(input),
+            "channel.close" => self.close_channel(input),
+            "channel.send" => self.send_channel(input),
+            "clock" => Ok(self.clock.read()),
             "console.write" => self.write_console(input),
+            "fetch.cancel" => self.cancel_fetch(input),
+            "fetch.poll" => self.poll_fetches(),
+            "fetch.start" => self.start_fetch(input),
+            "invocation.disconnected" => self.invocation_disconnected(),
+            "invocation.limits" => self.invocation_limits(),
+            "websocket.upgrade" => self.upgrade_websocket(),
             _ => Err(Error::PermissionDenied),
         }
     }
@@ -541,6 +609,7 @@ impl HostBridge {
             bytes,
             bodies,
             pending_reads,
+            channels,
             ..
         } = invocation;
         let mut transport = InvocationTransport { bytes, bodies };
@@ -600,12 +669,15 @@ impl HostBridge {
             false
         });
 
-        Ok(Value::Array(
-            completed
-                .into_iter()
-                .map(FetchCompletion::into_value)
-                .collect(),
-        ))
+        let mut events: Vec<Value> = completed
+            .into_iter()
+            .map(FetchCompletion::into_value)
+            .collect();
+        // Messages and closes of channels, each channel's in order.
+        if !channels.is_empty() {
+            channels.poll(&mut context, bytes, &mut events)?;
+        }
+        Ok(Value::Array(events))
     }
 
     pub(super) fn cancel_fetch(&self, input: &str) -> Result<Value> {
@@ -620,6 +692,54 @@ impl HostBridge {
         }
 
         Ok(Value::Null)
+    }
+
+    /// Accept the WebSocket upgrade of the current Fetch invocation.
+    fn upgrade_websocket(&self) -> Result<Value> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        match invocation.upgrade {
+            Upgrade::Available => {}
+            Upgrade::Accepted { .. } => {
+                return Err(Error::InvalidRequest(
+                    "the request is already upgraded".into(),
+                ));
+            }
+            Upgrade::Unavailable => return Err(Error::PermissionDenied),
+        }
+        let (end, guest) = pair(&invocation.limits);
+        let id = invocation
+            .channels
+            .open_connection(guest, &invocation.limits)?;
+        invocation.upgrade = Upgrade::Accepted { id, end: Some(end) };
+        Ok(Value::from(id))
+    }
+
+    fn send_channel(&self, input: &str) -> Result<Value> {
+        let message: GuestMessage = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid channel message".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let result = invocation.channels.send(message, &mut invocation.bytes);
+        // A close the send forced reaches JavaScript at the next poll.
+        self.wake.notify();
+        result
+    }
+
+    fn close_channel(&self, input: &str) -> Result<Value> {
+        let close: GuestClose = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid channel close".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.channels.close(close)
+    }
+
+    fn channel_buffered(&self, input: &str) -> Result<Value> {
+        let id: u64 = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid channel id".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.channels.buffered(id)
     }
 
     pub(super) fn register_background(&self) -> Result<Value> {

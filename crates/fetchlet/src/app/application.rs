@@ -5,6 +5,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 
 use super::AppBuilder;
+use super::connection::OpenConnection;
 use super::response_body::OpenResponseBody;
 use crate::backend::Engine;
 use crate::bridge::{Disconnect, HostBridge, InvocationScope};
@@ -14,8 +15,17 @@ use crate::execution::{
 };
 use crate::wire::{WireRequest, WireResponse};
 use crate::{
-    Backend, Body, Context, Error, HostServices, Instance, Limits, Request, Response, Result,
+    Backend, Body, Context, Error, HeldConnection, HostServices, Instance, Limits, Request,
+    Response, Result, ServerWebSocket,
 };
+
+/// What a Fetch invocation leaves open after its response head.
+pub(crate) enum Opened {
+    /// A JavaScript body that the caller pulls.
+    Body(OpenResponseBody),
+    /// An accepted connection, held until it closes.
+    Connection(OpenConnection),
+}
 
 /// A managed, reusable application instance with fixed host bindings.
 ///
@@ -125,9 +135,15 @@ impl App {
         request: Request,
         context: Option<Value>,
     ) -> Result<Response> {
-        let (response, open) = self.fetch_head(request, context, None).await?;
-        let Some(mut open) = open else {
-            return Ok(response);
+        let (response, open) = self.fetch_head(request, context, None, false).await?;
+        let mut open = match open {
+            None => return Ok(response),
+            Some(Opened::Body(open)) => open,
+            // Not offered without `hold`.
+            Some(Opened::Connection(open)) => {
+                self.close(open.into_scope());
+                return Err(Error::InvalidRequest("unexpected upgrade".into()));
+            }
         };
         let (parts, body) = response.into_parts();
         let mut data = BytesMut::from(body.buffered()?);
@@ -148,12 +164,18 @@ impl App {
     /// pull it to the end or cancel it before the App runs another call.
     /// `disconnect`, when given, aborts the request's signal in JavaScript
     /// once signalled, for the head and every pull of the body.
+    ///
+    /// With `hold`, a WebSocket upgrade request that carries a
+    /// [`HeldConnection`] may be accepted; the response then has status 101
+    /// and a [`ServerWebSocket`], and the caller runs the connection with
+    /// [`App::hold_connection`].
     pub(crate) async fn fetch_head(
         &mut self,
         request: Request,
         context: Option<Value>,
         disconnect: Option<Disconnect>,
-    ) -> Result<(Response, Option<OpenResponseBody>)> {
+        hold: bool,
+    ) -> Result<(Response, Option<Opened>)> {
         if self.handler.is_none() {
             return Err(Error::Configuration(
                 "the application has no Fetch handler".into(),
@@ -167,10 +189,20 @@ impl App {
         // A trusted Context stays in Rust; JavaScript receives the wire request.
         let mut request = request;
         let trusted = request.extensions_mut().remove::<Context>();
+        let held = request
+            .extensions_mut()
+            .remove::<HeldConnection>()
+            .filter(|_| hold && is_websocket_upgrade(&request));
         // The request body goes into this invocation's byte store.
         let scope = self.begin(trusted)?;
         if let Some(disconnect) = disconnect
             && let Err(error) = self.host.watch_disconnect(disconnect)
+        {
+            self.close(scope);
+            return Err(error);
+        }
+        if held.is_some()
+            && let Err(error) = self.host.allow_upgrade()
         {
             self.close(scope);
             return Err(error);
@@ -201,7 +233,8 @@ impl App {
             }
         };
         let stream = wire.stream;
-        let response = match wire.into_http(&self.limits, &mut self.host) {
+        let upgrade = wire.upgrade;
+        let mut response = match wire.into_http(&self.limits, &mut self.host) {
             Ok(response) => response,
             Err(error) => {
                 match stream {
@@ -214,6 +247,20 @@ impl App {
                 return Err(error);
             }
         };
+        if let Some(channel) = upgrade {
+            let (held, end) = match (held, self.host.take_upgrade(channel)) {
+                (Some(held), Ok(end)) => (held, end),
+                (_, result) => {
+                    self.close(scope);
+                    return Err(result
+                        .err()
+                        .unwrap_or_else(|| Error::InvalidRequest("unexpected upgrade".into())));
+                }
+            };
+            response.extensions_mut().insert(ServerWebSocket::new(end));
+            let open = OpenConnection::new(channel, scope, held);
+            return Ok((response, Some(Opened::Connection(open))));
+        }
         match stream {
             None => {
                 self.close(scope);
@@ -222,7 +269,7 @@ impl App {
             Some(id) => {
                 let received = response.body().buffered()?.len();
                 let open = OpenResponseBody::new(id, scope, deadline, received);
-                Ok((response, Some(open)))
+                Ok((response, Some(Opened::Body(open))))
             }
         }
     }
@@ -293,6 +340,24 @@ impl App {
             "response body bytes",
         )
     }
+}
+
+/// A WebSocket opening handshake request (RFC 6455 §4.2.1): a GET that asks
+/// to upgrade to `websocket`. The HTTP integration checks the rest of the
+/// handshake before it answers.
+fn is_websocket_upgrade(request: &Request) -> bool {
+    request.method() == http::Method::GET
+        && request
+            .headers()
+            .get_all(http::header::UPGRADE)
+            .iter()
+            .any(|value| {
+                value.to_str().is_ok_and(|value| {
+                    value
+                        .split(',')
+                        .any(|token| token.trim().eq_ignore_ascii_case("websocket"))
+                })
+            })
 }
 
 fn invalid_request(error: impl std::fmt::Display) -> Error {

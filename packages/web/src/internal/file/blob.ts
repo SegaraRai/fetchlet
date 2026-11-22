@@ -110,6 +110,11 @@ class FileImpl extends BlobImpl {
   }
 }
 
+/** The bytes of a Blob of this profile, without copying, or undefined. */
+export function blobBytes(value: unknown): Uint8Array | undefined {
+  return value instanceof BlobImpl ? (value as unknown as { data: Uint8Array }).data : undefined;
+}
+
 Object.defineProperty(BlobImpl, "name", { value: "Blob" });
 Object.defineProperty(FileImpl, "name", { value: "File" });
 

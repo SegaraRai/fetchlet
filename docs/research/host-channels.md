@@ -16,6 +16,40 @@ This document designs four things:
 It builds on [instance pools](instance-pools.md). It records the constraints,
 the semantics chosen, the alternatives rejected and the order of work.
 
+## Status
+
+Held connections (step 5 of the [order of work](#order-of-work)) are
+implemented for the axum integration, ahead of the handle table and
+request-scoped channels:
+
+- `Instances::max_held_connections` bounds held connections, and
+  `AppHandle::reserve_connection` takes one place as a `HeldConnection`
+  that the request carries in its extensions. `App::fetch` accepts an
+  upgrade only for a `GET` that asks for `websocket` and carries a place.
+- `upgradeWebSocket` from `fetchlet/runtime` (`@fetchlet/web/websocket`)
+  returns the socket and the response. The `http::Response` that Rust gets
+  is a 101 with a `ServerWebSocket` extension, from which the caller takes
+  the `ChannelEnd`.
+- Channels of an invocation live in a table of their own in
+  `bridge/channels.rs`, with numeric identifiers, beside the body sources.
+  The bridge operations are `websocket.upgrade`, `channel.send`,
+  `channel.close` and `channel.buffered`. Arrivals come with the
+  completions of `fetch.poll`.
+- `Limits::channel_message_bytes`, `channel_buffer_bytes`,
+  `connection_idle_timeout` and `connection_lifetime` apply as designed
+  below. A JavaScript message over either byte budget closes the channel
+  with 1009. Shutdown closes held connections with 1001.
+- fetchlet-http's `websocket` feature completes the handshake in
+  `AxumService` and relays frames. With every place taken, it answers 503
+  before JavaScript runs. With `max_held_connections` at 0, the handler
+  sees upgrade requests as ordinary requests, and `upgradeWebSocket`
+  throws.
+
+Tests: `crates/fetchlet/tests/websocket.rs` on every engine,
+`crates/fetchlet-http/tests/websocket.rs` over a real socket, and the
+vanilla-axum example's end-to-end check. `ChannelEnd` does not implement
+`Stream` and `Sink` yet, and the actix integration does not upgrade.
+
 ## Constraints
 
 - **An instance runs one invocation at a time.** JavaScript runs only inside
@@ -290,11 +324,11 @@ export default {
   upgrade and the host can hold the connection. `socket` is a `WebSocket`
   over the message view of a channel in the invocation's table. `response` is
   a 101 response that carries the channel's handle.
-- Rust attaches the other `ChannelEnd` to the `http::Response` as an
-  `Upgrade` extension. fetchlet-http's axum and actix integrations complete
+- Rust attaches the other `ChannelEnd` to the `http::Response` as a
+  `ServerWebSocket` extension. fetchlet-http's axum and actix integrations complete
   the handshake and pump frames between the upgraded connection and the
   `ChannelEnd`. A handler that creates the socket but returns another
-  response closes the channel with 1011.
+  response closes the channel when its invocation ends.
 - `App::fetch` callers that are not HTTP servers read the extension
   themselves, so a Rust test or a Tauri command can talk to the socket
   directly.

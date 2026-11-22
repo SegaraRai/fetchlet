@@ -48,6 +48,25 @@ interface ResponseBodyRegistry {
   closeAll(): void;
 }
 
+/** What a channel delivers to the object that owns it. */
+interface ChannelListener {
+  /** The connection is held: the handler has returned its upgrade. */
+  open(): void;
+  message(data: string | Uint8Array<ArrayBuffer>): void;
+  close(code: number, reason: string): void;
+}
+
+/** Channels of the current invocation, such as an accepted WebSocket. */
+interface ChannelRegistry {
+  upgrade(listener: ChannelListener): number;
+  send(id: number, data: string | Uint8Array): void;
+  close(id: number, code: number, reason: string): void;
+  buffered(id: number): number;
+  retain(id: number | undefined): boolean;
+  hold(id: number): Promise<void>;
+  closeAll(): void;
+}
+
 /** Work registered with fetchlet.waitUntil. */
 interface BackgroundRegistry {
   pending(): number;
@@ -70,6 +89,7 @@ declare var __fetchletPutBytes: ((bytes: Uint8Array) => number) | undefined;
 declare var __fetchletClaimHost: (() => HostClaim) | undefined;
 declare var __fetchletResponseBodies: ResponseBodyRegistry;
 declare var __fetchletBackground: BackgroundRegistry;
+declare var __fetchletChannels: ChannelRegistry;
 declare var __fetchletPumpHost: (() => number) | undefined;
 
 // Installed by the guest runtime.

@@ -59,6 +59,11 @@ impl FetchletService {
         })
     }
 
+    #[cfg(feature = "websocket")]
+    pub(crate) fn app(&self) -> &AppHandle {
+        &self.app
+    }
+
     /// Supply the client address of the default [`RequestContext`].
     ///
     /// Servers keep connection data in their own request extensions, such as

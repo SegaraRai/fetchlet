@@ -14,6 +14,7 @@ fn binary_response_and_repeated_cookies_survive_conversion() {
         ],
         body: WireBytes::Inline(vec![0, 128, 255]),
         stream: None,
+        upgrade: None,
     };
 
     let limits = Limits::default();
@@ -38,6 +39,7 @@ fn invalid_guest_headers_do_not_reach_http() {
             headers,
             body: WireBytes::default(),
             stream: None,
+            upgrade: None,
         };
 
         assert!(matches!(
@@ -55,6 +57,7 @@ fn invalid_status_and_null_body_combinations_are_rejected() {
             headers: Vec::new(),
             body: WireBytes::Inline(body),
             stream: None,
+            upgrade: None,
         };
 
         assert!(
@@ -94,6 +97,7 @@ fn an_open_stream_on_a_null_body_status_is_rejected() {
         headers: Vec::new(),
         body: WireBytes::default(),
         stream: Some(1),
+        upgrade: None,
     };
 
     assert!(
@@ -322,6 +326,7 @@ fn response_body_budget_applies_in_both_directions() {
         headers: Vec::new(),
         body: WireBytes::Inline(vec![1, 2, 3]),
         stream: None,
+        upgrade: None,
     };
     assert!(matches!(
         wire.into_http(&limits, &mut InlineBytes),

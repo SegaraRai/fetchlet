@@ -1,6 +1,8 @@
 mod artifact;
 mod service;
 mod transport;
+#[cfg(feature = "websocket")]
+mod websocket;
 
 #[cfg(fetchlet_engine)]
 mod server;

@@ -45,8 +45,9 @@ const evaluateScript = eval;
 /**
  * Evaluates the code Vite transformed for the server environment, as Vite's
  * ESModulesEvaluator does. Every dependency is transformed by Vite; the only
- * external modules are Node built-ins, which come from the development
- * artifact's own implementations.
+ * external modules are the Node built-ins, which come from the development
+ * artifact's own implementations, and `fetchlet/runtime`, which the artifact
+ * installed once.
  */
 class FetchletEvaluator implements ModuleEvaluator {
   readonly #globalNames: string[];
@@ -111,7 +112,7 @@ class FetchletEvaluator implements ModuleEvaluator {
       return this.#builtins[name];
     }
     throw new Error(
-      `${file} is external to the Vite server environment; the engine loads only modules Vite transforms and the Node built-ins fetchlet implements`,
+      `${file} is external to the Vite server environment; the engine loads only modules Vite transforms, fetchlet/runtime and the Node built-ins fetchlet implements`,
     );
   }
 }
@@ -167,7 +168,10 @@ export interface DevServerOptions {
    * shape: `default.fetch(request, env, ctx)`.
    */
   dispatch?: DevDispatch;
-  /** Node built-in modules by name without `node:`, for external imports. */
+  /**
+   * External modules by specifier: the Node built-ins by name without
+   * `node:`, and `fetchlet/runtime`.
+   */
   builtins?: Readonly<Record<string, unknown>>;
   /**
    * Node globals the Web API profile lacks, such as `process` and `Buffer`,

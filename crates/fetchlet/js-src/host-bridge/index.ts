@@ -9,11 +9,12 @@
 // it; only the globals defined here are visible to other code.
 
 import { backgroundRegistry, waitUntil } from "./background.ts";
+import { channelRegistry } from "./channels.ts";
 import { installConsole } from "./console.ts";
 import { hostFetch } from "./fetch.ts";
 import { hostBodyStream, readWholeBody } from "./host-bodies.ts";
 import { dispatch, nativeDispatch, putBytes, takeBytes } from "./host.ts";
-import { invokeExport, invokeResponseBody } from "./invocation.ts";
+import { invokeConnection, invokeExport, invokeResponseBody } from "./invocation.ts";
 import { pumpHostOperations } from "./pump.ts";
 import { responseBodyRegistry } from "./response-bodies.ts";
 import type { Bindings } from "./wire.ts";
@@ -50,6 +51,12 @@ Object.defineProperty(globalThis, "__fetchletResponseBodies", {
   configurable: false,
 });
 
+Object.defineProperty(globalThis, "__fetchletChannels", {
+  value: channelRegistry,
+  writable: false,
+  configurable: false,
+});
+
 Object.defineProperty(globalThis, "__fetchletBackground", {
   value: backgroundRegistry,
   writable: false,
@@ -60,6 +67,7 @@ Object.defineProperty(globalThis, "__fetchletInvocation", {
   value: Object.freeze({
     call: invokeExport,
     responseBody: invokeResponseBody,
+    connection: invokeConnection,
   }),
   writable: false,
   configurable: false,

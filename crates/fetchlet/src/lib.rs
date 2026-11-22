@@ -27,11 +27,12 @@ pub use error::{Error, Result};
 pub use execution::Instance;
 pub use fetch::{Body, FetchApp, Request, Response};
 pub use host::{
-    ConsoleLevel, Context, FetchPolicy, FetchService, FetchTransport, HostServices, OriginRouter,
-    TransportFuture, transport_fn,
+    ChannelEnd, ChannelEvent, CloseFrame, ConsoleLevel, Context, FetchPolicy, FetchService,
+    FetchTransport, HostServices, Message, OriginRouter, ServerWebSocket, TransportFuture,
+    transport_fn,
 };
 pub use http;
-pub use worker::{AppHandle, CancelledCalls, Instances, WorkerOptions};
+pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, WorkerOptions};
 
 #[cfg(feature = "fuzzing")]
 #[doc(hidden)]

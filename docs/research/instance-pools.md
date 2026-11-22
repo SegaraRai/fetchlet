@@ -112,6 +112,9 @@ last hours, so the pool bounds held connections with
 upgrade past the budget is refused before JavaScript runs. With
 `max_held_connections < max`, connections cannot take every instance, and
 requests keep at least `max - max_held_connections` instances.
+`AppHandle::reserve_connection` takes a place before the request runs, and
+the place returns when the held invocation ends
+(`crates/fetchlet/tests/websocket.rs`).
 
 ## Reentrancy
 

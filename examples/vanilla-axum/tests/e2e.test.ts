@@ -27,3 +27,38 @@ suite.check("unknown paths answer 404 from the handler", ["ssr"], async () => {
   expect(response.status).toBe(404);
   expect(await response.text()).toMatch(/Page not found/);
 });
+
+suite.check(
+  "a WebSocket holds its instance while others serve requests",
+  ["websocket"],
+  async () => {
+    const socket = new WebSocket(suite.base.replace(/^http/, "ws") + "/api/socket");
+    const messages: string[] = [];
+    const closed = new Promise<CloseEvent>((resolve) => socket.addEventListener("close", resolve));
+    const arrived = (count: number) =>
+      new Promise<void>((resolve) => {
+        const check = () => {
+          if (messages.length >= count) {
+            socket.removeEventListener("message", check);
+            resolve();
+          }
+        };
+        socket.addEventListener("message", check);
+      });
+    socket.addEventListener("message", (event) => messages.push(String(event.data)));
+    await arrived(1);
+    expect(messages).toStrictEqual(["ready"]);
+
+    // Another instance answers while this connection is open.
+    const page = await fetch(suite.base + "/about");
+    expect(page.status).toBe(200);
+
+    socket.send("one");
+    socket.send("two");
+    await arrived(3);
+    expect(messages).toStrictEqual(["ready", "#1: one", "#2: two"]);
+    socket.send("bye");
+    const close = await closed;
+    expect([close.code, close.reason, close.wasClean]).toStrictEqual([1000, "goodbye", true]);
+  },
+);

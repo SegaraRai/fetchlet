@@ -97,6 +97,10 @@ impl Service<Request> for AxumService {
     fn call(&mut self, request: Request) -> Self::Future {
         let service = self.inner.clone();
         Box::pin(async move {
+            #[cfg(feature = "websocket")]
+            if super::websocket::asks_for_upgrade(&request) {
+                return Ok(super::websocket::serve(&service, request).await);
+            }
             let response = match service.fetch(request).await {
                 Ok(response) => response,
                 Err(error) => service.error_response(&error),

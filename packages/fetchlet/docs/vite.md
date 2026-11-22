@@ -123,6 +123,9 @@ engine; Vite serves the browser modules with hot module replacement:
   port, which the plugin fixes with `server.strictPort` and
   `server.ws.clientPort` unless the project sets `server.ws`.
 - The plugin sets `appType: "custom"`: the server module renders the pages.
+- `fetchlet/runtime` is a builtin of the runner: a server module that
+  imports it, such as for `upgradeWebSocket`, gets the development
+  artifact's copy, so the Web API profile is installed once.
 
 The named exports the host can call are read when the development artifact
 is built; a function exported later needs a dev server restart.

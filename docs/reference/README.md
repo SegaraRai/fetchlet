@@ -97,7 +97,7 @@ Unexpected results: 0.
 | qwik-city-axum               | 11 / 11 | 11 / 11 | 11 / 11 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
 | waku-axum                    | 11 / 11 | 11 / 11 | 11 / 11 | waku 1.0.0-rc.5               | 159.0.8154.6  |
 | vinext-axum                  | 11 / 11 | 11 / 11 | 11 / 11 | vinext 1.4.6                  | 159.0.8154.6  |
-| vanilla-axum                 | 13 / 13 | 13 / 13 | 13 / 13 | —                             | 159.0.8154.6  |
+| vanilla-axum                 | 14 / 14 | 14 / 14 | 14 / 14 | —                             | 159.0.8154.6  |
 | vanilla-axum-vite-dev        | 5 / 5   | 5 / 5   | 5 / 5   | —                             | 159.0.8154.6  |
 | vanilla-cli                  | 5 / 5   | 5 / 5   | 5 / 5   | —                             | —             |
 
@@ -125,6 +125,7 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 | Streaming uploads   | —         | —               | n/a (5)           | ✓     | —              | ✓       | ✓            | —                     | ✓     | n/a (5)     | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
 | waitUntil           | ✓         | —               | —                 | ✓     | —              | ✓       | ✓            | —                     | ✓     | ✓           | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
 | Concurrency         | ✓         | —               | —                 | ✓     | —              | ✓       | ✓            | —                     | ✓     | ✓           | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| WebSockets          | —         | —               | —                 | —     | —              | —       | —            | —                     | —     | —           | —              | —                       | —          | —                   | —     | —         | —    | —      | ✓       | —                | n/a (1)     |
 
 1. A command line program calls functions without HTTP requests.
 2. Tauri's UriSchemeResponder takes a complete body.

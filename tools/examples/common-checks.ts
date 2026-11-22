@@ -196,8 +196,19 @@ export function commonChecks(suite: ExampleSuite, options: CommonCheckOptions): 
       const accepted = await response.json();
       expect(accepted.accepted).toBe(label);
       expect(!accepted.completed.includes(label), "sent before the work finished").toBeTruthy();
-      const { completed } = await (await fetch(suite.base + "/api/background")).json();
-      expect(completed.includes(label)).toBeTruthy();
+      // The work finishes before its instance takes the next request. Each
+      // instance keeps its own list: in an example with several, other
+      // instances serve requests while this one finishes, and it serves its
+      // share once it is free again.
+      let seen = false;
+      for (let attempt = 0; attempt < 8 && !seen; attempt++) {
+        if (attempt > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        const { completed } = await (await fetch(suite.base + "/api/background")).json();
+        seen = completed.includes(label);
+      }
+      expect(seen, "completed before the instance's next request").toBeTruthy();
     },
   );
 
