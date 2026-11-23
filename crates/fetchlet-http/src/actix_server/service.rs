@@ -26,6 +26,15 @@ type ErrorCallback = Arc<dyn Fn(&Error) + Send + Sync>;
 /// Responses keep repeated headers such as Set-Cookie and stream their bodies.
 /// Dropping the request, for example when the client disconnects, cancels the
 /// invocation.
+///
+/// With the `actix-websocket` feature, a handler accepts a WebSocket with
+/// `upgradeWebSocket(request)` from `fetchlet/runtime`, as with
+/// `AxumService`: the invocation holds one of
+/// `Instances::max_held_connections`, actix-ws completes the handshake, and
+/// messages cross between the connection and the handler's socket. With
+/// every place taken, an upgrade request is answered with 503 before
+/// JavaScript runs; with none configured, the handler sees it as an
+/// ordinary request.
 #[derive(Clone)]
 pub struct ActixService {
     app: AppHandle,
@@ -99,24 +108,40 @@ impl ActixService {
     }
 
     /// Answer a request, with general error responses.
+    ///
+    /// With the `actix-websocket` feature, a request that asks to upgrade to
+    /// WebSocket may hold its invocation as a connection; see
+    /// [`ActixService`].
     pub async fn handle(&self, request: HttpRequest, payload: web::Payload) -> HttpResponse {
+        #[cfg(feature = "actix-websocket")]
+        if super::websocket::asks_for_upgrade(&request) {
+            return super::websocket::serve(self, request, payload).await;
+        }
         match self.fetch(&request, payload).await {
             Ok(answer) => response(answer),
-            Err(error) => {
-                if let Some(callback) = &self.on_error {
-                    callback(&error);
-                }
-                response(error.response())
-            }
+            Err(error) => self.error_response(&error),
         }
     }
 
-    /// Run the handler, returning detailed errors.
-    pub async fn fetch(
+    /// A general error response, after the error callback observed it.
+    pub(super) fn error_response(&self, error: &Error) -> HttpResponse {
+        if let Some(callback) = &self.on_error {
+            callback(error);
+        }
+        response(error.response())
+    }
+
+    #[cfg(feature = "actix-websocket")]
+    pub(super) fn app(&self) -> &AppHandle {
+        &self.app
+    }
+
+    /// The request head with the public origin and the trusted context, and
+    /// the application metadata.
+    pub(super) fn prepare(
         &self,
         request: &HttpRequest,
-        payload: web::Payload,
-    ) -> Result<http::Response<fetchlet::Body>, Error> {
+    ) -> Result<(http::request::Parts, Value), Error> {
         let mut head = request_head(request, &self.origin)?;
         let context = match &self.context {
             Some(context) => context(request)?,
@@ -128,7 +153,16 @@ impl ActixService {
         if let Some(trusted) = &self.trusted_context {
             head.extensions.insert(trusted(request));
         }
+        Ok((head, context))
+    }
 
+    /// Run the handler, returning detailed errors.
+    pub async fn fetch(
+        &self,
+        request: &HttpRequest,
+        payload: web::Payload,
+    ) -> Result<http::Response<fetchlet::Body>, Error> {
+        let (head, context) = self.prepare(request)?;
         let limit = self.app.limits().request_body_bytes;
         let (declared, has_body) = declared_body(&head);
         let body = if !has_body {

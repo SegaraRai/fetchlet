@@ -146,11 +146,12 @@ connection.
 
 `upgradeWebSocket` throws unless the request asks for a WebSocket and the
 host holds connections: Rust sets `Instances::max_held_connections` and
-serves the upgrade, as fetchlet-http's `websocket` feature does for axum
+serves the upgrade, as fetchlet-http's `websocket` and `actix-websocket`
+features do for axum and actix-web
 ([WebSocket upgrades](../../../crates/fetchlet-http/README.md#websocket-upgrades)).
 A socket the handler accepts but does not return closes when the invocation
-ends. The profile has no global
-`WebSocket` for outgoing connections yet; those need a host transport.
+ends. Outgoing connections use the global `WebSocket`
+([client WebSockets](#client-websockets)).
 
 In a framework app, import `upgradeWebSocket` from `fetchlet/runtime/handler`,
 which does not install the profile: a framework build that bundles the

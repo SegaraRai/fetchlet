@@ -15,15 +15,17 @@ description = "Serve fetchlet applications through Tower, hyper, axum and actix-
 # add server integrations over the always-available Tower service.
 [features]
 default = []
-hyper = ["dep:hyper"]
-axum = ["dep:axum", "dep:tower-http", "dep:tokio", "tokio/net", "tokio/signal"]
-# Accept WebSocket upgrades in the axum service and server.
-websocket = ["axum", "axum/ws"]
-actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
 # Serve an artifact while a build tool rewrites it, for development.
 dev = ["dep:tokio"]
 # Serve a Vite dev server's modules through the module runner, for development.
 vite-dev = ["dep:hyper", "hyper/client", "dep:hyper-util", "dep:tokio"]
+axum = ["dep:axum", "dep:tower-http", "dep:tokio", "tokio/net", "tokio/signal"]
+# Accept WebSocket upgrades in the axum service and server.
+websocket = ["axum", "axum/ws"]
+actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
+# Accept WebSocket upgrades in the actix-web service.
+actix-websocket = ["actix", "dep:actix-ws", "dep:actix-http"]
+hyper = ["dep:hyper"]
 # Open TCP and TLS connections for JavaScript's connect() as a socket transport.
 sockets = ["dep:tokio", "tokio/net", "tokio/io-util", "dep:tokio-rustls", "dep:webpki-roots"]
 # Open client WebSockets for JavaScript's WebSocket as a WebSocket transport.
@@ -40,29 +42,31 @@ websocket-client = [
 
 [dependencies]
 fetchlet.workspace = true
+actix-web = { workspace = true, optional = true }
+actix-http = { version = "3", default-features = false, features = ["ws"], optional = true }
+actix-ws = { version = "0.4", optional = true }
+axum = { workspace = true, optional = true }
 brotli-decompressor = "6"
 bytes = "1"
+futures-core = { version = "0.3", optional = true }
+futures-util = { version = "0.3", default-features = false, optional = true }
 http = "1"
 http-body = "1"
 http-body-util = "0.1"
+hyper = { workspace = true, optional = true }
+hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"], optional = true }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tower-service = "0.3"
-hyper = { workspace = true, optional = true }
-axum = { workspace = true, optional = true }
-tower-http = { workspace = true, optional = true }
-actix-web = { workspace = true, optional = true }
-futures-core = { version = "0.3", optional = true }
-futures-util = { version = "0.3", default-features = false, optional = true }
-tokio-tungstenite = { version = "0.30", default-features = false, features = [
-  "handshake",
-], optional = true }
 tokio = { workspace = true, optional = true }
-hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"], optional = true }
 tokio-rustls = { version = "0.26", default-features = false, features = [
   "ring",
   "tls12",
+], optional = true }
+tower-http = { workspace = true, optional = true }
+tower-service = "0.3"
+tokio-tungstenite = { version = "0.30", default-features = false, features = [
+  "handshake",
 ], optional = true }
 webpki-roots = { version = "1", optional = true }
 
@@ -77,29 +81,9 @@ futures-util = { version = "0.3", default-features = false, features = ["sink"] 
 hyper = { workspace = true, features = ["client"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 tokio = { workspace = true, features = ["net", "io-util"] }
-tokio-tungstenite = "0.30"
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+tokio-tungstenite = "0.30"
 tower.workspace = true
-
-[[test]]
-name = "hyper"
-required-features = ["hyper"]
-
-[[test]]
-name = "axum"
-required-features = ["axum"]
-
-[[test]]
-name = "websocket"
-required-features = ["websocket"]
-
-[[test]]
-name = "axum_router"
-required-features = ["axum"]
-
-[[test]]
-name = "actix"
-required-features = ["actix"]
 
 [[test]]
 name = "dev"
@@ -108,6 +92,30 @@ required-features = ["dev", "axum"]
 [[test]]
 name = "vite_dev"
 required-features = ["vite-dev", "axum"]
+
+[[test]]
+name = "axum"
+required-features = ["axum"]
+
+[[test]]
+name = "axum_router"
+required-features = ["axum"]
+
+[[test]]
+name = "websocket"
+required-features = ["websocket"]
+
+[[test]]
+name = "actix"
+required-features = ["actix"]
+
+[[test]]
+name = "actix_websocket"
+required-features = ["actix-websocket"]
+
+[[test]]
+name = "hyper"
+required-features = ["hyper"]
 
 [[test]]
 name = "server"

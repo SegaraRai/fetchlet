@@ -2,6 +2,7 @@
 // built with the `vite-dev` feature running SolidStart's server entry from
 // it on the engine. Edits are made in place and restored afterwards.
 
+import { websocketCheck } from "@fetchlet-internal/tools-examples/common-checks";
 import { viteDevSuite } from "@fetchlet-internal/tools-examples/vite-dev-suite";
 import { expect } from "vite-plus/test";
 
@@ -76,3 +77,6 @@ suite.check(
     await page.close();
   },
 );
+
+// Upgrades reach the app rather than the Vite dev server.
+websocketCheck(suite, "SolidStart");

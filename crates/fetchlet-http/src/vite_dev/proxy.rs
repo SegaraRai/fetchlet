@@ -4,7 +4,8 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use fetchlet::Body;
-use http::{Method, Request, Response, StatusCode};
+use http::header::UPGRADE;
+use http::{HeaderMap, Method, Request, Response, StatusCode};
 use http_body_util::Either;
 use hyper::body::Incoming;
 use tower_service::Service;
@@ -19,6 +20,9 @@ pub type ViteBody<B> = Either<Incoming, B>;
 /// `GET` and `HEAD` requests go to the Vite dev server first, which answers
 /// browser modules, its HMR client and public files; a 404 from Vite, a
 /// request it cannot be reached for, and every other method go to the app.
+/// So do WebSocket upgrades, which the app may accept: the browser opens
+/// Vite's HMR socket on Vite's own port, and Vite would hold an upgrade it
+/// does not serve without answering.
 /// Requests under `/@fetchlet/` other than the client entry stay with the
 /// app, so the runner's endpoints are not reachable through the proxy.
 #[derive(Clone)]
@@ -43,9 +47,10 @@ impl<S> ViteProxy<S> {
 }
 
 /// Whether Vite may answer a request for `path`.
-fn vite_may_answer(method: &Method, path: &str) -> bool {
+fn vite_may_answer(method: &Method, path: &str, headers: &HeaderMap) -> bool {
     (method == Method::GET || method == Method::HEAD)
         && (!path.starts_with("/@fetchlet/") || path == "/@fetchlet/client")
+        && !headers.contains_key(UPGRADE)
 }
 
 impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for ViteProxy<S>
@@ -70,7 +75,7 @@ where
         let vite = self.vite.clone();
         let mut app = self.app.clone();
         Box::pin(async move {
-            if vite_may_answer(request.method(), request.uri().path()) {
+            if vite_may_answer(request.method(), request.uri().path(), request.headers()) {
                 let mut forwarded = Request::new(Body::empty());
                 *forwarded.method_mut() = request.method().clone();
                 *forwarded.uri_mut() = vite.uri(request.uri().path_and_query());
@@ -97,14 +102,23 @@ mod tests {
 
     #[test]
     fn keeps_the_runner_endpoints_from_the_browser() {
-        assert!(vite_may_answer(&Method::GET, "/src/client.ts"));
-        assert!(vite_may_answer(&Method::HEAD, "/@vite/client"));
-        assert!(vite_may_answer(&Method::GET, "/@fetchlet/client"));
+        let none = HeaderMap::new();
+        assert!(vite_may_answer(&Method::GET, "/src/client.ts", &none));
+        assert!(vite_may_answer(&Method::HEAD, "/@vite/client", &none));
+        assert!(vite_may_answer(&Method::GET, "/@fetchlet/client", &none));
         assert!(!vite_may_answer(
             &Method::GET,
-            "/@fetchlet/artifact/server.js"
+            "/@fetchlet/artifact/server.js",
+            &none
         ));
-        assert!(!vite_may_answer(&Method::POST, "/@fetchlet/invoke"));
-        assert!(!vite_may_answer(&Method::POST, "/api/echo"));
+        assert!(!vite_may_answer(&Method::POST, "/@fetchlet/invoke", &none));
+        assert!(!vite_may_answer(&Method::POST, "/api/echo", &none));
+    }
+
+    #[test]
+    fn leaves_upgrades_to_the_app() {
+        let mut upgrade = HeaderMap::new();
+        upgrade.insert(UPGRADE, http::HeaderValue::from_static("websocket"));
+        assert!(!vite_may_answer(&Method::GET, "/api/socket", &upgrade));
     }
 }

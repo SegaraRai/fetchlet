@@ -21,7 +21,7 @@ the semantics chosen, the alternatives rejected and the order of work.
 The handle table, request-scoped channels, `connect()`, the client
 `WebSocket` and held connections (steps 1 to 5 of the
 [order of work](#order-of-work)) are implemented, the last for the axum
-integration:
+and actix integrations:
 
 - `HostServices::channel(name, service)` binds a `ChannelService`, and
   `env.NAME.connect(options)` opens a channel of it in the current
@@ -104,9 +104,12 @@ example's progress routes. Sockets are tested in
 `packages/web/tests/sockets.test.ts`; client WebSockets in
 `crates/fetchlet/tests/websocket_client.rs` on every engine,
 `crates/fetchlet-http/tests/websocket_client.rs` against local `ws:` and
-`wss:` servers and `packages/web/tests/websocket.test.ts`. `ChannelEnd` does not implement `Stream` and
-`Sink` yet, the actix integration does not upgrade, and `ViteDev` does not
-serve upgrades. The channel object keeps its handle in a private field, but
+`wss:` servers and `packages/web/tests/websocket.test.ts`. fetchlet-http's
+`actix-websocket` feature completes upgrades in `ActixService` with
+actix-ws, tested in `crates/fetchlet-http/tests/actix_websocket.rs`, and
+`ViteDev` passes upgrade requests to the app, which the `vite dev` loops of
+the examples check. `ChannelEnd` does not implement `Stream` and `Sink`
+yet. The channel object keeps its handle in a private field, but
 the bridge's registry, which `@fetchlet/web` reaches as a global, still
 takes numeric handles.
 
@@ -493,7 +496,7 @@ Each step lands with tests at its own boundary:
 4. The client `WebSocket` with `WebSocketService` in fetchlet-http behind a
    `websocket-client` feature. Done.
 5. Held connections and `upgradeWebSocket` with server upgrades in the axum
-   and actix integrations, after [instance pools](instance-pools.md).
+   and actix integrations, after [instance pools](instance-pools.md). Done.
 6. Resources in call arguments and results.
 
 Steps 3 and 4 are independent of each other. Step 5 needs step 2 and pools.

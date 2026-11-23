@@ -109,14 +109,14 @@ The handle table, request-scoped channels and held connections are
 implemented: `HostServices::channel` with `env.NAME.connect()` and its
 WebSocket and stream views, `upgradeWebSocket` from `fetchlet/runtime`,
 `Instances::max_held_connections`, the channel and connection budgets,
-server upgrades in fetchlet-http's axum integration behind the `websocket`
-feature, a WebSocket route with an end-to-end check in every axum example,
+server upgrades in fetchlet-http's axum and actix integrations behind the
+`websocket` and `actix-websocket` features and under `ViteDev`, a WebSocket
+route with an end-to-end check in every axum example,
 `connect()` over a `SocketService` with fetchlet-http's `TcpTransport`, and
 the global `WebSocket` over a `WebSocketService` with fetchlet-http's
 `WebSocketClient` ([status](research/host-channels.md#status)). The rest:
 
-1. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
-   and `Sink` for `ChannelEnd`.
+1. `Stream` and `Sink` for `ChannelEnd`.
 2. Resources in function arguments and results
    ([values beyond JSON](#values-beyond-json)).
 

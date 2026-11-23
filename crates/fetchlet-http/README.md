@@ -8,6 +8,7 @@ Serves a shared fetchlet application (`fetchlet::AppHandle`) over HTTP. The Towe
 | `hyper`            | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
 | `axum`             | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
 | `actix`            | `ActixService` for actix-web 4                                                 |
+| `actix-websocket`  | WebSocket upgrades in `ActixService` (enables `actix`)                         |
 | `websocket`        | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)              |
 | `sockets`          | `TcpTransport`, the TCP and TLS transport of JavaScript's `connect()`          |
 | `websocket-client` | `WebSocketClient`, the transport of JavaScript's global `WebSocket`            |
@@ -169,7 +170,9 @@ Manifest paths that leave the artifact directory are refused. Client files answe
 With the `websocket` feature, a Fetch handler accepts a WebSocket with
 `upgradeWebSocket(request)` from `fetchlet/runtime`, and `AxumService`
 completes the handshake and relays frames between the connection and the
-handler's socket. The invocation, and its instance, stay held until the
+handler's socket; the `actix-websocket` feature does the same for
+`ActixService` with actix-ws. Under `ViteDev`, upgrade requests go to the
+app, never to the Vite dev server. The invocation, and its instance, stay held until the
 connection closes, so the pool must leave instances for requests:
 
 ```rust
@@ -186,11 +189,13 @@ with every place taken, the answer is 503. The 101 carries the handler's
 headers and its `Sec-WebSocket-Protocol`. A close from either side goes to
 the other, and a connection that fails without a closing handshake reaches
 JavaScript as code 1006 and the peer as 1011. `Limits::channel_message_bytes`
-also sets axum's frame and message size, and `connection_idle_timeout` and
+also bounds each frame and message from the client, and a larger one closes
+the connection with 1009 under actix; and `connection_idle_timeout` and
 `connection_lifetime` close the connection with 1001. `tests/websocket.rs`
-covers the handshake, both closing handshakes, a client that goes away, the
-503 and shutdown over a real socket on every engine. The actix integration
-does not upgrade yet.
+and `tests/actix_websocket.rs` cover the handshake, both closing
+handshakes, a client that goes away, the 503 and shutdown over a real
+socket on every engine, and the actix tests also pings, fragmented messages
+and the message budget.
 
 ## TCP sockets
 

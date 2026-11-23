@@ -304,7 +304,10 @@ function collect(socket: WebSocket): {
  * The WebSocket check of `websocket`, for examples that register their own
  * checks: `/api/socket` as described above.
  */
-export function websocketCheck(suite: ExampleSuite, framework: string): void {
+export function websocketCheck(
+  suite: Pick<ExampleSuite, "base" | "check">,
+  framework: string,
+): void {
   suite.check(
     `a ${framework} WebSocket holds its instance while others serve requests`,
     ["websocket"],

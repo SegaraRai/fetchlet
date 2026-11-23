@@ -28,6 +28,7 @@ dependencies = [
  "actix-codec",
  "actix-service",
  "actix-utils",
+ "base64 0.23.1",
  "bitflags 2.13.2",
  "bytes",
  "bytestring",
@@ -40,9 +41,12 @@ dependencies = [
  "httpdate",
  "itoa",
  "language-tags",
+ "local-channel",
  "mime",
  "percent-encoding",
  "pin-project-lite",
+ "rand 0.10.4",
+ "sha1 0.11.0",
  "smallvec",
  "tokio",
  "tokio-util",
@@ -172,6 +176,22 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.10",
+]
+
+[[package]]
+name = "actix-ws"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a3f616b2d7a52399b2156ab97024d5543e80ac70621f010e256c0de5277a600"
+dependencies = [
+ "actix-codec",
+ "actix-http",
+ "actix-web",
+ "bytestring",
+ "futures-core",
+ "futures-sink",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -2253,6 +2273,7 @@ version = "0.0.0"
 dependencies = [
  "actix-http",
  "actix-web",
+ "actix-ws",
  "anyhow",
  "axum",
  "brotli-decompressor",
@@ -3732,6 +3753,17 @@ name = "litemap"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
+
+[[package]]
+name = "local-channel"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c689de2ea71f5bcc468eaddb30650a9b5d143739fc42569e571691551ac83dc"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "local-waker",
+]
 
 [[package]]
 name = "local-waker"
@@ -6487,6 +6519,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "libc",
  "pin-project-lite",
  "tokio",
