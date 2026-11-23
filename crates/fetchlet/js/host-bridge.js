@@ -475,7 +475,7 @@
 	async function hostFetch(input, init, service) {
 		const request = new Request(input, init);
 		request.signal.throwIfAborted();
-		const body = await readRequestBody(request, dispatch("invocation.limits", null));
+		const body = await readRequestBody(request, dispatch("fetch.limits", null));
 		request.signal.throwIfAborted();
 		return waitForResponse(dispatch("fetch.start", {
 			service: service ?? null,
@@ -774,7 +774,7 @@
 	function pumpHostOperations() {
 		const progress = abortIfDisconnected() ? 1 : 0;
 		if (!hasPendingFetches() && !hasPendingReads() && !hasPendingCalls() && !hasOpenChannels()) return progress;
-		const completions = dispatch("fetch.poll", null);
+		const completions = dispatch("host.poll", null);
 		for (const completion of completions) {
 			if (completeChannel(completion)) continue;
 			if (!completeRead(completion) && !completeCall(completion)) completeFetch(completion);

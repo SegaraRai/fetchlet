@@ -2,7 +2,7 @@ use http::Method;
 use http::{HeaderName, HeaderValue, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use super::byte_store::{BodyTransfer, ByteTransport, WireBytes};
+use super::byte_store::{BodyTransfer, BridgeBytes, WireBytes};
 use crate::config::check_limit;
 use crate::{Body, Error, Limits, Request, Response, Result};
 
@@ -101,7 +101,7 @@ impl WireRequest {
         feature = "fuzzing",
         test
     ))]
-    pub fn into_http(self, limits: &Limits, bytes: &mut impl ByteTransport) -> Result<Request> {
+    pub fn into_http(self, limits: &Limits, bytes: &mut impl BridgeBytes) -> Result<Request> {
         check_limit(limits.url_bytes, self.url.len(), "URL bytes")?;
         if self.stream.is_some() {
             // Guest outbound bodies are read to the end in JavaScript first.
@@ -132,7 +132,7 @@ impl WireRequest {
     pub async fn from_http(
         request: Request,
         limits: &Limits,
-        bytes: &mut impl ByteTransport,
+        bytes: &mut impl BridgeBytes,
     ) -> Result<Self> {
         validate_headers(request.headers(), limits.header_bytes)?;
         let (parts, body) = request.into_parts();
@@ -186,7 +186,7 @@ impl WireRequest {
 }
 
 impl WireResponse {
-    pub fn into_http(self, limits: &Limits, bytes: &mut impl ByteTransport) -> Result<Response> {
+    pub fn into_http(self, limits: &Limits, bytes: &mut impl BridgeBytes) -> Result<Response> {
         let body = bytes.receive(self.body)?;
         check_limit(
             limits.response_body_bytes,
@@ -221,7 +221,7 @@ impl WireResponse {
     pub fn from_http(
         response: Response,
         limits: &Limits,
-        bytes: &mut impl ByteTransport,
+        bytes: &mut impl BridgeBytes,
     ) -> Result<Self> {
         validate_headers(response.headers(), limits.header_bytes)?;
         let (parts, body) = response.into_parts();

@@ -16,7 +16,7 @@ export function pumpHostOperations(): number {
     return progress;
   }
 
-  const completions = dispatch<Completion[]>("fetch.poll", null);
+  const completions = dispatch<Completion[]>("host.poll", null);
   for (const completion of completions) {
     if (completeChannel(completion)) {
       continue;

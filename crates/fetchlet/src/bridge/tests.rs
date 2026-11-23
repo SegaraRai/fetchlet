@@ -79,10 +79,7 @@ fn host_operations_require_an_active_invocation() {
         bridge.start_fetch(&start_request()),
         Err(Error::InvocationClosed)
     ));
-    assert!(matches!(
-        bridge.poll_fetches(),
-        Err(Error::InvocationClosed)
-    ));
+    assert!(matches!(bridge.poll_host(), Err(Error::InvocationClosed)));
 
     let scope = bridge.begin(Limits::default()).unwrap();
     assert!(bridge.begin(Limits::default()).is_err());
@@ -98,17 +95,14 @@ fn dropping_an_invocation_drops_started_transport_futures() {
     let scope = bridge.begin(Limits::default()).unwrap();
 
     bridge.start_fetch(&start_request()).unwrap();
-    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
+    assert_eq!(bridge.poll_host().unwrap(), json!([]));
     assert!(scope.has_pending());
     assert_eq!(dropped.load(Ordering::SeqCst), 0);
 
     drop(scope);
 
     assert_eq!(dropped.load(Ordering::SeqCst), 1);
-    assert!(matches!(
-        bridge.poll_fetches(),
-        Err(Error::InvocationClosed)
-    ));
+    assert!(matches!(bridge.poll_host(), Err(Error::InvocationClosed)));
 }
 
 #[test]
@@ -118,7 +112,7 @@ fn cancellation_is_immediate_and_tickets_do_not_cross_invocations() {
     let first_scope = bridge.begin(Limits::default()).unwrap();
 
     let first_ticket = bridge.start_fetch(&start_request()).unwrap();
-    bridge.poll_fetches().unwrap();
+    bridge.poll_host().unwrap();
     bridge.cancel_fetch(&first_ticket.to_string()).unwrap();
 
     assert_eq!(dropped.load(Ordering::SeqCst), 1);
@@ -127,7 +121,7 @@ fn cancellation_is_immediate_and_tickets_do_not_cross_invocations() {
 
     let second_scope = bridge.begin(Limits::default()).unwrap();
     let second_ticket = bridge.start_fetch(&start_request()).unwrap();
-    bridge.poll_fetches().unwrap();
+    bridge.poll_host().unwrap();
 
     assert_ne!(first_ticket, second_ticket);
     assert!(matches!(
@@ -193,14 +187,14 @@ fn completion_is_delivered_once_and_releases_the_scope() {
     let scope = bridge.begin(Limits::default()).unwrap();
 
     let ticket = bridge.start_fetch(&start_request()).unwrap();
-    let completions = bridge.poll_fetches().unwrap();
+    let completions = bridge.poll_host().unwrap();
 
     assert_eq!(completions[0]["id"], ticket);
     assert_eq!(completions[0]["result"]["ok"], true);
     // The body crosses as a byte-store handle, not a JSON array.
     let handle = completions[0]["result"]["value"]["body"].as_f64().unwrap();
     assert_eq!(&bridge.take_guest_bytes(handle).unwrap()[..], b"hello");
-    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
+    assert_eq!(bridge.poll_host().unwrap(), json!([]));
     assert!(!scope.has_pending());
 }
 
@@ -221,7 +215,7 @@ fn provider_error_details_are_not_exposed_to_javascript() {
     let _scope = bridge.begin(Limits::default()).unwrap();
 
     bridge.start_fetch(&start_request()).unwrap();
-    let completions = bridge.poll_fetches().unwrap();
+    let completions = bridge.poll_host().unwrap();
 
     assert_eq!(completions[0]["result"]["error"]["code"], "TRANSPORT");
     assert!(!completions.to_string().contains("secret-marker"));
@@ -247,7 +241,7 @@ async fn a_pending_transport_future_notifies_the_engine_when_ready() {
     let _scope = bridge.begin(Limits::default()).unwrap();
 
     bridge.start_fetch(&start_request()).unwrap();
-    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
+    assert_eq!(bridge.poll_host().unwrap(), json!([]));
     sender.send(()).unwrap();
 
     tokio::time::timeout(
@@ -256,7 +250,7 @@ async fn a_pending_transport_future_notifies_the_engine_when_ready() {
     )
     .await
     .expect("transport completion should wake the engine");
-    let replies = bridge.poll_fetches().unwrap();
+    let replies = bridge.poll_host().unwrap();
     assert_eq!(replies[0]["result"]["ok"], true);
 }
 
@@ -331,7 +325,7 @@ fn guest_byte_buffers_count_as_bridge_messages() {
 }
 
 fn read_completion(bridge: &HostBridge, ticket: &Value) -> Option<Value> {
-    let completions = bridge.poll_fetches().unwrap();
+    let completions = bridge.poll_host().unwrap();
     let completion = completions.as_array().unwrap().first()?.clone();
     assert_eq!(&completion["id"], ticket);
     Some(completion["result"].clone())
@@ -451,7 +445,7 @@ fn cancelling_a_body_source_drops_its_producer() {
     bridge.cancel_body(&id.to_string()).unwrap();
     assert!(sender.is_closed());
     // The cancelled read never completes, and cancelling again is harmless.
-    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
+    assert_eq!(bridge.poll_host().unwrap(), json!([]));
     bridge.cancel_body(&id.to_string()).unwrap();
 }
 
@@ -564,10 +558,10 @@ fn a_whole_body_read_keeps_the_budget_and_releases_on_cancel() {
         .read_body(&id.to_string(), Some(Whole::Bytes))
         .unwrap();
     sender.try_send(Ok(("abc".into(), false))).unwrap();
-    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
+    assert_eq!(bridge.poll_host().unwrap(), json!([]));
     bridge.cancel_body(&id.to_string()).unwrap();
     assert!(sender.is_closed());
-    assert_eq!(bridge.poll_fetches().unwrap(), json!([]));
+    assert_eq!(bridge.poll_host().unwrap(), json!([]));
 }
 
 #[test]
@@ -670,7 +664,7 @@ fn an_async_call_completes_in_the_poll_and_keeps_the_invocation_pending() {
         .dispatch_operation("function.start", &function_call("later"))
         .unwrap();
     assert!(scope.has_pending());
-    let completions = bridge.poll_fetches().unwrap();
+    let completions = bridge.poll_host().unwrap();
     assert_eq!(
         completions,
         json!([{ "id": ticket, "result": { "ok": true, "value": "later" } }])

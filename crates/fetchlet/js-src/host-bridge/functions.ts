@@ -3,7 +3,7 @@
 // returns a Promise that the host pump settles with its outcome.
 
 import { dispatch, hostError } from "./host.ts";
-import type { Completion, FunctionErrorDescription, FunctionMethods } from "./wire.ts";
+import type { Completion, FunctionErrorDescription, FunctionMethods, Ticket } from "./wire.ts";
 
 type Outcome =
   | {
@@ -22,7 +22,7 @@ interface PendingCall {
   reject(error: unknown): void;
 }
 
-const pendingCalls = new Map<number, PendingCall>();
+const pendingCalls = new Map<Ticket, PendingCall>();
 
 export function hasPendingCalls(): boolean {
   return pendingCalls.size > 0;
@@ -92,7 +92,7 @@ export function functionBinding(binding: string, methods: FunctionMethods): obje
             )
         : (...args: unknown[]) =>
             new Promise((resolve, reject) => {
-              const ticket = dispatch<number>("function.start", {
+              const ticket = dispatch<Ticket>("function.start", {
                 binding,
                 method,
                 args,

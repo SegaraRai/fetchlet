@@ -12,7 +12,7 @@ use futures_util::FutureExt;
 use serde_json::{Value, json};
 
 use fetchlet::{
-    App, AppHandle, Backend, Body, Context, Error, FunctionCall, FunctionError, Functions,
+    App, AppHandle, Backend, Body, Context, Error, FunctionError, FunctionRequest, Functions,
     HostServices, Limits, Module, WorkerOptions, http,
 };
 
@@ -52,21 +52,21 @@ fn functions(state: Arc<State>) -> Functions {
     let forever = state.clone();
     let reenter = state.clone();
     Functions::new()
-        .method("add", |call: FunctionCall| async move {
-            let (left, right): (i64, i64) = call.args()?;
+        .method("add", |request: FunctionRequest| async move {
+            let (left, right): (i64, i64) = request.args()?;
             Ok(json!(left + right))
         })
-        .sync_method("escape", |call| {
-            let (text,): (String,) = call.args()?;
+        .sync_method("escape", |request| {
+            let (text,): (String,) = request.args()?;
             Ok(json!(text.replace('\'', "''")))
         })
-        .method("echo", |call| async move {
-            let args: Vec<Value> = call.args()?;
+        .method("echo", |request| async move {
+            let args: Vec<Value> = request.args()?;
             Ok(Value::Array(args))
         })
-        .sync_method("echoSync", |call| Ok(call.raw_args().clone()))
+        .sync_method("echoSync", |request| Ok(request.raw_args().clone()))
         .sync_method("nothing", |_| Ok(Value::Null))
-        .sync_method("method", |call| Ok(json!(call.method())))
+        .sync_method("method", |request| Ok(json!(request.method())))
         .method("find", |_| async {
             Err(FunctionError::new("no such user").code("NOT_FOUND"))
         })
@@ -107,8 +107,8 @@ fn functions(state: Arc<State>) -> Functions {
                 .expect("a refusal at once");
             Ok(refused?)
         })
-        .method("whoami", |call| async move {
-            let caller = call
+        .method("whoami", |request| async move {
+            let caller = request
                 .context()
                 .get::<Caller>()
                 .map_or("anonymous", |Caller(name)| name);

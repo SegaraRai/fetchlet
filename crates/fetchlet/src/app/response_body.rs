@@ -6,7 +6,7 @@ use serde::Deserialize;
 use super::App;
 use crate::bridge::InvocationScope;
 use crate::execution::{ResponseBodyOperation, response_body_operation};
-use crate::wire::{ByteTransport, WireBytes};
+use crate::wire::{BridgeBytes, WireBytes};
 use crate::{Error, Result};
 
 /// A JavaScript response body left open by a Fetch invocation.

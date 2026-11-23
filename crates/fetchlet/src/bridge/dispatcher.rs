@@ -16,9 +16,9 @@ use crate::config::check_limit;
 use crate::execution::WakeSignal;
 use crate::host::{GuestEnd, Method, Redirect, TransportFuture, pair};
 use crate::reentry;
-use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
+use crate::wire::{BodyTransfer, BridgeBytes, ByteStore, WireBytes, WireRequest, WireResponse};
 use crate::{
-    Body, ChannelEnd, ChannelRequest, CloseFrame, ConsoleLevel, Context, Error, FunctionCall,
+    Body, ChannelEnd, ChannelRequest, CloseFrame, ConsoleLevel, Context, Error, FunctionRequest,
     HostServices, Limits, Response, Result, SecureTransport, SocketAddress,
 };
 
@@ -122,21 +122,22 @@ impl InvocationState {
         Ok(format!("{}:{}", self.generation, self.next_ticket))
     }
 
-    fn transport(&mut self) -> InvocationTransport<'_> {
-        InvocationTransport {
+    fn bridge_bytes(&mut self) -> InvocationBytes<'_> {
+        InvocationBytes {
             bytes: &mut self.bytes,
             handles: &mut self.handles,
         }
     }
 }
 
-/// Byte transport within the locked state of an invocation.
-struct InvocationTransport<'a> {
+/// How bytes cross the bridge within the locked state of an invocation:
+/// through its byte store, and its handle table for streamed bodies.
+struct InvocationBytes<'a> {
     bytes: &'a mut ByteStore,
     handles: &'a mut Handles,
 }
 
-impl ByteTransport for InvocationTransport<'_> {
+impl BridgeBytes for InvocationBytes<'_> {
     fn send(&mut self, bytes: Bytes) -> Result<WireBytes> {
         self.bytes.put(bytes).map(WireBytes::Handle)
     }
@@ -183,12 +184,12 @@ struct FetchStartRequest {
     service: Option<String>,
 }
 
-struct FetchCompletion {
+struct Completion {
     id: String,
     result: Value,
 }
 
-impl FetchCompletion {
+impl Completion {
     /// Moves the result into the message; a whole body read as text can be
     /// megabytes long.
     fn into_value(self) -> Value {
@@ -455,13 +456,13 @@ impl HostBridge {
             .insert(Resource::Body(BodySource::new(body, limit, resource)))
     }
 
-    fn with_transport<T>(
+    fn with_bridge_bytes<T>(
         &self,
-        operation: impl FnOnce(&mut InvocationTransport<'_>) -> Result<T>,
+        operation: impl FnOnce(&mut InvocationBytes<'_>) -> Result<T>,
     ) -> Result<T> {
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
-        operation(&mut invocation.transport())
+        operation(&mut invocation.bridge_bytes())
     }
 
     fn lock_state(&self) -> Result<MutexGuard<'_, BridgeState>> {
@@ -498,12 +499,12 @@ impl HostBridge {
             "clock" => Ok(self.clock.read()),
             "console.write" => self.write_console(input),
             "fetch.cancel" => self.cancel_fetch(input),
-            "fetch.poll" => self.poll_fetches(),
+            "fetch.limits" => self.fetch_limits(),
             "fetch.start" => self.start_fetch(input),
             "function.call" => self.call_function(input, false),
             "function.start" => self.call_function(input, true),
+            "host.poll" => self.poll_host(),
             "invocation.disconnected" => self.invocation_disconnected(),
-            "invocation.limits" => self.invocation_limits(),
             "socket.end" => self.end_socket(input),
             "socket.open" => self.open_socket(input),
             "socket.startTls" => self.start_socket_tls(input),
@@ -579,7 +580,9 @@ impl HostBridge {
         Ok(Value::Null)
     }
 
-    fn invocation_limits(&self) -> Result<Value> {
+    /// The budgets JavaScript applies as it reads an outbound request
+    /// body, before `fetch.start` sends it.
+    fn fetch_limits(&self) -> Result<Value> {
         let state = self.lock_state()?;
         let invocation = state.invocation.as_ref().ok_or(Error::InvocationClosed)?;
         Ok(json!({
@@ -642,9 +645,9 @@ impl HostBridge {
 
     /// Call a method of a `Functions` binding: a sync method at once,
     /// returning its outcome, or with `start` an async method, returning
-    /// the ticket its outcome arrives with in `fetch.poll`.
+    /// the ticket its outcome arrives with in `host.poll`.
     fn call_function(&self, input: &str, start: bool) -> Result<Value> {
-        let (method, call, result_bytes) = {
+        let (method, request, result_bytes) = {
             let mut state = self.lock_state()?;
             let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
             let called = invocation
@@ -663,12 +666,12 @@ impl HostBridge {
                 .and_then(|functions| functions.get(&message.method))
                 .cloned()
                 .ok_or(Error::PermissionDenied)?;
-            let call = FunctionCall::new(
+            let request = FunctionRequest::new(
                 message.method,
                 Value::Array(message.args),
                 invocation.context.clone(),
             );
-            (method, call, invocation.limits.bridge_message_bytes)
+            (method, request, invocation.limits.bridge_message_bytes)
         };
 
         // The method runs without the bridge's lock. Host code must not call
@@ -678,11 +681,11 @@ impl HostBridge {
         let runtime = self.runtime.as_ref().map(tokio::runtime::Handle::enter);
         match (method, start) {
             (Method::Sync(method), false) => {
-                let result = functions::run_sync(|| method(call));
+                let result = functions::run_sync(|| method(request));
                 Ok(functions::outcome(result, result_bytes))
             }
             (Method::Async(method), true) => {
-                let future = functions::start_async(|| method(call));
+                let future = functions::start_async(|| method(request));
                 drop(runtime);
                 drop(running);
                 let mut state = self.lock_state()?;
@@ -697,7 +700,7 @@ impl HostBridge {
         }
     }
 
-    pub(super) fn poll_fetches(&self) -> Result<Value> {
+    pub(super) fn poll_host(&self) -> Result<Value> {
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
 
@@ -721,7 +724,7 @@ impl HostBridge {
             pending_reads,
             ..
         } = invocation;
-        let mut transport = InvocationTransport { bytes, handles };
+        let mut bridge_bytes = InvocationBytes { bytes, handles };
 
         for (ticket, pending) in pending_fetches.iter_mut() {
             let Poll::Ready(response) = pending.future.as_mut().poll(&mut context) else {
@@ -729,9 +732,9 @@ impl HostBridge {
             };
 
             let result =
-                response.and_then(|response| encode_response(response, limits, &mut transport));
+                response.and_then(|response| encode_response(response, limits, &mut bridge_bytes));
 
-            completed.push(FetchCompletion {
+            completed.push(Completion {
                 id: ticket.clone(),
                 result: encode_reply(result),
             });
@@ -750,10 +753,10 @@ impl HostBridge {
         completed.extend(
             finished_calls
                 .into_iter()
-                .map(|(id, result)| FetchCompletion { id, result }),
+                .map(|(id, result)| Completion { id, result }),
         );
 
-        let InvocationTransport { bytes, handles } = transport;
+        let InvocationBytes { bytes, handles } = bridge_bytes;
         pending_reads.retain(|ticket, read| {
             let id = read.id;
             let result = match handles.body_mut(id) {
@@ -783,17 +786,14 @@ impl HostBridge {
             if !matches!(result, Ok(ref value) if value["done"] == false) {
                 handles.release_body(id);
             }
-            completed.push(FetchCompletion {
+            completed.push(Completion {
                 id: ticket.clone(),
                 result: encode_reply(result),
             });
             false
         });
 
-        let mut events: Vec<Value> = completed
-            .into_iter()
-            .map(FetchCompletion::into_value)
-            .collect();
+        let mut events: Vec<Value> = completed.into_iter().map(Completion::into_value).collect();
         // Messages and closes of channels, each channel's in order.
         if handles.has_channels() {
             handles.poll_channels(&mut context, bytes, &mut events)?;
@@ -1172,7 +1172,7 @@ fn utf8_decode(bytes: &[u8]) -> std::borrow::Cow<'_, str> {
 fn encode_response(
     response: Response,
     limits: &Limits,
-    bytes: &mut impl ByteTransport,
+    bytes: &mut impl BridgeBytes,
 ) -> Result<Value> {
     let response = WireResponse::from_http(response, limits, bytes)?;
     serde_json::to_value(response).map_err(|_| Error::Transport("invalid response encoding".into()))
@@ -1211,14 +1211,14 @@ impl fetchlet_web::ByteHandles for WebBytes<'_> {
     }
 }
 
-/// Byte transport through the current invocation of a bridge.
-impl ByteTransport for HostBridge {
+/// Bytes cross through the current invocation of a bridge.
+impl BridgeBytes for HostBridge {
     fn send(&mut self, bytes: Bytes) -> Result<WireBytes> {
-        self.with_transport(|transport| transport.send(bytes))
+        self.with_bridge_bytes(|bridge_bytes| bridge_bytes.send(bytes))
     }
 
     fn receive(&mut self, bytes: WireBytes) -> Result<Bytes> {
-        self.with_transport(|transport| transport.receive(bytes))
+        self.with_bridge_bytes(|bridge_bytes| bridge_bytes.receive(bytes))
     }
 
     fn stream(
@@ -1227,6 +1227,6 @@ impl ByteTransport for HostBridge {
         limit: Option<usize>,
         resource: &'static str,
     ) -> Result<BodyTransfer> {
-        self.with_transport(|transport| transport.stream(body, limit, resource))
+        self.with_bridge_bytes(|bridge_bytes| bridge_bytes.stream(body, limit, resource))
     }
 }

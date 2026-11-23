@@ -19,7 +19,7 @@ pub use channel::{
 };
 pub use console::ConsoleLevel;
 pub use context::Context;
-pub use function::{FunctionCall, FunctionError, FunctionFuture, Functions};
+pub use function::{FunctionError, FunctionFuture, FunctionRequest, Functions};
 pub use policy::FetchPolicy;
 pub use router::OriginRouter;
 pub use service::FetchService;

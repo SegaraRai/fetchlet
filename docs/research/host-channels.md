@@ -87,7 +87,7 @@ implemented, held connections for the axum and actix integrations:
 - Body sources and channels share the invocation's handle table
   (`bridge/handles.rs`), as designed below. The bridge operations are
   `websocket.upgrade`, `channel.send`, `channel.close` and
-  `channel.buffered`. Arrivals come with the completions of `fetch.poll`.
+  `channel.buffered`. Arrivals come with the completions of `host.poll`.
 - `Limits::channel_message_bytes`, `channel_buffer_bytes`,
   `connection_idle_timeout` and `connection_lifetime` apply as designed
   below. A JavaScript message over either byte budget closes the channel
@@ -141,7 +141,7 @@ keeps its handle in a private field, but the bridge's registry, which
   active invocation, which carries its `Context`, its budgets and its
   disconnect token.
 - **The host pump delivers completions.** `pumpHostOperations` calls
-  `fetch.poll` between microtasks. Rust polls each pending future with the
+  `host.poll` between microtasks. Rust polls each pending future with the
   engine's `WakeSignal` and returns the completed tickets as one batch.
 - **Application code cannot call host operations.** The bridge takes the
   native dispatch off the global object, and `SEAL_HOST` removes
@@ -330,12 +330,12 @@ The core types live in `crates/fetchlet/src/host/channel/`:
   shares the binding namespace with `env` values and services.
 
 Host code polled for a channel must not call the same application again;
-the reentry guard of `fetch.poll` covers channel polling too.
+the reentry guard of `host.poll` covers channel polling too.
 
 Bridge operations are `channel.open`, `channel.send`, `channel.close`,
 `channel.buffered` and, for the stream view, `channel.write` and
 `channel.pause`. Opens, refusals, finished writes, messages and closes are
-delivered with the completions of `fetch.poll`. They are bridge operations of the fetchlet
+delivered with the completions of `host.poll`. They are bridge operations of the fetchlet
 crate, not fetchlet-web operations, so `PROTOCOL_VERSION` is unaffected.
 
 ## APIs on channels

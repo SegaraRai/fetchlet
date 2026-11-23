@@ -78,7 +78,7 @@ headers and redirect count of every request that reaches the transport.
 `fuzz/fuzz_targets/bridge_bodies.rs` mutates sequences of operations a guest
 can perform through native callbacks: storing and claiming byte handles,
 `body.read`, `body.readAll`, `body.readText`, `body.cancel` and
-`fetch.poll` on body sources, accepting a WebSocket upgrade, opening
+`host.poll` on body sources, accepting a WebSocket upgrade, opening
 channels from an accepting, a refusing and an unbound service, connecting
 sockets to allowed, refused and invalid addresses, ending their writes and
 starting TLS, opening client WebSockets to allowed, refused and invalid

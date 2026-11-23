@@ -42,14 +42,15 @@ pub(crate) enum BodyTransfer {
     Collect(Body),
 }
 
-/// How a wire conversion moves body bytes across the bridge.
-pub(crate) trait ByteTransport {
+/// How a wire conversion moves body bytes across the bridge: inline in the
+/// JSON ([`InlineBytes`]), or by handles into an invocation's byte store.
+pub(crate) trait BridgeBytes {
     /// Make bytes available to JavaScript.
     fn send(&mut self, bytes: Bytes) -> Result<WireBytes>;
     /// Resolve bytes that JavaScript produced.
     fn receive(&mut self, bytes: WireBytes) -> Result<Bytes>;
-    /// Offer a body to JavaScript as a stream. Transports without an
-    /// invocation collect it instead.
+    /// Offer a body to JavaScript as a stream. Without an invocation,
+    /// the conversion collects it instead.
     fn stream(
         &mut self,
         body: Body,
@@ -63,7 +64,7 @@ pub(crate) trait ByteTransport {
 /// Inline JSON arrays only, for calls without an invocation byte store.
 pub(crate) struct InlineBytes;
 
-impl ByteTransport for InlineBytes {
+impl BridgeBytes for InlineBytes {
     fn send(&mut self, bytes: Bytes) -> Result<WireBytes> {
         Ok(WireBytes::Inline(bytes.to_vec()))
     }
@@ -141,7 +142,7 @@ impl ByteStore {
     }
 }
 
-impl ByteTransport for ByteStore {
+impl BridgeBytes for ByteStore {
     fn send(&mut self, bytes: Bytes) -> Result<WireBytes> {
         self.put(bytes).map(WireBytes::Handle)
     }

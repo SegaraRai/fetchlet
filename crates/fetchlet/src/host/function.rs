@@ -13,8 +13,8 @@ use crate::Error;
 /// The future of an async method of a [`Functions`] binding.
 pub type FunctionFuture = Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + Send>>;
 
-type AsyncMethod = dyn Fn(FunctionCall) -> FunctionFuture + Send + Sync;
-type SyncMethod = dyn Fn(FunctionCall) -> Result<Value, FunctionError> + Send + Sync;
+type AsyncMethod = dyn Fn(FunctionRequest) -> FunctionFuture + Send + Sync;
+type SyncMethod = dyn Fn(FunctionRequest) -> Result<Value, FunctionError> + Send + Sync;
 
 /// Rust functions that JavaScript calls as the methods of `env.NAME`.
 ///
@@ -59,12 +59,12 @@ impl Functions {
     /// Add an async method. JavaScript's call returns a Promise of its result.
     pub fn method<F, R>(self, name: impl Into<String>, method: F) -> Self
     where
-        F: Fn(FunctionCall) -> R + Send + Sync + 'static,
+        F: Fn(FunctionRequest) -> R + Send + Sync + 'static,
         R: Future<Output = Result<Value, FunctionError>> + Send + 'static,
     {
         self.insert(
             name.into(),
-            Method::Async(Arc::new(move |call| Box::pin(method(call)))),
+            Method::Async(Arc::new(move |request| Box::pin(method(request)))),
         )
     }
 
@@ -72,7 +72,7 @@ impl Functions {
     /// for it on the thread that runs the instance.
     pub fn sync_method<F>(self, name: impl Into<String>, method: F) -> Self
     where
-        F: Fn(FunctionCall) -> Result<Value, FunctionError> + Send + Sync + 'static,
+        F: Fn(FunctionRequest) -> Result<Value, FunctionError> + Send + Sync + 'static,
     {
         self.insert(name.into(), Method::Sync(Arc::new(method)))
     }
@@ -137,7 +137,7 @@ impl Functions {
     feature = "fuzzing",
     test
 ))]
-impl FunctionCall {
+impl FunctionRequest {
     pub(crate) fn new(method: String, args: Value, context: Option<Context>) -> Self {
         Self {
             method,
@@ -147,14 +147,15 @@ impl FunctionCall {
     }
 }
 
-/// One call of a [`Functions`] method from JavaScript.
-pub struct FunctionCall {
+/// What a [`Functions`] method receives when JavaScript calls it: the
+/// method's name, its arguments and the invocation's trusted `Context`.
+pub struct FunctionRequest {
     method: String,
     args: Value,
     context: Context,
 }
 
-impl FunctionCall {
+impl FunctionRequest {
     /// The name of the method JavaScript called.
     pub fn method(&self) -> &str {
         &self.method
@@ -183,10 +184,10 @@ impl FunctionCall {
     }
 }
 
-impl fmt::Debug for FunctionCall {
+impl fmt::Debug for FunctionRequest {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("FunctionCall")
+            .debug_struct("FunctionRequest")
             .field("method", &self.method)
             .finish_non_exhaustive()
     }

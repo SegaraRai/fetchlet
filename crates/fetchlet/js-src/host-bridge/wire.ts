@@ -22,8 +22,11 @@ export interface FunctionErrorDescription {
   message: string;
 }
 
-/** Budgets as decimal strings, since they may exceed a double; null is none. */
-export interface BridgeLimits {
+/**
+ * The budgets of reading an outbound request body, as decimal strings since
+ * they may exceed a double; null is none.
+ */
+export interface RequestBodyLimits {
   requestBodyBytes: string | null;
   requestBodyChunks: string | null;
 }
@@ -72,9 +75,15 @@ export interface LentChannel {
   channel: number;
 }
 
+/**
+ * The ticket of a host operation that finishes later, such as a fetch, a body
+ * read or an async function call: an opaque string unique to the invocation.
+ */
+export type Ticket = string;
+
 /** A finished fetch, body read or async function call, by the ticket its start returned. */
 export interface Completion {
-  id: number;
+  id: Ticket;
   result: HostReply<unknown>;
 }
 

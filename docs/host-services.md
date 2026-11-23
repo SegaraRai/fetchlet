@@ -323,20 +323,20 @@ name in `env`, which they share with env values, services and channels.
 JavaScript calls them as methods without building a `Request`:
 
 ```rust,ignore
-use fetchlet::{FunctionCall, FunctionError, Functions, HostServices};
+use fetchlet::{FunctionError, FunctionRequest, Functions, HostServices};
 use serde_json::{Value, json};
 
 let db = Functions::new()
-    .method("query", |call: FunctionCall| async move {
-        let (sql, params): (String, Vec<Value>) = call.args()?;
-        let user = call.context().get::<User>();
+    .method("query", |request: FunctionRequest| async move {
+        let (sql, params): (String, Vec<Value>) = request.args()?;
+        let user = request.context().get::<User>();
         let rows = run(user, &sql, &params)
             .await
             .map_err(|error| FunctionError::new(error.to_string()).code("QUERY_FAILED"))?;
         Ok(json!(rows))
     })
-    .sync_method("escape", |call: FunctionCall| {
-        let (text,): (String,) = call.args()?;
+    .sync_method("escape", |request: FunctionRequest| {
+        let (text,): (String,) = request.args()?;
         Ok(json!(escape(&text)))
     });
 let hosts = HostServices::new().functions("DB", db)?;
@@ -353,7 +353,7 @@ and a name added twice fail with `Configuration` when bound.
 
 - **Values.** Arguments arrive as the JSON array `JSON.stringify` makes of
   them, so `undefined` becomes `null` and a `BigInt` throws its
-  `TypeError` before Rust runs. `call.args::<T>()` deserializes them with
+  `TypeError` before Rust runs. `request.args::<T>()` deserializes them with
   serde, usually into a tuple with one element per argument, which needs
   exactly that many; `Vec<Value>` takes any number, and `raw_args` gives
   the array. A result is any JSON value. Both directions are bridge
@@ -375,9 +375,9 @@ and a name added twice fail with `Configuration` when bound.
   thread that runs the instance, while they run. No deadline interrupts
   them, so keep them to quick work such as lookups in memory, validation or
   formatting; anything that waits belongs in an async method.
-- **Context and reentrancy.** `call.context()` is the trusted `Context`
+- **Context and reentrancy.** `request.context()` is the trusted `Context`
   attached to the invocation's request, empty when there is none, and
-  `call.method()` names the method called. A method that calls its own
+  `request.method()` names the method called. A method that calls its own
   `AppHandle` fails with `Error::Reentrant`, as a host fetch does.
 - **Budget.** `Limits::function_calls` bounds the calls of one invocation,
   sync and async, failed ones included.

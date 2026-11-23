@@ -3,7 +3,7 @@
 
 import { hostBodyStream } from "./host-bodies.ts";
 import { dispatch, hostError, putBytes, takeBytes } from "./host.ts";
-import type { BridgeLimits, Completion, WireResponse } from "./wire.ts";
+import type { Completion, RequestBodyLimits, Ticket, WireResponse } from "./wire.ts";
 
 interface PendingFetch {
   resolve(response: Response): void;
@@ -12,7 +12,7 @@ interface PendingFetch {
   cleanup(): void;
 }
 
-const pendingFetches = new Map<number, PendingFetch>();
+const pendingFetches = new Map<Ticket, PendingFetch>();
 
 export function hasPendingFetches(): boolean {
   return pendingFetches.size > 0;
@@ -24,7 +24,7 @@ function exceedsBudget(observed: number, budget: string | null): boolean {
 
 async function readRequestBody(
   request: Request,
-  limits: BridgeLimits,
+  limits: RequestBodyLimits,
 ): Promise<Uint8Array<ArrayBuffer> | null> {
   if (request.body === null) {
     return null;
@@ -126,7 +126,7 @@ export function completeFetch(completion: Completion): void {
   }
 }
 
-function waitForResponse(ticket: number, signal: AbortSignal): Promise<Response> {
+function waitForResponse(ticket: Ticket, signal: AbortSignal): Promise<Response> {
   return new Promise((resolve, reject) => {
     function abort() {
       if (!pendingFetches.delete(ticket)) {
@@ -165,12 +165,12 @@ export async function hostFetch(
   const request = new Request(input, init);
   request.signal.throwIfAborted();
 
-  const limits = dispatch<BridgeLimits>("invocation.limits", null);
+  const limits = dispatch<RequestBodyLimits>("fetch.limits", null);
   const body = await readRequestBody(request, limits);
   request.signal.throwIfAborted();
 
   // Store the bytes right before the message that takes them.
-  const ticket = dispatch<number>("fetch.start", {
+  const ticket = dispatch<Ticket>("fetch.start", {
     service: service ?? null,
     redirect: request.redirect,
     request: {

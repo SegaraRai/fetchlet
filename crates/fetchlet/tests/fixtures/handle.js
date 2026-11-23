@@ -22,7 +22,7 @@ function acknowledgeStart() {
   if (!started.ok) {
     throw new Error("Signal service was not installed");
   }
-  host.call("fetch.poll", "null");
+  host.call("host.poll", "null");
 }
 
 globalThis.fetchletExports = {

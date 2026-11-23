@@ -277,7 +277,7 @@ fn pick(values: &[u64], selector: u8) -> Option<u64> {
 }
 
 fn poll(harness: &BridgeHarness, model: &mut Model) {
-    let reply = harness.dispatch("fetch.poll", "null");
+    let reply = harness.dispatch("host.poll", "null");
     if !model.active || !model.fits(4) {
         assert!(!ok(&reply));
         return;
@@ -747,7 +747,7 @@ fuzz_target!(|data: &[u8]| {
                 if !["body.", "channel.", "socket.", "websocket."]
                     .iter()
                     .any(|prefix| operation.starts_with(prefix))
-                    && operation != "fetch.poll"
+                    && operation != "host.poll"
                 {
                     let reply = harness.dispatch(operation, message);
                     let _ = ok(&reply);

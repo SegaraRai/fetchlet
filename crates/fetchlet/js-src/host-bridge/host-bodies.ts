@@ -2,7 +2,7 @@
 // handler and response bodies of the host's fetch.
 
 import { dispatch, hostError, takeBytes } from "./host.ts";
-import type { Completion } from "./wire.ts";
+import type { Completion, Ticket } from "./wire.ts";
 
 interface PendingRead {
   id: number;
@@ -16,7 +16,7 @@ type WholeRead = (text: boolean, onValue: ValueCallback, onError: ErrorCallback)
 type BodyController = ReadableStreamDefaultController<Uint8Array> | ReadableByteStreamController;
 
 // Outstanding reads of Rust bodies: ticket -> { id, resolve, reject }.
-const pendingReads = new Map<number, PendingRead>();
+const pendingReads = new Map<Ticket, PendingRead>();
 // Streams over Rust bodies that no one has read yet, and how to read each
 // whole at once.
 const wholeReads = new WeakMap<ReadableStream<Uint8Array>, WholeRead>();
@@ -60,7 +60,7 @@ function supportsByteStreams(): boolean {
 }
 
 function readHostBody(id: number): Promise<{ chunk: number; done: boolean }> {
-  const ticket = dispatch<number>("body.read", id);
+  const ticket = dispatch<Ticket>("body.read", id);
   return new Promise((resolve, reject) => {
     pendingReads.set(ticket, {
       id,
@@ -79,7 +79,7 @@ function readWholeHostBody(
   onValue: ValueCallback,
   onError: ErrorCallback,
 ): void {
-  const ticket = dispatch<number>(text ? "body.readText" : "body.readAll", id);
+  const ticket = dispatch<Ticket>(text ? "body.readText" : "body.readAll", id);
   pendingReads.set(ticket, {
     id,
     resolve(value) {

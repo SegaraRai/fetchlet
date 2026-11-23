@@ -11,7 +11,7 @@ pub(crate) use codec::{WireRequest, WireResponse, normalize_fetch_method, valida
     feature = "fuzzing",
     test
 ))]
-pub(crate) use byte_store::{BodyTransfer, ByteStore, ByteTransport, WireBytes};
+pub(crate) use byte_store::{BodyTransfer, BridgeBytes, ByteStore, WireBytes};
 
 #[cfg(test)]
 mod tests;
