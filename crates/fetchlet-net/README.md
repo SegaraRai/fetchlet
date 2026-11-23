@@ -47,13 +47,31 @@ ALPN protocols keeps them. Connections to one origin are pooled and reused,
 and an idle one closes after `pool_idle_timeout`, 90 seconds by default.
 Each new connection resolves its host and refuses addresses that are not
 public unless `allow_private_addresses`, and TLS verifies servers as
-`TcpTransport` does. The client adds no `Accept-Encoding` and decodes no
-`Content-Encoding`, so the body reaches JavaScript as the server sent it.
-Dropping the request's future or its response body ends that exchange.
+`TcpTransport` does. Dropping the request's future or its response body ends that exchange.
 Requests run on the Tokio runtime that polls the host pump; an App without
-one fails each request with `Configuration`. `tests/http.rs` checks it
-against local HTTP/1.1 and HTTP/2-over-TLS servers, and the global `fetch`
-on every engine.
+one fails each request with `Configuration`.
+
+As a browser does, the client asks for `gzip, deflate, br` and undoes the
+codings a response's `Content-Encoding` lists as JavaScript reads the body,
+with fetchlet-web's `Decompressor`, the decoder of `DecompressionStream`:
+stacked codings in reverse order, `x-gzip` as gzip, and raw deflate sent as
+`deflate`, which it tells from zlib by the first two bytes. It then removes
+`Content-Encoding` and `Content-Length`, which describe the bytes on the
+wire, so a handler that returns the response, or a Rust caller that reads
+it, sees the decoded body under headers that match it; the Fetch Standard
+keeps both headers, so this is where `HttpClient` differs from a browser.
+A request that carries its own `Accept-Encoding`, such as one a service's
+rewrite adds, a `HEAD` request, a response without a body and one with an
+unknown coding, such as `zstd`, keep the body and headers as the server
+sent them. Each decoded piece is at most 64 KiB, so a small compressed
+chunk never inflates into one large buffer, and the invocation's
+`response_body_bytes` budget applies to the decoded bytes JavaScript reads.
+Invalid coded data, a truncated stream and a gzip checksum that does not
+match fail the body when read.
+
+`tests/http.rs` checks the client against local HTTP/1.1 and
+HTTP/2-over-TLS servers, every coding and the global `fetch` on every
+engine.
 
 ## TCP sockets
 

@@ -6,10 +6,12 @@ use hyper_util::client::legacy::Client;
 use hyper_util::rt::{TokioExecutor, TokioTimer};
 use tokio_rustls::rustls::ClientConfig;
 
-use fetchlet::http::Version;
-use fetchlet::{Body, Error, FetchTransport, Request, TransportFuture};
+use fetchlet::http::{HeaderValue, Method, Version, header};
+use fetchlet::{Body, Error, FetchTransport, Request, Response, TransportFuture};
+use http_body::Body as _;
 
 use super::connect::Connect;
+use super::decode::{ACCEPT_ENCODING, Decoded, codings};
 use crate::network::{Connector, runtime};
 
 /// How long an idle pooled connection stays open by default: hyper-util's
@@ -33,9 +35,20 @@ const DEFAULT_POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(90);
 /// them under its policy, as the transport contract requires. hyper speaks
 /// HTTP/1.1, and HTTP/2 when a TLS server selects it by ALPN; connections
 /// to one origin are pooled and reused, and an idle one closes after
-/// [`pool_idle_timeout`](Self::pool_idle_timeout). The transport adds no
-/// `Accept-Encoding` and decodes no `Content-Encoding`, so the body reaches
-/// JavaScript as the server sent it. Requests run on the Tokio runtime that
+/// [`pool_idle_timeout`](Self::pool_idle_timeout).
+///
+/// As a browser does, the client asks for `gzip, deflate, br` and undoes
+/// the codings the response's `Content-Encoding` lists, including stacked
+/// ones and raw deflate sent as `deflate`, as JavaScript reads the body; it
+/// then removes `Content-Encoding` and `Content-Length`, which describe the
+/// bytes on the wire, so a handler that returns the response sends what it
+/// read. A request that carries its own `Accept-Encoding`, a `HEAD`
+/// request, a response without a body and one with an unknown coding keep
+/// the body and headers as the server sent them. Decoded pieces are at most
+/// 64 KiB, and the invocation's `response_body_bytes` budget applies to the
+/// decoded bytes; invalid coded data fails the body when read.
+///
+/// Requests run on the Tokio runtime that
 /// polls the host pump; an App without one fails each request with
 /// `Configuration`. TLS verifies the server against the Mozilla roots in
 /// `webpki-roots`, or the configuration from
@@ -125,8 +138,29 @@ impl FetchTransport for HttpClient {
             }
             // hyper chooses HTTP/2 by the connection, not the request.
             *request.version_mut() = Version::HTTP_11;
+            // A caller that names its own codings reads the body as sent.
+            let decode = !request.headers().contains_key(header::ACCEPT_ENCODING);
+            if decode {
+                request.headers_mut().insert(
+                    header::ACCEPT_ENCODING,
+                    HeaderValue::from_static(ACCEPT_ENCODING),
+                );
+            }
+            let head = request.method() == Method::HEAD;
             let response = client.request(request).await.map_err(failed)?;
-            Ok(response.map(Body::from_http_body))
+            let codings = codings(response.headers()).unwrap_or_default();
+            if !decode || head || codings.is_empty() || response.body().is_end_stream() {
+                return Ok(response.map(Body::from_http_body));
+            }
+            // The headers describe the body JavaScript reads: decoded, of a
+            // length known only once it ends.
+            let (mut parts, body) = response.into_parts();
+            parts.headers.remove(header::CONTENT_ENCODING);
+            parts.headers.remove(header::CONTENT_LENGTH);
+            Ok(Response::from_parts(
+                parts,
+                Body::from_http_body(Decoded::new(body, &codings)),
+            ))
         })
     }
 }

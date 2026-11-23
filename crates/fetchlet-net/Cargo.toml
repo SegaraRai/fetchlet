@@ -22,6 +22,8 @@ http = [
   "dep:hyper",
   "dep:hyper-util",
   "dep:tower-service",
+  "dep:http-body",
+  "dep:fetchlet-web",
 ]
 # Open TCP and TLS connections for JavaScript's connect() as a socket transport.
 sockets = ["dep:tokio", "dep:tokio-rustls", "dep:webpki-roots"]
@@ -37,7 +39,9 @@ websocket = [
 [dependencies]
 fetchlet.workspace = true
 bytes = "1"
+fetchlet-web = { workspace = true, features = ["compression"], optional = true }
 futures-util = { version = "0.3", default-features = false, features = ["sink"], optional = true }
+http-body = { version = "1", optional = true }
 hyper = { version = "1", features = ["client", "http1", "http2"], optional = true }
 hyper-util = { version = "0.1", features = [
   "client-legacy",
@@ -60,6 +64,8 @@ webpki-roots = { version = "1", optional = true }
 # The transports run on every engine.
 fetchlet = { workspace = true, features = ["quickjs", "boa", "v8", "web-apis"] }
 anyhow.workspace = true
+brotli = "9"
+flate2 = "1"
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 http-body = "1"
 http-body-util = "0.1"

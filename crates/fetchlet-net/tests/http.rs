@@ -55,11 +55,86 @@ impl http_body::Body for Unfinished {
 
 type ServerBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
 
+/// The text the coded routes send.
+fn sample() -> Vec<u8> {
+    (0..50_000u32)
+        .flat_map(|n| format!("line {n}\n").into_bytes())
+        .collect()
+}
+
+/// `data` in `coding`: `deflate` as zlib, `deflate-raw` as raw deflate.
+fn encode(coding: &str, data: &[u8]) -> Vec<u8> {
+    use std::io::Write;
+    match coding {
+        "gzip" => {
+            let mut encoder =
+                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+            encoder.write_all(data).unwrap();
+            encoder.finish().unwrap()
+        }
+        "deflate" => {
+            let mut encoder =
+                flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::fast());
+            encoder.write_all(data).unwrap();
+            encoder.finish().unwrap()
+        }
+        "deflate-raw" => {
+            let mut encoder =
+                flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::fast());
+            encoder.write_all(data).unwrap();
+            encoder.finish().unwrap()
+        }
+        "br" => {
+            let mut output = Vec::new();
+            let mut encoder = brotli::CompressorWriter::new(&mut output, 4096, 5, 22);
+            encoder.write_all(data).unwrap();
+            drop(encoder);
+            output
+        }
+        other => panic!("no coding {other}"),
+    }
+}
+
+/// `/coded?<codings>&<label>` sends `sample()` in the comma-separated
+/// codings, applied in order, labelled `<label>` in `Content-Encoding`, and
+/// reports the request's `Accept-Encoding` as `x-accept`. `/zeros` sends
+/// 16 MiB of zeros in gzip; `/corrupt` sends bytes that are not gzip.
+fn coded(request: &Request<Incoming>) -> Response<ServerBody> {
+    let accept = request
+        .headers()
+        .get(header::ACCEPT_ENCODING)
+        .map(|value| value.to_str().unwrap().to_owned())
+        .unwrap_or_default();
+    let (body, label) = match request.uri().path() {
+        "/zeros" => (encode("gzip", &vec![0; 16 << 20]), "gzip".to_owned()),
+        "/corrupt" => (b"not gzip at all".to_vec(), "gzip".to_owned()),
+        _ => {
+            let query = request
+                .uri()
+                .query()
+                .unwrap_or_default()
+                .replace("%20", " ");
+            let (codings, label) = query.split_once('&').unwrap();
+            let body = codings
+                .split(',')
+                .fold(sample(), |data, coding| encode(coding, &data));
+            (body, label.to_owned())
+        }
+    };
+    Response::builder()
+        .header(header::CONTENT_ENCODING, label)
+        .header(header::CONTENT_LENGTH, body.len())
+        .header("x-accept", accept)
+        .body(Full::new(Bytes::from(body)).boxed())
+        .unwrap()
+}
+
 /// `/echo` answers with the method, version, `x-test` header and body it
 /// received, and echoes `x-test` as `x-echo`; `/redirect` answers 302;
 /// `/stream` sends one chunk and keeps the body open.
 async fn answer(request: Request<Incoming>) -> Result<Response<ServerBody>, Infallible> {
     match request.uri().path() {
+        "/coded" | "/zeros" | "/corrupt" => Ok(coded(&request)),
         "/redirect" => Ok(Response::builder()
             .status(StatusCode::FOUND)
             .header(header::LOCATION, "/echo")
@@ -244,6 +319,101 @@ async fn connections_to_one_origin_are_reused() -> anyhow::Result<()> {
         text(response).await?;
     }
     assert_eq!(connections.load(Ordering::SeqCst), 1);
+    Ok(())
+}
+
+async fn coded_response(
+    client: &HttpClient,
+    port: u16,
+    path: &str,
+    accept: Option<&'static str>,
+) -> anyhow::Result<fetchlet::Response> {
+    let url = format!("http://127.0.0.1:{port}{}", path.replace(' ', "%20"));
+    let mut request = request(Method::GET, &url, "");
+    if let Some(accept) = accept {
+        request
+            .headers_mut()
+            .insert(header::ACCEPT_ENCODING, accept.parse()?);
+    }
+    Ok(client.send(request).await?)
+}
+
+#[tokio::test]
+async fn content_codings_are_undone() -> anyhow::Result<()> {
+    let (port, _) = server().await?;
+    let client = HttpClient::new().allow_private_addresses();
+    for (codings, label) in [
+        ("gzip", "gzip"),
+        ("gzip", "x-gzip"),
+        ("deflate", "deflate"),
+        ("deflate-raw", "deflate"),
+        ("br", "br"),
+        ("gzip,br", "gzip, br"),
+        ("br,deflate", "BR, identity, Deflate"),
+    ] {
+        let response =
+            coded_response(&client, port, &format!("/coded?{codings}&{label}"), None).await?;
+        assert_eq!(response.headers()["x-accept"], "gzip, deflate, br");
+        assert!(!response.headers().contains_key(header::CONTENT_ENCODING));
+        assert!(!response.headers().contains_key(header::CONTENT_LENGTH));
+        let body = response.into_body().collect(usize::MAX).await?;
+        assert!(body == sample(), "{codings} as {label}");
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn decoded_frames_stay_small() -> anyhow::Result<()> {
+    let (port, _) = server().await?;
+    let client = HttpClient::new().allow_private_addresses();
+    let mut body = coded_response(&client, port, "/zeros", None)
+        .await?
+        .into_body();
+    let mut total = 0;
+    while let Some(frame) = body.frame().await {
+        let data = frame?.into_data().expect("data");
+        assert!(data.len() <= 64 * 1024, "{}", data.len());
+        assert!(data.iter().all(|&byte| byte == 0));
+        total += data.len();
+    }
+    assert_eq!(total, 16 << 20);
+    Ok(())
+}
+
+#[tokio::test]
+async fn bodies_pass_through_unless_the_client_asked() -> anyhow::Result<()> {
+    let (port, _) = server().await?;
+    let client = HttpClient::new().allow_private_addresses();
+    // A caller that names its own codings reads what the server sent.
+    let response = coded_response(&client, port, "/coded?gzip&gzip", Some("gzip")).await?;
+    assert_eq!(response.headers()["x-accept"], "gzip");
+    assert_eq!(response.headers()[header::CONTENT_ENCODING], "gzip");
+    let body = response.into_body().collect(usize::MAX).await?;
+    assert!(body == encode("gzip", &sample()));
+    // An unknown coding stays as it is.
+    let response = coded_response(&client, port, "/coded?gzip&gzip, zstd", None).await?;
+    assert_eq!(response.headers()[header::CONTENT_ENCODING], "gzip, zstd");
+    let body = response.into_body().collect(usize::MAX).await?;
+    assert!(body == encode("gzip", &sample()));
+    // A HEAD response has no body to decode.
+    let head = request(
+        Method::HEAD,
+        &format!("http://127.0.0.1:{port}/coded?br&br"),
+        "",
+    );
+    let response = client.send(head).await?;
+    assert_eq!(response.headers()[header::CONTENT_ENCODING], "br");
+    Ok(())
+}
+
+#[tokio::test]
+async fn corrupt_coded_bodies_fail_when_read() -> anyhow::Result<()> {
+    let (port, _) = server().await?;
+    let client = HttpClient::new().allow_private_addresses();
+    let response = coded_response(&client, port, "/corrupt", None).await?;
+    assert_eq!(response.status(), StatusCode::OK);
+    let error = response.into_body().collect(usize::MAX).await.unwrap_err();
+    assert!(matches!(error, Error::Transport(_)), "{error}");
     Ok(())
 }
 

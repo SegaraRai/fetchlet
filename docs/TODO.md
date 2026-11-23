@@ -169,12 +169,12 @@ throughput by pool size that its recommendation rests on.
 Concurrent invocations within one instance wait until async context is
 available on every engine.
 
-### Content codings for outbound fetch
+### zstd for outbound fetch
 
-`HttpClient` sends no `Accept-Encoding` and decodes no `Content-Encoding`,
-so JavaScript receives what the server sent. Browsers ask for and decode
-gzip, deflate and Brotli; doing the same needs the decoders on the
-response path, with the body budget applied to the decoded bytes.
+`HttpClient` asks for and decodes gzip, deflate and Brotli. Browsers also
+accept `zstd`; adding it needs a pure Rust decoder, or a C dependency the
+release builds accept, with output bounded per piece as the other codings
+are.
 
 ### Streaming outbound request bodies
 

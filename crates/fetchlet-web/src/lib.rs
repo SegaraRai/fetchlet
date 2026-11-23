@@ -24,3 +24,6 @@ pub use dispatch::{ByteHandles, Invocation, PROTOCOL_VERSION, capabilities, disp
 pub use error::{Error, Result};
 pub use limits::WebLimits;
 pub use state::WebState;
+
+#[cfg(feature = "compression")]
+pub use compression::{CompressionFormat, Decompressor};

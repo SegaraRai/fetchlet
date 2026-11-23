@@ -2316,8 +2316,11 @@ name = "fetchlet-net"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "brotli",
  "bytes",
  "fetchlet",
+ "fetchlet-web",
+ "flate2",
  "futures-util",
  "http-body",
  "http-body-util",

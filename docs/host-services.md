@@ -44,8 +44,9 @@ credentials in Rust, in the service's credentials callback.
 
 For the network, fetchlet-net's `http` feature provides `HttpClient`, a
 transport over hyper that speaks HTTP/1.1, and HTTP/2 when a TLS server
-selects it, pools connections per origin, resolves each host and refuses
-non-public addresses unless `allow_private_addresses`:
+selects it, pools connections per origin, decodes gzip, deflate and Brotli
+responses as a browser does, resolves each host and refuses non-public
+addresses unless `allow_private_addresses`:
 
 ```rust,ignore
 use fetchlet::{FetchPolicy, FetchService, HostServices};

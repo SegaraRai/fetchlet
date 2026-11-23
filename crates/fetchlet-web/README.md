@@ -52,6 +52,11 @@ let reply = dispatch(
 );
 ```
 
+With the `compression` feature, `Decompressor` is the streaming decoder of
+`DecompressionStream` for host code, such as fetchlet-net's HTTP client
+decoding a `Content-Encoding`: each read returns at most 64 KiB, and the
+decompressed bytes in all count toward the limit it is given.
+
 `web.capabilities` reports `PROTOCOL_VERSION` and the APIs of the build.
 The guest runtime installs only those globals, and none when the protocol
 version differs from its own.
