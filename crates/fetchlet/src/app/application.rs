@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use bytes::BytesMut;
+use bytes::{Bytes, BytesMut};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 
@@ -11,13 +11,25 @@ use crate::backend::Engine;
 use crate::bridge::{Disconnect, HostBridge, InvocationScope};
 use crate::config::check_limit;
 use crate::execution::{
-    BACKGROUND_SETTLE, deadline_after, fetch_invocation, invocation, with_deadline,
+    BACKGROUND_SETTLE, deadline_after, fetch_invocation, placed_invocation, with_deadline,
 };
+use crate::host::GuestEnd;
+use crate::placed::{ByteLayout, Placed};
 use crate::wire::{WireRequest, WireResponse};
 use crate::{
-    Backend, Body, Call, Context, Error, HeldConnection, HostServices, Instance, Limits, Request,
-    Response, Result, ServerWebSocket,
+    Backend, Body, Call, CallOutput, Context, Error, HeldConnection, HostServices, Instance,
+    Limits, Request, Response, Result, ServerWebSocket,
 };
+
+/// What `invokeExport` returns for a call: the result's JSON, with `null`
+/// at each byte array, and the layout of their bytes.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CallResult {
+    value: Value,
+    #[serde(default)]
+    bytes: Option<ByteLayout>,
+}
 
 /// What a Fetch invocation leaves open after its response head.
 pub(crate) enum Opened {
@@ -99,27 +111,52 @@ impl App {
     }
 
     pub async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
-        self.call_with(Call::with_arguments(export, args)).await
+        let call = Call::with_arguments(export.to_owned(), args.to_vec());
+        Ok(self.call_with(call).await?.into_value())
     }
 
-    /// Call a function with the JSON arguments and lent channels of `call`.
-    pub async fn call_with(&mut self, call: Call) -> Result<Value> {
+    /// Call a function with the arguments and context of `call`.
+    pub async fn call_with(&mut self, call: Call) -> Result<CallOutput> {
         self.finish_background().await?;
-        let scope = self.begin(None)?;
-        let result = self.run_call(call).await;
+        let parts = call.into_parts();
+        let scope = self.begin(parts.context)?;
+        let result = self
+            .run_call(parts.export, parts.arguments, parts.bytes, parts.channels)
+            .await;
         self.close(scope);
         result
     }
 
-    async fn run_call(&mut self, call: Call) -> Result<Value> {
-        let (export, arguments, lent) = call.into_parts();
-        let mut placed = Vec::with_capacity(lent.len());
-        for lent in lent {
-            placed.push((lent.path, self.host.lend_channel(lent.end)?));
+    async fn run_call(
+        &mut self,
+        export: String,
+        arguments: Vec<Value>,
+        bytes: Placed<Bytes>,
+        channels: Placed<GuestEnd>,
+    ) -> Result<CallOutput> {
+        let mut byte_handles = Vec::with_capacity(bytes.len());
+        for (path, bytes) in bytes {
+            byte_handles.push((path, self.host.put_bytes(bytes)?));
         }
-        let expression = invocation(&export, &arguments, &placed).map_err(invalid_request)?;
-        self.evaluate(expression, deadline_after(self.limits.timeout))
-            .await
+        let mut channel_handles = Vec::with_capacity(channels.len());
+        for (path, end) in channels {
+            channel_handles.push((path, self.host.lend_channel(end)?));
+        }
+        let expression = placed_invocation(&export, &arguments, &byte_handles, &channel_handles)
+            .map_err(invalid_request)?;
+        let result = self
+            .evaluate(expression, deadline_after(self.limits.timeout))
+            .await?;
+        let CallResult { mut value, bytes } = serde_json::from_value(result)
+            .map_err(|error| Error::JavaScript(format!("invalid call result: {error}")))?;
+        let placed = match bytes {
+            Some(layout) => {
+                let buffer = self.host.take_bytes(layout.handle())?;
+                layout.split(&mut value, buffer, true)?
+            }
+            None => Vec::new(),
+        };
+        Ok(CallOutput::new(value, placed))
     }
 
     /// Call a named function with one Serde argument and deserialize its result.
@@ -129,9 +166,8 @@ impl App {
         input: &I,
     ) -> Result<O> {
         let input = serde_json::to_value(input).map_err(invalid_request)?;
-        let result = self.call_json(export, &[input]).await?;
-        serde_json::from_value(result)
-            .map_err(|error| Error::JavaScript(format!("invalid result: {error}")))
+        let call = Call::with_arguments(export.to_owned(), vec![input]);
+        self.call_with(call).await?.deserialize()
     }
 
     /// Run the Fetch handler and collect the complete response body.

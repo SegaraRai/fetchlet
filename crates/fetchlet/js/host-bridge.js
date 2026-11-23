@@ -513,6 +513,59 @@
 		if (!views?.lend) throw new TypeError("Channels need the fetchlet Web API profile");
 		return views.lend(channel);
 	}
+	function isBinary(value) {
+		return ArrayBuffer.isView(value) || value instanceof ArrayBuffer;
+	}
+	/**
+	* `value` as JSON.stringify encodes it, except that each ArrayBuffer or view
+	* becomes null and is listed with its path instead. With `whole`, `value`
+	* itself may be one.
+	*/
+	function encodeWithBytes(value, whole) {
+		const parts = [];
+		const paths = /* @__PURE__ */ new WeakMap();
+		return {
+			json: JSON.stringify(value, function(key, item) {
+				const holder = this;
+				const parent = paths.get(holder);
+				const path = parent === void 0 ? [] : [...parent, key];
+				const raw = holder[key];
+				if ((whole || path.length > 0) && isBinary(raw)) {
+					const bytes = ArrayBuffer.isView(raw) ? new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength) : new Uint8Array(raw);
+					parts.push({
+						path,
+						bytes
+					});
+					return null;
+				}
+				if (typeof item === "object" && item !== null) paths.set(item, path);
+				return item;
+			}),
+			parts
+		};
+	}
+	/**
+	* Store the byte arrays of `parts` as one buffer and return its layout, or
+	* null for none. Call it right before the message that carries the layout:
+	* the byte store keeps one buffer from JavaScript at a time.
+	*/
+	function storeParts(parts) {
+		if (parts.length === 0) return null;
+		const buffer = new Uint8Array(parts.reduce((total, part) => total + part.bytes.byteLength, 0));
+		let offset = 0;
+		for (const part of parts) {
+			buffer.set(part.bytes, offset);
+			offset += part.bytes.byteLength;
+		}
+		const layout = parts.map((part) => ({
+			path: part.path,
+			length: part.bytes.byteLength
+		}));
+		return {
+			handle: putBytes(buffer),
+			parts: layout
+		};
+	}
 	// js-src/host-bridge/functions.ts
 	const pendingCalls = /* @__PURE__ */ new Map();
 	function hasPendingCalls() {
@@ -556,9 +609,6 @@
 		}
 		return true;
 	}
-	function isBinary(value) {
-		return ArrayBuffer.isView(value) || value instanceof ArrayBuffer;
-	}
 	/**
 	* The call message. Arguments cross as JSON.stringify encodes them, so
 	* undefined becomes null and a value it cannot encode, such as a BigInt,
@@ -566,41 +616,10 @@
 	* its bytes travel in one buffer of the byte store, cut into parts by path.
 	*/
 	function callMessage(binding, method, args) {
-		const parts = [];
-		const paths = /* @__PURE__ */ new WeakMap();
-		const json = JSON.stringify(args, function(key, value) {
-			const holder = this;
-			const parent = paths.get(holder);
-			const path = parent === void 0 ? [] : [...parent, key];
-			const raw = holder[key];
-			if (path.length > 0 && isBinary(raw)) {
-				const bytes = ArrayBuffer.isView(raw) ? new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength) : new Uint8Array(raw);
-				parts.push({
-					path,
-					bytes
-				});
-				return null;
-			}
-			if (typeof value === "object" && value !== null) paths.set(value, path);
-			return value;
-		});
+		const { json, parts } = encodeWithBytes(args, false);
 		let message = `{"binding":${JSON.stringify(binding)},"method":${JSON.stringify(method)},"args":${json}`;
-		if (parts.length > 0) {
-			const buffer = new Uint8Array(parts.reduce((total, part) => total + part.bytes.byteLength, 0));
-			let offset = 0;
-			for (const part of parts) {
-				buffer.set(part.bytes, offset);
-				offset += part.bytes.byteLength;
-			}
-			const layout = parts.map((part) => ({
-				path: part.path,
-				length: part.bytes.byteLength
-			}));
-			message += `,"bytes":${JSON.stringify({
-				handle: putBytes(buffer),
-				parts: layout
-			})}`;
-		}
+		const layout = storeParts(parts);
+		if (layout !== null) message += `,"bytes":${JSON.stringify(layout)}`;
 		return `${message}}`;
 	}
 	/** The env value of a function binding. */
@@ -745,14 +764,34 @@
 			globalThis.__fetchletClearPerformanceEntries?.();
 		}
 	}
-	/** Put each channel Rust lent to the call at its place in the arguments. */
-	function placeLentChannels(argumentsList, lent) {
-		for (const { path, channel } of lent) {
-			if (path.length === 0) throw new TypeError("A lent channel needs a place in the arguments");
-			placeAt(argumentsList, path, lentChannel(channel));
+	/** Put each byte array and channel Rust placed in the arguments there. */
+	function placeArguments(argumentsList, places) {
+		const items = [...places.bytes.map(({ path, handle }) => ({
+			path,
+			item: takeBytes(handle)
+		})), ...places.channels.map(({ path, channel }) => ({
+			path,
+			item: lentChannel(channel)
+		}))];
+		for (const { path, item } of items) {
+			if (path.length === 0) throw new TypeError("A placed argument needs a place in the arguments");
+			placeAt(argumentsList, path, item);
 		}
 	}
-	async function invokeExport(exportName, argumentsList, streamResponseBody, lent = []) {
+	/**
+	* The result of a call that Rust reads with its byte arrays: the JSON of the
+	* value, each ArrayBuffer or view in it null, and the layout of their bytes.
+	*/
+	function callResult(result) {
+		const { json, parts } = encodeWithBytes(result, true);
+		if (json === void 0) throw new TypeError("Result is not JSON serializable");
+		const layout = storeParts(parts);
+		return layout === null ? `{"value":${json}}` : `{"value":${json},"bytes":${JSON.stringify(layout)}}`;
+	}
+	async function invokeExport(exportName, argumentsList, streamResponseBody, places = {
+		bytes: [],
+		channels: []
+	}, resultBytes = false) {
 		globalThis.__fetchletAsyncContext?.set(void 0);
 		const exports = globalThis.fetchletExports;
 		let invocationRemainsOpen = false;
@@ -762,7 +801,7 @@
 			if (!Object.hasOwn(exports, exportName)) throw new TypeError("Unknown function");
 			const exportedFunction = exports[exportName];
 			if (typeof exportedFunction !== "function") throw new TypeError("Unknown function");
-			placeLentChannels(argumentsList, lent);
+			placeArguments(argumentsList, places);
 			if (streamResponseBody === true) {
 				const request = argumentsList[0];
 				if (typeof globalThis.AbortController === "function" && request !== null) {
@@ -786,6 +825,7 @@
 					};
 				}
 			}
+			if (resultBytes) return callResult(result);
 			const serializedResult = JSON.stringify(result);
 			if (serializedResult === void 0) throw new TypeError("Result is not JSON serializable");
 			if (streamResponseBody === true) {

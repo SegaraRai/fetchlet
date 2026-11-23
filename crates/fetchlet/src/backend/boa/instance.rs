@@ -106,7 +106,7 @@ impl Instance for Boa {
     }
 
     async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
-        self.evaluate(invocation(export, args, &[])?).await
+        self.evaluate(invocation(export, args)?).await
     }
 }
 

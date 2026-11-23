@@ -72,6 +72,10 @@ implemented, held connections for the axum and actix integrations:
   the export. A lent channel closes with the invocation, as a
   request-scoped channel does, and does not count against
   `Limits::open_channels`.
+- `Call` also places byte arrays in the arguments and carries a trusted
+  `Context`; `call_with` returns a `CallOutput` whose byte arrays crossed
+  beside the JSON. `Functions` methods take byte arrays and return byte
+  arrays and lent channels the same way.
 
 - `Instances::max_held_connections` bounds held connections, and
   `AppHandle::reserve_connection` takes one place as a `HeldConnection`
@@ -206,9 +210,9 @@ generations.
 
 ### Values beyond JSON
 
-Function arguments carry channels and results are JSON. The handle table
-lets both carry resources without reserving any JSON shape that application
-data could collide with:
+Call arguments carry byte arrays and channels, and results carry byte
+arrays. The handle table lets both carry resources without reserving any
+JSON shape that application data could collide with:
 
 - **Arguments** (implemented). A Rust caller builds a call from positional
   values that are either JSON or channels, `call.json(value)` and
@@ -217,8 +221,11 @@ data could collide with:
   `call.channel_at("/0/progress", limits)`. The bridge enters each channel
   in the invocation's table and places its channel object at its path
   before it calls the export.
-- **Results.** The bridge serializes a result with a replacer that
-  recognizes its own wrappers by their private brand. It writes `null` at
+- **Results** (byte arrays implemented). The bridge serializes a result
+  with a replacer that writes `null` at each `ArrayBuffer` or view and
+  lists its path beside the JSON, with the bytes in one buffer. For
+  channels, the replacer would recognize its own wrappers by their private
+  brand. It writes `null` at
   each such position and lists the paths beside the JSON. Rust receives the
   value and the resources separately. A plain object that happens to look
   like a marker stays plain data.
@@ -229,7 +236,8 @@ data could collide with:
   its wrapper, as transferring an `ArrayBuffer` detaches it.
 
 Rust embedders get typed resources without each application inventing an
-ownership protocol. This answers [values beyond JSON](../TODO.md#values-beyond-json).
+ownership protocol. The channel part remains
+[next work](../TODO.md#moving-javascript-channels-to-rust).
 
 ## Channels
 

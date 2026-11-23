@@ -81,7 +81,7 @@ return new Response(channel.stream().readable);
 ```
 
 Rust can also lend channels to a function call with `Call`
-([channels in calls](../../../docs/host-services.md#channels-in-calls)).
+([calls](../../../docs/host-services.md#calls-with-bytes-channels-and-context)).
 They arrive in the export's arguments as the same channel objects, typed
 `HostChannel` from `fetchlet/bindings`, and close when the call ends:
 
@@ -94,6 +94,10 @@ export async function transcode(options: { format: string; progress: HostChannel
   progress.send("started");
 }
 ```
+
+Byte arrays Rust passes in a call arrive as `Uint8Array`s, and each
+`ArrayBuffer` or view, such as a `Uint8Array` or a Node `Buffer`, in an
+export's result reaches Rust as its bytes rather than as JSON.
 
 ## TCP sockets
 

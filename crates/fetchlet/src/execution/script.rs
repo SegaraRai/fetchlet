@@ -1,20 +1,37 @@
 /// Call an exported function. The invocation ends when its Promise settles.
-/// Each lent channel, by its path in the arguments and its handle, becomes
-/// a channel object there.
-pub(crate) fn invocation(
+pub(crate) fn invocation(export: &str, args: &[serde_json::Value]) -> anyhow::Result<String> {
+    let export_name = serde_json::to_string(export)?;
+    let arguments = parsed(args)?;
+    Ok(format!(
+        "globalThis.__fetchletInvocation.call({export_name}, {arguments}, false)"
+    ))
+}
+
+/// Call an exported function with resources placed in its arguments: each
+/// byte array and lent channel, by its path in the arguments and its
+/// handle, becomes a `Uint8Array` or a channel object there. The result is
+/// `{ value, bytes? }`, with the layout of the byte arrays JavaScript left
+/// out of the value's JSON.
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) fn placed_invocation(
     export: &str,
     args: &[serde_json::Value],
-    lent: &[(Vec<String>, u64)],
+    bytes: &[(Vec<String>, u64)],
+    channels: &[(Vec<String>, u64)],
 ) -> anyhow::Result<String> {
     let export_name = serde_json::to_string(export)?;
     let arguments = parsed(args)?;
-    let lent: Vec<_> = lent
+    let bytes: Vec<_> = bytes
+        .iter()
+        .map(|(path, handle)| serde_json::json!({ "path": path, "handle": handle }))
+        .collect();
+    let channels: Vec<_> = channels
         .iter()
         .map(|(path, channel)| serde_json::json!({ "path": path, "channel": channel }))
         .collect();
-    let lent = serde_json::to_string(&lent)?;
+    let places = serde_json::json!({ "bytes": bytes, "channels": channels });
     Ok(format!(
-        "globalThis.__fetchletInvocation.call({export_name}, {arguments}, false, {lent})"
+        "globalThis.__fetchletInvocation.call({export_name}, {arguments}, false, {places}, true)"
     ))
 }
 

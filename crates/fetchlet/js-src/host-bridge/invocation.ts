@@ -4,9 +4,9 @@ import { backgroundRegistry } from "./background.ts";
 import { channelRegistry } from "./channels.ts";
 import { hostBodyStream } from "./host-bodies.ts";
 import { dispatch, putBytes, takeBytes } from "./host.ts";
-import { lentChannel, placeAt } from "./places.ts";
+import { encodeWithBytes, lentChannel, placeAt, storeParts } from "./places.ts";
 import { responseBodyRegistry } from "./response-bodies.ts";
-import type { InvocationRequest, InvocationResult, LentChannel } from "./wire.ts";
+import type { CallPlaces, InvocationRequest, InvocationResult } from "./wire.ts";
 
 // Aborts the request signal of the Fetch invocation in progress when its
 // client goes away: Rust cancels the response body, or reports through
@@ -39,26 +39,61 @@ function clearInvocation(): void {
   }
 }
 
-/** Put each channel Rust lent to the call at its place in the arguments. */
-function placeLentChannels(argumentsList: unknown[], lent: LentChannel[]): void {
-  for (const { path, channel } of lent) {
+/** Put each byte array and channel Rust placed in the arguments there. */
+function placeArguments(argumentsList: unknown[], places: CallPlaces): void {
+  // Take every buffer first, so the byte store is left empty even if a
+  // channel cannot be built.
+  const bytes = places.bytes.map(({ path, handle }) => ({
+    path,
+    item: takeBytes(handle),
+  }));
+  const items = [
+    ...bytes,
+    ...places.channels.map(({ path, channel }) => ({
+      path,
+      item: lentChannel(channel),
+    })),
+  ];
+  for (const { path, item } of items) {
     if (path.length === 0) {
-      throw new TypeError("A lent channel needs a place in the arguments");
+      throw new TypeError("A placed argument needs a place in the arguments");
     }
-    placeAt(argumentsList, path, lentChannel(channel));
+    placeAt(argumentsList, path, item);
   }
+}
+
+/**
+ * The result of a call that Rust reads with its byte arrays: the JSON of the
+ * value, each ArrayBuffer or view in it null, and the layout of their bytes.
+ */
+function callResult(result: unknown): string {
+  const { json, parts } = encodeWithBytes(result, true);
+  if (json === undefined) {
+    throw new TypeError("Result is not JSON serializable");
+  }
+  // The buffer is stored last, right before the result carries its handle.
+  const layout = storeParts(parts);
+  return layout === null
+    ? `{"value":${json}}`
+    : `{"value":${json},"bytes":${JSON.stringify(layout)}}`;
 }
 
 // Call an exported function. With streamResponseBody, it is a Fetch
 // handler: its request body arrives through the byte store or as a Rust
 // body source, and a response body it leaves open keeps the invocation,
-// with its timers, open until Rust finishes or cancels that body. Channels
-// Rust lent to a call become channel objects in its arguments.
+// with its timers, open until Rust finishes or cancels that body. Byte
+// arrays and channels Rust placed in a call's arguments become Uint8Arrays
+// and channel objects there. With resultBytes, the result's byte arrays
+// travel beside its JSON (callResult).
 export async function invokeExport(
   exportName: string,
   argumentsList: unknown[],
   streamResponseBody?: boolean,
-  lent: LentChannel[] = [],
+  places: CallPlaces = {
+    bytes: [],
+    channels: [],
+  },
+  resultBytes = false,
 ): Promise<string> {
   // Each invocation starts in the empty async context, whatever the
   // previous one left current.
@@ -77,7 +112,7 @@ export async function invokeExport(
     if (typeof exportedFunction !== "function") {
       throw new TypeError("Unknown function");
     }
-    placeLentChannels(argumentsList, lent);
+    placeArguments(argumentsList, places);
 
     if (streamResponseBody === true) {
       const request = argumentsList[0] as InvocationRequest | null;
@@ -107,6 +142,9 @@ export async function invokeExport(
           body: putBytes(bytes),
         };
       }
+    }
+    if (resultBytes) {
+      return callResult(result);
     }
     const serializedResult = JSON.stringify(result);
 

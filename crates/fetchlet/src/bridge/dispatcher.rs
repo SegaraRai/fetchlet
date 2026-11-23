@@ -318,6 +318,18 @@ impl HostBridge {
         Ok(id)
     }
 
+    /// Store bytes Rust passes to the current call for JavaScript to take.
+    /// The caller that passes them owns their size.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn put_bytes(&self, bytes: Bytes) -> Result<u64> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.bytes.put(bytes)
+    }
+
     /// Rust's end of the upgrade that the Fetch result returned as `id`.
     #[cfg_attr(
         not(any(feature = "boa", feature = "quickjs", feature = "v8")),

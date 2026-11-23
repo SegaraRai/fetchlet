@@ -1,6 +1,6 @@
-//! Deserialization of function arguments whose JSON carries byte arrays
-//! beside it: each byte array is read where JavaScript passed it, as bytes,
-//! and everything else as the JSON value it is.
+//! Deserialization of JSON that carries byte arrays beside it, such as
+//! function arguments or a call's result: each byte array is read where
+//! JavaScript put it, as bytes, and everything else as the JSON it is.
 
 use bytes::Bytes;
 use serde::de::value::{BorrowedStrDeserializer, SeqDeserializer};
@@ -9,19 +9,19 @@ use serde::de::{
 };
 use serde_json::{Error, Value};
 
-/// `args` as `T`, with the byte arrays of `bytes` at their paths.
-pub(super) fn deserialize<T: DeserializeOwned>(
-    args: &Value,
+/// `value` as `T`, with the byte arrays of `bytes` at their paths.
+pub(crate) fn deserialize<T: DeserializeOwned>(
+    value: &Value,
     bytes: &[(Vec<String>, Bytes)],
 ) -> Result<T, Error> {
     if bytes.is_empty() {
-        return T::deserialize(args);
+        return T::deserialize(value);
     }
     let places: Vec<Place<'_>> = bytes
         .iter()
         .map(|(path, bytes)| (path.as_slice(), bytes))
         .collect();
-    T::deserialize(Node::new(args, &places))
+    T::deserialize(Node::new(value, &places))
 }
 
 /// A byte array, by the rest of its path below the current node.

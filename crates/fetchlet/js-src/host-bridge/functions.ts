@@ -2,8 +2,8 @@
 // functions. A sync method returns the outcome of function.call; an async one
 // returns a Promise that the host pump settles with its outcome.
 
-import { dispatchJson, hostError, putBytes, takeBytes } from "./host.ts";
-import { lentChannel, placeAt } from "./places.ts";
+import { dispatchJson, hostError, takeBytes } from "./host.ts";
+import { encodeWithBytes, lentChannel, placeAt, storeParts } from "./places.ts";
 import type {
   Completion,
   FunctionErrorDescription,
@@ -80,10 +80,6 @@ export function completeCall(completion: Completion): boolean {
   return true;
 }
 
-function isBinary(value: unknown): value is ArrayBuffer | ArrayBufferView {
-  return ArrayBuffer.isView(value) || value instanceof ArrayBuffer;
-}
-
 /**
  * The call message. Arguments cross as JSON.stringify encodes them, so
  * undefined becomes null and a value it cannot encode, such as a BigInt,
@@ -91,42 +87,11 @@ function isBinary(value: unknown): value is ArrayBuffer | ArrayBufferView {
  * its bytes travel in one buffer of the byte store, cut into parts by path.
  */
 function callMessage(binding: string, method: string, args: unknown[]): string {
-  const parts: { path: string[]; bytes: Uint8Array }[] = [];
-  // The path of each object whose properties the replacer visits.
-  const paths = new WeakMap<object, string[]>();
-  const json = JSON.stringify(args, function (this: unknown, key: string, value: unknown) {
-    const holder = this as Record<string, unknown>;
-    const parent = paths.get(holder);
-    // The root's holder is a wrapper the replacer never saw as a value.
-    const path = parent === undefined ? [] : [...parent, key];
-    // The value before toJSON, which Node's Buffer defines.
-    const raw = holder[key];
-    if (path.length > 0 && isBinary(raw)) {
-      const bytes = ArrayBuffer.isView(raw)
-        ? new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength)
-        : new Uint8Array(raw);
-      parts.push({ path, bytes });
-      return null;
-    }
-    if (typeof value === "object" && value !== null) {
-      paths.set(value, path);
-    }
-    return value;
-  });
+  const { json, parts } = encodeWithBytes(args, false);
   let message = `{"binding":${JSON.stringify(binding)},"method":${JSON.stringify(method)},"args":${json}`;
-  if (parts.length > 0) {
-    const buffer = new Uint8Array(parts.reduce((total, part) => total + part.bytes.byteLength, 0));
-    let offset = 0;
-    for (const part of parts) {
-      buffer.set(part.bytes, offset);
-      offset += part.bytes.byteLength;
-    }
-    const layout = parts.map((part) => ({
-      path: part.path,
-      length: part.bytes.byteLength,
-    }));
-    // Store the buffer right before the message that takes it.
-    message += `,"bytes":${JSON.stringify({ handle: putBytes(buffer), parts: layout })}`;
+  const layout = storeParts(parts);
+  if (layout !== null) {
+    message += `,"bytes":${JSON.stringify(layout)}`;
   }
   return `${message}}`;
 }

@@ -93,10 +93,19 @@ export interface ChannelArrival {
   };
 }
 
-/** A channel Rust lent to a call: its handle, and its place in the arguments. */
-export interface LentChannel {
-  path: string[];
-  channel: number;
+/** The byte arrays and channels Rust placed in the arguments of a call. */
+export interface CallPlaces {
+  bytes: PlacedBytes[];
+  channels: PlacedChannel[];
+}
+
+/** The byte arrays JavaScript sends beside a JSON value, in one buffer. */
+export interface ByteLayout {
+  handle: number;
+  parts: {
+    path: string[];
+    length: number;
+  }[];
 }
 
 /**

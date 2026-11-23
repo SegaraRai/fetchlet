@@ -280,10 +280,11 @@ are small examples.
 entry's second argument. `fetchlet-http` uses it for
 `RequestContext { clientAddress }`.
 
-## Channels in calls
+## Calls with bytes, channels and context
 
 `App::call_with` and `AppHandle::call_with` take a `Call`, whose arguments
-are JSON values and channels Rust lends to the call:
+are JSON values, byte arrays and channels Rust lends to the call, and which
+may carry the invocation's trusted `Context`:
 
 ```rust,ignore
 use fetchlet::{Call, ChannelEvent};
@@ -313,8 +314,39 @@ neither side closed it. It takes its budgets from the `Limits` passed in,
 the App's in the example, and does not count against `open_channels`,
 which bounds what JavaScript opens. The channel objects come from the Web
 API profile; a call that lends channels to a bundle without it fails.
-Results are JSON. `crates/fetchlet/tests/call_channels.rs` checks the
-contract on all three engines.
+`crates/fetchlet/tests/call_channels.rs` checks the contract on all three
+engines.
+
+`bytes` adds a byte array as the next argument and `bytes_at` puts one at a
+JSON Pointer, with the same rules as `channel_at`; JavaScript receives a
+`Uint8Array` there. The bytes are copied once into the engine and never
+encoded as JSON; their size is the caller's to bound. `context(Context)`
+attaches trusted values to the call's invocation, which reach the
+`Functions` methods JavaScript calls as `FunctionRequest::context` and its
+host fetches as the context of a Fetch request does. JavaScript cannot
+read them.
+
+`call_with` returns a `CallOutput`: the result as `JSON.stringify` encodes
+it, except that each `ArrayBuffer` or view, a Node `Buffer` included,
+crosses as its bytes and the value holds `null` there. `bytes_at(pointer)`
+finds one, the empty pointer naming a result that is itself a byte array,
+and `deserialize::<T>()` reads them where they were into `Vec<u8>` or
+`bytes::Bytes` with its `serde` feature, as `FunctionRequest::args` does.
+The byte arrays of a result travel in one buffer, which
+`Limits::bridge_message_bytes` bounds. `call` deserializes the same way;
+`call_json` returns the JSON value alone.
+
+```rust,ignore
+let mut call = Call::new("thumbnail");
+call.bytes(image).json(json!({ "width": 128 }));
+call.context(Context::new().with(Tenant("a".into())));
+let (name, thumbnail): (String, Vec<u8>) = app.call_with(call).await?.deserialize()?;
+```
+
+`crates/fetchlet/tests/call_values.rs` checks byte arrays both ways and the
+context on all three engines. A channel JavaScript holds cannot yet be
+returned from a call or passed to a method; see
+[the next work](TODO.md#moving-javascript-channels-to-rust).
 
 ## Function bindings
 

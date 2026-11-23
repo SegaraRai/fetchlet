@@ -116,7 +116,8 @@ route with an end-to-end check in every axum example,
 the global `WebSocket` over a `WebSocketService` with fetchlet-net's
 `WebSocketClient`, `Stream` and `Sink` for `ChannelEnd`, and channels Rust
 lends to a call with `Call` ([status](research/host-channels.md#status)).
-Resources in results remain ([values beyond JSON](#values-beyond-json)).
+Channels that JavaScript holds do not yet move to Rust
+([moving JavaScript channels to Rust](#moving-javascript-channels-to-rust)).
 
 Several connections per instance wait until async context is available on
 every engine ([concurrent request context](#framework-runtime-needs-beyond-wintertc)).
@@ -182,30 +183,19 @@ Outbound request bodies are read in full in JavaScript because a redirect
 may resend them. Streaming them needs rules for when a redirect may resend,
 and tests for cancellation and budgets on that path.
 
-### Context for function calls
+### Moving JavaScript channels to Rust
 
-The trusted `Context` reaches host fetches made during `fetch`. `App::call`
-and `call_json` have no way to pass one; add an entry point and cover it in
-`crates/fetchlet/tests/in_process.rs`.
-
-### Channels in function arguments
-
-`Functions` methods take byte arrays in their arguments and return byte
-arrays and channels, but JavaScript cannot pass a channel it holds to a
-method. Moving one to Rust needs a relay in the handle table between
-JavaScript's end and a new `ChannelEnd`, and rules for sockets, whose ends
-also carry `startTls` and the end of writes, and for an accepted upgrade.
-Add it when a binding needs to take over a channel, such as a WebSocket
-the handler accepted.
-
-### Values beyond JSON
-
-`Call` lends channels to a function call at JSON Pointer positions of its
-arguments; results are JSON-compatible values. Channels returned from a
-call would follow [the design](research/host-channels.md#values-beyond-json):
-the bridge lists the positions of its own channel objects beside the JSON
-and moves those channels to Rust. Add them when an embedder needs a call to
-hand back a channel it opened.
+Byte arrays cross both ways in calls and function bindings, and Rust lends
+channels to both, but a channel JavaScript holds cannot move to Rust: not
+as an argument of a `Functions` method, nor in the result of an exported
+function. Both need the same relay in the handle table between
+JavaScript's end and a new `ChannelEnd`, as
+[the design](research/host-channels.md#values-beyond-json) describes, and
+rules for sockets, whose ends also carry `startTls` and the end of writes,
+and for an accepted upgrade. Until then a method can return a channel that
+JavaScript writes to, and Rust can lend one to a call, which covers the
+known uses. Add it when a binding needs to take over a channel JavaScript
+opened, such as a WebSocket the handler accepted.
 
 ## Frameworks
 

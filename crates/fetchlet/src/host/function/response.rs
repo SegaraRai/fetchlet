@@ -4,7 +4,7 @@ use bytes::Bytes;
 use serde_json::Value;
 
 use crate::host::{GuestEnd, pair};
-use crate::pointer::{self, Placed};
+use crate::placed::{self, Placed};
 use crate::{ChannelEnd, Limits, Result};
 
 /// The result of a [`Functions`](super::Functions) method: a JSON value,
@@ -68,19 +68,19 @@ impl FunctionResponse {
 
     /// Clear the value at `pointer` for a resource, if no other holds it.
     fn place(&mut self, pointer: &str) -> Result<Vec<String>> {
-        let path = pointer::parse(pointer)?;
+        let path = placed::parse(pointer)?;
         let taken = self
             .bytes
             .iter()
             .map(|(path, _)| path.as_slice())
             .chain(self.channels.iter().map(|(path, _)| path.as_slice()));
-        if pointer::overlaps(taken, &path) {
-            return Err(pointer::invalid(
+        if placed::overlaps(taken, &path) {
+            return Err(placed::invalid(
                 "the pointer overlaps another byte array or channel",
             ));
         }
-        if !pointer::clear(&mut self.value, &path) {
-            return Err(pointer::invalid("the pointer names no value"));
+        if !placed::clear(&mut self.value, &path) {
+            return Err(placed::invalid("the pointer names no value"));
         }
         Ok(path)
     }

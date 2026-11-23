@@ -6,7 +6,7 @@ mod error;
 mod execution;
 mod fetch;
 mod host;
-mod pointer;
+mod placed;
 mod reentry;
 mod wire;
 mod worker;
@@ -24,7 +24,7 @@ mod backend;
 ))]
 mod bridge;
 
-pub use call::Call;
+pub use call::{Call, CallOutput};
 pub use config::Limits;
 pub use error::{Error, Result};
 pub use execution::Instance;

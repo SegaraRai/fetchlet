@@ -4,8 +4,8 @@ use bytes::Bytes;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use super::{FunctionError, args};
-use crate::pointer::Placed;
+use super::FunctionError;
+use crate::placed::{self, Placed};
 use crate::{Context, Limits};
 
 /// What a [`Functions`](super::Functions) method receives when JavaScript
@@ -77,7 +77,7 @@ impl FunctionRequest {
     /// Arguments that do not deserialize fail the call with a `TypeError`
     /// in JavaScript that names the method.
     pub fn args<T: DeserializeOwned>(&self) -> Result<T, FunctionError> {
-        args::deserialize(&self.args, &self.bytes)
+        placed::deserialize(&self.args, &self.bytes)
             .map_err(|error| FunctionError::arguments(error.to_string()))
     }
 

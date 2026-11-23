@@ -50,7 +50,7 @@ async fn a_nested_channel_carries_progress() -> anyhow::Result<()> {
         let mut call = Call::new("progress");
         call.json(json!({ "steps": 3, "progress": null }));
         let mut progress = call.channel_at("/0/progress", app.limits())?;
-        let result = app.call_with(call).await?;
+        let result = app.call_with(call).await?.into_value();
         assert_eq!(result, json!({ "steps": 3, "keys": ["steps", "progress"] }));
         for step in 1..=3 {
             assert_eq!(
@@ -87,7 +87,7 @@ async fn rust_and_javascript_talk_while_the_call_runs() -> anyhow::Result<()> {
         let (result, talked) = tokio::join!(app.call_with(call), talk);
         talked?;
         assert_eq!(
-            result?,
+            result?.into_value(),
             json!({ "echoed": 2, "close": { "code": 1000, "reason": "enough" } })
         );
     }
@@ -100,7 +100,7 @@ async fn a_lent_channel_closes_when_the_call_ends() -> anyhow::Result<()> {
         let mut app = app(backend, SOURCE)?;
         let mut call = Call::new("leave");
         let mut channel = call.channel(app.limits());
-        assert_eq!(app.call_with(call).await?, json!("returned"));
+        assert_eq!(app.call_with(call).await?.into_value(), json!("returned"));
         assert_eq!(
             next(&mut channel).await,
             ChannelEvent::Message(Message::from("left open"))
@@ -124,7 +124,7 @@ async fn channels_land_as_data_properties_at_their_paths() -> anyhow::Result<()>
         let _first = call.channel_at("/0/__proto__", app.limits())?;
         let _second = call.channel_at("/1/list/1", app.limits())?;
         assert_eq!(
-            app.call_with(call).await?,
+            app.call_with(call).await?.into_value(),
             json!({ "first": true, "own": true, "nested": true, "kept": "kept" })
         );
     }
@@ -151,7 +151,7 @@ async fn calls_lend_channels_through_a_pool() -> anyhow::Result<()> {
             ChannelEvent::Message(Message::from(">x"))
         );
         channel.close(CloseFrame::new(CloseFrame::NORMAL, ""));
-        assert_eq!(running.await??["echoed"], json!(1));
+        assert_eq!(running.await??.value()["echoed"], json!(1));
         app.shutdown().await?;
     }
     Ok(())
