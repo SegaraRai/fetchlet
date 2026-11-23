@@ -1,6 +1,21 @@
 /// Call an exported function. The invocation ends when its Promise settles.
-pub(crate) fn invocation(export: &str, args: &[serde_json::Value]) -> anyhow::Result<String> {
-    export_invocation(export, args, false)
+/// Each lent channel, by its path in the arguments and its handle, becomes
+/// a channel object there.
+pub(crate) fn invocation(
+    export: &str,
+    args: &[serde_json::Value],
+    lent: &[(Vec<String>, u64)],
+) -> anyhow::Result<String> {
+    let export_name = serde_json::to_string(export)?;
+    let arguments = parsed(args)?;
+    let lent: Vec<_> = lent
+        .iter()
+        .map(|(path, channel)| serde_json::json!({ "path": path, "channel": channel }))
+        .collect();
+    let lent = serde_json::to_string(&lent)?;
+    Ok(format!(
+        "globalThis.__fetchletInvocation.call({export_name}, {arguments}, false, {lent})"
+    ))
 }
 
 /// Call a Fetch handler that may leave its response body open for streaming.
@@ -9,16 +24,27 @@ pub(crate) fn fetch_invocation(export: &str, args: &[serde_json::Value]) -> anyh
     export_invocation(export, args, true)
 }
 
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 fn export_invocation(
     export: &str,
     args: &[serde_json::Value],
     stream_response_body: bool,
 ) -> anyhow::Result<String> {
     let export_name = serde_json::to_string(export)?;
-    let arguments = serde_json::to_string(args)?;
+    let arguments = parsed(args)?;
 
     Ok(format!(
         "globalThis.__fetchletInvocation.call({export_name}, {arguments}, {stream_response_body})"
+    ))
+}
+
+/// An expression that parses `args` as JSON. A JSON text read as an object
+/// literal would make a `"__proto__"` key set the prototype; `JSON.parse`
+/// makes it an own property, as it is in the JSON.
+fn parsed(args: &[serde_json::Value]) -> anyhow::Result<String> {
+    Ok(format!(
+        "JSON.parse({})",
+        serde_json::to_string(&serde_json::to_string(args)?)?
     ))
 }
 

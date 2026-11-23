@@ -52,6 +52,12 @@ export interface ChannelArrival {
   };
 }
 
+/** A channel Rust lent to a call: its handle, and its place in the arguments. */
+export interface LentChannel {
+  path: string[];
+  channel: number;
+}
+
 /** A finished fetch or body read, by the ticket its start returned. */
 export interface Completion {
   id: number;

@@ -1,7 +1,7 @@
 use serde_json::Value;
 use tokio::sync::oneshot;
 
-use crate::{Request, Response, Result};
+use crate::{Call, Request, Response, Result};
 
 /// Work sent from an [`AppHandle`](super::AppHandle) to its worker thread.
 #[cfg_attr(
@@ -13,8 +13,7 @@ use crate::{Request, Response, Result};
 )]
 pub(super) enum Command {
     Call {
-        export: String,
-        arguments: Vec<Value>,
+        call: Call,
         reply: oneshot::Sender<Result<Value>>,
     },
     Fetch {

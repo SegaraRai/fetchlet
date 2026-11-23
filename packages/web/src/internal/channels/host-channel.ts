@@ -1,6 +1,7 @@
 // Channels of env bindings in the fetchlet App host. `env.NAME.connect(options)`
 // asks the Rust ChannelService bound as NAME to open a channel, which
-// belongs to the current invocation and closes when it ends. The channel
+// belongs to the current invocation and closes when it ends. Rust may also
+// lend channels to a call, which arrive in its arguments. The channel
 // offers two views, of which it takes one: a WebSocket of its messages, or
 // a byte stream of its binary messages.
 
@@ -18,7 +19,7 @@ export interface ChannelClose {
   reason: string;
 }
 
-/** A channel that a Rust ChannelService opened for this invocation. */
+/** A channel that a Rust ChannelService opened, or Rust lent, for this invocation. */
 export interface HostChannel {
   /** Settles when the service accepts the open, or rejects if it refuses. */
   readonly opened: Promise<void>;
@@ -39,7 +40,7 @@ export interface ChannelBinding {
 class HostChannelImpl implements HostChannel {
   #registry: ChannelRegistry;
   #id: number;
-  #service: string;
+  #label: string;
   #opened = deferred<void>();
   #closed = deferred<ChannelClose>();
   /** The view's listener, once a view is taken. */
@@ -47,13 +48,18 @@ class HostChannelImpl implements HostChannel {
   /** Arrivals before a view is taken, replayed to it. */
   #early: ((listener: ChannelListener) => void)[] = [];
 
-  constructor(token: symbol, registry: ChannelRegistry, service: string, options: unknown) {
+  constructor(
+    token: symbol,
+    registry: ChannelRegistry,
+    label: string,
+    attach: (listener: ChannelListener) => number,
+  ) {
     if (token !== CREATE) {
       throw new TypeError("Illegal constructor");
     }
     this.#registry = registry;
-    this.#service = service;
-    this.#id = registry.open(service, options, {
+    this.#label = label;
+    this.#id = attach({
       open: () => {
         this.#opened.resolve();
         this.#deliver((view) => view.open());
@@ -138,7 +144,7 @@ class HostChannelImpl implements HostChannel {
   }
 
   get [Symbol.toStringTag](): string {
-    return `HostChannel ${this.#service}`;
+    return `HostChannel ${this.#label}`;
   }
 }
 
@@ -148,7 +154,21 @@ export function connectChannel(service: string, options?: unknown): HostChannel 
   if (!registry) {
     throw new TypeError("This host has no channels");
   }
-  return new HostChannelImpl(CREATE, registry, service, options);
+  return new HostChannelImpl(CREATE, registry, service, (listener) =>
+    registry.open(service, options, listener),
+  );
+}
+
+/** The channel object of a channel Rust lent to the current call. */
+export function lendChannel(id: number): HostChannel {
+  const registry = channelRegistry();
+  if (!registry) {
+    throw new TypeError("This host has no channels");
+  }
+  return new HostChannelImpl(CREATE, registry, "lent", (listener) => {
+    registry.adopt(id, listener);
+    return id;
+  });
 }
 
 // The bridge's env bindings build their channels here. A second copy of this
@@ -157,6 +177,7 @@ if (!Object.hasOwn(runtime, "__fetchletChannelViews")) {
   Object.defineProperty(runtime, "__fetchletChannelViews", {
     value: Object.freeze({
       connect: connectChannel,
+      lend: lendChannel,
     }),
     writable: false,
     enumerable: false,

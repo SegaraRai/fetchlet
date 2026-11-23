@@ -38,7 +38,8 @@ pub use websocket::{
     feature = "fuzzing",
     test
 ))]
-pub(crate) use channel::{GuestEnd, Refused, pair};
+pub(crate) use channel::Refused;
+pub(crate) use channel::{GuestEnd, pair};
 #[cfg(any(
     feature = "boa",
     feature = "quickjs",

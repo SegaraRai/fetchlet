@@ -83,6 +83,22 @@ globalThis.fetchletExports = {
     await until(record, () => record.close !== null);
     return { messages: record.messages, close: record.close };
   },
+  async split(messages) {
+    const record = open("SPLIT");
+    await until(record, () => record.opened);
+    for (const message of messages) {
+      channels.send(record.id, message);
+    }
+    await until(record, () => record.messages.length === messages.length);
+    channels.close(record.id, 1000, "done");
+    await until(record, () => record.close !== null);
+    return { messages: record.messages, close: record.close };
+  },
+  async drain(service) {
+    const record = open(service);
+    await until(record, () => record.close !== null);
+    return { received: record.messages.length, close: record.close };
+  },
   async refused() {
     const record = open("REFUSE");
     await until(record, () => record.refused !== null);

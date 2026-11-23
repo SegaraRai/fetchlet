@@ -114,11 +114,9 @@ server upgrades in fetchlet-http's axum and actix integrations behind the
 route with an end-to-end check in every axum example,
 `connect()` over a `SocketService` with fetchlet-http's `TcpTransport`, and
 the global `WebSocket` over a `WebSocketService` with fetchlet-http's
-`WebSocketClient` ([status](research/host-channels.md#status)). The rest:
-
-1. `Stream` and `Sink` for `ChannelEnd`.
-2. Resources in function arguments and results
-   ([values beyond JSON](#values-beyond-json)).
+`WebSocketClient`, `Stream` and `Sink` for `ChannelEnd`, and channels Rust
+lends to a call with `Call` ([status](research/host-channels.md#status)).
+Resources in results remain ([values beyond JSON](#values-beyond-json)).
 
 Several connections per instance wait until async context is available on
 every engine ([concurrent request context](#framework-runtime-needs-beyond-wintertc)).
@@ -185,10 +183,12 @@ and `call_json` have no way to pass one; add an entry point and cover it in
 
 ### Values beyond JSON
 
-Function arguments and results are JSON-compatible values. Resources lent
-to a call or returned from it follow the handle table of
-[host channels](research/host-channels.md#values-beyond-json), with
-resource positions listed out of band rather than in reserved JSON keys.
+`Call` lends channels to a function call at JSON Pointer positions of its
+arguments; results are JSON-compatible values. Channels returned from a
+call would follow [the design](research/host-channels.md#values-beyond-json):
+the bridge lists the positions of its own channel objects beside the JSON
+and moves those channels to Rust. Add them when an embedder needs a call to
+hand back a channel it opened.
 
 ## Frameworks
 

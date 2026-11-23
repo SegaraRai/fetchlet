@@ -1,5 +1,6 @@
 //! JavaScript functions and Fetch handlers hosted by Rust.
 
+mod call;
 mod config;
 mod error;
 mod execution;
@@ -22,6 +23,7 @@ mod backend;
 ))]
 mod bridge;
 
+pub use call::Call;
 pub use config::Limits;
 pub use error::{Error, Result};
 pub use execution::Instance;

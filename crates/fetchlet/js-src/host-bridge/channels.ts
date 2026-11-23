@@ -117,6 +117,13 @@ export const channelRegistry: ChannelRegistry = Object.freeze<ChannelRegistry>({
     track(id, listener);
     return id;
   },
+  adopt(id, listener): void {
+    // A channel Rust lent to the call, which opens at the next poll.
+    if (channels.has(id)) {
+      throw new TypeError("The channel already has a listener");
+    }
+    track(id, listener);
+  },
   connect(address, listener): number {
     // Throws without a socket service, for an address its policy refuses,
     // or over Limits::open_channels.

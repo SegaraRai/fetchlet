@@ -28,6 +28,7 @@ export interface ChannelRegistry {
   upgrade(listener: ChannelListener): number;
   accepted(): number | undefined;
   open(service: string, options: unknown, listener: ChannelListener): number;
+  adopt(id: number, listener: ChannelListener): void;
   connect(
     address: {
       hostname: string;

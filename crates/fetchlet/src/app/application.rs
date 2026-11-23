@@ -15,7 +15,7 @@ use crate::execution::{
 };
 use crate::wire::{WireRequest, WireResponse};
 use crate::{
-    Backend, Body, Context, Error, HeldConnection, HostServices, Instance, Limits, Request,
+    Backend, Body, Call, Context, Error, HeldConnection, HostServices, Instance, Limits, Request,
     Response, Result, ServerWebSocket,
 };
 
@@ -61,6 +61,12 @@ impl App {
         }
     }
 
+    /// The budgets of each invocation, which channels lent with [`Call`]
+    /// take too.
+    pub fn limits(&self) -> &Limits {
+        &self.limits
+    }
+
     pub fn is_reusable(&self) -> bool {
         self.reusable && self.engine.is_reusable()
     }
@@ -93,14 +99,27 @@ impl App {
     }
 
     pub async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
+        self.call_with(Call::with_arguments(export, args)).await
+    }
+
+    /// Call a function with the JSON arguments and lent channels of `call`.
+    pub async fn call_with(&mut self, call: Call) -> Result<Value> {
         self.finish_background().await?;
         let scope = self.begin(None)?;
-        let expression = invocation(export, args).map_err(invalid_request)?;
-        let result = self
-            .evaluate(expression, deadline_after(self.limits.timeout))
-            .await;
+        let result = self.run_call(call).await;
         self.close(scope);
         result
+    }
+
+    async fn run_call(&mut self, call: Call) -> Result<Value> {
+        let (export, arguments, lent) = call.into_parts();
+        let mut placed = Vec::with_capacity(lent.len());
+        for lent in lent {
+            placed.push((lent.path, self.host.lend_channel(lent.end)?));
+        }
+        let expression = invocation(&export, &arguments, &placed).map_err(invalid_request)?;
+        self.evaluate(expression, deadline_after(self.limits.timeout))
+            .await
     }
 
     /// Call a named function with one Serde argument and deserialize its result.

@@ -45,6 +45,10 @@ waits while `channel_buffer_bytes` is taken. A message from JavaScript over eith
 the channel with 1009, and an expired connection budget closes it with 1001.
 A channel's stream view instead splits a write into messages within both
 budgets and waits for room, so its writes never close the channel.
+Channels Rust lends to a call with `Call` take these message and buffer
+budgets from the `Limits` the caller passes and are not counted in
+`open_channels`, which bounds what JavaScript opens; Rust chooses how many
+to lend.
 `Instances::max_held_connections` bounds the instances held by connections,
 below the pool's `max`. The `limit` passed to `Body::collect(limit)` is also a caller
 budget.

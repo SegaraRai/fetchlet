@@ -91,6 +91,8 @@ interface ChannelRegistry {
   accepted(): number | undefined;
   /** Open a channel of the env binding `service`. */
   open(service: string, options: unknown, listener: ChannelListener): number;
+  /** Listen to a channel Rust lent to the current call. */
+  adopt(id: number, listener: ChannelListener): void;
   /** Open a TCP connection through the host's socket service. */
   connect(address: SocketOpen, listener: ChannelListener): number;
   /** Open a client WebSocket through the host's WebSocket service. */
@@ -147,6 +149,8 @@ declare var __fetchletChannels: ChannelRegistry;
 declare var __fetchletChannelViews:
   | {
       connect(service: string, options: unknown): unknown;
+      /** The channel object of a channel Rust lent to the call. */
+      lend?(id: number): unknown;
     }
   | undefined;
 declare var __fetchletPumpHost: (() => number) | undefined;

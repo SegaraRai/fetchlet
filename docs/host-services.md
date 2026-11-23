@@ -80,7 +80,10 @@ it stays open while the invocation's `waitUntil` work or response body
 does, and Rust sees code 1006 when the invocation ends without closing it.
 `Limits::open_channels` bounds the opens of one invocation,
 `channel_message_bytes` one message, and `channel_buffer_bytes` the queue
-in each direction; Rust's `send` waits for room.
+in each direction; Rust's `send` waits for room. `ChannelEnd` is also a
+`Stream` of `ChannelEvent`s and a `Sink` of `Message`s, whose `close`
+flushes and closes with 1000, so `futures` combinators such as `send_all`,
+`forward` and `split` work on it.
 
 In JavaScript, `connect` returns a channel with `opened` and `closed`
 promises and one of two views. `socket()` is a WebSocket of its messages.
@@ -262,6 +265,42 @@ are small examples.
 `App::fetch_with_context(request, &context)` passes a Serde value as the
 entry's second argument. `fetchlet-http` uses it for
 `RequestContext { clientAddress }`.
+
+## Channels in calls
+
+`App::call_with` and `AppHandle::call_with` take a `Call`, whose arguments
+are JSON values and channels Rust lends to the call:
+
+```rust,ignore
+use fetchlet::{Call, ChannelEvent};
+use serde_json::json;
+
+let mut call = Call::new("transcode");
+call.json(json!({ "format": "webm", "progress": null }));
+let mut progress = call.channel_at("/0/progress", app.limits())?;
+let mut input = call.channel(app.limits());
+let (result, _) = tokio::join!(app.call_with(call), async {
+    input.send(chunk).await?;
+    while let Some(ChannelEvent::Message(step)) = progress.recv().await {
+        report(step);
+    }
+    anyhow::Ok(())
+});
+```
+
+`channel` adds a channel as the next argument; `channel_at` puts one at a
+JSON Pointer into the argument list, which must name an existing value
+outside the other lent positions, and fails with `InvalidRequest`
+otherwise. Rust keeps each `ChannelEnd`; JavaScript receives a channel
+object, with the `opened`, `closed`, `socket()` and `stream()` of an env
+binding's channel, as a data property at that position. The channel
+belongs to the call's invocation and closes when it ends, with 1006 if
+neither side closed it. It takes its budgets from the `Limits` passed in,
+the App's in the example, and does not count against `open_channels`,
+which bounds what JavaScript opens. The channel objects come from the Web
+API profile; a call that lends channels to a bundle without it fails.
+Results are JSON. `crates/fetchlet/tests/call_channels.rs` checks the
+contract on all three engines.
 
 ## Calling Rust in-process
 

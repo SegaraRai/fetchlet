@@ -1,8 +1,12 @@
+use std::future::{Future, poll_fn};
+use std::pin::Pin;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
-use tokio::sync::{Semaphore, mpsc};
+use futures_core::Stream;
+use futures_sink::Sink;
+use tokio::sync::{AcquireError, OwnedSemaphorePermit, Semaphore, mpsc};
 
 use super::{CloseFrame, Message};
 use crate::config::check_limit;
@@ -48,6 +52,17 @@ impl Budgets {
     }
 }
 
+/// Room in JavaScript's queue for the message waiting to go out.
+type Acquire = Pin<
+    Box<dyn Future<Output = std::result::Result<OwnedSemaphorePermit, AcquireError>> + Send + Sync>,
+>;
+
+/// A message waiting for room in JavaScript's queue.
+struct Pending {
+    message: Message,
+    room: Option<Acquire>,
+}
+
 /// Rust's end of a channel whose other end is JavaScript in one invocation.
 ///
 /// Messages arrive in the order the other end sent them, and a close arrives
@@ -58,6 +73,12 @@ impl Budgets {
 /// Each direction has a queue bounded in bytes by
 /// `Limits::channel_buffer_bytes`. [`ChannelEnd::send`] waits for room, so
 /// a slow JavaScript reader slows the peer that feeds this end.
+///
+/// The end is also a [`Stream`] of the [`ChannelEvent`]s that
+/// [`recv`](Self::recv) returns and a [`Sink`] of [`Message`]s, for
+/// combinators such as `forward` and `split`. The sink holds one message
+/// while it waits for room; closing the sink flushes it and closes the
+/// channel normally.
 pub struct ChannelEnd {
     to_guest: mpsc::UnboundedSender<ChannelEvent>,
     from_guest: mpsc::UnboundedReceiver<ChannelEvent>,
@@ -70,6 +91,8 @@ pub struct ChannelEnd {
     /// receives.
     room: Arc<Mutex<Option<Waker>>>,
     budgets: Budgets,
+    /// The message the sink accepted, until it fits JavaScript's queue.
+    pending: Option<Pending>,
     /// This end sent its close.
     closed: bool,
     /// This end sent its last message.
@@ -94,8 +117,17 @@ impl ChannelEnd {
     /// Fails with `LimitExceeded` for a message over
     /// `Limits::channel_message_bytes`, and with `InvocationClosed` once this
     /// end has closed or JavaScript's end has gone away.
+    ///
+    /// A message the sink holds goes out first. Dropped while it waits, the
+    /// message stays held and goes out before the next one.
     pub async fn send(&mut self, message: impl Into<Message>) -> Result<()> {
-        let message = message.into();
+        poll_fn(|context| self.poll_pending(context)).await?;
+        self.hold(message.into())?;
+        poll_fn(|context| self.poll_pending(context)).await
+    }
+
+    /// Hold `message` until JavaScript's queue has room for it.
+    fn hold(&mut self, message: Message) -> Result<()> {
         if self.closed || self.ended {
             return Err(Error::InvocationClosed);
         }
@@ -104,21 +136,44 @@ impl ChannelEnd {
             message.len(),
             "channel message bytes",
         )?;
-        if let Some(credit) = &self.credit {
-            credit
-                .acquire_many(self.budgets.cost(message.len()))
-                .await
-                .map_err(|_| Error::InvocationClosed)?
-                .forget();
+        let room = self.credit.as_ref().map(|credit| {
+            let cost = self.budgets.cost(message.len());
+            Box::pin(Arc::clone(credit).acquire_many_owned(cost)) as Acquire
+        });
+        self.pending = Some(Pending { message, room });
+        Ok(())
+    }
+
+    /// Queue the held message once it has room.
+    fn poll_pending(&mut self, context: &mut Context<'_>) -> Poll<Result<()>> {
+        let Some(pending) = &mut self.pending else {
+            return Poll::Ready(Ok(()));
+        };
+        if let Some(room) = &mut pending.room {
+            match room.as_mut().poll(context) {
+                Poll::Pending => return Poll::Pending,
+                Poll::Ready(Ok(permit)) => permit.forget(),
+                Poll::Ready(Err(_)) => {
+                    self.pending = None;
+                    return Poll::Ready(Err(Error::InvocationClosed));
+                }
+            }
         }
-        self.to_guest
-            .send(ChannelEvent::Message(message))
-            .map_err(|_| Error::InvocationClosed)
+        let Some(Pending { message, .. }) = self.pending.take() else {
+            return Poll::Ready(Ok(()));
+        };
+        Poll::Ready(
+            self.to_guest
+                .send(ChannelEvent::Message(message))
+                .map_err(|_| Error::InvocationClosed),
+        )
     }
 
     /// Close the channel. JavaScript sees the close after the messages sent
-    /// before it. Closing twice sends one close.
+    /// before it; a message the sink still holds for room is dropped.
+    /// Closing twice sends one close.
     pub fn close(&mut self, frame: CloseFrame) {
+        self.pending = None;
         if !self.closed {
             self.closed = true;
             let _ = self.to_guest.send(ChannelEvent::Close(frame));
@@ -145,23 +200,30 @@ impl ChannelEnd {
 
     /// The next message or signal from JavaScript, or its close, then None.
     pub async fn recv(&mut self) -> Option<ChannelEvent> {
+        poll_fn(|context| self.poll_recv(context)).await
+    }
+
+    /// Poll for the next message or signal from JavaScript, or its close,
+    /// then None.
+    pub fn poll_recv(&mut self, context: &mut Context<'_>) -> Poll<Option<ChannelEvent>> {
         if self.finished {
-            return None;
+            return Poll::Ready(None);
         }
-        let event = match self.from_guest.recv().await {
-            Some(ChannelEvent::Message(message)) => {
+        let event = match self.from_guest.poll_recv(context) {
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(Some(ChannelEvent::Message(message))) => {
                 self.buffered.fetch_sub(message.len(), Ordering::AcqRel);
                 if let Some(waker) = lock(&self.room).take() {
                     waker.wake();
                 }
-                return Some(ChannelEvent::Message(message));
+                return Poll::Ready(Some(ChannelEvent::Message(message)));
             }
-            Some(ChannelEvent::Close(frame)) => ChannelEvent::Close(frame),
-            Some(signal) => return Some(signal),
-            None => ChannelEvent::Close(CloseFrame::abnormal()),
+            Poll::Ready(Some(ChannelEvent::Close(frame))) => ChannelEvent::Close(frame),
+            Poll::Ready(Some(signal)) => return Poll::Ready(Some(signal)),
+            Poll::Ready(None) => ChannelEvent::Close(CloseFrame::abnormal()),
         };
         self.finished = true;
-        Some(event)
+        Poll::Ready(Some(event))
     }
 
     /// Whether this end has closed.
@@ -187,6 +249,52 @@ impl ChannelEnd {
     #[cfg(feature = "fuzzing")]
     pub(crate) fn peer_gone(&self) -> bool {
         self.to_guest.is_closed()
+    }
+}
+
+impl Stream for ChannelEnd {
+    type Item = ChannelEvent;
+
+    fn poll_next(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<Option<ChannelEvent>> {
+        self.get_mut().poll_recv(context)
+    }
+}
+
+impl Sink<Message> for ChannelEnd {
+    type Error = Error;
+
+    /// Ready once the message held before has room, failing with
+    /// `InvocationClosed` after a close or the end of messages.
+    fn poll_ready(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<Result<()>> {
+        let end = self.get_mut();
+        match end.poll_pending(context) {
+            Poll::Ready(Ok(())) if end.closed || end.ended => {
+                Poll::Ready(Err(Error::InvocationClosed))
+            }
+            polled => polled,
+        }
+    }
+
+    /// Hold a message until it has room; fails as [`ChannelEnd::send`]
+    /// does for a message over the budget.
+    fn start_send(self: Pin<&mut Self>, message: Message) -> Result<()> {
+        self.get_mut().hold(message)
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<Result<()>> {
+        self.get_mut().poll_pending(context)
+    }
+
+    /// Flush the held message, then close the channel with
+    /// [`CloseFrame::NORMAL`].
+    fn poll_close(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<Result<()>> {
+        let end = self.get_mut();
+        let flushed = end.poll_pending(context);
+        if flushed.is_pending() {
+            return Poll::Pending;
+        }
+        end.close(CloseFrame::new(CloseFrame::NORMAL, ""));
+        flushed
     }
 }
 
@@ -364,6 +472,7 @@ pub(crate) fn pair(limits: &Limits) -> (ChannelEnd, GuestEnd) {
         buffered: buffered.clone(),
         room: Arc::clone(&room),
         budgets,
+        pending: None,
         closed: false,
         ended: false,
         finished: false,
@@ -380,4 +489,76 @@ pub(crate) fn pair(limits: &Limits) -> (ChannelEnd, GuestEnd) {
         finished: false,
     };
     (host, guest)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::future::poll_fn;
+    use std::time::Duration;
+
+    use super::*;
+
+    fn guest_message(guest: &mut GuestEnd) -> Poll<Option<ChannelEvent>> {
+        let waker = Waker::noop();
+        guest.poll_recv(&mut Context::from_waker(waker))
+    }
+
+    #[tokio::test]
+    async fn a_send_dropped_while_it_waits_keeps_its_place() {
+        let limits = Limits {
+            channel_buffer_bytes: Some(4),
+            ..Limits::default()
+        };
+        let (mut end, mut guest) = pair(&limits);
+        end.send("full").await.unwrap();
+        // No room: the send is dropped while it waits.
+        let waited = tokio::time::timeout(Duration::from_millis(20), end.send("held")).await;
+        assert!(waited.is_err());
+
+        assert_eq!(
+            guest_message(&mut guest),
+            Poll::Ready(Some(ChannelEvent::Message("full".into())))
+        );
+        // The held message goes out first, and the next one waits for it.
+        let waited = tokio::time::timeout(Duration::from_millis(20), end.send("next")).await;
+        assert!(waited.is_err());
+        assert_eq!(
+            guest_message(&mut guest),
+            Poll::Ready(Some(ChannelEvent::Message("held".into())))
+        );
+        assert_eq!(guest_message(&mut guest), Poll::Pending);
+        poll_fn(|context| Pin::new(&mut end).poll_flush(context))
+            .await
+            .unwrap();
+        assert_eq!(
+            guest_message(&mut guest),
+            Poll::Ready(Some(ChannelEvent::Message("next".into())))
+        );
+    }
+
+    #[tokio::test]
+    async fn close_drops_a_held_message_and_the_sink_refuses_after_it() {
+        let limits = Limits {
+            channel_buffer_bytes: Some(4),
+            ..Limits::default()
+        };
+        let (mut end, mut guest) = pair(&limits);
+        end.send("full").await.unwrap();
+        let waited = tokio::time::timeout(Duration::from_millis(20), end.send("held")).await;
+        assert!(waited.is_err());
+        end.close(CloseFrame::new(CloseFrame::NORMAL, ""));
+        assert_eq!(
+            guest_message(&mut guest),
+            Poll::Ready(Some(ChannelEvent::Message("full".into())))
+        );
+        assert_eq!(
+            guest_message(&mut guest),
+            Poll::Ready(Some(ChannelEvent::Close(CloseFrame::new(
+                CloseFrame::NORMAL,
+                ""
+            ))))
+        );
+        let ready = poll_fn(|context| Pin::new(&mut end).poll_ready(context)).await;
+        assert!(matches!(ready, Err(Error::InvocationClosed)));
+    }
 }

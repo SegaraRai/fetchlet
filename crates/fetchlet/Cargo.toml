@@ -38,6 +38,8 @@ serde_json.workspace = true
 tokio.workspace = true
 fetchlet-web = { workspace = true, optional = true }
 bytes = "1"
+futures-core = "0.3"
+futures-sink = "0.3"
 http = "1"
 http-body = "1"
 url = "2"
@@ -53,6 +55,7 @@ deno_error = { version = "=0.7.1", optional = true }
 
 [dev-dependencies]
 flate2 = "1"
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 
 [[example]]
 name = "embed"

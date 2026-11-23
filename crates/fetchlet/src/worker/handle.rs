@@ -8,7 +8,7 @@ use super::HeldConnection;
 use super::lifecycle::{WorkerStatus, wait_for_shutdown};
 use super::protocol::Command;
 use crate::reentry::is_polling;
-use crate::{Error, Limits, Request, Response, Result};
+use crate::{Call, Error, Limits, Request, Response, Result};
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 use {
@@ -101,13 +101,15 @@ impl AppHandle {
     }
 
     pub async fn call_json(&self, export: &str, arguments: &[Value]) -> Result<Value> {
+        self.call_with(Call::with_arguments(export, arguments))
+            .await
+    }
+
+    /// Call a function with the JSON arguments and lent channels of `call`,
+    /// on whichever instance takes it.
+    pub async fn call_with(&self, call: Call) -> Result<Value> {
         let (reply, receive) = oneshot::channel();
-        self.enqueue(Command::Call {
-            export: export.to_owned(),
-            arguments: arguments.to_vec(),
-            reply,
-        })
-        .await?;
+        self.enqueue(Command::Call { call, reply }).await?;
         self.receive(receive).await
     }
 

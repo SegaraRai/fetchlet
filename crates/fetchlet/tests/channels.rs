@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
+use futures_util::{SinkExt, StreamExt, stream};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -62,6 +63,25 @@ async fn echo(mut end: ChannelEnd, options: Value) {
     }
 }
 
+/// Answer each text message with `sink:` and the text through the end's
+/// `Stream` and `Sink` halves, then close the sink when JavaScript closes.
+async fn split(end: ChannelEnd) {
+    let (mut sink, events) = end.split();
+    let mut answers = events
+        .take_while(|event| std::future::ready(matches!(event, ChannelEvent::Message(_))))
+        .filter_map(|event| {
+            std::future::ready(match event {
+                ChannelEvent::Message(Message::Text(text)) => {
+                    Some(Ok(Message::Text(format!("sink:{text}"))))
+                }
+                _ => None,
+            })
+        });
+    if sink.send_all(&mut answers).await.is_ok() {
+        let _ = sink.close().await;
+    }
+}
+
 fn services(sent: Arc<AtomicUsize>) -> (HostServices, Held) {
     let (held_tx, held) = mpsc::unbounded_channel();
     let hosts = HostServices::new()
@@ -69,6 +89,31 @@ fn services(sent: Arc<AtomicUsize>) -> (HostServices, Held) {
             "ECHO",
             channel_fn(|request| async move {
                 tokio::spawn(echo(request.end, request.options));
+                Ok(())
+            }),
+        )
+        .unwrap()
+        .channel(
+            "SPLIT",
+            channel_fn(|request| async move {
+                tokio::spawn(split(request.end));
+                Ok(())
+            }),
+        )
+        .unwrap()
+        .channel(
+            "POUR",
+            // FLOOD through the sink, which waits for room as send does.
+            channel_fn(|request| async move {
+                let mut end = request.end;
+                tokio::spawn(async move {
+                    let mut messages = stream::iter(
+                        (0..FLOOD).map(|index| Ok(Message::from(format!("{index:010}")))),
+                    );
+                    if end.send_all(&mut messages).await.is_ok() {
+                        let _ = SinkExt::close(&mut end).await;
+                    }
+                });
                 Ok(())
             }),
         )
@@ -296,6 +341,31 @@ async fn a_paused_reader_holds_the_rust_sender_back() -> anyhow::Result<()> {
         assert_eq!(result["received"], json!(FLOOD));
         assert_eq!(result["close"], json!({ "code": 1000, "reason": "done" }));
         assert_eq!(sent.load(Ordering::SeqCst), FLOOD);
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn ends_are_streams_and_sinks() -> anyhow::Result<()> {
+    for backend in backends() {
+        let limits = Limits {
+            channel_buffer_bytes: Some(50),
+            ..Limits::default()
+        };
+        let (mut app, _, _) = app(backend, limits).await?;
+        assert_eq!(
+            app.call_json("split", &[json!(["a", "b"])]).await?,
+            json!({
+                "messages": ["sink:a", "sink:b"],
+                "close": { "code": 1000, "reason": "" },
+            })
+        );
+        // Five messages of ten bytes fill the queue; the sink waits for
+        // room and delivers every one.
+        assert_eq!(
+            app.call_json("drain", &[json!("POUR")]).await?,
+            json!({ "received": FLOOD, "close": { "code": 1000, "reason": "" } })
+        );
     }
     Ok(())
 }

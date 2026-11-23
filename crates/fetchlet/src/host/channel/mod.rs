@@ -33,4 +33,5 @@ pub use upgrade::ServerWebSocket;
     feature = "fuzzing",
     test
 ))]
-pub(crate) use end::{GuestEnd, Refused, pair};
+pub(crate) use end::Refused;
+pub(crate) use end::{GuestEnd, pair};

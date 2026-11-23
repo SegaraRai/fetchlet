@@ -349,12 +349,8 @@ impl Command {
     ) {
         let finish = execution.cancelled_calls == CancelledCalls::Finish;
         match self {
-            Self::Call {
-                export,
-                arguments,
-                reply,
-            } => {
-                complete(reply, app.call_json(&export, &arguments), finish).await;
+            Self::Call { call, reply } => {
+                complete(reply, app.call_with(call), finish).await;
             }
             Self::Fetch {
                 request,

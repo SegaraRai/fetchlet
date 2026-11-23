@@ -4,7 +4,7 @@
 
 import { describe, expect, test, vi } from "vite-plus/test";
 
-import { connectChannel } from "../src/internal/channels/host-channel.ts";
+import { connectChannel, lendChannel } from "../src/internal/channels/host-channel.ts";
 import "../src/internal/foundation/foundation.ts";
 import "../src/internal/dom/events.ts";
 import "../src/internal/html/message-channel.ts";
@@ -38,6 +38,10 @@ function standIn() {
       listener = given;
       return 7;
     },
+    adopt(id: number, given: ChannelListener) {
+      calls.push({ operation: "adopt", args: [id] });
+      listener = given;
+    },
     send: (...args: unknown[]) => calls.push({ operation: "send", args }),
     write(_id: number, data: Uint8Array) {
       return new Promise<void>((resolve) => writes.push({ data, resolve }));
@@ -63,6 +67,7 @@ const bytes = (...values: number[]) => new Uint8Array(values);
 describe("host channels", () => {
   test("the Web API profile builds env bindings' channels", () => {
     expect(typeof runtime.__fetchletChannelViews.connect).toBe("function");
+    expect(typeof runtime.__fetchletChannelViews.lend).toBe("function");
     expect(Object.getOwnPropertyDescriptor(runtime, "__fetchletChannelViews")?.writable).toBe(
       false,
     );
@@ -95,6 +100,20 @@ describe("host channels", () => {
       { operation: "send", args: [7, "hi"] },
       { operation: "close", args: [7, 1000, "done"] },
     ]);
+  });
+
+  test("a channel Rust lent to the call adopts its handle", async () => {
+    const host = standIn();
+    const channel = lendChannel(12);
+    expect(host.calls).toEqual([{ operation: "adopt", args: [12] }]);
+    expect(Object.prototype.toString.call(channel)).toBe("[object HostChannel lent]");
+    const socket = channel.socket();
+    host.listener.open();
+    await channel.opened;
+    socket.send("progress");
+    host.listener.close(1000, "done");
+    expect(await channel.closed).toEqual({ code: 1000, reason: "done" });
+    expect(host.calls.slice(1)).toEqual([{ operation: "send", args: [12, "progress"] }]);
   });
 
   test("a refused open rejects opened and fails the view", async () => {

@@ -13,7 +13,7 @@ use super::clock::Clock;
 use super::handles::{Handles, Resource};
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
-use crate::host::{Redirect, TransportFuture, pair};
+use crate::host::{GuestEnd, Redirect, TransportFuture, pair};
 use crate::reentry;
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
 use crate::{
@@ -294,6 +294,22 @@ impl HostBridge {
             invocation.upgrade = Upgrade::Available;
         }
         Ok(())
+    }
+
+    /// Enter a channel Rust lends to the current call in its table. It opens
+    /// at the next poll, as a service's open does.
+    #[cfg_attr(
+        not(any(feature = "boa", feature = "quickjs", feature = "v8")),
+        allow(dead_code)
+    )]
+    pub fn lend_channel(&self, end: GuestEnd) -> Result<u64> {
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let id = invocation
+            .handles
+            .open_requested(end, Box::pin(async { Ok(()) }))?;
+        self.wake.notify();
+        Ok(id)
     }
 
     /// Rust's end of the upgrade that the Fetch result returned as `id`.

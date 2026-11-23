@@ -19,9 +19,9 @@ the semantics chosen, the alternatives rejected and the order of work.
 ## Status
 
 The handle table, request-scoped channels, `connect()`, the client
-`WebSocket` and held connections (steps 1 to 5 of the
-[order of work](#order-of-work)) are implemented, the last for the axum
-and actix integrations:
+`WebSocket`, held connections and channels in call arguments (steps 1 to 5
+and the argument half of step 6 of the [order of work](#order-of-work)) are
+implemented, held connections for the axum and actix integrations:
 
 - `HostServices::channel(name, service)` binds a `ChannelService`, and
   `env.NAME.connect(options)` opens a channel of it in the current
@@ -59,6 +59,19 @@ and actix integrations:
   `waitUntil` work and an open response body. The bridge forgets an upgrade
   the handler did not return when the handler returns, and the
   invocation's other channels when it ends.
+- `ChannelEnd` implements `Stream` of `ChannelEvent` and `Sink` of
+  `Message`. The sink holds one message while it waits for room; a `send`
+  dropped while it waits keeps its message, which goes out before the next.
+- `Call` lends channels to a function call: `call.channel(limits)` adds one
+  as the next argument and `call.channel_at(pointer, limits)` puts one at a
+  JSON Pointer into the arguments, which must name an existing value apart
+  from the other lent positions. `App::call_with` and
+  `AppHandle::call_with` enter each in the invocation's table, where it
+  opens at the next poll, and the bridge places the channel object from
+  `__fetchletChannelViews.lend` there as a data property before it calls
+  the export. A lent channel closes with the invocation, as a
+  request-scoped channel does, and does not count against
+  `Limits::open_channels`.
 
 - `Instances::max_held_connections` bounds held connections, and
   `AppHandle::reserve_connection` takes one place as a `HeldConnection`
@@ -108,10 +121,11 @@ example's progress routes. Sockets are tested in
 `actix-websocket` feature completes upgrades in `ActixService` with
 actix-ws, tested in `crates/fetchlet-http/tests/actix_websocket.rs`, and
 `ViteDev` passes upgrade requests to the app, which the `vite dev` loops of
-the examples check. `ChannelEnd` does not implement `Stream` and `Sink`
-yet. The channel object keeps its handle in a private field, but
-the bridge's registry, which `@fetchlet/web` reaches as a global, still
-takes numeric handles.
+the examples check. Lent channels are tested in
+`crates/fetchlet/tests/call_channels.rs` on every engine and
+`packages/web/tests/channel.test.ts`. Results stay JSON. The channel object
+keeps its handle in a private field, but the bridge's registry, which
+`@fetchlet/web` reaches as a global, still takes numeric handles.
 
 ## Constraints
 
@@ -192,26 +206,27 @@ generations.
 
 ### Values beyond JSON
 
-Function arguments and results are JSON today. The handle table lets them
-carry resources without reserving any JSON shape that application data
-could collide with:
+Function arguments carry channels and results are JSON. The handle table
+lets both carry resources without reserving any JSON shape that application
+data could collide with:
 
-- **Arguments.** A Rust caller builds a call from positional values that are
-  either JSON or resources, for example
-  `Call::new("export").json(value).channel(end)`. Resources nested inside a
-  JSON value are listed out of band as JSON Pointer paths with their
-  resources. The bridge enters each resource in the invocation's table and
-  places a wrapper at its path before it calls the export.
+- **Arguments** (implemented). A Rust caller builds a call from positional
+  values that are either JSON or channels, `call.json(value)` and
+  `call.channel(limits)`, which returns Rust's end. Channels nested inside
+  a JSON value are listed out of band as JSON Pointer paths,
+  `call.channel_at("/0/progress", limits)`. The bridge enters each channel
+  in the invocation's table and places its channel object at its path
+  before it calls the export.
 - **Results.** The bridge serializes a result with a replacer that
   recognizes its own wrappers by their private brand. It writes `null` at
   each such position and lists the paths beside the JSON. Rust receives the
   value and the resources separately. A plain object that happens to look
   like a marker stays plain data.
-- **Ownership.** A resource passed into a call is lent to that invocation
-  and returns to Rust's control when the invocation ends; if JavaScript did
-  not close it, Rust gets it back open. A resource in the result moves to
-  Rust and detaches its wrapper, as transferring an `ArrayBuffer` detaches
-  it.
+- **Ownership.** A channel passed into a call is lent to that invocation
+  and closes when it ends, with code 1006 if JavaScript did not close it,
+  as a channel JavaScript opens does. Rust keeps its end throughout, so it
+  needs nothing back. A resource in the result moves to Rust and detaches
+  its wrapper, as transferring an `ArrayBuffer` detaches it.
 
 Rust embedders get typed resources without each application inventing an
 ownership protocol. This answers [values beyond JSON](../TODO.md#values-beyond-json).
@@ -303,7 +318,7 @@ The core types live in `crates/fetchlet/src/host/channel/`:
   a `code` and a `reason`.
 - **`ChannelEnd`** is Rust's side of a channel. It is an `async` sender and
   receiver of messages that ends in a close, and it implements `Stream` and
-  `Sink` for transports that prefer them. Dropping it closes the channel
+  `Sink` for transports that prefer them; `split()` separates the halves. Dropping it closes the channel
   with code 1006.
 - **`ChannelService`** answers an open request from JavaScript. Its
   `ChannelRequest` carries the options, the invocation's trusted `Context`
@@ -497,7 +512,8 @@ Each step lands with tests at its own boundary:
    `websocket-client` feature. Done.
 5. Held connections and `upgradeWebSocket` with server upgrades in the axum
    and actix integrations, after [instance pools](instance-pools.md). Done.
-6. Resources in call arguments and results.
+6. Resources in call arguments and results. Channels in arguments are
+   done; results remain.
 
 Steps 3 and 4 are independent of each other. Step 5 needs step 2 and pools.
 Step 6 needs only step 1.

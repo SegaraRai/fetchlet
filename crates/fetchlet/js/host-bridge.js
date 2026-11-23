@@ -115,6 +115,10 @@
 			track(id, listener);
 			return id;
 		},
+		adopt(id, listener) {
+			if (channels.has(id)) throw new TypeError("The channel already has a listener");
+			track(id, listener);
+		},
 		connect(address, listener) {
 			const id = dispatch("socket.open", address);
 			track(id, listener);
@@ -612,7 +616,25 @@
 			globalThis.__fetchletClearPerformanceEntries?.();
 		}
 	}
-	async function invokeExport(exportName, argumentsList, streamResponseBody) {
+	/** Put each channel Rust lent to the call at its place in the arguments. */
+	function placeLentChannels(argumentsList, lent) {
+		if (lent.length === 0) return;
+		const views = globalThis.__fetchletChannelViews;
+		if (!views?.lend) throw new TypeError("Channels need the fetchlet Web API profile");
+		for (const { path, channel } of lent) {
+			const key = path[path.length - 1];
+			if (key === void 0) throw new TypeError("A lent channel needs a place in the arguments");
+			let parent = argumentsList;
+			for (const token of path.slice(0, -1)) parent = parent[token];
+			Object.defineProperty(parent, key, {
+				value: views.lend(channel),
+				writable: true,
+				enumerable: true,
+				configurable: true
+			});
+		}
+	}
+	async function invokeExport(exportName, argumentsList, streamResponseBody, lent = []) {
 		globalThis.__fetchletAsyncContext?.set(void 0);
 		const exports = globalThis.fetchletExports;
 		let invocationRemainsOpen = false;
@@ -622,6 +644,7 @@
 			if (!Object.hasOwn(exports, exportName)) throw new TypeError("Unknown function");
 			const exportedFunction = exports[exportName];
 			if (typeof exportedFunction !== "function") throw new TypeError("Unknown function");
+			placeLentChannels(argumentsList, lent);
 			if (streamResponseBody === true) {
 				const request = argumentsList[0];
 				if (typeof globalThis.AbortController === "function" && request !== null) {

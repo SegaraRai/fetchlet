@@ -58,6 +58,21 @@ const channel = env.PROGRESS.connect({ steps: 3, bytes: true });
 return new Response(channel.stream().readable);
 ```
 
+Rust can also lend channels to a function call with `Call`
+([channels in calls](../../../docs/host-services.md#channels-in-calls)).
+They arrive in the export's arguments as the same channel objects, typed
+`HostChannel` from `fetchlet/bindings`, and close when the call ends:
+
+```ts
+import type { HostChannel } from "fetchlet/bindings";
+
+export async function transcode(options: { format: string; progress: HostChannel }) {
+  const progress = options.progress.socket();
+  await options.progress.opened;
+  progress.send("started");
+}
+```
+
 ## TCP sockets
 
 `connect(address, options)` from `fetchlet/runtime` is the Sockets API's

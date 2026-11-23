@@ -5,7 +5,7 @@ import { channelRegistry } from "./channels.ts";
 import { hostBodyStream } from "./host-bodies.ts";
 import { dispatch, putBytes, takeBytes } from "./host.ts";
 import { responseBodyRegistry } from "./response-bodies.ts";
-import type { InvocationRequest, InvocationResult } from "./wire.ts";
+import type { InvocationRequest, InvocationResult, LentChannel } from "./wire.ts";
 
 // Aborts the request signal of the Fetch invocation in progress when its
 // client goes away: Rust cancels the response body, or reports through
@@ -38,14 +38,45 @@ function clearInvocation(): void {
   }
 }
 
+/** Put each channel Rust lent to the call at its place in the arguments. */
+function placeLentChannels(argumentsList: unknown[], lent: LentChannel[]): void {
+  if (lent.length === 0) {
+    return;
+  }
+  const views = globalThis.__fetchletChannelViews;
+  if (!views?.lend) {
+    throw new TypeError("Channels need the fetchlet Web API profile");
+  }
+  for (const { path, channel } of lent) {
+    // Rust checked that each path names a value of the JSON arguments.
+    const key = path[path.length - 1];
+    if (key === undefined) {
+      throw new TypeError("A lent channel needs a place in the arguments");
+    }
+    let parent = argumentsList as unknown as Record<string, unknown>;
+    for (const token of path.slice(0, -1)) {
+      parent = parent[token] as Record<string, unknown>;
+    }
+    // A data property, even for a key such as "__proto__".
+    Object.defineProperty(parent, key, {
+      value: views.lend(channel),
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+  }
+}
+
 // Call an exported function. With streamResponseBody, it is a Fetch
 // handler: its request body arrives through the byte store or as a Rust
 // body source, and a response body it leaves open keeps the invocation,
-// with its timers, open until Rust finishes or cancels that body.
+// with its timers, open until Rust finishes or cancels that body. Channels
+// Rust lent to a call become channel objects in its arguments.
 export async function invokeExport(
   exportName: string,
   argumentsList: unknown[],
   streamResponseBody?: boolean,
+  lent: LentChannel[] = [],
 ): Promise<string> {
   // Each invocation starts in the empty async context, whatever the
   // previous one left current.
@@ -64,6 +95,7 @@ export async function invokeExport(
     if (typeof exportedFunction !== "function") {
       throw new TypeError("Unknown function");
     }
+    placeLentChannels(argumentsList, lent);
 
     if (streamResponseBody === true) {
       const request = argumentsList[0] as InvocationRequest | null;
