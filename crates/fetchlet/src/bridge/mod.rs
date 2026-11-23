@@ -2,6 +2,7 @@ mod body_source;
 mod channels;
 mod clock;
 mod dispatcher;
+mod functions;
 mod handles;
 
 #[cfg(feature = "fuzzing")]

@@ -40,6 +40,10 @@ pub struct Limits {
     pub decompressed_bytes: Option<usize>,
     /// Host fetch starts attempted during one invocation, including failed starts.
     pub subrequests: Option<usize>,
+    /// Calls of `Functions` methods during one invocation, sync and async,
+    /// including failed calls, as `subrequests` counts fetches. A caller
+    /// budget: each call runs Rust code the caller supplied.
+    pub function_calls: Option<usize>,
     /// Redirects followed per fetch, within the Fetch specification's limit.
     pub redirects: Option<usize>,
     /// Cooperative duration of background work registered with

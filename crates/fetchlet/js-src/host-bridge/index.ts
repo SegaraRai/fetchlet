@@ -12,6 +12,7 @@ import { backgroundRegistry, waitUntil } from "./background.ts";
 import { channelRegistry } from "./channels.ts";
 import { installConsole } from "./console.ts";
 import { hostFetch } from "./fetch.ts";
+import { functionBinding } from "./functions.ts";
 import { hostBodyStream, readWholeBody } from "./host-bodies.ts";
 import { dispatch, nativeDispatch, putBytes, takeBytes } from "./host.ts";
 import { invokeConnection, invokeExport, invokeResponseBody } from "./invocation.ts";
@@ -94,6 +95,10 @@ for (const channelName of bindings.channels) {
       return views.connect(channelName, options);
     },
   });
+}
+
+for (const [functionsName, methods] of Object.entries(bindings.functions)) {
+  env[functionsName] = functionBinding(functionsName, methods);
 }
 
 Object.defineProperty(globalThis, "fetchlet", {

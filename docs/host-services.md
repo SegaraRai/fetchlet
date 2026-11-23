@@ -1,8 +1,8 @@
 # Host services
 
 `HostServices` is the authority an app receives from Rust: environment
-values, named services, channel services, outbound fetch and a console
-sink. This page covers
+values, named services, channel services, Rust functions, outbound fetch
+and a console sink. This page covers
 configuring them and the contracts they keep.
 
 ## Bindings
@@ -315,6 +315,75 @@ which bounds what JavaScript opens. The channel objects come from the Web
 API profile; a call that lends channels to a bundle without it fails.
 Results are JSON. `crates/fetchlet/tests/call_channels.rs` checks the
 contract on all three engines.
+
+## Function bindings
+
+`HostServices::functions(name, functions)` binds Rust functions under a
+name in `env`, which they share with env values, services and channels.
+JavaScript calls them as methods without building a `Request`:
+
+```rust,ignore
+use fetchlet::{FunctionCall, FunctionError, Functions, HostServices};
+use serde_json::{Value, json};
+
+let db = Functions::new()
+    .method("query", |call: FunctionCall| async move {
+        let (sql, params): (String, Vec<Value>) = call.args()?;
+        let user = call.context().get::<User>();
+        let rows = run(user, &sql, &params)
+            .await
+            .map_err(|error| FunctionError::new(error.to_string()).code("QUERY_FAILED"))?;
+        Ok(json!(rows))
+    })
+    .sync_method("escape", |call: FunctionCall| {
+        let (text,): (String,) = call.args()?;
+        Ok(json!(escape(&text)))
+    });
+let hosts = HostServices::new().functions("DB", db)?;
+```
+
+```js
+const rows = await fetchlet.env.DB.query("select 1", []);
+const quoted = fetchlet.env.DB.escape(name);
+```
+
+`env.DB` is a frozen, null-prototype object with exactly the registered
+methods. A method named `then`, which would make the binding a thenable,
+and a name added twice fail with `Configuration` when bound.
+
+- **Values.** Arguments arrive as the JSON array `JSON.stringify` makes of
+  them, so `undefined` becomes `null` and a `BigInt` throws its
+  `TypeError` before Rust runs. `call.args::<T>()` deserializes them with
+  serde, usually into a tuple with one element per argument, which needs
+  exactly that many; `Vec<Value>` takes any number, and `raw_args` gives
+  the array. A result is any JSON value. Both directions are bridge
+  messages, so `Limits::bridge_message_bytes` bounds each; a result over it
+  fails the call with `LIMIT_EXCEEDED`.
+- **Errors.** Arguments that `args` cannot deserialize throw a `TypeError`
+  naming the binding and method, such as `Invalid arguments for DB.query`;
+  serde's detail stays in Rust. `FunctionError::new(message)` arrives as an
+  `Error` with that message and, with `.code(code)`, its `code`. A fetchlet
+  `Error` converts with `?` and arrives as other host errors do, as a
+  `FetchletHostError` with its generic `code` and message only. A method
+  that panics fails its call with code `PANICKED`, and the instance stays
+  usable.
+- **Async methods** return a Promise. Their futures are polled with the
+  invocation's other host operations, in the host runtime when one is set;
+  the invocation's `timeout` covers them, and they are dropped when the
+  invocation ends, so a call left running is cancelled.
+- **Sync methods** return their result at once and block JavaScript, on the
+  thread that runs the instance, while they run. No deadline interrupts
+  them, so keep them to quick work such as lookups in memory, validation or
+  formatting; anything that waits belongs in an async method.
+- **Context and reentrancy.** `call.context()` is the trusted `Context`
+  attached to the invocation's request, empty when there is none, and
+  `call.method()` names the method called. A method that calls its own
+  `AppHandle` fails with `Error::Reentrant`, as a host fetch does.
+- **Budget.** `Limits::function_calls` bounds the calls of one invocation,
+  sync and async, failed ones included.
+
+`crates/fetchlet/tests/functions.rs` checks the contract on all three
+engines.
 
 ## Calling Rust in-process
 

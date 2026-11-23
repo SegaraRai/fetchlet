@@ -30,21 +30,39 @@ the profile provides.
 ## Binding types
 
 `fetchlet/bindings` declares `ServiceBinding`, a service's `fetch`,
-`ChannelBinding`, a channel service's `connect`, and `FetchletBindings`, the
+`ChannelBinding`, a channel service's `connect`, `FunctionBinding`, the
+methods of Rust functions, and `FetchletBindings`, the
 bindings Rust's `HostServices` define. An application declares its keys
 once; `getBindings()`, `ExportedHandler` and each framework integration's
 request context are typed with them:
 
 ```ts
-import type { ChannelBinding, ServiceBinding } from "fetchlet/bindings";
+import type { ChannelBinding, FunctionBinding, ServiceBinding } from "fetchlet/bindings";
 
 declare module "fetchlet/bindings" {
   interface FetchletBindings {
     MESSAGE: string;
     RUST: ServiceBinding;
     PROGRESS: ChannelBinding;
+    DB: FunctionBinding<{
+      query(sql: string, params: unknown[]): Promise<{ id: number }[]>;
+      escape(text: string): string;
+    }>;
   }
 }
+```
+
+`env.DB` calls Rust functions directly
+([function bindings](../../../docs/host-services.md#function-bindings)).
+A method Rust adds as async returns a Promise; a sync method returns its
+result. Arguments cross as `JSON.stringify` encodes them and results are
+JSON. Arguments Rust cannot read as the method's types throw a `TypeError`
+naming the method, and an error the method returns arrives as an `Error`
+with its message and `code`:
+
+```ts
+const rows = await env.DB.query("select id from users where name = ?", [name]);
+const quoted = env.DB.escape(name);
 ```
 
 `env.PROGRESS.connect(options)` opens a channel of the Rust service, which
@@ -184,7 +202,7 @@ framework copies the handler's response; the Qwik City middleware uses it.
 | `fetchlet/runtime`         | The profile itself: installs the Web APIs, and exports the wire helpers                                                    |
 | `fetchlet/runtime/adapter` | Installs the profile, then exports `createFetchHandler`, `getBindings`, `waitUntil`, `upgradeWebSocket`, `upgradeResponse` |
 | `fetchlet/runtime/handler` | The same exports without installing the profile                                                                            |
-| `fetchlet/bindings`        | Types only: `ServiceBinding`, `ChannelBinding` and `FetchletBindings`                                                      |
+| `fetchlet/bindings`        | Types only: `ServiceBinding`, `ChannelBinding`, `FunctionBinding` and `FetchletBindings`                                   |
 
 Framework integrations whose builder initializes the profile first use the
 side-effect-free `fetchlet/runtime/handler`. That keeps Node-only polyfills

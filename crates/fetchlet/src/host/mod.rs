@@ -4,6 +4,7 @@ mod bindings;
 mod channel;
 mod console;
 mod context;
+mod function;
 mod policy;
 mod router;
 mod service;
@@ -18,6 +19,7 @@ pub use channel::{
 };
 pub use console::ConsoleLevel;
 pub use context::Context;
+pub use function::{FunctionCall, FunctionError, FunctionFuture, Functions};
 pub use policy::FetchPolicy;
 pub use router::OriginRouter;
 pub use service::FetchService;
@@ -31,6 +33,8 @@ pub use websocket::{
     websocket_fn,
 };
 
+pub(crate) use channel::{GuestEnd, pair};
+
 #[cfg(any(
     feature = "boa",
     feature = "quickjs",
@@ -39,7 +43,14 @@ pub use websocket::{
     test
 ))]
 pub(crate) use channel::Refused;
-pub(crate) use channel::{GuestEnd, pair};
+#[cfg(any(
+    feature = "boa",
+    feature = "quickjs",
+    feature = "v8",
+    feature = "fuzzing",
+    test
+))]
+pub(crate) use function::Method;
 #[cfg(any(
     feature = "boa",
     feature = "quickjs",

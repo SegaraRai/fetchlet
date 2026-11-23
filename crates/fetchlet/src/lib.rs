@@ -30,11 +30,11 @@ pub use execution::Instance;
 pub use fetch::{Body, FetchApp, Request, Response};
 pub use host::{
     ChannelEnd, ChannelEvent, ChannelFuture, ChannelRequest, ChannelService, CloseFrame,
-    ConsoleLevel, Context, FetchPolicy, FetchService, FetchTransport, HostServices, Message,
-    OriginRouter, SecureTransport, ServerWebSocket, SocketAddress, SocketPolicy, SocketRequest,
-    SocketService, SocketTransport, TransportFuture, WebSocketAccept, WebSocketFuture,
-    WebSocketRequest, WebSocketService, WebSocketTransport, channel_fn, socket_fn, transport_fn,
-    websocket_fn,
+    ConsoleLevel, Context, FetchPolicy, FetchService, FetchTransport, FunctionCall, FunctionError,
+    FunctionFuture, Functions, HostServices, Message, OriginRouter, SecureTransport,
+    ServerWebSocket, SocketAddress, SocketPolicy, SocketRequest, SocketService, SocketTransport,
+    TransportFuture, WebSocketAccept, WebSocketFuture, WebSocketRequest, WebSocketService,
+    WebSocketTransport, channel_fn, socket_fn, transport_fn, websocket_fn,
 };
 pub use http;
 pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, WorkerOptions};

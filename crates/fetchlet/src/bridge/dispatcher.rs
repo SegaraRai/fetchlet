@@ -10,15 +10,16 @@ use serde_json::{Value, json};
 use super::body_source::{BodyRead, BodySource};
 use super::channels::{GuestClose, GuestMessage, GuestPause, GuestWrite};
 use super::clock::Clock;
+use super::functions::{self, CallMessage, PendingCalls};
 use super::handles::{Handles, Resource};
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
-use crate::host::{GuestEnd, Redirect, TransportFuture, pair};
+use crate::host::{GuestEnd, Method, Redirect, TransportFuture, pair};
 use crate::reentry;
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
 use crate::{
-    Body, ChannelEnd, ChannelRequest, CloseFrame, ConsoleLevel, Context, Error, HostServices,
-    Limits, Response, Result, SecureTransport, SocketAddress,
+    Body, ChannelEnd, ChannelRequest, CloseFrame, ConsoleLevel, Context, Error, FunctionCall,
+    HostServices, Limits, Response, Result, SecureTransport, SocketAddress,
 };
 
 struct PendingFetch {
@@ -47,8 +48,12 @@ struct InvocationState {
     started_fetches: usize,
     /// `channel.open` attempts, which `Limits::open_channels` bounds.
     opened_channels: usize,
+    /// Calls of `Functions` methods, which `Limits::function_calls` bounds.
+    function_calls: usize,
     limits: Limits,
     pending_fetches: BTreeMap<String, PendingFetch>,
+    /// Async calls of `Functions` methods not yet finished.
+    pending_calls: PendingCalls,
     bytes: ByteStore,
     /// What JavaScript reaches by handle: Rust bodies it reads on demand and
     /// channels it holds, such as an accepted WebSocket.
@@ -378,8 +383,10 @@ impl HostBridge {
             next_ticket: 0,
             started_fetches: 0,
             opened_channels: 0,
+            function_calls: 0,
             limits,
             pending_fetches: BTreeMap::new(),
+            pending_calls: PendingCalls::default(),
             bytes: ByteStore::default(),
             handles,
             pending_reads: BTreeMap::new(),
@@ -493,6 +500,8 @@ impl HostBridge {
             "fetch.cancel" => self.cancel_fetch(input),
             "fetch.poll" => self.poll_fetches(),
             "fetch.start" => self.start_fetch(input),
+            "function.call" => self.call_function(input, false),
+            "function.start" => self.call_function(input, true),
             "invocation.disconnected" => self.invocation_disconnected(),
             "invocation.limits" => self.invocation_limits(),
             "socket.end" => self.end_socket(input),
@@ -534,11 +543,18 @@ impl HostBridge {
     fn bindings(&self) -> Value {
         let service_names: Vec<_> = self.services.services.keys().collect();
         let channel_names: Vec<_> = self.services.channels.keys().collect();
+        let functions: serde_json::Map<String, Value> = self
+            .services
+            .functions
+            .iter()
+            .map(|(name, functions)| (name.clone(), functions.describe()))
+            .collect();
 
         json!({
             "env": self.services.env,
             "services": service_names,
             "channels": channel_names,
+            "functions": functions,
             "console": self.services.console.is_some(),
         })
     }
@@ -624,6 +640,63 @@ impl HostBridge {
         Ok(Value::String(ticket))
     }
 
+    /// Call a method of a `Functions` binding: a sync method at once,
+    /// returning its outcome, or with `start` an async method, returning
+    /// the ticket its outcome arrives with in `fetch.poll`.
+    fn call_function(&self, input: &str, start: bool) -> Result<Value> {
+        let (method, call, result_bytes) = {
+            let mut state = self.lock_state()?;
+            let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+            let called = invocation
+                .function_calls
+                .checked_add(1)
+                .ok_or(Error::LimitExceeded("function call counter"))?;
+            check_limit(invocation.limits.function_calls, called, "function calls")?;
+            invocation.function_calls = called;
+
+            let message: CallMessage = serde_json::from_str(input)
+                .map_err(|_| Error::InvalidRequest("invalid function call".into()))?;
+            let method = self
+                .services
+                .functions
+                .get(&message.binding)
+                .and_then(|functions| functions.get(&message.method))
+                .cloned()
+                .ok_or(Error::PermissionDenied)?;
+            let call = FunctionCall::new(
+                message.method,
+                Value::Array(message.args),
+                invocation.context.clone(),
+            );
+            (method, call, invocation.limits.bridge_message_bytes)
+        };
+
+        // The method runs without the bridge's lock. Host code must not call
+        // this application again, and what it spawns belongs to the host
+        // runtime.
+        let running = reentry::enter(self.key);
+        let runtime = self.runtime.as_ref().map(tokio::runtime::Handle::enter);
+        match (method, start) {
+            (Method::Sync(method), false) => {
+                let result = functions::run_sync(|| method(call));
+                Ok(functions::outcome(result, result_bytes))
+            }
+            (Method::Async(method), true) => {
+                let future = functions::start_async(|| method(call));
+                drop(runtime);
+                drop(running);
+                let mut state = self.lock_state()?;
+                let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+                let ticket = invocation.next_ticket()?;
+                invocation.pending_calls.insert(ticket.clone(), future);
+                // The future is first polled at the next pump.
+                self.wake.notify();
+                Ok(Value::String(ticket))
+            }
+            _ => Err(Error::InvalidRequest("wrong kind of function call".into())),
+        }
+    }
+
     pub(super) fn poll_fetches(&self) -> Result<Value> {
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
@@ -641,6 +714,7 @@ impl HostBridge {
 
         let InvocationState {
             pending_fetches,
+            pending_calls,
             limits,
             bytes,
             handles,
@@ -666,6 +740,18 @@ impl HostBridge {
         for completion in &completed {
             pending_fetches.remove(&completion.id);
         }
+
+        let mut finished_calls = Vec::new();
+        pending_calls.poll(
+            &mut context,
+            limits.bridge_message_bytes,
+            &mut finished_calls,
+        );
+        completed.extend(
+            finished_calls
+                .into_iter()
+                .map(|(id, result)| FetchCompletion { id, result }),
+        );
 
         let InvocationTransport { bytes, handles } = transport;
         pending_reads.retain(|ticket, read| {
@@ -1046,7 +1132,8 @@ impl InvocationScope {
         };
 
         state.invocation.as_ref().is_some_and(|invocation| {
-            invocation.generation == self.generation && !invocation.pending_fetches.is_empty()
+            invocation.generation == self.generation
+                && (!invocation.pending_fetches.is_empty() || !invocation.pending_calls.is_empty())
         })
     }
 }

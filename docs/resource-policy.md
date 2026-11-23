@@ -20,7 +20,7 @@ services, concurrency and the process's total capacity.
 | `response_body_bytes`     | Bytes of each outgoing response body and each upstream response body; declared length and running total                                   |
 | `header_bytes`            | Total bytes of names and values in each header set                                                                                        |
 | `url_bytes`               | Bytes of the incoming request URL and of each rewritten destination URL                                                                   |
-| `bridge_message_bytes`    | Bytes of each JSON message to a native callback, and of each body buffer passed from JavaScript                                           |
+| `bridge_message_bytes`    | Bytes of each JSON message to a native callback, of each `Functions` result, and of each body buffer passed from JavaScript               |
 | `digest_bytes`            | Bytes of input to one `crypto.subtle.digest` call, or to one `node:crypto` hash or HMAC                                                   |
 | `rsa_modulus_bits`        | Modulus length of each RSA key `crypto.subtle.generateKey` creates, which bounds the time generation takes                                |
 | `pbkdf2_iterations`       | Iterations of each PBKDF2 derivation in `crypto.subtle` or `node:crypto`                                                                  |
@@ -28,6 +28,7 @@ services, concurrency and the process's total capacity.
 | `compression_streams`     | `CompressionStream` and `DecompressionStream` instances open at once in an invocation                                                     |
 | `decompressed_bytes`      | Bytes one `DecompressionStream` produces, which bounds highly compressed input                                                            |
 | `subrequests`             | Host fetches an invocation attempts to start; failed and aborted attempts still count                                                     |
+| `function_calls`          | Calls of `Functions` methods an invocation makes, sync and async; failed calls still count                                                |
 | `redirects`               | Redirects one fetch follows, within the Fetch specification's limit                                                                       |
 | `background_timeout`      | Cooperative elapsed time of `fetchlet.waitUntil` work, counted from the end of the result or body                                         |
 | `background_tasks`        | `fetchlet.waitUntil` registrations per invocation, completed ones included                                                                |

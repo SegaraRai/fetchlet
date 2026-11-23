@@ -619,3 +619,70 @@ fn background_work_is_counted_per_invocation_within_its_budget() {
     bridge.register_background().unwrap();
     assert!(scope.has_background());
 }
+
+fn function_bridge() -> HostBridge {
+    let functions = crate::Functions::new()
+        .method("later", |_| async { Ok(json!("later")) })
+        .sync_method("now", |_| Ok(json!("now")));
+    HostBridge::new(HostServices::new().functions("FN", functions).unwrap())
+}
+
+fn function_call(method: &str) -> String {
+    json!({ "binding": "FN", "method": method, "args": [] }).to_string()
+}
+
+#[test]
+fn function_calls_reach_only_bound_methods_of_their_kind() {
+    let bridge = function_bridge();
+    let _scope = bridge.begin(Limits::default()).unwrap();
+    let call = |operation: &str, method: &str| -> Value {
+        serde_json::from_str(&bridge.dispatch(operation.into(), function_call(method))).unwrap()
+    };
+
+    assert_eq!(
+        call("function.call", "now"),
+        json!({ "ok": true, "value": { "ok": true, "value": "now" } })
+    );
+    assert_eq!(
+        call("function.call", "absent")["error"]["code"],
+        "PERMISSION_DENIED"
+    );
+    // A sync method cannot start, nor an async method run at once.
+    assert_eq!(
+        call("function.start", "now")["error"]["code"],
+        "INVALID_REQUEST"
+    );
+    assert_eq!(
+        call("function.call", "later")["error"]["code"],
+        "INVALID_REQUEST"
+    );
+    let unknown = json!({ "binding": "OTHER", "method": "now", "args": [] }).to_string();
+    let reply: Value =
+        serde_json::from_str(&bridge.dispatch("function.call".into(), unknown)).unwrap();
+    assert_eq!(reply["error"]["code"], "PERMISSION_DENIED");
+}
+
+#[test]
+fn an_async_call_completes_in_the_poll_and_keeps_the_invocation_pending() {
+    let bridge = function_bridge();
+    let scope = bridge.begin(Limits::default()).unwrap();
+    let ticket = bridge
+        .dispatch_operation("function.start", &function_call("later"))
+        .unwrap();
+    assert!(scope.has_pending());
+    let completions = bridge.poll_fetches().unwrap();
+    assert_eq!(
+        completions,
+        json!([{ "id": ticket, "result": { "ok": true, "value": "later" } }])
+    );
+    assert!(!scope.has_pending());
+}
+
+#[test]
+fn function_calls_require_an_active_invocation() {
+    let bridge = function_bridge();
+    assert!(matches!(
+        bridge.dispatch_operation("function.call", &function_call("now")),
+        Err(Error::InvocationClosed)
+    ));
+}

@@ -488,6 +488,63 @@
 			}
 		}), request.signal);
 	}
+	// js-src/host-bridge/functions.ts
+	const pendingCalls = /* @__PURE__ */ new Map();
+	function hasPendingCalls() {
+		return pendingCalls.size > 0;
+	}
+	function functionError(error, binding, method) {
+		switch (error.kind) {
+			case "arguments": return /* @__PURE__ */ new TypeError(`Invalid arguments for ${binding}.${method}`);
+			case "application": {
+				const failure = new Error(error.message);
+				if (error.code !== null) failure.code = error.code;
+				return failure;
+			}
+			default: return hostError({
+				code: error.code ?? "TRANSPORT",
+				message: error.message
+			});
+		}
+	}
+	function settle(outcome, binding, method) {
+		if (outcome.ok) return outcome.value;
+		throw functionError(outcome.error, binding, method);
+	}
+	/** Settle the call a completion belongs to; false if it is not a call. */
+	function completeCall(completion) {
+		const pending = pendingCalls.get(completion.id);
+		if (!pending) return false;
+		pendingCalls.delete(completion.id);
+		try {
+			pending.resolve(settle(completion.result, pending.binding, pending.method));
+		} catch (error) {
+			pending.reject(error);
+		}
+		return true;
+	}
+	/** The env value of a function binding. */
+	function functionBinding(binding, methods) {
+		const target = Object.create(null);
+		for (const [method, kind] of Object.entries(methods)) target[method] = kind === "sync" ? (...args) => settle(dispatch("function.call", {
+			binding,
+			method,
+			args
+		}), binding, method) : (...args) => new Promise((resolve, reject) => {
+			const ticket = dispatch("function.start", {
+				binding,
+				method,
+				args
+			});
+			pendingCalls.set(ticket, {
+				binding,
+				method,
+				resolve,
+				reject
+			});
+		});
+		return Object.freeze(target);
+	}
 	// js-src/host-bridge/response-bodies.ts
 	const responseBodies = /* @__PURE__ */ new Map();
 	let nextResponseBody = 1;
@@ -716,11 +773,11 @@
 	/** Returns how many host events it delivered. */
 	function pumpHostOperations() {
 		const progress = abortIfDisconnected() ? 1 : 0;
-		if (!hasPendingFetches() && !hasPendingReads() && !hasOpenChannels()) return progress;
+		if (!hasPendingFetches() && !hasPendingReads() && !hasPendingCalls() && !hasOpenChannels()) return progress;
 		const completions = dispatch("fetch.poll", null);
 		for (const completion of completions) {
 			if (completeChannel(completion)) continue;
-			if (!completeRead(completion)) completeFetch(completion);
+			if (!completeRead(completion) && !completeCall(completion)) completeFetch(completion);
 		}
 		return completions.length + progress;
 	}
@@ -777,6 +834,7 @@
 		if (!views) throw new TypeError("Channels need the fetchlet Web API profile");
 		return views.connect(channelName, options);
 	} });
+	for (const [functionsName, methods] of Object.entries(bindings.functions)) env[functionsName] = functionBinding(functionsName, methods);
 	Object.defineProperty(globalThis, "fetchlet", {
 		value: Object.freeze({
 			env: Object.freeze(env),

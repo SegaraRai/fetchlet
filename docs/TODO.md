@@ -188,6 +188,14 @@ The trusted `Context` reaches host fetches made during `fetch`. `App::call`
 and `call_json` have no way to pass one; add an entry point and cover it in
 `crates/fetchlet/tests/in_process.rs`.
 
+### Bytes and channels in function bindings
+
+`Functions` methods take and return JSON. Byte arrays and channels in their
+arguments and results would travel on the handle table, as a body buffer
+and a lent channel do: the bridge lists the positions of its own values
+beside the JSON. Add them when a binding needs to pass binary data without
+encoding it, or to hand JavaScript a channel.
+
 ### Values beyond JSON
 
 `Call` lends channels to a function call at JSON Pointer positions of its

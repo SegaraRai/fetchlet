@@ -4,6 +4,7 @@ use std::sync::Arc;
 use super::FetchService;
 use super::channel::ChannelService;
 use super::console::{ConsoleLevel, ConsoleSink};
+use super::function::Functions;
 use super::socket::SocketService;
 use super::websocket::WebSocketService;
 use crate::{Error, Result};
@@ -17,6 +18,7 @@ pub struct HostServices {
     pub(crate) sockets: Option<SocketService>,
     pub(crate) websockets: Option<WebSocketService>,
     pub(crate) env: BTreeMap<String, String>,
+    pub(crate) functions: BTreeMap<String, Functions>,
     pub(crate) console: Option<ConsoleSink>,
 }
 
@@ -67,12 +69,24 @@ impl HostServices {
         Ok(self)
     }
 
-    /// `name`, if no binding has it yet: env values, services and channels
-    /// share one namespace.
+    /// Bind Rust functions under `name` in `env`. JavaScript calls each
+    /// method as `env.NAME.method(...args)`; see [`Functions`] for how
+    /// arguments, results and errors cross. A method named `then`, or one
+    /// added twice, fails with `Configuration`.
+    pub fn functions(mut self, name: impl Into<String>, functions: Functions) -> Result<Self> {
+        functions.validate()?;
+        let name = self.unbound(name.into())?;
+        self.functions.insert(name, functions);
+        Ok(self)
+    }
+
+    /// `name`, if no binding has it yet: env values, services, channels and
+    /// functions share one namespace.
     fn unbound(&self, name: String) -> Result<String> {
         if self.services.contains_key(&name)
             || self.env.contains_key(&name)
             || self.channels.contains_key(&name)
+            || self.functions.contains_key(&name)
         {
             return Err(Error::Configuration("duplicate binding".into()));
         }

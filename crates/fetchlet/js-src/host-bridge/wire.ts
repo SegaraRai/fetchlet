@@ -6,6 +6,20 @@ export interface Bindings {
   env: Record<string, unknown>;
   services: string[];
   channels: string[];
+  functions: Record<string, FunctionMethods>;
+}
+
+/** The methods of a function binding, and whether each is sync or async. */
+export type FunctionMethods = Record<string, "sync" | "async">;
+
+/**
+ * Why a function call failed: Rust could not read its arguments, the method
+ * returned an application error, or, without a kind, a host error.
+ */
+export interface FunctionErrorDescription {
+  kind?: "arguments" | "application";
+  code: string | null;
+  message: string;
 }
 
 /** Budgets as decimal strings, since they may exceed a double; null is none. */
@@ -58,7 +72,7 @@ export interface LentChannel {
   channel: number;
 }
 
-/** A finished fetch or body read, by the ticket its start returned. */
+/** A finished fetch, body read or async function call, by the ticket its start returned. */
 export interface Completion {
   id: number;
   result: HostReply<unknown>;
