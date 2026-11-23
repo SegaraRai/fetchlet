@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 use super::body_source::{BodyRead, BodySource};
 use super::channels::{GuestClose, GuestMessage, GuestPause, GuestWrite};
 use super::clock::Clock;
-use super::functions::{self, CallMessage, PendingCalls};
+use super::functions::{self, CallMessage, PendingCalls, Resources};
 use super::handles::{Handles, Resource};
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
@@ -659,6 +659,8 @@ impl HostBridge {
 
             let message: CallMessage = serde_json::from_str(input)
                 .map_err(|_| Error::InvalidRequest("invalid function call".into()))?;
+            let (args, bytes) =
+                functions::arguments(message.args, message.bytes, &mut invocation.bytes)?;
             let method = self
                 .services
                 .functions
@@ -668,8 +670,10 @@ impl HostBridge {
                 .ok_or(Error::PermissionDenied)?;
             let request = FunctionRequest::new(
                 message.method,
-                Value::Array(message.args),
+                args,
+                bytes,
                 invocation.context.clone(),
+                invocation.limits.clone(),
             );
             (method, request, invocation.limits.bridge_message_bytes)
         };
@@ -682,7 +686,18 @@ impl HostBridge {
         match (method, start) {
             (Method::Sync(method), false) => {
                 let result = functions::run_sync(|| method(request));
-                Ok(functions::outcome(result, result_bytes))
+                drop(runtime);
+                drop(running);
+                let mut state = self.lock_state()?;
+                let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+                let mut resources = Resources {
+                    bytes: &mut invocation.bytes,
+                    handles: &mut invocation.handles,
+                };
+                let outcome = functions::outcome(result, result_bytes, &mut resources);
+                // A channel in the result opens at the next poll.
+                self.wake.notify();
+                Ok(outcome)
             }
             (Method::Async(method), true) => {
                 let future = functions::start_async(|| method(request));
@@ -748,6 +763,10 @@ impl HostBridge {
         pending_calls.poll(
             &mut context,
             limits.bridge_message_bytes,
+            &mut Resources {
+                bytes: &mut *bridge_bytes.bytes,
+                handles: &mut *bridge_bytes.handles,
+            },
             &mut finished_calls,
         );
         completed.extend(

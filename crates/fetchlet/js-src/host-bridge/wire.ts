@@ -9,6 +9,30 @@ export interface Bindings {
   functions: Record<string, FunctionMethods>;
 }
 
+/** A byte array or channel at its path in a value, by its handle. */
+export interface PlacedBytes {
+  path: string[];
+  handle: number;
+}
+
+export interface PlacedChannel {
+  path: string[];
+  channel: number;
+}
+
+/** How a function call settled: its value with the resources Rust placed in it, or why it failed. */
+export type FunctionOutcome =
+  | {
+      ok: true;
+      value: unknown;
+      bytes: PlacedBytes[];
+      channels: PlacedChannel[];
+    }
+  | {
+      ok: false;
+      error: FunctionErrorDescription;
+    };
+
 /** The methods of a function binding, and whether each is sync or async. */
 export type FunctionMethods = Record<string, "sync" | "async">;
 

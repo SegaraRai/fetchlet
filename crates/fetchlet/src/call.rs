@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use crate::host::{GuestEnd, pair};
-use crate::{ChannelEnd, Error, Limits, Result};
+use crate::{ChannelEnd, Limits, Result, pointer};
 
 /// A call of an exported function whose arguments are JSON values and
 /// channels Rust lends to it.
@@ -92,28 +92,20 @@ impl Call {
     /// `InvalidRequest` for a pointer that names no value, the list itself,
     /// or a position inside or around another lent channel.
     pub fn channel_at(&mut self, pointer: &str, limits: &Limits) -> Result<ChannelEnd> {
-        let path = parse_pointer(pointer)?;
-        let overlaps = self.lent.iter().any(|lent| {
-            let shorter = lent.path.len().min(path.len());
-            lent.path[..shorter] == path[..shorter]
-        });
-        if overlaps {
-            return Err(invalid("the pointer overlaps another lent channel"));
+        let path = pointer::parse(pointer)?;
+        if pointer::overlaps(self.lent.iter().map(|lent| lent.path.as_slice()), &path) {
+            return Err(pointer::invalid(
+                "the pointer overlaps another lent channel",
+            ));
         }
         let mut list = Value::Array(std::mem::take(&mut self.arguments));
-        let found = match list.pointer_mut(pointer) {
-            Some(value) if !path.is_empty() => {
-                *value = Value::Null;
-                true
-            }
-            _ => false,
-        };
+        let found = !path.is_empty() && pointer::clear(&mut list, &path);
         let Value::Array(arguments) = list else {
             unreachable!("the argument list stays an array");
         };
         self.arguments = arguments;
         if !found {
-            return Err(invalid("the pointer names no argument value"));
+            return Err(pointer::invalid("the pointer names no argument value"));
         }
         Ok(self.lend(path, limits))
     }
@@ -137,29 +129,12 @@ impl Call {
     }
 }
 
-/// The reference tokens of a JSON Pointer (RFC 6901).
-fn parse_pointer(pointer: &str) -> Result<Vec<String>> {
-    if pointer.is_empty() {
-        return Ok(Vec::new());
-    }
-    let Some(tokens) = pointer.strip_prefix('/') else {
-        return Err(invalid("a JSON Pointer starts with /"));
-    };
-    Ok(tokens
-        .split('/')
-        .map(|token| token.replace("~1", "/").replace("~0", "~"))
-        .collect())
-}
-
-fn invalid(message: &str) -> Error {
-    Error::InvalidRequest(message.into())
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
 
     use super::*;
+    use crate::Error;
 
     #[test]
     fn channels_take_their_positions() {

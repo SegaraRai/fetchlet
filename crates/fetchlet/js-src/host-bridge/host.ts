@@ -21,7 +21,12 @@ export function hostError(description: HostErrorDescription): Error {
 }
 
 export function dispatch<T = unknown>(operation: string, input: unknown): T {
-  const reply = JSON.parse(nativeDispatch(operation, JSON.stringify(input))) as HostReply<T>;
+  return dispatchJson<T>(operation, JSON.stringify(input));
+}
+
+/** Dispatch an input already encoded as JSON. */
+export function dispatchJson<T = unknown>(operation: string, input: string): T {
+  const reply = JSON.parse(nativeDispatch(operation, input)) as HostReply<T>;
   if (!reply.ok) {
     throw hostError(reply.error);
   }

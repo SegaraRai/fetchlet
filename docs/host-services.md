@@ -359,6 +359,42 @@ and a name added twice fail with `Configuration` when bound.
   the array. A result is any JSON value. Both directions are bridge
   messages, so `Limits::bridge_message_bytes` bounds each; a result over it
   fails the call with `LIMIT_EXCEEDED`.
+- **Byte arrays.** An `ArrayBuffer` or view, such as a `Uint8Array` or a
+  Node `Buffer`, anywhere in the arguments crosses as its bytes, copied
+  once and never encoded as JSON. `args` reads it where it was passed into
+  `Vec<u8>`, `bytes::Bytes` with its `serde` feature, or another type that
+  deserializes from bytes; `raw_args` shows `null` there. The byte arrays
+  of one call travel as one buffer, which `bridge_message_bytes` bounds.
+  A method returns bytes as its whole result with `Bytes` or `Vec<u8>`, or
+  places them inside a JSON value with `FunctionResponse::bytes_at`, and
+  JavaScript receives each as a `Uint8Array`.
+- **Channels.** `FunctionResponse::channel_at(pointer, request.limits())`
+  lends a channel at a position of the result and returns Rust's
+  `ChannelEnd`, as `Call::channel_at` does for an export's arguments.
+  JavaScript receives a channel object with `opened`, `closed`, `socket()`
+  and `stream()`; it belongs to the invocation, closes when the invocation
+  ends with 1006 if neither side closed it, and does not count against
+  `open_channels`. The objects come from the Web API profile; without it
+  the call throws a `TypeError`.
+
+```rust,ignore
+use fetchlet::{FunctionRequest, FunctionResponse, Functions};
+
+let events = Functions::new().method("subscribe", |request: FunctionRequest| async move {
+    let (topic,): (String,) = request.args()?;
+    let mut response = FunctionResponse::new(json!({ "topic": topic, "events": null }));
+    let end = response.channel_at("/events", request.limits())?;
+    tokio::spawn(publish(topic, end));
+    Ok(response)
+});
+```
+
+```js
+const { events } = await fetchlet.env.EVENTS.subscribe("news");
+const socket = events.socket();
+socket.addEventListener("message", (event) => console.log(event.data));
+```
+
 - **Errors.** Arguments that `args` cannot deserialize throw a `TypeError`
   naming the binding and method, such as `Invalid arguments for DB.query`;
   serde's detail stays in Rust. `FunctionError::new(message)` arrives as an
@@ -381,6 +417,10 @@ and a name added twice fail with `Configuration` when bound.
   `AppHandle` fails with `Error::Reentrant`, as a host fetch does.
 - **Budget.** `Limits::function_calls` bounds the calls of one invocation,
   sync and async, failed ones included.
+
+A method returns any type that converts into `FunctionResponse`, such as
+`Value`, `Bytes` or `Vec<u8>`; one whose body only fails names the type, as
+in `Err::<Value, _>(error)`.
 
 `crates/fetchlet/tests/functions.rs` checks the contract on all three
 engines.

@@ -55,14 +55,18 @@ declare module "fetchlet/bindings" {
 `env.DB` calls Rust functions directly
 ([function bindings](../../../docs/host-services.md#function-bindings)).
 A method Rust adds as async returns a Promise; a sync method returns its
-result. Arguments cross as `JSON.stringify` encodes them and results are
-JSON. Arguments Rust cannot read as the method's types throw a `TypeError`
-naming the method, and an error the method returns arrives as an `Error`
-with its message and `code`:
+result. Arguments cross as `JSON.stringify` encodes them, except that an
+`ArrayBuffer` or view, such as a `Uint8Array`, crosses as its bytes;
+results are JSON, with byte arrays Rust places in them as `Uint8Array`s
+and channels as `HostChannel`s that belong to the invocation. Arguments
+Rust cannot read as the method's types throw a `TypeError` naming the
+method, and an error the method returns arrives as an `Error` with its
+message and `code`:
 
 ```ts
 const rows = await env.DB.query("select id from users where name = ?", [name]);
 const quoted = env.DB.escape(name);
+const thumbnail: Uint8Array = await env.IMAGES.resize(await file.bytes(), 128);
 ```
 
 `env.PROGRESS.connect(options)` opens a channel of the Rust service, which

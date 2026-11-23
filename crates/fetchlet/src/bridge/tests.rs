@@ -635,7 +635,10 @@ fn function_calls_reach_only_bound_methods_of_their_kind() {
 
     assert_eq!(
         call("function.call", "now"),
-        json!({ "ok": true, "value": { "ok": true, "value": "now" } })
+        json!({
+            "ok": true,
+            "value": { "ok": true, "value": "now", "bytes": [], "channels": [] },
+        })
     );
     assert_eq!(
         call("function.call", "absent")["error"]["code"],
@@ -667,7 +670,10 @@ fn an_async_call_completes_in_the_poll_and_keeps_the_invocation_pending() {
     let completions = bridge.poll_host().unwrap();
     assert_eq!(
         completions,
-        json!([{ "id": ticket, "result": { "ok": true, "value": "later" } }])
+        json!([{
+            "id": ticket,
+            "result": { "ok": true, "value": "later", "bytes": [], "channels": [] },
+        }])
     );
     assert!(!scope.has_pending());
 }

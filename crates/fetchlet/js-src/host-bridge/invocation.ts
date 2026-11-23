@@ -4,6 +4,7 @@ import { backgroundRegistry } from "./background.ts";
 import { channelRegistry } from "./channels.ts";
 import { hostBodyStream } from "./host-bodies.ts";
 import { dispatch, putBytes, takeBytes } from "./host.ts";
+import { lentChannel, placeAt } from "./places.ts";
 import { responseBodyRegistry } from "./response-bodies.ts";
 import type { InvocationRequest, InvocationResult, LentChannel } from "./wire.ts";
 
@@ -40,30 +41,11 @@ function clearInvocation(): void {
 
 /** Put each channel Rust lent to the call at its place in the arguments. */
 function placeLentChannels(argumentsList: unknown[], lent: LentChannel[]): void {
-  if (lent.length === 0) {
-    return;
-  }
-  const views = globalThis.__fetchletChannelViews;
-  if (!views?.lend) {
-    throw new TypeError("Channels need the fetchlet Web API profile");
-  }
   for (const { path, channel } of lent) {
-    // Rust checked that each path names a value of the JSON arguments.
-    const key = path[path.length - 1];
-    if (key === undefined) {
+    if (path.length === 0) {
       throw new TypeError("A lent channel needs a place in the arguments");
     }
-    let parent = argumentsList as unknown as Record<string, unknown>;
-    for (const token of path.slice(0, -1)) {
-      parent = parent[token] as Record<string, unknown>;
-    }
-    // A data property, even for a key such as "__proto__".
-    Object.defineProperty(parent, key, {
-      value: views.lend(channel),
-      writable: true,
-      enumerable: true,
-      configurable: true,
-    });
+    placeAt(argumentsList, path, lentChannel(channel));
   }
 }
 

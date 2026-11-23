@@ -14,7 +14,11 @@
 		return error;
 	}
 	function dispatch(operation, input) {
-		const reply = JSON.parse(nativeDispatch(operation, JSON.stringify(input)));
+		return dispatchJson(operation, JSON.stringify(input));
+	}
+	/** Dispatch an input already encoded as JSON. */
+	function dispatchJson(operation, input) {
+		const reply = JSON.parse(nativeDispatch(operation, input));
 		if (!reply.ok) throw hostError(reply.error);
 		return reply.value;
 	}
@@ -488,6 +492,27 @@
 			}
 		}), request.signal);
 	}
+	// js-src/host-bridge/places.ts
+	/** Put `item` at `path` in `root`, returning the new root. */
+	function placeAt(root, path, item) {
+		const key = path[path.length - 1];
+		if (key === void 0) return item;
+		let parent = root;
+		for (const token of path.slice(0, -1)) parent = parent[token];
+		Object.defineProperty(parent, key, {
+			value: item,
+			writable: true,
+			enumerable: true,
+			configurable: true
+		});
+		return root;
+	}
+	/** The channel object of a channel Rust lent, built by the Web API profile. */
+	function lentChannel(channel) {
+		const views = globalThis.__fetchletChannelViews;
+		if (!views?.lend) throw new TypeError("Channels need the fetchlet Web API profile");
+		return views.lend(channel);
+	}
 	// js-src/host-bridge/functions.ts
 	const pendingCalls = /* @__PURE__ */ new Map();
 	function hasPendingCalls() {
@@ -507,9 +532,17 @@
 			});
 		}
 	}
+	/** The call's value, with the byte arrays and channels Rust placed in it. */
 	function settle(outcome, binding, method) {
-		if (outcome.ok) return outcome.value;
-		throw functionError(outcome.error, binding, method);
+		if (!outcome.ok) throw functionError(outcome.error, binding, method);
+		const bytes = outcome.bytes.map(({ path, handle }) => ({
+			path,
+			item: takeBytes(handle)
+		}));
+		let value = outcome.value;
+		for (const { path, item } of bytes) value = placeAt(value, path, item);
+		for (const { path, channel } of outcome.channels) value = placeAt(value, path, lentChannel(channel));
+		return value;
 	}
 	/** Settle the call a completion belongs to; false if it is not a call. */
 	function completeCall(completion) {
@@ -523,19 +556,58 @@
 		}
 		return true;
 	}
+	function isBinary(value) {
+		return ArrayBuffer.isView(value) || value instanceof ArrayBuffer;
+	}
+	/**
+	* The call message. Arguments cross as JSON.stringify encodes them, so
+	* undefined becomes null and a value it cannot encode, such as a BigInt,
+	* throws its TypeError; each ArrayBuffer or view becomes null instead, and
+	* its bytes travel in one buffer of the byte store, cut into parts by path.
+	*/
+	function callMessage(binding, method, args) {
+		const parts = [];
+		const paths = /* @__PURE__ */ new WeakMap();
+		const json = JSON.stringify(args, function(key, value) {
+			const holder = this;
+			const parent = paths.get(holder);
+			const path = parent === void 0 ? [] : [...parent, key];
+			const raw = holder[key];
+			if (path.length > 0 && isBinary(raw)) {
+				const bytes = ArrayBuffer.isView(raw) ? new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength) : new Uint8Array(raw);
+				parts.push({
+					path,
+					bytes
+				});
+				return null;
+			}
+			if (typeof value === "object" && value !== null) paths.set(value, path);
+			return value;
+		});
+		let message = `{"binding":${JSON.stringify(binding)},"method":${JSON.stringify(method)},"args":${json}`;
+		if (parts.length > 0) {
+			const buffer = new Uint8Array(parts.reduce((total, part) => total + part.bytes.byteLength, 0));
+			let offset = 0;
+			for (const part of parts) {
+				buffer.set(part.bytes, offset);
+				offset += part.bytes.byteLength;
+			}
+			const layout = parts.map((part) => ({
+				path: part.path,
+				length: part.bytes.byteLength
+			}));
+			message += `,"bytes":${JSON.stringify({
+				handle: putBytes(buffer),
+				parts: layout
+			})}`;
+		}
+		return `${message}}`;
+	}
 	/** The env value of a function binding. */
 	function functionBinding(binding, methods) {
 		const target = Object.create(null);
-		for (const [method, kind] of Object.entries(methods)) target[method] = kind === "sync" ? (...args) => settle(dispatch("function.call", {
-			binding,
-			method,
-			args
-		}), binding, method) : (...args) => new Promise((resolve, reject) => {
-			const ticket = dispatch("function.start", {
-				binding,
-				method,
-				args
-			});
+		for (const [method, kind] of Object.entries(methods)) target[method] = kind === "sync" ? (...args) => settle(dispatchJson("function.call", callMessage(binding, method, args)), binding, method) : (...args) => new Promise((resolve, reject) => {
+			const ticket = dispatchJson("function.start", callMessage(binding, method, args));
 			pendingCalls.set(ticket, {
 				binding,
 				method,
@@ -675,20 +747,9 @@
 	}
 	/** Put each channel Rust lent to the call at its place in the arguments. */
 	function placeLentChannels(argumentsList, lent) {
-		if (lent.length === 0) return;
-		const views = globalThis.__fetchletChannelViews;
-		if (!views?.lend) throw new TypeError("Channels need the fetchlet Web API profile");
 		for (const { path, channel } of lent) {
-			const key = path[path.length - 1];
-			if (key === void 0) throw new TypeError("A lent channel needs a place in the arguments");
-			let parent = argumentsList;
-			for (const token of path.slice(0, -1)) parent = parent[token];
-			Object.defineProperty(parent, key, {
-				value: views.lend(channel),
-				writable: true,
-				enumerable: true,
-				configurable: true
-			});
+			if (path.length === 0) throw new TypeError("A lent channel needs a place in the arguments");
+			placeAt(argumentsList, path, lentChannel(channel));
 		}
 	}
 	async function invokeExport(exportName, argumentsList, streamResponseBody, lent = []) {

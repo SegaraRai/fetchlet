@@ -188,13 +188,15 @@ The trusted `Context` reaches host fetches made during `fetch`. `App::call`
 and `call_json` have no way to pass one; add an entry point and cover it in
 `crates/fetchlet/tests/in_process.rs`.
 
-### Bytes and channels in function bindings
+### Channels in function arguments
 
-`Functions` methods take and return JSON. Byte arrays and channels in their
-arguments and results would travel on the handle table, as a body buffer
-and a lent channel do: the bridge lists the positions of its own values
-beside the JSON. Add them when a binding needs to pass binary data without
-encoding it, or to hand JavaScript a channel.
+`Functions` methods take byte arrays in their arguments and return byte
+arrays and channels, but JavaScript cannot pass a channel it holds to a
+method. Moving one to Rust needs a relay in the handle table between
+JavaScript's end and a new `ChannelEnd`, and rules for sockets, whose ends
+also carry `startTls` and the end of writes, and for an accepted upgrade.
+Add it when a binding needs to take over a channel, such as a WebSocket
+the handler accepted.
 
 ### Values beyond JSON
 

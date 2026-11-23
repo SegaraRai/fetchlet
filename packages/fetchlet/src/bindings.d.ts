@@ -17,7 +17,10 @@ export interface ServiceBinding {
  * Rust functions bound with `HostServices::functions`, as an object of
  * their methods. Declare each method as Rust implements it: one added with
  * `sync_method` returns its result, one added with `method` a Promise of it.
- * Arguments cross as `JSON.stringify` encodes them, and results are JSON.
+ * Arguments cross as `JSON.stringify` encodes them, except that an
+ * `ArrayBuffer` or view crosses as its bytes. Results are JSON, with each
+ * byte array Rust places in them as a `Uint8Array` and each channel as a
+ * `HostChannel`.
  */
 export type FunctionBinding<Methods extends { [name: string]: (...args: never[]) => unknown }> =
   Readonly<Methods>;

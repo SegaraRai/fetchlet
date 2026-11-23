@@ -6,6 +6,7 @@ mod error;
 mod execution;
 mod fetch;
 mod host;
+mod pointer;
 mod reentry;
 mod wire;
 mod worker;
@@ -31,10 +32,11 @@ pub use fetch::{Body, FetchApp, Request, Response};
 pub use host::{
     ChannelEnd, ChannelEvent, ChannelFuture, ChannelRequest, ChannelService, CloseFrame,
     ConsoleLevel, Context, FetchPolicy, FetchService, FetchTransport, FunctionError,
-    FunctionFuture, FunctionRequest, Functions, HostServices, Message, OriginRouter,
-    SecureTransport, ServerWebSocket, SocketAddress, SocketPolicy, SocketRequest, SocketService,
-    SocketTransport, TransportFuture, WebSocketAccept, WebSocketFuture, WebSocketRequest,
-    WebSocketService, WebSocketTransport, channel_fn, socket_fn, transport_fn, websocket_fn,
+    FunctionFuture, FunctionRequest, FunctionResponse, Functions, HostServices, Message,
+    OriginRouter, SecureTransport, ServerWebSocket, SocketAddress, SocketPolicy, SocketRequest,
+    SocketService, SocketTransport, TransportFuture, WebSocketAccept, WebSocketFuture,
+    WebSocketRequest, WebSocketService, WebSocketTransport, channel_fn, socket_fn, transport_fn,
+    websocket_fn,
 };
 pub use http;
 pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, WorkerOptions};

@@ -1,19 +1,23 @@
 #![cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 
 //! Function bindings: JavaScript calls Rust functions as the methods of
-//! `env.NAME`, sync or async, with JSON arguments and results.
+//! `env.NAME`, sync or async, with JSON arguments and results that carry
+//! byte arrays, and channels in results.
 
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
+use bytes::Bytes;
 use futures_util::FutureExt;
+use serde::Deserialize;
 use serde_json::{Value, json};
 
 use fetchlet::{
-    App, AppHandle, Backend, Body, Context, Error, FunctionError, FunctionRequest, Functions,
-    HostServices, Limits, Module, WorkerOptions, http,
+    App, AppHandle, Backend, Body, ChannelEnd, ChannelEvent, CloseFrame, Context, Error,
+    FunctionError, FunctionRequest, FunctionResponse, Functions, HostServices, Limits, Message,
+    Module, WorkerOptions, http,
 };
 
 const SOURCE: &str = include_str!("fixtures/functions.js");
@@ -46,11 +50,39 @@ impl Drop for Dropped {
 struct State {
     dropped: Arc<AtomicUsize>,
     handle: OnceLock<AppHandle>,
+    /// Rust's end of the channel `hold` returned.
+    held: Mutex<Option<ChannelEnd>>,
+}
+
+/// A method body that panics.
+fn panics(message: &str) -> Result<Value, FunctionError> {
+    panic!("{message}")
+}
+
+/// The second argument of `parts`.
+#[derive(Deserialize)]
+struct Parts {
+    nested: Vec<u8>,
+    list: (Bytes, String),
+}
+
+/// Two events, then an answer to what JavaScript sends, then a close.
+async fn events(mut end: ChannelEnd) {
+    for index in 1..=2 {
+        if end.send(format!("event {index}")).await.is_err() {
+            return;
+        }
+    }
+    if let Some(ChannelEvent::Message(Message::Text(text))) = end.recv().await {
+        let _ = end.send(format!("got {text}")).await;
+    }
+    end.close(CloseFrame::new(CloseFrame::NORMAL, "done"));
 }
 
 fn functions(state: Arc<State>) -> Functions {
     let forever = state.clone();
     let reenter = state.clone();
+    let hold = state.clone();
     Functions::new()
         .method("add", |request: FunctionRequest| async move {
             let (left, right): (i64, i64) = request.args()?;
@@ -68,16 +100,18 @@ fn functions(state: Arc<State>) -> Functions {
         .sync_method("nothing", |_| Ok(Value::Null))
         .sync_method("method", |request| Ok(json!(request.method())))
         .method("find", |_| async {
-            Err(FunctionError::new("no such user").code("NOT_FOUND"))
+            Err::<Value, _>(FunctionError::new("no such user").code("NOT_FOUND"))
         })
-        .sync_method("fail", |_| Err(FunctionError::new("plain failure")))
+        .sync_method("fail", |_| {
+            Err::<Value, _>(FunctionError::new("plain failure"))
+        })
         .method("denied", |_| async {
             Err::<Value, _>(Error::PermissionDenied)?;
             Ok(Value::Null)
         })
-        .sync_method("panics", |_| panic!("a sync method panicked"))
+        .sync_method("panics", |_| panics("a sync method panicked"))
         .method("panicsLater", |_| async {
-            panic!("an async method panicked")
+            panics("an async method panicked")
         })
         .method("large", |_| async { Ok(json!("x".repeat(100_000))) })
         .method("forever", move |_| {
@@ -106,6 +140,56 @@ fn functions(state: Arc<State>) -> Functions {
                 .now_or_never()
                 .expect("a refusal at once");
             Ok(refused?)
+        })
+        .sync_method("parts", |request| {
+            let (first, rest): (Vec<u8>, Parts) = request.args()?;
+            Ok(json!({
+                "first": first,
+                "nested": rest.nested,
+                "buffer": rest.list.0.to_vec(),
+                "text": rest.list.1,
+            }))
+        })
+        .method("sum", |request| async move {
+            let (bytes,): (Bytes,) = request.args()?;
+            Ok(json!(
+                bytes.iter().map(|byte| u32::from(*byte)).sum::<u32>()
+            ))
+        })
+        .method("reverse", |request| async move {
+            let (mut bytes,): (Vec<u8>,) = request.args()?;
+            bytes.reverse();
+            Ok(bytes)
+        })
+        .sync_method("packet", |_| {
+            let mut response =
+                FunctionResponse::new(json!({ "header": "h", "body": null, "trailer": [1, null] }));
+            response
+                .bytes_at("/body", b"body".to_vec())?
+                .bytes_at("/trailer/1", Bytes::from_static(b"t"))?;
+            Ok(response)
+        })
+        .method("subscribe", |request| async move {
+            let (topic,): (String,) = request.args()?;
+            let mut response = FunctionResponse::new(json!({ "topic": topic, "events": null }));
+            let end = response.channel_at("/events", request.limits())?;
+            tokio::spawn(events(end));
+            Ok(response)
+        })
+        .sync_method("open", |request| {
+            let mut response = FunctionResponse::new(Value::Null);
+            let mut end = response.channel_at("", request.limits())?;
+            end.close(CloseFrame::new(CloseFrame::NORMAL, "bye"));
+            Ok(response)
+        })
+        .method("hold", move |request| {
+            let state = hold.clone();
+            async move {
+                let mut response = FunctionResponse::new(Value::Null);
+                let end = response.channel_at("", request.limits())?;
+                *state.held.lock().unwrap() = Some(end);
+                Ok(response)
+            }
         })
         .method("whoami", |request| async move {
             let caller = request
@@ -151,8 +235,9 @@ async fn the_binding_is_a_frozen_object_of_its_methods() -> anyhow::Result<()> {
             json!({
                 "keys": [
                     "add", "denied", "echo", "echoSync", "escape", "fail", "find", "forever",
-                    "large", "method", "nothing", "panics", "panicsLater", "reenter",
-                    "reenterSync", "whoami",
+                    "hold", "large", "method", "nothing", "open", "packet", "panics",
+                    "panicsLater", "parts", "reenter", "reenterSync", "reverse", "subscribe",
+                    "sum", "whoami",
                 ],
                 "frozen": true,
                 "prototype": true,
@@ -189,14 +274,6 @@ async fn failures_reach_javascript_as_errors() -> anyhow::Result<()> {
     for backend in backends() {
         let (mut app, _) = app(backend, limits())?;
         let errors = app.call_json("errors", &[]).await?;
-        let invalid = |method: &str| {
-            json!({
-                "name": "TypeError",
-                "message": format!("Invalid arguments for DB.{method}"),
-                "code": null,
-                "type": true,
-            })
-        };
         let host = |code: &str, message: &str| json!({ "name": "FetchletHostError", "message": message, "code": code, "type": false });
         assert_eq!(
             errors["application"],
@@ -231,6 +308,85 @@ async fn failures_reach_javascript_as_errors() -> anyhow::Result<()> {
         );
         // The instance stays usable after a method panicked.
         assert_eq!(app.call_json("ping", &[]).await?, "pong");
+    }
+    Ok(())
+}
+
+fn invalid(method: &str) -> Value {
+    json!({
+        "name": "TypeError",
+        "message": format!("Invalid arguments for DB.{method}"),
+        "code": null,
+        "type": true,
+    })
+}
+
+#[tokio::test]
+async fn byte_arrays_cross_both_ways() -> anyhow::Result<()> {
+    for backend in backends() {
+        let (mut app, _) = app(backend, limits())?;
+        assert_eq!(
+            app.call_json("binary", &[]).await?,
+            json!({
+                "parts": { "first": [1, 2, 255], "nested": [8, 7], "buffer": [5, 6], "text": "text" },
+                "empty": { "first": [], "nested": [], "buffer": [], "text": "" },
+                "sum": 5,
+                "kept": [1, 2, 255],
+                "reversed": { "array": true, "bytes": [255, 2, 1] },
+                "packet": {
+                    "header": "h",
+                    "body": [98, 111, 100, 121],
+                    "trailer": [1, [116]],
+                    "keys": ["header", "body", "trailer"],
+                },
+                "wrong": invalid("sum"),
+                "missing": invalid("sum"),
+            })
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn results_lend_channels_to_the_invocation() -> anyhow::Result<()> {
+    for backend in backends() {
+        let (mut app, state) = app(backend, limits())?;
+        assert_eq!(
+            app.call_json("subscribe", &[]).await?,
+            json!({
+                "topic": "news",
+                "messages": ["event 1", "event 2", "got ack"],
+                "close": { "code": 1000, "reason": "done" },
+            })
+        );
+        assert_eq!(
+            app.call_json("whole", &[]).await?,
+            json!({ "messages": [], "close": { "code": 1000, "reason": "bye" } })
+        );
+
+        // A channel JavaScript leaves open closes when the invocation ends.
+        assert_eq!(app.call_json("keep", &[]).await?, "returned");
+        let mut held = state.held.lock().unwrap().take().expect("a held channel");
+        let wait = Duration::from_secs(10);
+        assert_eq!(
+            tokio::time::timeout(wait, held.recv()).await?,
+            Some(ChannelEvent::Message(Message::from("kept")))
+        );
+        match tokio::time::timeout(wait, held.recv()).await? {
+            Some(ChannelEvent::Close(frame)) => assert_eq!(frame.code, CloseFrame::ABNORMAL),
+            other => panic!("expected a close, got {other:?}"),
+        }
+
+        // Without the Web API profile, JavaScript cannot build the object.
+        assert_eq!(
+            app.call_json("withoutViews", &[]).await?,
+            json!({
+                "name": "TypeError",
+                "message": "Channels need the fetchlet Web API profile",
+                "code": null,
+                "type": true,
+            })
+        );
     }
     Ok(())
 }

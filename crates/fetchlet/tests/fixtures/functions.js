@@ -1,5 +1,55 @@
 const DB = fetchlet.env.DB;
 
+// Channels Rust returns, over the bridge's channel registry. The Web API
+// profile builds channel objects with `__fetchletChannelViews.lend`; this
+// stand-in records what arrives instead.
+const channels = globalThis.__fetchletChannels;
+
+const views = Object.freeze({
+  lend(id) {
+    const record = { id, messages: [], opened: false, close: null };
+    let wake = () => {};
+    record.changed = () =>
+      new Promise((resolve) => {
+        wake = resolve;
+      });
+    const notify = () => wake();
+    channels.adopt(id, {
+      open() {
+        record.opened = true;
+        notify();
+      },
+      message(data) {
+        record.messages.push(typeof data === "string" ? data : Array.from(data));
+        notify();
+      },
+      close(code, reason) {
+        record.close = { code, reason };
+        notify();
+      },
+    });
+    return record;
+  },
+});
+
+Object.defineProperty(globalThis, "__fetchletChannelViews", {
+  value: views,
+  configurable: true,
+});
+
+async function until(record, done) {
+  while (!done()) {
+    await record.changed();
+  }
+}
+
+/** A Uint8Array whose JSON is not its bytes, as Node's Buffer has. */
+class Tagged extends Uint8Array {
+  toJSON() {
+    return "tagged";
+  }
+}
+
 /** What a failed call threw, by the properties JavaScript sees. */
 function failure(error) {
   return {
@@ -103,6 +153,65 @@ globalThis.fetchletExports = {
         }
       })(),
     };
+  },
+
+  async binary() {
+    const bytes = new Uint8Array([1, 2, 255]);
+    // A view of two bytes in the middle of its buffer.
+    const view = new DataView(new Uint8Array([9, 8, 7, 6]).buffer, 1, 2);
+    const reversed = await DB.reverse(bytes);
+    const packet = DB.packet();
+    return {
+      parts: DB.parts(bytes, { nested: view, list: [new Uint8Array([5, 6]).buffer, "text"] }),
+      empty: DB.parts(new Uint8Array(0), {
+        nested: new Uint8Array(0),
+        list: [new ArrayBuffer(0), ""],
+      }),
+      sum: await DB.sum(new Tagged([1, 2, 3]).subarray(1)),
+      // The caller's bytes are copied, not moved.
+      kept: Array.from(bytes),
+      reversed: { array: reversed instanceof Uint8Array, bytes: Array.from(reversed) },
+      packet: {
+        header: packet.header,
+        body: packet.body instanceof Uint8Array ? Array.from(packet.body) : packet.body,
+        trailer: [packet.trailer[0], Array.from(packet.trailer[1])],
+        keys: Object.keys(packet),
+      },
+      // Bytes also reads a string as its UTF-8, but not a number.
+      wrong: await settle(() => DB.sum(5)),
+      missing: await settle(() => DB.sum()),
+    };
+  },
+
+  async subscribe() {
+    const { topic, events } = await DB.subscribe("news");
+    await until(events, () => events.opened);
+    channels.send(events.id, "ack");
+    await until(events, () => events.close !== null);
+    return { topic, messages: events.messages, close: events.close };
+  },
+
+  async whole() {
+    const channel = DB.open();
+    await until(channel, () => channel.close !== null);
+    return { messages: channel.messages, close: channel.close };
+  },
+
+  async keep() {
+    const channel = await DB.hold();
+    await until(channel, () => channel.opened);
+    channels.send(channel.id, "kept");
+    return "returned";
+  },
+
+  async withoutViews() {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, "__fetchletChannelViews");
+    delete globalThis.__fetchletChannelViews;
+    try {
+      return await settle(() => DB.hold());
+    } finally {
+      Object.defineProperty(globalThis, "__fetchletChannelViews", descriptor);
+    }
   },
 
   async handle() {
