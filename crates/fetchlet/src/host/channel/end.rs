@@ -135,6 +135,20 @@ impl ChannelEnd {
         self.closed
     }
 
+    /// The largest message this end may send:
+    /// `Limits::channel_message_bytes`, or None without that budget. A
+    /// transport reading a stream sizes its reads by it.
+    pub fn max_message_bytes(&self) -> Option<usize> {
+        self.budgets.message_bytes
+    }
+
+    /// Wait until JavaScript's end goes away, as it does when the invocation
+    /// ends. A transport blocked on its peer, such as a socket write, races
+    /// this so it does not outlive the invocation.
+    pub async fn guest_gone(&self) {
+        self.to_guest.closed().await;
+    }
+
     /// Whether JavaScript's end went away.
     #[cfg(feature = "fuzzing")]
     pub(crate) fn peer_gone(&self) -> bool {

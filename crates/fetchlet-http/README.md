@@ -9,6 +9,7 @@ Serves a shared fetchlet application (`fetchlet::AppHandle`) over HTTP. The Towe
 | `axum`      | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
 | `actix`     | `ActixService` for actix-web 4                                                 |
 | `websocket` | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)              |
+| `sockets`   | `TcpTransport`, the TCP and TLS transport of JavaScript's `connect()`          |
 
 ```toml
 [dependencies]
@@ -189,6 +190,31 @@ also sets axum's frame and message size, and `connection_idle_timeout` and
 covers the handshake, both closing handshakes, a client that goes away, the
 503 and shutdown over a real socket on every engine. The actix integration
 does not upgrade yet.
+
+## TCP sockets
+
+With the `sockets` feature, `TcpTransport` opens the connections of
+JavaScript's `connect()` for a `SocketService`, whose `SocketPolicy` names
+the hosts and ports JavaScript may reach
+([host services](../../docs/host-services.md#sockets)):
+
+```rust,ignore
+use fetchlet::{HostServices, SocketPolicy, SocketService};
+use fetchlet_http::TcpTransport;
+
+let policy = SocketPolicy::deny_all().allow("db.example.com", 5432)?;
+let hosts = HostServices::new().sockets(SocketService::new(TcpTransport::new(), policy));
+```
+
+`TcpTransport` resolves each name and refuses resolved addresses that are
+not public, such as loopback, private and link-local ones, unless
+`allow_private_addresses`. It speaks TLS for `secureTransport: "on"` with
+rustls and the `ring` provider, verifying servers against the
+`webpki-roots` certificates or a `rustls::ClientConfig` given to
+`with_tls_config`. It relays bytes on the Tokio runtime that polls the
+host pump: the peer's end closes the socket normally, a connection error
+closes it with 1011, and the end of the invocation drops the connection.
+`tests/sockets.rs` checks it against a local server on every engine.
 
 ## Reloading during development
 

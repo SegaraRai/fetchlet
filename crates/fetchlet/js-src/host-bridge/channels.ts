@@ -113,6 +113,13 @@ export const channelRegistry: ChannelRegistry = Object.freeze<ChannelRegistry>({
     track(id, listener);
     return id;
   },
+  connect(address, listener): number {
+    // Throws without a socket service, for an address its policy refuses,
+    // or over Limits::open_channels.
+    const id = dispatch<number>("socket.open", address);
+    track(id, listener);
+    return id;
+  },
   send(id, data): void {
     if (!channels.has(id)) {
       return;

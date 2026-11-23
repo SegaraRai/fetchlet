@@ -3,10 +3,19 @@
 import "@fetchlet/web";
 
 export { wireRequest, wireResponse } from "@fetchlet/web/wire";
-export { getBindings, type UpgradeWebSocketOptions, upgradeWebSocket, waitUntil } from "./handler";
-export type {
-  ExecutionContext,
-  ExportedHandler,
-  FetchletBindings,
-  ServiceBinding,
+
+export {
+  connect,
+  getBindings,
+  upgradeWebSocket,
+  waitUntil,
+  type ExecutionContext,
+  type ExportedHandler,
+  type FetchletBindings,
+  type ServiceBinding,
+  type Socket,
+  type SocketAddress,
+  type SocketInfo,
+  type SocketOptions,
+  type UpgradeWebSocketOptions,
 } from "./handler";

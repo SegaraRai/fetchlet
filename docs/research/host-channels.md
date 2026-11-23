@@ -18,9 +18,9 @@ the semantics chosen, the alternatives rejected and the order of work.
 
 ## Status
 
-The handle table, request-scoped channels and held connections (steps 1, 2
-and 5 of the [order of work](#order-of-work)) are implemented, the last for
-the axum integration:
+The handle table, request-scoped channels, `connect()` and held connections
+(steps 1, 2, 3 and 5 of the [order of work](#order-of-work)) are
+implemented, the last for the axum integration:
 
 - `HostServices::channel(name, service)` binds a `ChannelService`, and
   `env.NAME.connect(options)` opens a channel of it in the current
@@ -35,6 +35,14 @@ the axum integration:
   view writes with `channel.write`, which Rust splits into binary messages
   within the budgets and completes when all are queued, and a full reader
   pauses delivery with `channel.pause`, so Rust's sender waits.
+- `HostServices::sockets` takes a `SocketService`, whose `SocketPolicy`
+  authorizes exact hosts and port ranges after an optional rewrite, and
+  `connect()` from `@fetchlet/web/sockets`, re-exported by
+  `fetchlet/runtime`, opens a channel of it with the `socket.open`
+  operation and takes its stream view. fetchlet-http's `sockets` feature
+  provides `TcpTransport`, which refuses non-public resolved addresses
+  unless allowed and speaks TLS with rustls. `startTls()` and half-open
+  sockets are not supported yet.
 - A request-scoped channel closes when its invocation ends, after its
   `waitUntil` work and an open response body. The bridge forgets an upgrade
   the handler did not return when the handler returns, and the
@@ -78,7 +86,10 @@ table's tests in `bridge/handles.rs` and `bridge/tests.rs`, the
 `bridge_bodies` fuzz target, and the examples' end-to-end checks.
 Request-scoped channels are tested in `crates/fetchlet/tests/channels.rs` on
 every engine, `packages/web/tests/channel.test.ts` and the vanilla-axum
-example's progress routes. `ChannelEnd` does not implement `Stream` and
+example's progress routes. Sockets are tested in
+`crates/fetchlet/tests/sockets.rs` on every engine,
+`crates/fetchlet-http/tests/sockets.rs` against a local TCP server and
+`packages/web/tests/sockets.test.ts`. `ChannelEnd` does not implement `Stream` and
 `Sink` yet, the actix integration does not upgrade, and `ViteDev` does not
 serve upgrades. The channel object keeps its handle in a private field, but
 the bridge's registry, which `@fetchlet/web` reaches as a global, still
@@ -463,7 +474,7 @@ Each step lands with tests at its own boundary:
 2. Request-scoped channels with `HostServices::channel`, both views and the
    new `Limits`. Done.
 3. `connect()` with `SocketService` and `SocketPolicy` in fetchlet-http
-   behind a `sockets` feature.
+   behind a `sockets` feature. Done, without `startTls()`.
 4. The client `WebSocket` with `WebSocketService` in fetchlet-http behind a
    `websocket` feature.
 5. Held connections and `upgradeWebSocket` with server upgrades in the axum

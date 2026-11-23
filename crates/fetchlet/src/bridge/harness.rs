@@ -3,7 +3,10 @@ use serde_json::Value;
 
 use super::{HostBridge, InvocationScope};
 use crate::fetch::BodySender;
-use crate::{Body, ChannelEnd, ChannelService, Error, HostServices, Limits, Result, channel_fn};
+use crate::{
+    Body, ChannelEnd, ChannelService, Error, HostServices, Limits, Result, SocketPolicy,
+    SocketService, channel_fn, socket_fn,
+};
 
 /// Drives the host bridge as a guest would, for fuzz targets.
 ///
@@ -102,6 +105,21 @@ pub fn harness_channel_service(
         async move { result }
     });
     (service, received)
+}
+
+/// A socket service for fuzz targets: its policy allows `open.test` on
+/// ports 1 to 100, and its transport accepts each connect at the first poll,
+/// handing Rust's end to the receiver as the connect is requested.
+pub fn harness_socket_service() -> (SocketService, std::sync::mpsc::Receiver<ChannelFeed>) {
+    let (feeds, received) = std::sync::mpsc::channel();
+    let transport = socket_fn(move |request| {
+        let _ = feeds.send(ChannelFeed(request.end));
+        async { Ok(()) }
+    });
+    let policy = SocketPolicy::deny_all()
+        .allow_ports("open.test", 1..=100)
+        .expect("a valid rule");
+    (SocketService::new(transport, policy), received)
 }
 
 /// Rust's end of a channel opened with [`BridgeHarness::open_connection`]

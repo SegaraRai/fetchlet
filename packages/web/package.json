@@ -16,6 +16,7 @@
     ".": "./src/index.ts",
     "./async-context": "./src/async-context.ts",
     "./host": "./src/host.ts",
+    "./sockets": "./src/sockets.ts",
     "./websocket": "./src/websocket.ts",
     "./wire": "./src/wire.ts"
   },
@@ -24,6 +25,7 @@
       ".": "./dist/index.js",
       "./async-context": "./dist/async-context.js",
       "./host": "./dist/host.js",
+      "./sockets": "./dist/sockets.js",
       "./websocket": "./dist/websocket.js",
       "./wire": "./dist/wire.js"
     }

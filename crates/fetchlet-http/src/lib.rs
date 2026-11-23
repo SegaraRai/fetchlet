@@ -10,6 +10,8 @@
 //! The `dev` feature adds `DevReload`, which serves an artifact while a
 //! build tool rewrites it, and the `vite-dev` feature adds `ViteDev`, which
 //! runs the server module from a Vite dev server through Vite's module runner.
+//! The `sockets` feature adds `TcpTransport`, which opens the TCP and TLS
+//! connections of JavaScript's `connect()` for a `SocketService`.
 //! The JavaScript engine is chosen on the `fetchlet` crate.
 
 mod artifact;
@@ -25,6 +27,8 @@ mod axum_server;
 mod dev;
 #[cfg(feature = "hyper")]
 mod hyper_server;
+#[cfg(feature = "sockets")]
+mod socket;
 #[cfg(feature = "vite-dev")]
 mod vite_dev;
 
@@ -48,6 +52,8 @@ pub use dev::{
 };
 #[cfg(feature = "hyper")]
 pub use hyper_server::{HyperConnection, HyperService, PeerAddr, peer_addr};
+#[cfg(feature = "sockets")]
+pub use socket::{TcpTransport, rustls};
 #[cfg(feature = "vite-dev")]
 pub use vite_dev::{VITE_BINDING, ViteBody, ViteDev, ViteDevError, ViteProxy};
 

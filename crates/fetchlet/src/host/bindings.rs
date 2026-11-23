@@ -4,6 +4,7 @@ use std::sync::Arc;
 use super::FetchService;
 use super::channel::ChannelService;
 use super::console::{ConsoleLevel, ConsoleSink};
+use super::socket::SocketService;
 use crate::{Error, Result};
 
 /// Fixed bindings and services for one App. No process environment is inherited.
@@ -12,6 +13,7 @@ pub struct HostServices {
     pub(crate) outbound: Option<FetchService>,
     pub(crate) services: BTreeMap<String, FetchService>,
     pub(crate) channels: BTreeMap<String, Arc<dyn ChannelService>>,
+    pub(crate) sockets: Option<SocketService>,
     pub(crate) env: BTreeMap<String, String>,
     pub(crate) console: Option<ConsoleSink>,
 }
@@ -30,6 +32,15 @@ impl HostServices {
         let name = self.unbound(name.into())?;
         self.services.insert(name, service);
         Ok(self)
+    }
+
+    /// Serve `connect(address, options)` from `fetchlet/runtime`: each
+    /// connection the service's policy allows opens through its transport,
+    /// as a channel of the invocation. Without a socket service, `connect`
+    /// fails with `PermissionDenied`.
+    pub fn sockets(mut self, service: SocketService) -> Self {
+        self.sockets = Some(service);
+        self
     }
 
     /// Bind a channel service under `name` in `env`. JavaScript opens a

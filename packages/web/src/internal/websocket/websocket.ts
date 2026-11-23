@@ -36,6 +36,14 @@ export interface ChannelRegistry {
   upgrade(listener: ChannelListener): number;
   accepted(): number | undefined;
   open(service: string, options: unknown, listener: ChannelListener): number;
+  connect(
+    address: {
+      hostname: string;
+      port: number;
+      secureTransport: "off" | "on";
+    },
+    listener: ChannelListener,
+  ): number;
   send(id: number, data: string | Uint8Array): void;
   write(id: number, data: Uint8Array): Promise<void>;
   pause(id: number, paused: boolean): void;

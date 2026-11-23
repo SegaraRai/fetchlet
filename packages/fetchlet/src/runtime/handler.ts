@@ -1,16 +1,23 @@
 import { wireRequest, wireResponse, type WireRequest, type WireResponse } from "@fetchlet/web/wire";
-import type { FetchletBindings, ServiceBinding } from "fetchlet/bindings";
+import type { FetchletBindings } from "fetchlet/bindings";
 
-export type { FetchletBindings, ServiceBinding };
-
+// TCP sockets through the host's socket service, as the Sockets API's connect.
+export {
+  connect,
+  type Socket,
+  type SocketAddress,
+  type SocketInfo,
+  type SocketOptions,
+} from "@fetchlet/web/sockets";
 // Framework apps take upgradeWebSocket from here: a framework build that
 // bundles this module keeps the profile out, and the response it returns
 // reaches the profile's wire encoder all the same.
 export {
-  type UpgradeWebSocketOptions,
   upgradeResponse,
   upgradeWebSocket,
+  type UpgradeWebSocketOptions,
 } from "@fetchlet/web/websocket";
+export type { FetchletBindings, ServiceBinding } from "fetchlet/bindings";
 
 /**
  * The third argument of `fetch` in a module with the Workers module shape,

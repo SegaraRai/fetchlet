@@ -79,7 +79,7 @@ documented refusal, and a check in a framework example:
     engine against the serialized implementation.
 - Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
   QuickJS and Boa, which libraries such as depd call at load time.
-- Client WebSockets and TCP sockets, through
+- Client WebSockets, through
   [host channels](#host-channels-and-resources).
 - A runtime key for package `exports`: choose fetchlet's condition name
   following WinterTC Runtime Keys and which of `worker`, `edge-light` and
@@ -112,13 +112,15 @@ implemented: `HostServices::channel` with `env.NAME.connect()` and its
 WebSocket and stream views, `upgradeWebSocket` from `fetchlet/runtime`,
 `Instances::max_held_connections`, the channel and connection budgets,
 server upgrades in fetchlet-http's axum integration behind the `websocket`
-feature, and a WebSocket route with an end-to-end check in every axum
-example ([status](research/host-channels.md#status)). The rest:
+feature, a WebSocket route with an end-to-end check in every axum example,
+and `connect()` over a `SocketService` with fetchlet-http's `TcpTransport`
+([status](research/host-channels.md#status)). The rest:
 
-1. `connect()` over a `SocketService` with a `SocketPolicy`, on the stream
-   view.
-2. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`, on
+1. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`, on
    the message view.
+2. `secureTransport: "starttls"` with `startTls()`, and half-open sockets.
+   Both need the transport to take over the connection mid-stream, so the
+   relay hands its stream back instead of ending.
 3. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
    and `Sink` for `ChannelEnd`.
 4. Resources in function arguments and results
@@ -226,6 +228,19 @@ but a call past its deadline still does, and host bodies are now read whole
 Keeping the runner's transformed modules in Rust across instances would
 save the remaining transport; time an Astro reload on QuickJS first to see
 what is left of the 2.4 seconds.
+
+### Waku streaming on Boa
+
+`Waku streams deferred content after the shell` fails intermittently on
+Boa: the first chunk already holds the value its page resolves after 200 ms,
+so the shell reached the client later than that. It failed in each of three
+`vp run test:examples -- waku-axum --backends boa` runs on the tree of
+fc330e7, and in one of three runs of the acceptance suite against the
+build of df94d4f on the same machine; QuickJS and V8 pass. Find where the
+shell waits on Boa (rendering time, the first response chunk, or the
+pull of the body) before deciding whether the page's delay or the engine
+path changes. `results/example-waku-axum-boa.json` keeps the passing run
+of df94d4f.
 
 ### React Router
 

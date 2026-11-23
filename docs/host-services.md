@@ -95,6 +95,53 @@ when JavaScript's end goes away. `crates/fetchlet/tests/channels.rs`
 checks the contract on all three engines, and the vanilla-axum example
 streams a Rust job's progress as a response body.
 
+## Sockets
+
+`HostServices::sockets(service)` lets JavaScript open TCP connections with
+`connect(address, options)` from `fetchlet/runtime`, the Sockets API of
+WinterTC. A `SocketService` pairs a `SocketTransport` with the
+`SocketPolicy` that authorizes each address:
+
+```rust,ignore
+use fetchlet::{HostServices, SocketPolicy, SocketService};
+use fetchlet_http::TcpTransport;
+
+let policy = SocketPolicy::deny_all()
+    .allow("db.example.com", 5432)?
+    .allow_ports("cache.internal", 6379..=6380)?;
+let transport = TcpTransport::new().allow_private_addresses();
+let hosts = HostServices::new().sockets(SocketService::new(transport, policy));
+```
+
+The policy matches exact normalized hosts, names lowercased and IP literals
+in their canonical form, and ports or port ranges; it resolves nothing.
+`SocketService::rewrite` changes an address before the check, such as to
+map a name JavaScript knows to the host that serves it, and
+`forward_context` passes the invocation's `Context` to the transport. An
+address the policy refuses, an invalid one and a `connect` without a socket
+service throw nothing in JavaScript: the socket's `opened` and `closed`
+reject.
+
+fetchlet-http's `sockets` feature provides `TcpTransport`. It resolves the
+name, refuses every resolved address that is not public (loopback, private,
+link-local, shared and other special-purpose ranges, including IPv4
+addresses embedded in IPv6) unless `allow_private_addresses`, connects to
+the first address that accepts, and speaks TLS for `secureTransport: "on"`,
+verifying the server against the `webpki-roots` certificates or the
+`rustls` configuration given to `with_tls_config`. `socket_fn` adapts an
+async function, such as an in-process server or a mock, to a transport.
+
+A socket is a channel of the invocation, viewed as a stream: it counts
+against `Limits::open_channels`, its reads and writes are binary messages
+within `channel_message_bytes` and `channel_buffer_bytes`, and it closes
+when the invocation ends, after its `waitUntil` work and response body. The
+peer's end of the stream closes the socket normally, and a connection error
+rejects `closed`. `secureTransport: "starttls"`, `startTls()` and
+`allowHalfOpen: true` are not supported yet and throw a `TypeError`.
+`crates/fetchlet/tests/sockets.rs` checks the contract on all three engines,
+and `crates/fetchlet-http/tests/sockets.rs` checks `TcpTransport` against a
+local server.
+
 ## Console
 
 The callback passed to `HostServices::console` receives each

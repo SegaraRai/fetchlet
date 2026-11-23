@@ -113,6 +113,11 @@
 			track(id, listener);
 			return id;
 		},
+		connect(address, listener) {
+			const id = dispatch("socket.open", address);
+			track(id, listener);
+			return id;
+		},
 		send(id, data) {
 			if (!channels.has(id)) return;
 			if (typeof data === "string") dispatch("channel.send", {

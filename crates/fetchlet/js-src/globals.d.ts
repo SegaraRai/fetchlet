@@ -48,6 +48,13 @@ interface ResponseBodyRegistry {
   closeAll(): void;
 }
 
+/** The destination and options of a TCP connection, as Rust's socket.open takes them. */
+interface SocketOpen {
+  hostname: string;
+  port: number;
+  secureTransport: "off" | "on";
+}
+
 /** What a channel delivers to the object that owns it. */
 interface ChannelListener {
   /**
@@ -68,6 +75,8 @@ interface ChannelRegistry {
   accepted(): number | undefined;
   /** Open a channel of the env binding `service`. */
   open(service: string, options: unknown, listener: ChannelListener): number;
+  /** Open a TCP connection through the host's socket service. */
+  connect(address: SocketOpen, listener: ChannelListener): number;
   send(id: number, data: string | Uint8Array): void;
   /**
    * Queue bytes as binary messages within the channel budgets, resolving

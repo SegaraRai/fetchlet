@@ -7,6 +7,7 @@ mod context;
 mod policy;
 mod router;
 mod service;
+mod socket;
 mod transport;
 
 pub use bindings::HostServices;
@@ -19,6 +20,10 @@ pub use context::Context;
 pub use policy::FetchPolicy;
 pub use router::OriginRouter;
 pub use service::FetchService;
+pub use socket::{
+    SecureTransport, SocketAddress, SocketPolicy, SocketRequest, SocketService, SocketTransport,
+    socket_fn,
+};
 pub use transport::{FetchTransport, TransportFuture, transport_fn};
 
 #[cfg(any(

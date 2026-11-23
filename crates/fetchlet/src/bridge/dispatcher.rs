@@ -18,7 +18,7 @@ use crate::reentry;
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
 use crate::{
     Body, ChannelEnd, ChannelRequest, CloseFrame, ConsoleLevel, Context, Error, HostServices,
-    Limits, Response, Result,
+    Limits, Response, Result, SecureTransport, SocketAddress,
 };
 
 struct PendingFetch {
@@ -479,6 +479,7 @@ impl HostBridge {
             "fetch.start" => self.start_fetch(input),
             "invocation.disconnected" => self.invocation_disconnected(),
             "invocation.limits" => self.invocation_limits(),
+            "socket.open" => self.open_socket(input),
             "websocket.upgrade" => self.upgrade_websocket(),
             _ => Err(Error::PermissionDenied),
         }
@@ -771,6 +772,55 @@ impl HostBridge {
         };
         let id = invocation.handles.open_requested(guest, opening)?;
         // The open is polled at the next pump.
+        self.wake.notify();
+        Ok(Value::from(id))
+    }
+
+    /// Open a TCP connection through the socket service, as a channel of
+    /// the current invocation. The policy is checked now; the connection
+    /// settles in the host pump.
+    fn open_socket(&self, input: &str) -> Result<Value> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields, rename_all = "camelCase")]
+        struct Open {
+            hostname: String,
+            port: u16,
+            secure_transport: SecureTransportInput,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "lowercase")]
+        enum SecureTransportInput {
+            Off,
+            On,
+        }
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let opened = invocation
+            .opened_channels
+            .checked_add(1)
+            .ok_or(Error::LimitExceeded("channel counter"))?;
+        check_limit(invocation.limits.open_channels, opened, "open channels")?;
+        invocation.opened_channels = opened;
+
+        let open: Open = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid socket open".into()))?;
+        let service = self
+            .services
+            .sockets
+            .as_ref()
+            .ok_or(Error::PermissionDenied)?;
+        let address = SocketAddress::new(&open.hostname, open.port)?;
+        let secure = match open.secure_transport {
+            SecureTransportInput::Off => SecureTransport::Off,
+            SecureTransportInput::On => SecureTransport::On,
+        };
+        let (end, guest) = pair(&invocation.limits);
+        let opening = {
+            let _opening = reentry::enter(self.key);
+            let _runtime = self.runtime.as_ref().map(tokio::runtime::Handle::enter);
+            service.open(address, secure, invocation.context.clone(), end)?
+        };
+        let id = invocation.handles.open_requested(guest, opening)?;
         self.wake.notify();
         Ok(Value::from(id))
     }

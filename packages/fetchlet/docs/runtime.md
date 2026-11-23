@@ -58,6 +58,27 @@ const channel = env.PROGRESS.connect({ steps: 3, bytes: true });
 return new Response(channel.stream().readable);
 ```
 
+## TCP sockets
+
+`connect(address, options)` from `fetchlet/runtime` is the Sockets API's
+`connect`. Rust's socket service authorizes the address and opens the
+connection; without one, or for an address its policy refuses, the
+socket's `opened` and `closed` reject
+([host services](../../../docs/host-services.md#sockets)):
+
+```ts
+import { connect } from "fetchlet/runtime";
+
+const socket = connect("db.example.com:5432", { secureTransport: "on" });
+await socket.opened;
+const writer = socket.writable.getWriter();
+await writer.write(new TextEncoder().encode("PING"));
+```
+
+A socket belongs to the current invocation and closes when it ends, after
+its `waitUntil` work and response body. `secureTransport: "starttls"`,
+`startTls()` and `allowHalfOpen: true` are not supported yet.
+
 ## Server WebSockets
 
 `upgradeWebSocket(request, { protocol })` from `fetchlet/runtime` accepts the

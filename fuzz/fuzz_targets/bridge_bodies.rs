@@ -15,6 +15,8 @@
 //! - ending the invocation releases JavaScript's end of each channel;
 //! - a channel opened from a service opens or is refused at the next poll,
 //!   once; closed before then, it ends with 1006 instead;
+//! - a socket opens like a channel for an address its policy allows, and
+//!   any other address or an invalid one is refused at once;
 //! - a channel write is queued at the next poll unless the channel closed,
 //!   and `channel.buffered` counts the bytes queued.
 
@@ -26,11 +28,15 @@ use serde_json::Value;
 
 use fetchlet::{
     BodyFeed, BridgeHarness, ChannelFeed, HostServices, Limits, harness_channel_service,
+    harness_socket_service,
 };
 
 /// Services the target binds: one accepts, one refuses; the third name is
 /// unbound.
 const SERVICES: [&str; 3] = ["OPEN", "REFUSE", "NOPE"];
+/// Hosts for `socket.open`: the first normalizes to the one the policy
+/// allows, the second is refused, the last is no host.
+const SOCKET_HOSTS: [&str; 3] = ["OPEN.test", "other.test", "no host"];
 
 struct Input<'a>(&'a [u8]);
 
@@ -370,7 +376,9 @@ fuzz_target!(|data: &[u8]| {
     let mut input = Input(data);
     let (accepting, feeds) = harness_channel_service(true);
     let (refusing, _) = harness_channel_service(false);
+    let (sockets, socket_feeds) = harness_socket_service();
     let services = HostServices::new()
+        .sockets(sockets)
         .channel(SERVICES[0], accepting)
         .and_then(|services| services.channel(SERVICES[1], refusing))
         .expect("services");
@@ -566,6 +574,29 @@ fuzz_target!(|data: &[u8]| {
                     }
                 }
             }
+            14 if input.0.first().is_some_and(|selector| selector & 0x80 != 0) => {
+                let selector = input.byte().unwrap_or(0);
+                let port = input.byte().unwrap_or(0);
+                let hostname = SOCKET_HOSTS[usize::from(selector) % SOCKET_HOSTS.len()];
+                let message = serde_json::json!({
+                    "hostname": hostname,
+                    "port": port,
+                    "secureTransport": if selector & 0x40 == 0 { "off" } else { "on" },
+                })
+                .to_string();
+                let reply = harness.dispatch("socket.open", &message);
+                let expected = model.active
+                    && model.fits(message.len())
+                    && hostname == "OPEN.test"
+                    && (1..=100).contains(&port);
+                assert_eq!(ok(&reply), expected, "connect {hostname}:{port}: {reply}");
+                if expected {
+                    let id = reply["value"].as_u64().expect("socket handle");
+                    assert!(!model.has_channel(id) && !model.bodies.contains_key(&id));
+                    model.channels.insert(id, take_feed(&socket_feeds));
+                    model.requested.insert(id, false);
+                }
+            }
             14 => {
                 let selector = input.byte().unwrap_or(0);
                 let service = SERVICES[usize::from(selector) % SERVICES.len()];
@@ -612,7 +643,7 @@ fuzz_target!(|data: &[u8]| {
                 let (operation, message) = raw.split_once('\n').unwrap_or((&raw, "null"));
                 // Body and channel operations are modelled above; other
                 // operations must not disturb the handles or the store.
-                if !["body.", "channel.", "websocket."]
+                if !["body.", "channel.", "socket.", "websocket."]
                     .iter()
                     .any(|prefix| operation.starts_with(prefix))
                     && operation != "fetch.poll"
