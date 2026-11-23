@@ -107,7 +107,7 @@ WinterTC. A `SocketService` pairs a `SocketTransport` with the
 
 ```rust,ignore
 use fetchlet::{HostServices, SocketPolicy, SocketService};
-use fetchlet_http::TcpTransport;
+use fetchlet_net::TcpTransport;
 
 let policy = SocketPolicy::deny_all()
     .allow("db.example.com", 5432)?
@@ -125,7 +125,7 @@ address the policy refuses, an invalid one and a `connect` without a socket
 service throw nothing in JavaScript: the socket's `opened` and `closed`
 reject.
 
-fetchlet-http's `sockets` feature provides `TcpTransport`. It resolves the
+fetchlet-net's `sockets` feature provides `TcpTransport`. It resolves the
 name, refuses every resolved address that is not public (loopback, private,
 link-local, shared and other special-purpose ranges, including IPv4
 addresses embedded in IPv6) unless `allow_private_addresses`, connects to
@@ -163,7 +163,7 @@ The bridge accepts each signal only for an open socket with no write
 pending and its writes not ended, and `startTls` once, for a socket opened
 with `"starttls"`; channels of env bindings never receive them.
 `crates/fetchlet/tests/sockets.rs` checks the contract on all three engines,
-and `crates/fetchlet-http/tests/sockets.rs` checks `TcpTransport` against
+and `crates/fetchlet-net/tests/sockets.rs` checks `TcpTransport` against
 local plain, TLS and STARTTLS servers, with a test certificate authority.
 
 ## Client WebSockets
@@ -175,7 +175,7 @@ URL's origin, `ws:` and `wss:` counting as `http:` and `https:`:
 
 ```rust,ignore
 use fetchlet::{FetchPolicy, HostServices, WebSocketService};
-use fetchlet_http::WebSocketClient;
+use fetchlet_net::WebSocketClient;
 
 let policy = FetchPolicy::deny_all().allow_origin("https://chat.example.com")?;
 let service = WebSocketService::new(WebSocketClient::new(), policy)
@@ -208,7 +208,7 @@ handshake drops the end, which JavaScript sees as 1006. `websocket_fn`
 adapts an async function, such as an in-process server or a mock, to a
 transport.
 
-fetchlet-http's `websocket-client` feature provides `WebSocketClient`. It
+fetchlet-net's `websocket` feature provides `WebSocketClient`. It
 resolves and checks addresses as `TcpTransport` does, refusing addresses
 that are not public unless `allow_private_addresses`, speaks TLS for
 `wss:` with the `webpki-roots` certificates or the configuration given to
@@ -222,7 +222,7 @@ counts against `Limits::open_channels`, its messages stay within
 `channel_message_bytes` and `channel_buffer_bytes`, and it closes when the
 invocation ends. `crates/fetchlet/tests/websocket_client.rs` checks the
 contract on all three engines, and
-`crates/fetchlet-http/tests/websocket_client.rs` checks `WebSocketClient`
+`crates/fetchlet-net/tests/websocket.rs` checks `WebSocketClient`
 against local `ws:` and `wss:` servers.
 
 ## Console

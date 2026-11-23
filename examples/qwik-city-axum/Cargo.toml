@@ -14,11 +14,11 @@ path = "server/main.rs"
 boa = ["fetchlet/boa"]
 v8 = ["fetchlet/v8"]
 # Reload the artifact when the `dev` task rebuilds it.
-dev = ["fetchlet-http/dev"]
+dev = ["fetchlet-http/dev-reload"]
 
 [dependencies]
 fetchlet = { workspace = true, features = ["quickjs", "web-apis"] }
-fetchlet-http = { workspace = true, features = ["axum", "websocket"] }
+fetchlet-http = { workspace = true, features = ["axum", "axum-websocket"] }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

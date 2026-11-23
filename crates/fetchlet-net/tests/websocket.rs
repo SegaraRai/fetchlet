@@ -17,10 +17,10 @@ use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 
 use fetchlet::{App, Backend, FetchPolicy, HostServices, Limits, Module, WebSocketService};
-use fetchlet_http::WebSocketClient;
-use fetchlet_http::rustls::{self, ClientConfig, RootCertStore, ServerConfig};
+use fetchlet_net::WebSocketClient;
+use fetchlet_net::rustls::{self, ClientConfig, RootCertStore, ServerConfig};
 
-const SOURCE: &str = include_str!("fixtures/websocket-client.js");
+const SOURCE: &str = include_str!("fixtures/websocket.js");
 
 fn backends() -> Vec<Backend> {
     vec![Backend::quickjs(), Backend::boa(), Backend::v8()]

@@ -18,7 +18,7 @@ fetchlet dev --vite <command> [--vite-port <port>] -- <server> [<argument>...]
 | `--vite-port <port>`      | The port of the `--vite` dev server. Default: a free port                                                       |
 | `-- <server> ...`         | The program that serves the artifact and its arguments, passed on unchanged                                     |
 
-For a host with a `dev` Cargo feature that enables fetchlet-http's `dev` feature:
+For a host with a `dev` Cargo feature that enables fetchlet-http's `dev-reload` feature:
 
 ```json
 {

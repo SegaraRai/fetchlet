@@ -77,7 +77,7 @@ invocation and instance until the connection closes, so the value must be
 below `max`. The caller takes a place with `AppHandle::reserve_connection`
 and puts the `HeldConnection` in the request's extensions; the 101 response
 carries a `ServerWebSocket` extension whose `ChannelEnd` sends and receives
-the socket's messages. fetchlet-http's `websocket` feature does this for
+the socket's messages. fetchlet-http's `axum-websocket` feature does this for
 axum.
 
 `max` is a caller budget: each instance has its own engine heap. A host

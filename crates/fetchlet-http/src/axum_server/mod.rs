@@ -1,11 +1,11 @@
 mod artifact;
 mod service;
 mod transport;
-#[cfg(feature = "websocket")]
-mod websocket;
 
 #[cfg(fetchlet_engine)]
 mod server;
+#[cfg(feature = "axum-websocket")]
+mod websocket;
 
 pub use artifact::artifact_router;
 pub use service::{AxumService, connect_info};

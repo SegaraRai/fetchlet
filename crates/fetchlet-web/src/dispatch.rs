@@ -39,7 +39,7 @@ pub fn capabilities() -> Value {
     if cfg!(feature = "compression") {
         apis.push("compression");
     }
-    if cfg!(feature = "crypto") {
+    if cfg!(feature = "web-crypto") {
         apis.push("crypto");
     }
     if cfg!(feature = "node-crypto") {
@@ -66,7 +66,7 @@ pub fn dispatch<B: ByteHandles>(
         "url.parse" | "url.set" => crate::url::dispatch(operation, input),
         #[cfg(feature = "url-pattern")]
         "urlpattern.parse" | "urlpattern.match" => crate::url_pattern::dispatch(operation, input),
-        #[cfg(feature = "crypto")]
+        #[cfg(feature = "web-crypto")]
         "crypto.random" | "crypto.digest" | "crypto.generateKey" | "crypto.importKey"
         | "crypto.exportKey" | "crypto.sign" | "crypto.verify" | "crypto.encrypt"
         | "crypto.decrypt" | "crypto.deriveBits" => {
@@ -135,7 +135,7 @@ mod tests {
         feature = "url",
         feature = "url-pattern",
         feature = "compression",
-        feature = "crypto"
+        feature = "web-crypto"
     )))]
     #[test]
     fn omitted_apis_are_neither_reported_nor_served() {

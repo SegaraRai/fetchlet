@@ -59,7 +59,7 @@ impl FetchletService {
         })
     }
 
-    #[cfg(feature = "websocket")]
+    #[cfg(feature = "axum-websocket")]
     pub(crate) fn app(&self) -> &AppHandle {
         &self.app
     }

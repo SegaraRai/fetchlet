@@ -92,7 +92,7 @@ impl Limits {
     }
 }
 
-#[cfg(feature = "web")]
+#[cfg(fetchlet_web)]
 impl Limits {
     /// The budgets that `fetchlet-web` operations enforce.
     pub(crate) fn web(&self) -> fetchlet_web::WebLimits {
@@ -168,7 +168,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "web")]
+    #[cfg(fetchlet_web)]
     #[test]
     fn web_operations_receive_their_budgets() {
         let limits = Limits {

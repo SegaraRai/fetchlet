@@ -174,7 +174,7 @@ async fn the_responder_makes_a_service_for_each_request() {
 }
 
 /// With `dev`, each new build answers the next request and is announced.
-#[cfg(feature = "dev")]
+#[cfg(feature = "dev-reload")]
 #[tokio::test(flavor = "current_thread")]
 async fn under_dev_a_new_build_answers_and_is_announced() {
     use std::time::Duration;

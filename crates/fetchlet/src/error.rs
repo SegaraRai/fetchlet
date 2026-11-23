@@ -81,7 +81,7 @@ impl Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[cfg(feature = "web")]
+#[cfg(fetchlet_web)]
 impl From<fetchlet_web::Error> for Error {
     fn from(error: fetchlet_web::Error) -> Self {
         match error {
@@ -152,7 +152,7 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "web")]
+    #[cfg(fetchlet_web)]
     #[test]
     fn web_api_errors_map_onto_host_errors() {
         use fetchlet_web::Error as Web;

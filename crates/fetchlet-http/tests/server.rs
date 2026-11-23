@@ -139,7 +139,7 @@ async fn a_missing_build_says_to_build_first() {
 
 /// With `dev`, each build written to the directory replaces the application,
 /// with host services made for it.
-#[cfg(feature = "dev")]
+#[cfg(feature = "dev-reload")]
 #[tokio::test(flavor = "current_thread")]
 async fn under_dev_each_new_build_serves() {
     use std::time::{Duration, Instant};

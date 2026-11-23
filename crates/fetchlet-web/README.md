@@ -8,11 +8,11 @@ and V8 share one implementation of each API.
 
 | Feature                 | API                                                     | Provider                       |
 | ----------------------- | ------------------------------------------------------- | ------------------------------ |
+| `compression` (default) | `CompressionStream`, `DecompressionStream`              | `flate2`, `brotli`             |
+| `node-crypto` (default) | `node:crypto` hashes, HMAC, PBKDF2, HKDF and scrypt     | RustCrypto crates              |
 | `url` (default)         | `URL` parsing and setters                               | `url`                          |
 | `url-pattern` (default) | `URLPattern`                                            | `urlpattern`                   |
-| `compression` (default) | `CompressionStream`, `DecompressionStream`              | `flate2`, `brotli`             |
-| `crypto` (default)      | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` | RustCrypto crates, `getrandom` |
-| `node-crypto` (default) | `node:crypto` hashes, HMAC, PBKDF2, HKDF and scrypt     | RustCrypto crates              |
+| `web-crypto` (default)  | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` | RustCrypto crates, `getrandom` |
 
 The `crypto.*` operations are stateless: the guest's `CryptoKey` holds the
 key material (raw bytes for secret keys, SubjectPublicKeyInfo and PKCS #8 DER

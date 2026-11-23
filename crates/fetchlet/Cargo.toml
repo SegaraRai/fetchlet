@@ -16,20 +16,19 @@ description = "Rust-hosted JavaScript functions and Fetch handlers with explicit
 
 [features]
 default = ["quickjs", "web-apis"]
-quickjs = ["dep:rquickjs", "web"]
-boa = ["dep:boa_engine", "dep:boa_gc", "web"]
-v8 = ["dep:deno_core", "dep:deno_error", "web"]
+quickjs = ["dep:rquickjs", "dep:fetchlet-web"]
+boa = ["dep:boa_engine", "dep:boa_gc", "dep:fetchlet-web"]
+v8 = ["dep:deno_core", "dep:deno_error", "dep:fetchlet-web"]
 # Exposes a hidden harness over the private host bridge for cargo-fuzz targets.
-fuzzing = ["web"]
-# Host implementations of Web APIs (fetchlet-web). Every engine enables it;
-# the features below select its APIs.
-web = ["dep:fetchlet-web"]
+fuzzing = ["dep:fetchlet-web"]
+# Host implementations of Web APIs (fetchlet-web), which every engine and
+# the fuzzing harness include. The features below select its APIs.
 web-apis = ["url", "url-pattern", "compression", "web-crypto", "node-crypto"]
 compression = ["fetchlet-web?/compression"]
 node-crypto = ["fetchlet-web?/node-crypto"]
 url = ["fetchlet-web?/url"]
 url-pattern = ["fetchlet-web?/url-pattern"]
-web-crypto = ["fetchlet-web?/crypto"]
+web-crypto = ["fetchlet-web?/web-crypto"]
 
 [dependencies]
 anyhow.workspace = true

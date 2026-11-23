@@ -447,5 +447,5 @@ the other frameworks' dev servers are unverified on a fetchlet environment.
 
 - How do source maps and stack traces from runner-evaluated code reach the
   Rust log?
-- How does a release build guarantee the `vite-dev` and `dev` features are
+- How does a release build guarantee the `vite-dev` and `dev-reload` features are
   absent? Today it is the application's Cargo features.

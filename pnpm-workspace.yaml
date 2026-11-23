@@ -115,6 +115,7 @@ versioning:
   fixed:
     - - "@fetchlet-crates/fetchlet"
       - "@fetchlet-crates/fetchlet-http"
+      - "@fetchlet-crates/fetchlet-net"
       - "@fetchlet-crates/fetchlet-web"
       - "@fetchlet/node"
       - "@fetchlet/web"

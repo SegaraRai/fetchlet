@@ -67,7 +67,7 @@ pub enum ServerError {
     PublicOrigin(#[from] crate::Error),
     #[error(transparent)]
     Io(#[from] std::io::Error),
-    #[cfg(feature = "dev")]
+    #[cfg(feature = "dev-reload")]
     #[error(transparent)]
     Reload(#[from] crate::ReloadError),
     #[cfg(feature = "vite-dev")]
@@ -232,7 +232,7 @@ impl Server {
             .unwrap_or_else(|| scheme.origin());
         let (settings, services, directory) = self.into_settings(origin);
 
-        #[cfg(feature = "dev")]
+        #[cfg(feature = "dev-reload")]
         let builds = {
             use crate::{DevReload, Generation, ReloadError};
 
@@ -254,7 +254,7 @@ impl Server {
                     error => ServerError::Reload(error),
                 })?
         };
-        #[cfg(not(feature = "dev"))]
+        #[cfg(not(feature = "dev-reload"))]
         let builds = {
             let artifact = open(&directory)?;
             let (router, app) = settings.application(&artifact, services()?).await?;
@@ -311,10 +311,10 @@ impl Server {
             return serve_vite(listener, signal, &settings, &services, &url).await;
         }
 
-        #[cfg(feature = "dev")]
+        #[cfg(feature = "dev-reload")]
         return serve_reloading(listener, signal, settings, services, directory).await;
 
-        #[cfg(not(feature = "dev"))]
+        #[cfg(not(feature = "dev-reload"))]
         {
             let artifact = open(&directory)?;
             let (router, app) = settings.application(&artifact, services()?).await?;
@@ -345,9 +345,9 @@ pub struct Webview {
 }
 
 struct WebviewInner {
-    #[cfg(feature = "dev")]
+    #[cfg(feature = "dev-reload")]
     builds: crate::DevReload<Built>,
-    #[cfg(not(feature = "dev"))]
+    #[cfg(not(feature = "dev-reload"))]
     builds: Built,
     response_body_bytes: usize,
 }
@@ -381,24 +381,24 @@ impl Webview {
     }
 
     /// Each new build from now on, for the host to reload its window.
-    #[cfg(feature = "dev")]
+    #[cfg(feature = "dev-reload")]
     pub fn reloads(&self) -> crate::Reloads {
         self.inner.builds.reloads()
     }
 
     /// Shut the application down; requests after this fail.
     pub async fn shutdown(&self) -> Result<(), ServerError> {
-        #[cfg(feature = "dev")]
+        #[cfg(feature = "dev-reload")]
         self.inner.builds.shutdown().await?;
-        #[cfg(not(feature = "dev"))]
+        #[cfg(not(feature = "dev-reload"))]
         self.inner.builds.app.shutdown().await?;
         Ok(())
     }
 
     fn current(&self) -> Built {
-        #[cfg(feature = "dev")]
+        #[cfg(feature = "dev-reload")]
         return self.inner.builds.current();
-        #[cfg(not(feature = "dev"))]
+        #[cfg(not(feature = "dev-reload"))]
         return self.inner.builds.clone();
     }
 }
@@ -491,7 +491,7 @@ fn default_backend(artifact: &Artifact, worker: &WorkerOptions) -> Result<Backen
     Ok(backend)
 }
 
-#[cfg(not(feature = "dev"))]
+#[cfg(not(feature = "dev-reload"))]
 fn open(directory: &std::path::Path) -> Result<Artifact, ServerError> {
     Artifact::open(directory).map_err(|source| ServerError::Artifact {
         directory: directory.to_path_buf(),
@@ -514,7 +514,7 @@ async fn run(
 }
 
 /// Serve each build written to `directory`.
-#[cfg(feature = "dev")]
+#[cfg(feature = "dev-reload")]
 async fn serve_reloading(
     listener: TcpListener,
     signal: impl Future<Output = ()> + Send + 'static,

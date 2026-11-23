@@ -16,29 +16,16 @@ description = "Serve fetchlet applications through Tower, hyper, axum and actix-
 [features]
 default = []
 # Serve an artifact while a build tool rewrites it, for development.
-dev = ["dep:tokio"]
+dev-reload = ["dep:tokio"]
 # Serve a Vite dev server's modules through the module runner, for development.
 vite-dev = ["dep:hyper", "hyper/client", "dep:hyper-util", "dep:tokio"]
 axum = ["dep:axum", "dep:tower-http", "dep:tokio", "tokio/net", "tokio/signal"]
 # Accept WebSocket upgrades in the axum service and server.
-websocket = ["axum", "axum/ws"]
+axum-websocket = ["axum", "axum/ws"]
 actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
 # Accept WebSocket upgrades in the actix-web service.
 actix-websocket = ["actix", "dep:actix-ws", "dep:actix-http"]
 hyper = ["dep:hyper"]
-# Open TCP and TLS connections for JavaScript's connect() as a socket transport.
-sockets = ["dep:tokio", "tokio/net", "tokio/io-util", "dep:tokio-rustls", "dep:webpki-roots"]
-# Open client WebSockets for JavaScript's WebSocket as a WebSocket transport.
-websocket-client = [
-  "dep:tokio",
-  "tokio/net",
-  "tokio/io-util",
-  "dep:tokio-rustls",
-  "dep:webpki-roots",
-  "dep:tokio-tungstenite",
-  "dep:futures-util",
-  "futures-util/sink",
-]
 
 [dependencies]
 fetchlet.workspace = true
@@ -49,7 +36,6 @@ axum = { workspace = true, optional = true }
 brotli-decompressor = "6"
 bytes = "1"
 futures-core = { version = "0.3", optional = true }
-futures-util = { version = "0.3", default-features = false, optional = true }
 http = "1"
 http-body = "1"
 http-body-util = "0.1"
@@ -59,16 +45,8 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, optional = true }
-tokio-rustls = { version = "0.26", default-features = false, features = [
-  "ring",
-  "tls12",
-], optional = true }
 tower-http = { workspace = true, optional = true }
 tower-service = "0.3"
-tokio-tungstenite = { version = "0.30", default-features = false, features = [
-  "handshake",
-], optional = true }
-webpki-roots = { version = "1", optional = true }
 
 [dev-dependencies]
 # The integration contract runs on every engine.
@@ -81,13 +59,12 @@ futures-util = { version = "0.3", default-features = false, features = ["sink"] 
 hyper = { workspace = true, features = ["client"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 tokio = { workspace = true, features = ["net", "io-util"] }
-tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 tokio-tungstenite = "0.30"
 tower.workspace = true
 
 [[test]]
-name = "dev"
-required-features = ["dev", "axum"]
+name = "dev_reload"
+required-features = ["dev-reload", "axum"]
 
 [[test]]
 name = "vite_dev"
@@ -102,8 +79,8 @@ name = "axum_router"
 required-features = ["axum"]
 
 [[test]]
-name = "websocket"
-required-features = ["websocket"]
+name = "axum_websocket"
+required-features = ["axum-websocket"]
 
 [[test]]
 name = "actix"
@@ -128,11 +105,3 @@ required-features = ["axum"]
 [[test]]
 name = "artifact"
 required-features = ["axum"]
-
-[[test]]
-name = "sockets"
-required-features = ["sockets"]
-
-[[test]]
-name = "websocket_client"
-required-features = ["websocket-client"]

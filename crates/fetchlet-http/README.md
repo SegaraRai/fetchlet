@@ -2,16 +2,19 @@
 
 Serves a shared fetchlet application (`fetchlet::AppHandle`) over HTTP. The Tower service is always available; Cargo features add thin layers for specific servers. The JavaScript engine is selected on the `fetchlet` crate, so this crate has no engine features.
 
-| Feature            | Adds                                                                           |
-| ------------------ | ------------------------------------------------------------------------------ |
-| (none)             | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`           |
-| `hyper`            | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
-| `axum`             | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
-| `actix`            | `ActixService` for actix-web 4                                                 |
-| `actix-websocket`  | WebSocket upgrades in `ActixService` (enables `actix`)                         |
-| `websocket`        | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)              |
-| `sockets`          | `TcpTransport`, the TCP and TLS transport of JavaScript's `connect()`          |
-| `websocket-client` | `WebSocketClient`, the transport of JavaScript's global `WebSocket`            |
+| Feature           | Adds                                                                           |
+| ----------------- | ------------------------------------------------------------------------------ |
+| (none)            | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`           |
+| `hyper`           | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
+| `axum`            | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
+| `actix`           | `ActixService` for actix-web 4                                                 |
+| `axum-websocket`  | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)              |
+| `actix-websocket` | WebSocket upgrades in `ActixService` (enables `actix`)                         |
+| `dev-reload`      | `DevReload`, which serves each new build of an artifact during development     |
+| `vite-dev`        | `ViteDev`, which runs the server module from a Vite dev server                 |
+
+The transports of JavaScript's outbound sockets and WebSockets are in
+[fetchlet-net](../fetchlet-net/README.md).
 
 ```toml
 [dependencies]
@@ -82,7 +85,7 @@ instance runs JavaScript.
 The crate's development features change how `serve` serves the build, with
 the same routes and services:
 
-- `dev`: through `DevReload`, which serves each build written to the
+- `dev-reload`: through `DevReload`, which serves each build written to the
   directory and reloads open pages ([reloading during development](#reloading-during-development)).
 - `vite-dev`: when the `FETCHLET_VITE_URL` environment variable names a Vite
   dev server, through `ViteDev`, which runs the server module from it, with
@@ -167,7 +170,7 @@ Manifest paths that leave the artifact directory are refused. Client files answe
 
 ## WebSocket upgrades
 
-With the `websocket` feature, a Fetch handler accepts a WebSocket with
+With the `axum-websocket` feature, a Fetch handler accepts a WebSocket with
 `upgradeWebSocket(request)` from `fetchlet/runtime`, and `AxumService`
 completes the handshake and relays frames between the connection and the
 handler's socket; the `actix-websocket` feature does the same for
@@ -197,65 +200,9 @@ handshakes, a client that goes away, the 503 and shutdown over a real
 socket on every engine, and the actix tests also pings, fragmented messages
 and the message budget.
 
-## TCP sockets
-
-With the `sockets` feature, `TcpTransport` opens the connections of
-JavaScript's `connect()` for a `SocketService`, whose `SocketPolicy` names
-the hosts and ports JavaScript may reach
-([host services](../../docs/host-services.md#sockets)):
-
-```rust,ignore
-use fetchlet::{HostServices, SocketPolicy, SocketService};
-use fetchlet_http::TcpTransport;
-
-let policy = SocketPolicy::deny_all().allow("db.example.com", 5432)?;
-let hosts = HostServices::new().sockets(SocketService::new(TcpTransport::new(), policy));
-```
-
-`TcpTransport` resolves each name and refuses resolved addresses that are
-not public, such as loopback, private and link-local ones, unless
-`allow_private_addresses`. It speaks TLS for `secureTransport: "on"` with
-rustls and the `ring` provider, verifying servers against the
-`webpki-roots` certificates or a `rustls::ClientConfig` given to
-`with_tls_config`, and for `"starttls"` performs the same handshake when
-JavaScript calls `startTls()`. It relays bytes on the Tokio runtime that
-polls the host pump: JavaScript's end of writes shuts down the
-connection's write half, the peer's end of its bytes ends JavaScript's
-readable, the socket closes normally once both have ended, a connection or
-handshake error closes it with 1011, and the end of the invocation drops
-the connection. `tests/sockets.rs` checks it against local plain, TLS and
-STARTTLS servers on every engine.
-
-## Client WebSockets
-
-With the `websocket-client` feature, `WebSocketClient` opens the
-connections of JavaScript's global `WebSocket` for a `WebSocketService`,
-whose `FetchPolicy` names the origins JavaScript may reach, `ws:` and `wss:`
-counting as `http:` and `https:`
-([host services](../../docs/host-services.md#client-websockets)):
-
-```rust,ignore
-use fetchlet::{FetchPolicy, HostServices, WebSocketService};
-use fetchlet_http::WebSocketClient;
-
-let policy = FetchPolicy::deny_all().allow_origin("https://chat.example.com")?;
-let hosts = HostServices::new().websockets(WebSocketService::new(WebSocketClient::new(), policy));
-```
-
-`WebSocketClient` resolves and checks addresses as `TcpTransport` does and
-speaks TLS for `wss:` with the same configuration. tungstenite performs
-the opening handshake, with the subprotocols JavaScript requested, the
-service's credential headers and no extensions, then the framing, pings and
-the closing handshake on the Tokio runtime that polls the host pump.
-`Limits::channel_message_bytes` bounds each message and frame from the
-server, and a larger one closes the socket with 1009. A failed handshake
-fires `error` and `close` with 1006 in JavaScript, as does a connection
-that ends without a closing handshake. `tests/websocket_client.rs` checks it
-against local `ws:` and `wss:` servers on every engine.
-
 ## Reloading during development
 
-The `dev` feature adds `DevReload`, which serves an artifact while a build tool such as `vite build --watch` rewrites it. `fetchlet/build` writes `fetchlet.json` last, through a rename. When its modification time changes, `DevReload` opens the artifact again and builds a new `Generation` with the caller's function, serves it from then on and shuts the previous applications down after their accepted calls finish. A build that fails to open or start is reported, and the previous generation keeps serving.
+The `dev-reload` feature adds `DevReload`, which serves an artifact while a build tool such as `vite build --watch` rewrites it. `fetchlet/build` writes `fetchlet.json` last, through a rename. When its modification time changes, `DevReload` opens the artifact again and builds a new `Generation` with the caller's function, serves it from then on and shuts the previous applications down after their accepted calls finish. A build that fails to open or start is reported, and the previous generation keeps serving.
 
 ```rust,ignore
 use fetchlet_http::{DevReload, Generation};

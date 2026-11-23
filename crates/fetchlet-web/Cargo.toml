@@ -13,9 +13,14 @@ description = "Engine-independent host implementations of Web APIs for fetchlet 
 # Each feature adds the host operations of one Web API; the guest runtime
 # installs the matching globals only when the host reports them.
 [features]
-default = ["compression", "crypto", "node-crypto", "url", "url-pattern"]
+default = ["compression", "node-crypto", "url", "url-pattern", "web-crypto"]
 compression = ["dep:brotli", "dep:flate2"]
-crypto = [
+# The synchronous hashing and key derivation of node:crypto, over the
+# web-crypto feature's hash functions.
+node-crypto = ["web-crypto", "dep:md-5", "dep:scrypt"]
+url = ["dep:url"]
+url-pattern = ["dep:urlpattern"]
+web-crypto = [
   "dep:serde",
   "dep:getrandom",
   "dep:base64",
@@ -36,11 +41,6 @@ crypto = [
   "dep:pkcs8",
   "dep:spki",
 ]
-# The synchronous hashing and key derivation of node:crypto, over the
-# crypto feature's hash functions.
-node-crypto = ["crypto", "dep:md-5", "dep:scrypt"]
-url = ["dep:url"]
-url-pattern = ["dep:urlpattern"]
 
 [dependencies]
 bytes = "1"

@@ -24,7 +24,7 @@ pub struct WebLimits {
 }
 
 #[cfg_attr(
-    not(any(feature = "compression", feature = "crypto")),
+    not(any(feature = "compression", feature = "web-crypto")),
     allow(dead_code)
 )]
 pub(crate) fn check_limit(
@@ -40,7 +40,7 @@ pub(crate) fn check_limit(
 
 /// A zeroed output buffer whose length a guest chose. A failed allocation
 /// becomes an error instead of aborting the host process.
-#[cfg_attr(not(feature = "crypto"), allow(dead_code))]
+#[cfg_attr(not(feature = "web-crypto"), allow(dead_code))]
 pub(crate) fn zeroed(length: usize) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
     bytes

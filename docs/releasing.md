@@ -6,10 +6,10 @@ version; the Cargo workspace takes the version pnpm applies.
 
 | Registry  | Released                                                    | Version source                                 |
 | --------- | ----------------------------------------------------------- | ---------------------------------------------- |
-| npm       | `fetchlet`, `@fetchlet/web`, `@fetchlet/node` (`packages/`) | their `package.json`                           |
-| crates.io | `fetchlet-web`, `fetchlet`, `fetchlet-http`                 | `crates/<crate>/package.json`, synced to Cargo |
+| npm       | `fetchlet`, `@fetchlet/node`, `@fetchlet/web` (`packages/`) | their `package.json`                           |
+| crates.io | `fetchlet`, `fetchlet-http`, `fetchlet-net`, `fetchlet-web` | `crates/<crate>/package.json`, synced to Cargo |
 
-`versioning.fixed` in `pnpm-workspace.yaml` puts all six in one group, so
+`versioning.fixed` in `pnpm-workspace.yaml` puts all seven in one group, so
 every release bumps them to the same version. A crate takes part in pnpm
 change through a private placeholder package, `@fetchlet-crates/<crate>`,
 whose `package.json` holds the crate's version and beside which pnpm writes

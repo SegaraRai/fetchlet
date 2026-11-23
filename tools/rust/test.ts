@@ -21,6 +21,8 @@ cargoAll([
   ],
   // fetchlet-http's integrations share tests/contract/ and run it on every engine.
   ["test", "--locked", "-p", "fetchlet-http", "--all-features"],
+  // fetchlet-net's transports run against local servers on every engine.
+  ["test", "--locked", "-p", "fetchlet-net"],
   // The Tauri example's URI scheme protocol has its own regression tests.
   ["test", "--locked", "-p", "example-honox-tauri"],
 ]);

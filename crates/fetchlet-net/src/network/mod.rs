@@ -4,5 +4,7 @@
 mod address;
 mod connector;
 
-pub(crate) use connector::{Connector, runtime, server_name};
+#[cfg(feature = "sockets")]
+pub(crate) use connector::server_name;
+pub(crate) use connector::{Connector, runtime};
 pub use tokio_rustls::rustls;

@@ -14,6 +14,8 @@
   engine selection.
 - [fetchlet-http crate](../crates/fetchlet-http/README.md): Tower, hyper,
   axum and actix integration, artifacts and errors.
+- [fetchlet-net crate](../crates/fetchlet-net/README.md): the TCP, TLS and
+  WebSocket transports of JavaScript's outbound sockets and WebSockets.
 - [fetchlet-web crate](../crates/fetchlet-web/README.md): engine-independent
   host implementations of Web APIs and their features.
 - [Host services](host-services.md): env, services, console, outbound fetch

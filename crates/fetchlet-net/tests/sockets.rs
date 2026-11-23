@@ -11,8 +11,8 @@ use tokio_rustls::TlsAcceptor;
 use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 
 use fetchlet::{App, Backend, HostServices, Limits, Module, SocketPolicy, SocketService};
-use fetchlet_http::TcpTransport;
-use fetchlet_http::rustls::{self, ClientConfig, RootCertStore, ServerConfig};
+use fetchlet_net::TcpTransport;
+use fetchlet_net::rustls::{self, ClientConfig, RootCertStore, ServerConfig};
 
 const SOURCE: &str = include_str!("fixtures/sockets.js");
 

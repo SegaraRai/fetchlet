@@ -11,7 +11,12 @@ import { cargoEnv } from "@fetchlet-internal/tools-workspace/cargo";
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 
 /** The crates published to crates.io, in dependency order. */
-export const publishedCrates = ["fetchlet-web", "fetchlet", "fetchlet-http"] as const;
+export const publishedCrates = [
+  "fetchlet-web",
+  "fetchlet",
+  "fetchlet-http",
+  "fetchlet-net",
+] as const;
 
 /** The npm package that stands for a crate in pnpm change. */
 export function cratePlaceholder(crate: string): string {

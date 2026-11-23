@@ -112,8 +112,8 @@ WebSocket and stream views, `upgradeWebSocket` from `fetchlet/runtime`,
 server upgrades in fetchlet-http's axum and actix integrations behind the
 `websocket` and `actix-websocket` features and under `ViteDev`, a WebSocket
 route with an end-to-end check in every axum example,
-`connect()` over a `SocketService` with fetchlet-http's `TcpTransport`, and
-the global `WebSocket` over a `WebSocketService` with fetchlet-http's
+`connect()` over a `SocketService` with fetchlet-net's `TcpTransport`, and
+the global `WebSocket` over a `WebSocketService` with fetchlet-net's
 `WebSocketClient`, `Stream` and `Sink` for `ChannelEnd`, and channels Rust
 lends to a call with `Call` ([status](research/host-channels.md#status)).
 Resources in results remain ([values beyond JSON](#values-beyond-json)).
@@ -168,6 +168,13 @@ throughput by pool size that its recommendation rests on.
 
 Concurrent invocations within one instance wait until async context is
 available on every engine.
+
+### An HTTP client transport
+
+Global `fetch` reaches the network through a `FetchTransport` the embedder
+supplies. Add one to fetchlet-net behind an `http` feature, over hyper,
+with `TcpTransport`'s address checks and TLS, so outbound fetch needs no
+application code, and test it against local `http:` and `https:` servers.
 
 ### Streaming outbound request bodies
 

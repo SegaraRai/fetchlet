@@ -40,7 +40,7 @@ implemented, held connections for the axum and actix integrations:
   authorizes exact hosts and port ranges after an optional rewrite, and
   `connect()` from `@fetchlet/web/sockets`, re-exported by
   `fetchlet/runtime`, opens a channel of it with the `socket.open`
-  operation and takes its stream view. fetchlet-http's `sockets` feature
+  operation and takes its stream view. fetchlet-net's `sockets` feature
   provides `TcpTransport`, which refuses non-public resolved addresses
   unless allowed and speaks TLS with rustls, from the start or after
   `startTls()`. A socket's end of writes and its TLS upgrade travel in
@@ -52,7 +52,7 @@ implemented, held connections for the axum and actix integrations:
   credentials hook adds handshake headers. The global `WebSocket` opens a
   channel of it with the `websocket.open` operation and takes the message
   view; the open's arrival carries the server's subprotocol and extensions.
-  fetchlet-http's `websocket-client` feature provides `WebSocketClient`,
+  fetchlet-net's `websocket` feature provides `WebSocketClient`,
   which shares `TcpTransport`'s address checks and TLS and runs tungstenite
   over them.
 - A request-scoped channel closes when its invocation ends, after its
@@ -92,7 +92,7 @@ implemented, held connections for the axum and actix integrations:
   `connection_idle_timeout` and `connection_lifetime` apply as designed
   below. A JavaScript message over either byte budget closes the channel
   with 1009. Shutdown closes held connections with 1001.
-- fetchlet-http's `websocket` feature completes the handshake in
+- fetchlet-http's `axum-websocket` feature completes the handshake in
   `AxumService` and relays frames. With every place taken, it answers 503
   before JavaScript runs. With `max_held_connections` at 0, the handler
   sees upgrade requests as ordinary requests, and `upgradeWebSocket`
@@ -106,17 +106,17 @@ Start, vinext and Waku. Each axum example checks a socket held on one of two
 instances while the other serves requests.
 
 Tests: `crates/fetchlet/tests/websocket.rs` on every engine,
-`crates/fetchlet-http/tests/websocket.rs` over a real socket, the handle
+`crates/fetchlet-http/tests/axum_websocket.rs` over a real socket, the handle
 table's tests in `bridge/handles.rs` and `bridge/tests.rs`, the
 `bridge_bodies` fuzz target, and the examples' end-to-end checks.
 Request-scoped channels are tested in `crates/fetchlet/tests/channels.rs` on
 every engine, `packages/web/tests/channel.test.ts` and the vanilla-axum
 example's progress routes. Sockets are tested in
 `crates/fetchlet/tests/sockets.rs` on every engine,
-`crates/fetchlet-http/tests/sockets.rs` against a local TCP server and
+`crates/fetchlet-net/tests/sockets.rs` against a local TCP server and
 `packages/web/tests/sockets.test.ts`; client WebSockets in
 `crates/fetchlet/tests/websocket_client.rs` on every engine,
-`crates/fetchlet-http/tests/websocket_client.rs` against local `ws:` and
+`crates/fetchlet-net/tests/websocket.rs` against local `ws:` and
 `wss:` servers and `packages/web/tests/websocket.test.ts`. fetchlet-http's
 `actix-websocket` feature completes upgrades in `ActixService` with
 actix-ws, tested in `crates/fetchlet-http/tests/actix_websocket.rs`, and
@@ -506,10 +506,10 @@ Each step lands with tests at its own boundary:
    channels on it too.
 2. Request-scoped channels with `HostServices::channel`, both views and the
    new `Limits`. Done.
-3. `connect()` with `SocketService` and `SocketPolicy` in fetchlet-http
-   behind a `sockets` feature. Done.
-4. The client `WebSocket` with `WebSocketService` in fetchlet-http behind a
-   `websocket-client` feature. Done.
+3. `connect()` with `SocketService` and `SocketPolicy`, with the transport
+   in fetchlet-net behind a `sockets` feature. Done.
+4. The client `WebSocket` with `WebSocketService`, with the transport in
+   fetchlet-net behind a `websocket` feature. Done.
 5. Held connections and `upgradeWebSocket` with server upgrades in the axum
    and actix integrations, after [instance pools](instance-pools.md). Done.
 6. Resources in call arguments and results. Channels in arguments are
@@ -520,9 +520,5 @@ Step 6 needs only step 1.
 
 ## Open questions
 
-- Whether fetchlet-http is the right home for the socket and WebSocket
-  transports, or whether they deserve their own crate. They are HTTP-adjacent,
-  and fetchlet-http already depends on tokio and hyper, but TCP sockets are
-  not HTTP.
 - Whether Hono's and crossws's helpers belong in fetchlet's adapters or
   upstream, as a fetchlet runtime target of their own.

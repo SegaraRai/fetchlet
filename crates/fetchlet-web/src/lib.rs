@@ -11,7 +11,7 @@ mod state;
 
 #[cfg(feature = "compression")]
 mod compression;
-#[cfg(feature = "crypto")]
+#[cfg(feature = "web-crypto")]
 mod crypto;
 #[cfg(feature = "node-crypto")]
 mod node_crypto;

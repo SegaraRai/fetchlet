@@ -64,7 +64,7 @@ struct InvocationState {
     /// aborts the request's signal when it sees it.
     disconnect: Option<Disconnect>,
     /// Web API state, such as open compression streams.
-    #[cfg(feature = "web")]
+    #[cfg(fetchlet_web)]
     web: fetchlet_web::WebState,
     /// Whether this Fetch invocation may accept a WebSocket upgrade.
     upgrade: Upgrade,
@@ -387,7 +387,7 @@ impl HostBridge {
             background_pending: 0,
             context,
             disconnect: None,
-            #[cfg(feature = "web")]
+            #[cfg(fetchlet_web)]
             web: fetchlet_web::WebState::default(),
             upgrade: Upgrade::Unavailable,
         });
@@ -469,7 +469,7 @@ impl HostBridge {
             "bridge message bytes",
         )?;
 
-        #[cfg(feature = "web")]
+        #[cfg(fetchlet_web)]
         if let Some(result) = self.web_operation(operation, input) {
             return result;
         }
@@ -506,7 +506,7 @@ impl HostBridge {
 
     /// A Web API operation of `fetchlet-web`, with the current invocation's
     /// state and byte store when one is active, or None for other operations.
-    #[cfg(feature = "web")]
+    #[cfg(fetchlet_web)]
     fn web_operation(&self, operation: &str, input: &str) -> Option<Result<Value>> {
         let mut state = match self.lock_state() {
             Ok(state) => state,
@@ -1108,10 +1108,10 @@ fn encode_reply(result: Result<Value>) -> Value {
 }
 
 /// An invocation's byte store, as `fetchlet-web` operations use it.
-#[cfg(feature = "web")]
+#[cfg(fetchlet_web)]
 struct WebBytes<'a>(&'a mut ByteStore);
 
-#[cfg(feature = "web")]
+#[cfg(fetchlet_web)]
 impl fetchlet_web::ByteHandles for WebBytes<'_> {
     type Error = Error;
 

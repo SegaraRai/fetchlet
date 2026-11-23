@@ -4,7 +4,15 @@
 
 import { cargoAll } from "@fetchlet-internal/tools-workspace/cargo";
 
-const httpFeatures = ["hyper", "axum", "actix", "dev", "vite-dev"];
+const httpFeatures = [
+  "axum",
+  "axum-websocket",
+  "actix",
+  "actix-websocket",
+  "hyper",
+  "dev-reload",
+  "vite-dev",
+];
 const axumExamples = [
   "astro-axum",
   "honox-axum",
@@ -53,6 +61,11 @@ cargoAll([
       "--no-default-features",
       ...(feature ? ["--features", feature] : []),
     ),
+  ),
+  // Each transport of fetchlet-net also builds on its own.
+  clippy("-p", "fetchlet-net", "--all-targets"),
+  ...["sockets", "websocket"].map((feature) =>
+    clippy("-p", "fetchlet-net", "--no-default-features", "--features", feature),
   ),
   clippy("-p", "fetchlet-lab"),
   clippy(
