@@ -1,8 +1,8 @@
 # fetchlet-net
 
-Outbound network transports for fetchlet applications: the connections of
-JavaScript's `connect()` and global `WebSocket`, which reach the network
-only through Rust. Each transport serves a `fetchlet` host service, whose
+Outbound network transports for fetchlet applications: the requests of
+JavaScript's `fetch` and the connections of its `connect()` and global
+`WebSocket`, which reach the network only through Rust. Each transport serves a `fetchlet` host service, whose
 policy decides what JavaScript may reach; the transport resolves names,
 refuses non-public addresses unless allowed and speaks TLS with rustls and
 the `ring` provider. The JavaScript engine is selected on the `fetchlet`
@@ -10,6 +10,7 @@ crate.
 
 | Feature               | Adds                                                                  |
 | --------------------- | --------------------------------------------------------------------- |
+| `http` (default)      | `HttpClient`, the HTTP/1.1 and HTTP/2 transport of JavaScript's fetch |
 | `sockets` (default)   | `TcpTransport`, the TCP and TLS transport of JavaScript's `connect()` |
 | `websocket` (default) | `WebSocketClient`, the transport of JavaScript's global `WebSocket`   |
 
@@ -20,6 +21,39 @@ fetchlet-net = "..."
 ```
 
 `rustls` is re-exported for TLS configurations given to `with_tls_config`.
+
+## HTTP
+
+With the `http` feature, `HttpClient` sends JavaScript's outbound `fetch`
+requests as a `FetchTransport`. Register it as the outbound transport, or
+behind an env binding, with a `FetchPolicy` that names the origins
+JavaScript may reach
+([host services](../../docs/host-services.md#bindings)):
+
+```rust,ignore
+use fetchlet::{FetchPolicy, FetchService, HostServices};
+use fetchlet_net::HttpClient;
+
+let policy = FetchPolicy::deny_all().allow_origin("https://api.example.com")?;
+let hosts = HostServices::new().outbound(FetchService::new(HttpClient::new(), policy));
+```
+
+Each call sends one request through hyper and returns the response as soon
+as its head arrives, with the body streaming as JavaScript reads it; a
+redirect returns to the caller, which follows it under the service's
+policy and the `redirects` budget. hyper speaks HTTP/1.1, and HTTP/2 when a
+TLS server selects it by ALPN; a `rustls::ClientConfig` that names its own
+ALPN protocols keeps them. Connections to one origin are pooled and reused,
+and an idle one closes after `pool_idle_timeout`, 90 seconds by default.
+Each new connection resolves its host and refuses addresses that are not
+public unless `allow_private_addresses`, and TLS verifies servers as
+`TcpTransport` does. The client adds no `Accept-Encoding` and decodes no
+`Content-Encoding`, so the body reaches JavaScript as the server sent it.
+Dropping the request's future or its response body ends that exchange.
+Requests run on the Tokio runtime that polls the host pump; an App without
+one fails each request with `Configuration`. `tests/http.rs` checks it
+against local HTTP/1.1 and HTTP/2-over-TLS servers, and the global `fetch`
+on every engine.
 
 ## TCP sockets
 

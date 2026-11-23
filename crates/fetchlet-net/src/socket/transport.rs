@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use fetchlet::{ChannelFuture, SecureTransport, SocketRequest, SocketTransport};
 use tokio_rustls::rustls::ClientConfig;
+
+use fetchlet::{ChannelFuture, SecureTransport, SocketRequest, SocketTransport};
 
 use super::relay::{StartTls, relay, relay_secure};
 use crate::network::{Connector, runtime, server_name};

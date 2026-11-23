@@ -169,12 +169,12 @@ throughput by pool size that its recommendation rests on.
 Concurrent invocations within one instance wait until async context is
 available on every engine.
 
-### An HTTP client transport
+### Content codings for outbound fetch
 
-Global `fetch` reaches the network through a `FetchTransport` the embedder
-supplies. Add one to fetchlet-net behind an `http` feature, over hyper,
-with `TcpTransport`'s address checks and TLS, so outbound fetch needs no
-application code, and test it against local `http:` and `https:` servers.
+`HttpClient` sends no `Accept-Encoding` and decodes no `Content-Encoding`,
+so JavaScript receives what the server sent. Browsers ask for and decode
+gzip, deflate and Brotli; doing the same needs the decoders on the
+response path, with the body budget applied to the decoded bytes.
 
 ### Streaming outbound request bodies
 

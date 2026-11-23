@@ -8,12 +8,21 @@ repository.workspace = true
 publish = true
 # package.json is the version placeholder for pnpm change (docs/releasing.md).
 exclude = ["package.json"]
-description = "Outbound TCP, TLS and WebSocket transports for fetchlet applications"
+description = "Outbound HTTP, TCP, TLS and WebSocket transports for fetchlet applications"
 
 # Each feature adds the transport of one outbound JavaScript API. The
 # JavaScript engine is selected on the fetchlet crate.
 [features]
-default = ["sockets", "websocket"]
+default = ["http", "sockets", "websocket"]
+# Send JavaScript's outbound fetch requests over HTTP/1.1 and HTTP/2 as a fetch transport.
+http = [
+  "dep:tokio",
+  "dep:tokio-rustls",
+  "dep:webpki-roots",
+  "dep:hyper",
+  "dep:hyper-util",
+  "dep:tower-service",
+]
 # Open TCP and TLS connections for JavaScript's connect() as a socket transport.
 sockets = ["dep:tokio", "dep:tokio-rustls", "dep:webpki-roots"]
 # Open client WebSockets for JavaScript's WebSocket as a WebSocket transport.
@@ -29,6 +38,13 @@ websocket = [
 fetchlet.workspace = true
 bytes = "1"
 futures-util = { version = "0.3", default-features = false, features = ["sink"], optional = true }
+hyper = { version = "1", features = ["client", "http1", "http2"], optional = true }
+hyper-util = { version = "0.1", features = [
+  "client-legacy",
+  "http1",
+  "http2",
+  "tokio",
+], optional = true }
 tokio = { workspace = true, features = ["net", "io-util"], optional = true }
 tokio-rustls = { version = "0.26", default-features = false, features = [
   "ring",
@@ -37,6 +53,7 @@ tokio-rustls = { version = "0.26", default-features = false, features = [
 tokio-tungstenite = { version = "0.30", default-features = false, features = [
   "handshake",
 ], optional = true }
+tower-service = { version = "0.3", optional = true }
 webpki-roots = { version = "1", optional = true }
 
 [dev-dependencies]
@@ -44,10 +61,18 @@ webpki-roots = { version = "1", optional = true }
 fetchlet = { workspace = true, features = ["quickjs", "boa", "v8", "web-apis"] }
 anyhow.workspace = true
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+http-body = "1"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["server", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["server-auto", "tokio", "http1", "http2"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "io-util"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 tokio-tungstenite = "0.30"
+
+[[test]]
+name = "http"
+required-features = ["http"]
 
 [[test]]
 name = "sockets"

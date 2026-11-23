@@ -1,4 +1,3 @@
-use fetchlet::{ChannelEnd, ChannelEvent, CloseFrame, Message};
 use futures_util::{SinkExt, StreamExt};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_tungstenite::WebSocketStream;
@@ -6,6 +5,8 @@ use tokio_tungstenite::tungstenite::error::{CapacityError, Error as WsError};
 use tokio_tungstenite::tungstenite::protocol::CloseFrame as WsCloseFrame;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::{self, Message as WsMessage};
+
+use fetchlet::{ChannelEnd, ChannelEvent, CloseFrame, Message};
 
 /// A close frame without a status code is reported as 1005 (RFC 6455
 /// §7.1.5), as the WebSockets standard reports it.

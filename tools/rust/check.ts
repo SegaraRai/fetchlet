@@ -64,7 +64,7 @@ cargoAll([
   ),
   // Each transport of fetchlet-net also builds on its own.
   clippy("-p", "fetchlet-net", "--all-targets"),
-  ...["sockets", "websocket"].map((feature) =>
+  ...["http", "sockets", "websocket"].map((feature) =>
     clippy("-p", "fetchlet-net", "--no-default-features", "--features", feature),
   ),
   clippy("-p", "fetchlet-lab"),

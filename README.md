@@ -53,8 +53,8 @@ JSON arguments.
 - **HTTP integration.** `fetchlet-http` serves an app through Tower and
   `http` 1, with thin layers for hyper, axum and actix-web behind features.
   Request and response bodies stream in both directions. `fetchlet-net`
-  provides the TCP, TLS and WebSocket transports of JavaScript's outbound
-  sockets and WebSockets.
+  provides the HTTP, TCP, TLS and WebSocket transports of JavaScript's
+  outbound fetch, sockets and WebSockets.
 - **Explicit authority.** `HostServices` grants environment values, named
   Rust services and outbound fetch. `FetchPolicy` allows origins; Rust
   rewrites requests and attaches credentials. JavaScript can call Rust
@@ -101,7 +101,7 @@ generated from its OpenAPI document.
 ```text
 crates/fetchlet/       Functions and Fetch, shared handles, host services
 crates/fetchlet-http/  Tower, hyper, axum and actix integration; artifacts and asset archives
-crates/fetchlet-net/   Outbound TCP, TLS and WebSocket transports
+crates/fetchlet-net/   Outbound HTTP, TCP, TLS and WebSocket transports
 packages/fetchlet/     The fetchlet npm package: runtime, artifact builder, framework integrations
 packages/web/          @fetchlet/web: the Web API implementations that run in the engine
 examples/              Runnable applications per framework and Rust server

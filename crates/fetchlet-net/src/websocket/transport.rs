@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use fetchlet::http::{HeaderValue, header};
-use fetchlet::{
-    ChannelEnd, Error, WebSocketAccept, WebSocketFuture, WebSocketRequest, WebSocketTransport,
-};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_rustls::rustls::ClientConfig;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
+
+use fetchlet::http::{HeaderValue, header};
+use fetchlet::{
+    ChannelEnd, Error, WebSocketAccept, WebSocketFuture, WebSocketRequest, WebSocketTransport,
+};
 
 use super::relay::relay;
 use crate::network::{Connector, runtime};

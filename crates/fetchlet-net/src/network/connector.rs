@@ -2,12 +2,13 @@ use std::io;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use fetchlet::Error;
 use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
 use tokio_rustls::client::TlsStream;
 use tokio_rustls::rustls::pki_types::ServerName;
 use tokio_rustls::rustls::{self, ClientConfig, RootCertStore};
+
+use fetchlet::Error;
 
 use super::address::is_public;
 
@@ -40,6 +41,18 @@ impl Connector {
             tls: config,
             allow_private_addresses: false,
         }
+    }
+
+    /// Offer `protocols` by ALPN in TLS handshakes, unless the configuration
+    /// already names its own.
+    #[cfg(feature = "http")]
+    pub fn with_alpn(mut self, protocols: &[&[u8]]) -> Self {
+        if self.tls.alpn_protocols.is_empty() {
+            let mut config = (*self.tls).clone();
+            config.alpn_protocols = protocols.iter().map(|protocol| protocol.to_vec()).collect();
+            self.tls = Arc::new(config);
+        }
+        self
     }
 
     pub fn allow_private_addresses(&mut self) {

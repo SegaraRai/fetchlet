@@ -42,6 +42,19 @@ object installed before the module is evaluated. Rust decides every value
 and service in it. Pass JavaScript only what it must read; keep upstream
 credentials in Rust, in the service's credentials callback.
 
+For the network, fetchlet-net's `http` feature provides `HttpClient`, a
+transport over hyper that speaks HTTP/1.1, and HTTP/2 when a TLS server
+selects it, pools connections per origin, resolves each host and refuses
+non-public addresses unless `allow_private_addresses`:
+
+```rust,ignore
+use fetchlet::{FetchPolicy, FetchService, HostServices};
+use fetchlet_net::HttpClient;
+
+let policy = FetchPolicy::deny_all().allow_origin("https://api.example.com")?;
+let hosts = HostServices::new().outbound(FetchService::new(HttpClient::new(), policy));
+```
+
 `App` runs calls one at a time through `&mut self`. QuickJS and Boa run on
 the caller's thread; V8 keeps a dedicated worker per isolate. `AppHandle`
 manages the thread and queue itself.
@@ -346,7 +359,9 @@ A transport is a trusted Rust implementation. It must answer a single hop,
 stop work when its future is dropped and enforce the body budget while
 receiving. A real HTTP client must also check DNS results and the address it
 connects to: the origin policy authorizes URLs, and the transport controls
-network reachability.
+network reachability. `HttpClient` keeps this contract: it returns
+redirects to the caller, checks the resolved addresses of each new
+connection, and stops when its future or body is dropped.
 
 The invocation polls the transport future directly and wakes the engine on
 the future's waker or the next JavaScript timer; there is no periodic
