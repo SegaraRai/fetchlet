@@ -380,8 +380,54 @@
 	}
 	// js-src/host-bridge/fetch.ts
 	const pendingFetches = /* @__PURE__ */ new Map();
+	/** The reader of each body streaming to Rust, by its upload ticket. */
+	const uploads = /* @__PURE__ */ new Map();
 	function hasPendingFetches() {
-		return pendingFetches.size > 0;
+		return pendingFetches.size > 0 || uploads.size > 0;
+	}
+	function endUpload(ticket, reason) {
+		const reader = uploads.get(ticket);
+		if (reader === void 0) return;
+		uploads.delete(ticket);
+		reader.cancel(reason).catch(() => {});
+	}
+	/** Send Rust the next chunk of an upload, its end, or its failure. */
+	async function pullUpload(ticket) {
+		const reader = uploads.get(ticket);
+		if (reader === void 0) return;
+		let write;
+		try {
+			const { value, done } = await reader.read();
+			if (done) write = {
+				ticket,
+				done: true
+			};
+			else if (value instanceof Uint8Array) write = {
+				ticket,
+				chunk: putBytes(value)
+			};
+			else throw new TypeError("Request body must contain byte chunks");
+		} catch {
+			write = {
+				ticket,
+				error: true
+			};
+		}
+		if (!uploads.has(ticket)) return;
+		if (write.error === true) endUpload(ticket, /* @__PURE__ */ new TypeError("Request body stream failed"));
+		else if (write.done === true) uploads.delete(ticket);
+		try {
+			dispatch("fetch.upload", write);
+		} catch (error) {
+			endUpload(ticket, error);
+		}
+	}
+	/** Deliver a pull or a cancel of an upload; false if it is not one. */
+	function completeUpload(completion) {
+		if (!uploads.has(completion.id)) return false;
+		if (completion.result.ok && completion.result.value === "pull") pullUpload(completion.id);
+		else endUpload(completion.id);
+		return true;
 	}
 	function exceedsBudget(observed, budget) {
 		return budget !== null && BigInt(observed) > BigInt(budget);
@@ -449,6 +495,7 @@
 	}
 	/** Settle the fetch a completion belongs to, if it is still waiting. */
 	function completeFetch(completion) {
+		if (completeUpload(completion)) return;
 		const pending = pendingFetches.get(completion.id);
 		if (!pending) return;
 		pendingFetches.delete(completion.id);
@@ -456,9 +503,10 @@
 		if (completion.result.ok) pending.resolve(responseFromWire(completion.result.value, pending.signal));
 		else pending.reject(hostError(completion.result.error));
 	}
-	function waitForResponse(ticket, signal) {
+	function waitForResponse(ticket, upload, signal) {
 		return new Promise((resolve, reject) => {
 			function abort() {
+				if (upload !== null) endUpload(upload, signal.reason);
 				if (!pendingFetches.delete(ticket)) return;
 				try {
 					dispatch("fetch.cancel", ticket);
@@ -479,18 +527,24 @@
 	async function hostFetch(input, init, service) {
 		const request = new Request(input, init);
 		request.signal.throwIfAborted();
-		const body = await readRequestBody(request, dispatch("fetch.limits", null));
+		const streams = globalThis.__fetchletStreamsBody?.(request) === true && request.body !== null;
+		if (streams && request.body.locked) throw new TypeError("Request body is already used");
+		const limits = dispatch("fetch.limits", null);
+		const body = streams ? null : await readRequestBody(request, limits);
 		request.signal.throwIfAborted();
-		return waitForResponse(dispatch("fetch.start", {
+		const started = dispatch("fetch.start", {
 			service: service ?? null,
 			redirect: request.redirect,
+			upload: streams,
 			request: {
 				url: request.url,
 				method: request.method,
 				headers: Array.from(request.headers),
 				body: body === null ? null : putBytes(body)
 			}
-		}), request.signal);
+		});
+		if (started.upload !== null) uploads.set(started.upload, request.body.getReader());
+		return waitForResponse(started.ticket, started.upload, request.signal);
 	}
 	// js-src/host-bridge/places.ts
 	/** Put `item` at `path` in `root`, returning the new root. */

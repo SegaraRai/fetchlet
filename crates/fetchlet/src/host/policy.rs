@@ -6,9 +6,17 @@ use crate::wire::normalize_fetch_method;
 use crate::{Error, Request, Result};
 
 /// Exact normalized origins; no wildcard or substring matching.
+///
+/// A request whose body streams, such as one JavaScript sends with a
+/// `ReadableStream` body, goes over HTTP/2 or later only, as browsers send
+/// it: the transport fails it rather than fall back to HTTP/1.x, where
+/// chunked request bodies are rare enough to be a compatibility risk.
+/// [`allow_http1_streaming`](Self::allow_http1_streaming) lifts this for
+/// servers known to accept them.
 #[derive(Debug, Clone, Default)]
 pub struct FetchPolicy {
     origins: BTreeSet<String>,
+    http1_streaming: bool,
 }
 
 impl FetchPolicy {
@@ -21,9 +29,21 @@ impl FetchPolicy {
         Ok(self)
     }
 
+    /// Let a streaming request body go over HTTP/1.x with chunked
+    /// transfer coding, for servers known to accept it.
+    pub fn allow_http1_streaming(mut self) -> Self {
+        self.http1_streaming = true;
+        self
+    }
+
+    pub(super) fn allows_http1_streaming(&self) -> bool {
+        self.http1_streaming
+    }
+
     pub(super) fn from_origins(origins: impl IntoIterator<Item = String>) -> Self {
         Self {
             origins: origins.into_iter().collect(),
+            http1_streaming: false,
         }
     }
 

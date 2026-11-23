@@ -27,7 +27,7 @@ pub use socket::{
     SecureTransport, SocketAddress, SocketPolicy, SocketRequest, SocketService, SocketTransport,
     socket_fn,
 };
-pub use transport::{FetchTransport, TransportFuture, transport_fn};
+pub use transport::{FetchTransport, RequireHttp2, TransportFuture, transport_fn};
 pub use websocket::{
     WebSocketAccept, WebSocketFuture, WebSocketRequest, WebSocketService, WebSocketTransport,
     websocket_fn,

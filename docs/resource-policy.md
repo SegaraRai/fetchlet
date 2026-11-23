@@ -16,7 +16,7 @@ services, concurrency and the process's total capacity.
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `timeout`                 | Cooperative elapsed time of one app call, until its streaming body completes, or of a `FetchService` call from Rust                       |
 | `request_body_bytes`      | Bytes of each incoming request body and each outbound request body; streams are checked against the declared length and the running total |
-| `request_body_chunks`     | Chunks read from an outbound request body in JavaScript, empty chunks included                                                            |
+| `request_body_chunks`     | Chunks read from an outbound request body in JavaScript, empty chunks included, read first or streamed                                    |
 | `response_body_bytes`     | Bytes of each outgoing response body and each upstream response body; declared length and running total                                   |
 | `header_bytes`            | Total bytes of names and values in each header set                                                                                        |
 | `url_bytes`               | Bytes of the incoming request URL and of each rewritten destination URL                                                                   |

@@ -153,6 +153,11 @@ declare var __fetchletChannelViews:
       lend?(id: number): unknown;
     }
   | undefined;
+/**
+ * Installed by the Web API profile: whether a Request's body streams, having
+ * no source Fetch can read again, or undefined for another Request.
+ */
+declare var __fetchletStreamsBody: ((request: unknown) => boolean | undefined) | undefined;
 declare var __fetchletPumpHost: (() => number) | undefined;
 
 // Installed by the guest runtime.

@@ -4,6 +4,7 @@ mod clock;
 mod dispatcher;
 mod functions;
 mod handles;
+mod upload;
 
 #[cfg(feature = "fuzzing")]
 mod harness;

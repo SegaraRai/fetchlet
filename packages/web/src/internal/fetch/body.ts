@@ -22,6 +22,12 @@ export class BodyImpl {
   #headers: any;
   #stream: any = null;
   #bytes: Uint8Array | null = null;
+  /**
+   * Whether the body has a source Fetch can read again, as bytes, a string
+   * or a Blob have; a body given as a ReadableStream has none, so a fetch
+   * streams it once and cannot resend it.
+   */
+  #sourced = true;
 
   protected consumed = false;
   protected contentType: string | null = null;
@@ -46,6 +52,7 @@ export class BodyImpl {
         throw new TypeError("Body stream is unusable");
       }
       this.#stream = body;
+      this.#sourced = false;
     } else if (body instanceof runtime.Blob) {
       this.#stream = body.stream();
       this.contentType = body.type;
@@ -90,6 +97,16 @@ export class BodyImpl {
   /** Whether the body is non-null, without creating its stream. */
   protected hasBody() {
     return this.#bytes !== null || this.#stream !== null;
+  }
+
+  /** Whether the body is non-null and has no source: a stream given as such. */
+  protected streamsBody() {
+    return this.hasBody() && !this.#sourced;
+  }
+
+  /** Keep the source of the body this one was cloned or taken from. */
+  protected keepSourceOf(other: BodyImpl) {
+    this.#sourced = other.#sourced;
   }
 
   /** The stream for `body`. Bytes become a byte stream once, on first use. */

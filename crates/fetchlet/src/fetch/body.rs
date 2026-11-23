@@ -56,6 +56,46 @@ impl fmt::Debug for ExternalBody {
     }
 }
 
+/// A streaming body that fails once it has produced more than `limit` bytes.
+struct Limited {
+    body: Body,
+    read: usize,
+    limit: usize,
+    resource: &'static str,
+}
+
+impl http_body::Body for Limited {
+    type Data = Bytes;
+
+    type Error = Error;
+
+    fn poll_frame(
+        self: Pin<&mut Self>,
+        context: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Bytes>>>> {
+        let this = self.get_mut();
+        let frame = match Pin::new(&mut this.body).poll_frame(context) {
+            Poll::Ready(Some(Ok(frame))) => frame,
+            other => return other,
+        };
+        if let Some(chunk) = frame.data_ref() {
+            this.read = this.read.saturating_add(chunk.len());
+            if this.read > this.limit {
+                return Poll::Ready(Some(Err(Error::LimitExceeded(this.resource))));
+            }
+        }
+        Poll::Ready(Some(Ok(frame)))
+    }
+
+    fn is_end_stream(&self) -> bool {
+        self.body.is_end_stream()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.body.size_hint()
+    }
+}
+
 /// Adapts the data and error types of a caller-supplied body.
 struct MapBody<B>(B);
 
@@ -145,6 +185,26 @@ impl Body {
         }
     }
 
+    /// Stream a body of fetchlet's own, whose errors, such as
+    /// `LimitExceeded`, reach the caller as they are.
+    #[cfg_attr(
+        not(any(
+            feature = "boa",
+            feature = "quickjs",
+            feature = "v8",
+            feature = "fuzzing",
+            test
+        )),
+        allow(dead_code)
+    )]
+    pub(crate) fn from_fetchlet_body(
+        body: impl http_body::Body<Data = Bytes, Error = Error> + Send + 'static,
+    ) -> Self {
+        Self {
+            inner: Inner::External(ExternalBody(Box::pin(body))),
+        }
+    }
+
     /// The length the body declares at least: exact when buffered, otherwise
     /// its size hint, such as a `Content-Length`.
     pub(crate) fn declared_len(&self) -> usize {
@@ -225,6 +285,23 @@ impl Body {
                 }
                 Ok(data.freeze())
             }
+        }
+    }
+
+    /// Fail a streaming body with `LimitExceeded(resource)` once more than
+    /// `limit` bytes have been read from it. A buffered body is returned as
+    /// it is; check its length directly.
+    pub(crate) fn limited(self, limit: Option<usize>, resource: &'static str) -> Self {
+        match (limit, &self.inner) {
+            (None, _) | (_, Inner::Buffered(_)) => self,
+            (Some(limit), _) => Self {
+                inner: Inner::External(ExternalBody(Box::pin(Limited {
+                    body: self,
+                    read: 0,
+                    limit,
+                    resource,
+                }))),
+            },
         }
     }
 

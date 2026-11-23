@@ -24,7 +24,7 @@ use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs
 use fetchlet::http::{Method, Request, Response, StatusCode, header};
 use fetchlet::{
     App, Backend, Body, Error, FetchPolicy, FetchService, FetchTransport, HostServices, Limits,
-    Module,
+    Module, RequireHttp2,
 };
 use fetchlet_net::HttpClient;
 use fetchlet_net::rustls::{self, ClientConfig, RootCertStore, ServerConfig};
@@ -280,6 +280,44 @@ async fn https_verifies_the_server_and_negotiates_http2() -> anyhow::Result<()> 
         .await
         .unwrap_err();
     assert!(matches!(error, Error::Transport(_)), "{error}");
+    Ok(())
+}
+
+/// A POST whose body streams `chunks`, marked [`RequireHttp2`] if `http2`.
+fn streamed(url: &str, chunks: &[&'static str], http2: bool) -> fetchlet::Request {
+    let (sender, receiver) = mpsc::channel(chunks.len().max(1));
+    for chunk in chunks {
+        sender
+            .try_send(Bytes::from_static(chunk.as_bytes()))
+            .unwrap();
+    }
+    let mut request = Request::builder()
+        .method(Method::POST)
+        .uri(url)
+        .body(Body::from_http_body(Unfinished(receiver)))
+        .unwrap();
+    if http2 {
+        request.extensions_mut().insert(RequireHttp2);
+    }
+    request
+}
+
+#[tokio::test]
+async fn streamed_bodies_that_require_http2_never_use_http1() -> anyhow::Result<()> {
+    let (port, _) = server().await?;
+    let client = HttpClient::new().allow_private_addresses();
+    let url = format!("http://127.0.0.1:{port}/echo");
+    let response = client.send(streamed(&url, &["a", "b"], false)).await?;
+    assert_eq!(text(response).await?, "POST HTTP/1.1 x-test= body=ab");
+    let error = client.send(streamed(&url, &["a"], true)).await.unwrap_err();
+    assert!(matches!(error, Error::Transport(_)), "{error}");
+
+    let port = tls_server().await?;
+    let url = format!("https://localhost:{port}/echo");
+    let response = trusting_client()?
+        .send(streamed(&url, &["a", "b"], true))
+        .await?;
+    assert_eq!(text(response).await?, "POST HTTP/2.0 x-test= body=ab");
     Ok(())
 }
 

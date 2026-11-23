@@ -122,14 +122,19 @@ text(), json(), arrayBuffer() … on a body no one has read
   `response_body_bytes`. Bodies of followed redirects are discarded unread.
 - Cancelling the stream, aborting the fetch, finishing the body or ending
   the invocation drops the body source, which cancels the producer.
-- Outbound request bodies are read in full inside JavaScript before they
-  are sent, because a redirect may resend them.
+- Outbound request bodies with a source, such as bytes or a string, are
+  read in full inside JavaScript before they are sent, because a redirect
+  may resend them. A `ReadableStream` body streams: each chunk the
+  transport waits for is pulled from JavaScript at the next host step, and
+  a redirect other than 303 fails the fetch
+  ([streaming request bodies](host-services.md#streaming-request-bodies)).
 
 ## Outbound fetch: JavaScript to Rust
 
 ```text
 fetch(url, init)  or  fetchlet.env.NAME.fetch(url, init)
-    │ read body; check body, chunk and message budgets
+    │ read a body with a source, or stream a ReadableStream body;
+    │   check body, chunk and message budgets
     │ count a subrequest; pick the service (outbound or named)
     ▼
 FetchService

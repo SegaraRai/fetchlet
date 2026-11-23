@@ -314,4 +314,47 @@ describe("Request", () => {
     controller.abort();
     expect(clone.signal.aborted).toBe(true);
   });
+  test("a ReadableStream body needs duplex, no keepalive and a cors mode", () => {
+    const init = { method: "POST", body: stream(["a"]) };
+    expect(() => new Request("https://app.test/", init)).toThrow(TypeError);
+    expect(
+      () =>
+        new Request("https://app.test/", {
+          ...init,
+          duplex: "half",
+          keepalive: true,
+        } as RequestInit),
+    ).toThrow(TypeError);
+    expect(
+      () =>
+        new Request("https://app.test/", {
+          ...init,
+          duplex: "half",
+          mode: "no-cors",
+        } as RequestInit),
+    ).toThrow(TypeError);
+    // Bytes have a source, so they need none of this.
+    expect(
+      new Request("https://app.test/", { method: "POST", body: "a", keepalive: true }).keepalive,
+    ).toBe(true);
+  });
+
+  test("the host learns which bodies stream, through clones and copies", () => {
+    const streams = (
+      runtime as { __fetchletStreamsBody: (request: unknown) => boolean | undefined }
+    ).__fetchletStreamsBody;
+    const streamed = new Request("https://app.test/", {
+      method: "POST",
+      body: stream(["a"]),
+      duplex: "half",
+    } as RequestInit);
+    expect(streams(streamed)).toBe(true);
+    expect(streams(streamed.clone())).toBe(true);
+    expect(streams(new Request(streamed))).toBe(true);
+    const blob = new Request("https://app.test/", { method: "POST", body: new Blob(["a"]) });
+    expect(streams(blob)).toBe(false);
+    expect(streams(blob.clone())).toBe(false);
+    expect(streams(new Request("https://app.test/"))).toBe(false);
+    expect(streams({})).toBeUndefined();
+  });
 });

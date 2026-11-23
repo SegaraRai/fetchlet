@@ -476,8 +476,9 @@ axum router serve both public HTTP and in-process fetches. Calling the same
 
 ## Fetch processing order
 
-1. Read the JavaScript request body and check the body, chunk and message
-   budgets.
+1. Read a JavaScript request body that has a source, such as bytes, a
+   string or a `Blob`, and check the body, chunk and message budgets. A
+   `ReadableStream` body streams instead (see below).
 2. Count a subrequest against the invocation and select the service.
 3. Let the Rust rewrite callback change the request.
 4. Check the rewritten origin, method, headers and body.
@@ -495,13 +496,46 @@ also removes guest-supplied `Authorization`, `Cookie` and similar headers.
 it, so the credentials callback can restrict each secret to the URL it is
 given.
 
+## Streaming request bodies
+
+A request body given as a `ReadableStream`, which needs `duplex: "half"`,
+streams as the transport sends it, as Chrome and Firefox stream it: the
+transport reads each chunk as JavaScript produces it, so neither side holds
+the whole body. Such a body has no source to read again, and fetchlet
+follows the Fetch Standard's rules for it, which those browsers implement:
+
+- A redirect other than 303 fails the fetch with `TRANSPORT`, since it would
+  resend the body; a 303 continues as a `GET` without it. `redirect:
+  "manual"` returns the redirect as usual.
+- `keepalive` and a mode other than `cors` or `same-origin` throw a
+  `TypeError` when the `Request` is built.
+- The body goes over HTTP/2 or later only. `FetchService` marks the request
+  with `RequireHttp2`, and a network transport must not send it over
+  HTTP/1.x; `HttpClient` then uses only an HTTP/2 connection and fails with
+  `TRANSPORT` otherwise, plain `http:` included. A policy built with
+  `FetchPolicy::allow_http1_streaming()` lets it use HTTP/1.1 with chunked
+  transfer coding, for servers known to accept it. Transports that answer
+  in-process have no connection and ignore the mark.
+
+`request_body_bytes` counts the bytes as the transport reads them and
+`request_body_chunks` the chunks JavaScript writes; `bridge_message_bytes`
+bounds each chunk. A body that exceeds them, or whose stream errors, fails
+the fetch. When the transport stops reading, as when the server answers
+early or the fetch is aborted, the JavaScript stream is cancelled. A body
+with a source is still read first, so a redirect can resend it; an incoming
+request's body, which is a stream, streams when a handler forwards it.
+`FetchService::fetch` from Rust applies the same rules to a `Body` that
+streams.
+
 ## Transport contract
 
 A transport is a trusted Rust implementation. It must answer a single hop,
 stop work when its future is dropped and enforce the body budget while
 receiving. A real HTTP client must also check DNS results and the address it
 connects to: the origin policy authorizes URLs, and the transport controls
-network reachability. `HttpClient` keeps this contract: it returns
+network reachability. A network transport must also honor
+`RequireHttp2` ([streaming request bodies](#streaming-request-bodies)).
+`HttpClient` keeps this contract: it returns
 redirects to the caller, checks the resolved addresses of each new
 connection, and stops when its future or body is dropped.
 

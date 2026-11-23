@@ -7,7 +7,7 @@ use hyper_util::rt::{TokioExecutor, TokioTimer};
 use tokio_rustls::rustls::ClientConfig;
 
 use fetchlet::http::{HeaderValue, Method, Version, header};
-use fetchlet::{Body, Error, FetchTransport, Request, Response, TransportFuture};
+use fetchlet::{Body, Error, FetchTransport, Request, RequireHttp2, Response, TransportFuture};
 use http_body::Body as _;
 
 use super::connect::Connect;
@@ -35,7 +35,10 @@ const DEFAULT_POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(90);
 /// them under its policy, as the transport contract requires. hyper speaks
 /// HTTP/1.1, and HTTP/2 when a TLS server selects it by ALPN; connections
 /// to one origin are pooled and reused, and an idle one closes after
-/// [`pool_idle_timeout`](Self::pool_idle_timeout).
+/// [`pool_idle_timeout`](Self::pool_idle_timeout). A request marked
+/// [`RequireHttp2`], such as one whose body streams, uses only an HTTP/2
+/// connection and fails with `Transport` before sending on an HTTP/1.1 one,
+/// including every plain `http:` connection.
 ///
 /// As a browser does, the client asks for `gzip, deflate, br` and undoes
 /// the codings the response's `Content-Encoding` lists, including stacked
@@ -136,8 +139,14 @@ impl FetchTransport for HttpClient {
                 Some("http" | "https") => {}
                 _ => return Err(Error::InvalidRequest("unsupported URL scheme".into())),
             }
-            // hyper chooses HTTP/2 by the connection, not the request.
-            *request.version_mut() = Version::HTTP_11;
+            // hyper chooses HTTP/2 by the connection, not the request. A
+            // request that must not use HTTP/1.x asks for HTTP/2, which
+            // hyper refuses on an HTTP/1 connection before sending anything.
+            *request.version_mut() = if request.extensions().get::<RequireHttp2>().is_some() {
+                Version::HTTP_2
+            } else {
+                Version::HTTP_11
+            };
             // A caller that names its own codings reads the body as sent.
             let decode = !request.headers().contains_key(header::ACCEPT_ENCODING);
             if decode {

@@ -12,6 +12,7 @@ use super::channels::{GuestClose, GuestMessage, GuestPause, GuestWrite};
 use super::clock::Clock;
 use super::functions::{self, CallMessage, PendingCalls, Resources};
 use super::handles::{Handles, Resource};
+use super::upload::{UploadWrite, Uploads};
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
 use crate::host::{GuestEnd, Method, Redirect, TransportFuture, pair};
@@ -60,6 +61,8 @@ struct InvocationState {
     handles: Handles,
     /// Outstanding `body.read` and `body.readAll` tickets.
     pending_reads: BTreeMap<String, PendingRead>,
+    /// Request bodies JavaScript streams to outbound fetches.
+    uploads: Uploads,
     /// `fetchlet.waitUntil` registrations, and those not yet settled.
     background_registered: usize,
     background_pending: usize,
@@ -182,6 +185,10 @@ struct FetchStartRequest {
     #[serde(default)]
     redirect: Redirect,
     service: Option<String>,
+    /// JavaScript streams the body with `fetch.upload` instead of sending
+    /// it in `request`.
+    #[serde(default)]
+    upload: bool,
 }
 
 struct Completion {
@@ -403,6 +410,7 @@ impl HostBridge {
             bytes: ByteStore::default(),
             handles,
             pending_reads: BTreeMap::new(),
+            uploads: Uploads::default(),
             background_registered: 0,
             background_pending: 0,
             context,
@@ -513,6 +521,7 @@ impl HostBridge {
             "fetch.cancel" => self.cancel_fetch(input),
             "fetch.limits" => self.fetch_limits(),
             "fetch.start" => self.start_fetch(input),
+            "fetch.upload" => self.write_upload(input),
             "function.call" => self.call_function(input, false),
             "function.start" => self.call_function(input, true),
             "host.poll" => self.poll_host(),
@@ -643,6 +652,16 @@ impl HostBridge {
         if let Some(context) = &invocation.context {
             request.extensions_mut().insert(context.clone());
         }
+        let upload = if start.upload {
+            if matches!(*request.method(), http::Method::GET | http::Method::HEAD) {
+                return Err(Error::InvalidRequest("GET/HEAD request has a body".into()));
+            }
+            let ticket = invocation.next_ticket()?;
+            *request.body_mut() = invocation.uploads.open(ticket.clone(), self.wake.clone());
+            Some(ticket)
+        } else {
+            None
+        };
         let limits = invocation.limits.clone();
         let future =
             Box::pin(async move { service.execute(request, start.redirect, limits).await });
@@ -652,7 +671,22 @@ impl HostBridge {
             .pending_fetches
             .insert(ticket.clone(), PendingFetch { future });
 
-        Ok(Value::String(ticket))
+        Ok(json!({ "ticket": ticket, "upload": upload }))
+    }
+
+    /// Take the next chunk, the end or the failure of a request body
+    /// JavaScript streams. Each chunk is one bridge message.
+    fn write_upload(&self, input: &str) -> Result<Value> {
+        let write: UploadWrite = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid upload write".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let chunk = write
+            .chunk
+            .map(|handle| invocation.bytes.take(handle))
+            .transpose()?;
+        let chunks = invocation.limits.request_body_chunks;
+        invocation.uploads.write(write, chunk, chunks)
     }
 
     /// Call a method of a `Functions` binding: a sync method at once,
@@ -749,6 +783,7 @@ impl HostBridge {
             bytes,
             handles,
             pending_reads,
+            uploads: invocation_uploads,
             ..
         } = invocation;
         let mut bridge_bytes = InvocationBytes { bytes, handles };
@@ -825,6 +860,8 @@ impl HostBridge {
         });
 
         let mut events: Vec<Value> = completed.into_iter().map(Completion::into_value).collect();
+        // Pulls and cancels of streamed request bodies.
+        invocation_uploads.poll(&mut events);
         // Messages and closes of channels, each channel's in order.
         if handles.has_channels() {
             handles.poll_channels(&mut context, bytes, &mut events)?;

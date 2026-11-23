@@ -153,14 +153,30 @@ class RequestImpl extends BodyImpl {
     }
     const method = init.method !== undefined ? methodName(init.method) : (old?.method ?? "GET");
     const signal = dependentSignal(init.signal === undefined ? old?.signal : init.signal);
+    const initBody = init.body ?? null;
 
     super(
-      init.body ?? (old ? (input as RequestImpl).cloneStream() : undefined),
+      initBody ?? (old ? (input as RequestImpl).cloneStream() : undefined),
       init.headers ?? (old ? (input as RequestImpl).headers : undefined),
     );
+    if (initBody === null && old) {
+      this.keepSourceOf(input as RequestImpl);
+    }
 
     if (["GET", "HEAD"].includes(method) && this.hasBody()) {
       throw new TypeError("GET/HEAD body");
+    }
+    // A body without a source streams once (Fetch §5.4, Request constructor).
+    if (this.streamsBody()) {
+      if (initBody !== null && init.duplex === undefined) {
+        throw new TypeError("RequestInit.duplex must be 'half' for a ReadableStream body");
+      }
+      if (keepalive) {
+        throw new TypeError("A keepalive request cannot have a ReadableStream body");
+      }
+      if (mode !== "same-origin" && mode !== "cors") {
+        throw new TypeError("A ReadableStream body needs the same-origin or cors mode");
+      }
     }
 
     states.set(this, {
@@ -242,13 +258,20 @@ class RequestImpl extends BodyImpl {
     return "half";
   }
 
+  /** Whether `value` is a Request of this profile whose body streams. */
+  static streamsBodyOf(value: unknown): boolean | undefined {
+    return value instanceof RequestImpl ? value.streamsBody() : undefined;
+  }
+
   clone() {
     const current = state(this);
     const copy = new RequestImpl(current.url, {
       method: current.method,
       headers: this.headers,
       body: this.cloneStream(),
+      duplex: "half",
     });
+    copy.keepSourceOf(this);
     states.set(copy, {
       ...current,
       signal: dependentSignal(current.signal),
@@ -280,3 +303,14 @@ Object.defineProperty(RequestImpl, "name", {
 });
 
 runtime.Request ??= RequestImpl;
+
+// The host bridge's fetch streams a body without a source instead of
+// reading it first. A second copy of this module keeps the first.
+if (!Object.hasOwn(runtime, "__fetchletStreamsBody")) {
+  Object.defineProperty(runtime, "__fetchletStreamsBody", {
+    value: (request: unknown) => RequestImpl.streamsBodyOf(request),
+    writable: false,
+    enumerable: false,
+    configurable: false,
+  });
+}

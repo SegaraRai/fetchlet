@@ -111,7 +111,7 @@ fn cancellation_is_immediate_and_tickets_do_not_cross_invocations() {
     let bridge = pending_bridge(dropped.clone());
     let first_scope = bridge.begin(Limits::default()).unwrap();
 
-    let first_ticket = bridge.start_fetch(&start_request()).unwrap();
+    let first_ticket = bridge.start_fetch(&start_request()).unwrap()["ticket"].clone();
     bridge.poll_host().unwrap();
     bridge.cancel_fetch(&first_ticket.to_string()).unwrap();
 
@@ -120,7 +120,7 @@ fn cancellation_is_immediate_and_tickets_do_not_cross_invocations() {
     drop(first_scope);
 
     let second_scope = bridge.begin(Limits::default()).unwrap();
-    let second_ticket = bridge.start_fetch(&start_request()).unwrap();
+    let second_ticket = bridge.start_fetch(&start_request()).unwrap()["ticket"].clone();
     bridge.poll_host().unwrap();
 
     assert_ne!(first_ticket, second_ticket);
@@ -144,7 +144,7 @@ fn subrequest_budget_is_not_replenished_by_cancellation() {
     };
     let _scope = bridge.begin(limits).unwrap();
 
-    let ticket = bridge.start_fetch(&start_request()).unwrap();
+    let ticket = bridge.start_fetch(&start_request()).unwrap()["ticket"].clone();
     bridge.cancel_fetch(&ticket.to_string()).unwrap();
 
     assert!(matches!(
@@ -186,7 +186,7 @@ fn completion_is_delivered_once_and_releases_the_scope() {
     let bridge = HostBridge::new(HostServices::new().outbound(service));
     let scope = bridge.begin(Limits::default()).unwrap();
 
-    let ticket = bridge.start_fetch(&start_request()).unwrap();
+    let ticket = bridge.start_fetch(&start_request()).unwrap()["ticket"].clone();
     let completions = bridge.poll_host().unwrap();
 
     assert_eq!(completions[0]["id"], ticket);

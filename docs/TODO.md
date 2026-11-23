@@ -80,9 +80,7 @@ documented refusal, and a check in a framework example:
 - Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
   QuickJS and Boa, which libraries such as depd call at load time.
 
-Streaming outbound request bodies, Intl coverage checks and legacy
-multi-byte encodings are tracked under
-[Streaming outbound request bodies](#streaming-outbound-request-bodies),
+Intl coverage checks and legacy multi-byte encodings are tracked under
 [Capability negotiation](#capability-negotiation) and
 [Conformance](#conformance).
 
@@ -173,12 +171,6 @@ available on every engine.
 accept `zstd`; adding it needs a pure Rust decoder, or a C dependency the
 release builds accept, with output bounded per piece as the other codings
 are.
-
-### Streaming outbound request bodies
-
-Outbound request bodies are read in full in JavaScript because a redirect
-may resend them. Streaming them needs rules for when a redirect may resend,
-and tests for cancellation and budgets on that path.
 
 ### Moving JavaScript channels to Rust
 

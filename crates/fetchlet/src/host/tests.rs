@@ -447,3 +447,185 @@ async fn routed_origins_are_exact_and_scope_the_context() {
             .is_err()
     );
 }
+
+/// A request body that streams: chunks without a source to read again.
+struct Chunks(std::collections::VecDeque<bytes::Bytes>);
+
+impl http_body::Body for Chunks {
+    type Data = bytes::Bytes;
+    type Error = Error;
+
+    fn poll_frame(
+        mut self: std::pin::Pin<&mut Self>,
+        _: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<crate::Result<http_body::Frame<bytes::Bytes>>>> {
+        std::task::Poll::Ready(
+            self.0
+                .pop_front()
+                .map(|chunk| Ok(http_body::Frame::data(chunk))),
+        )
+    }
+}
+
+fn streamed(url: &str, chunks: &[&'static str]) -> Request {
+    let body = Chunks(
+        chunks
+            .iter()
+            .map(|chunk| bytes::Bytes::from_static(chunk.as_bytes()))
+            .collect(),
+    );
+    http::Request::builder()
+        .uri(url)
+        .method("POST")
+        .body(Body::from_http_body(body))
+        .unwrap()
+}
+
+/// A transport that reads each body as it streams and answers each path
+/// with the redirect status it names, such as `/307`, or 200.
+/// Each request a transport saw: its method, its body and whether it had to
+/// use HTTP/2.
+type Sent = Arc<Mutex<Vec<(Method, Vec<u8>, bool)>>>;
+
+fn redirecting(seen: Sent) -> impl FetchTransport {
+    transport_fn(move |req: Request| {
+        let seen = seen.clone();
+        async move {
+            let status: u16 = req.uri().path()[1..].parse().unwrap_or(200);
+            let http2 = req.extensions().get::<RequireHttp2>().is_some();
+            let (parts, body) = req.into_parts();
+            let body = body.collect(1024).await?;
+            seen.lock()
+                .unwrap()
+                .push((parts.method, body.to_vec(), http2));
+            Ok(if status == 200 {
+                response(200, None)
+            } else {
+                response(status, Some("/200"))
+            })
+        }
+    })
+}
+
+#[tokio::test]
+async fn streamed_bodies_are_sent_once_and_follow_only_303() {
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let service = FetchService::new(redirecting(seen.clone()), policy());
+    let limits = Limits::default();
+
+    service
+        .execute(
+            streamed("https://allowed.test/200", &["a", "b"]),
+            Redirect::Follow,
+            limits.clone(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        seen.lock().unwrap().pop().unwrap(),
+        (Method::POST, b"ab".to_vec(), true)
+    );
+
+    // A 303 continues as a GET without the body, which no longer streams.
+    service
+        .execute(
+            streamed("https://allowed.test/303", &["a"]),
+            Redirect::Follow,
+            limits.clone(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        std::mem::take(&mut *seen.lock().unwrap()),
+        vec![
+            (Method::POST, b"a".to_vec(), true),
+            (Method::GET, Vec::new(), false)
+        ]
+    );
+
+    // Every other redirect would resend it, so the fetch fails after one hop.
+    for status in [301, 302, 307, 308] {
+        let result = service
+            .execute(
+                streamed(&format!("https://allowed.test/{status}"), &["a"]),
+                Redirect::Follow,
+                limits.clone(),
+            )
+            .await;
+        assert!(matches!(result, Err(Error::Transport(_))), "{status}");
+        assert_eq!(seen.lock().unwrap().len(), 1, "{status}");
+        seen.lock().unwrap().clear();
+    }
+    // Manual mode returns the redirect itself.
+    let response = service
+        .execute(
+            streamed("https://allowed.test/307", &["a"]),
+            Redirect::Manual,
+            limits.clone(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 307);
+
+    // A buffered body is resent.
+    seen.lock().unwrap().clear();
+    let buffered = http::Request::builder()
+        .uri("https://allowed.test/307")
+        .method("POST")
+        .body(Body::from("x"))
+        .unwrap();
+    service
+        .execute(buffered, Redirect::Follow, limits)
+        .await
+        .unwrap();
+    assert_eq!(
+        std::mem::take(&mut *seen.lock().unwrap()),
+        vec![
+            (Method::POST, b"x".to_vec(), false),
+            (Method::POST, b"x".to_vec(), false)
+        ]
+    );
+}
+
+#[tokio::test]
+async fn the_policy_can_let_streamed_bodies_use_http1() {
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let service = FetchService::new(redirecting(seen.clone()), policy().allow_http1_streaming());
+    service
+        .execute(
+            streamed("https://allowed.test/200", &["a"]),
+            Redirect::Follow,
+            Limits::default(),
+        )
+        .await
+        .unwrap();
+    assert!(!seen.lock().unwrap()[0].2);
+}
+
+#[tokio::test]
+async fn streamed_bodies_count_against_the_request_budget_as_they_are_read() {
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let service = FetchService::new(redirecting(seen.clone()), policy());
+    let limits = Limits {
+        request_body_bytes: Some(3),
+        ..Limits::default()
+    };
+    service
+        .execute(
+            streamed("https://allowed.test/200", &["ab", "c"]),
+            Redirect::Follow,
+            limits.clone(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        service
+            .execute(
+                streamed("https://allowed.test/200", &["ab", "cd"]),
+                Redirect::Follow,
+                limits
+            )
+            .await,
+        Err(Error::LimitExceeded("request body bytes"))
+    ));
+}
