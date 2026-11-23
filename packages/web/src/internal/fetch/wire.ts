@@ -1,5 +1,5 @@
 import { runtime } from "../runtime/runtime";
-import { upgradeOf } from "../websocket/websocket";
+import { upgradeOf } from "../websocket/upgrade";
 import { BodyImpl } from "./body";
 
 export interface WireRequest {

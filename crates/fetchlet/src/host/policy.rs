@@ -27,6 +27,24 @@ impl FetchPolicy {
         }
     }
 
+    /// Whether the policy allows the origin of a WebSocket URL, whose `ws:`
+    /// and `wss:` count as `http:` and `https:`. This performs no DNS lookup.
+    pub(crate) fn check_websocket(&self, url: &Url) -> Result<()> {
+        let mut http = url.clone();
+        let scheme = if url.scheme() == "wss" {
+            "https"
+        } else {
+            "http"
+        };
+        http.set_scheme(scheme)
+            .map_err(|()| Error::InvalidRequest("invalid WebSocket URL".into()))?;
+        if self.origins.contains(&http.origin().ascii_serialization()) {
+            Ok(())
+        } else {
+            Err(Error::PermissionDenied)
+        }
+    }
+
     /// Validate the actual URI after any rewrite. This performs no DNS lookup.
     pub fn check(&self, request: &Request) -> Result<()> {
         let url = parse_url(&request.uri().to_string())?;

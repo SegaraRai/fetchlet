@@ -84,7 +84,7 @@ export function completeChannel(event: object): boolean {
   } else if (arrival.secure === true) {
     entry.listener.secure?.();
   } else if (arrival.open === true) {
-    entry.listener.open();
+    entry.listener.open(arrival.accepted);
   } else if (arrival.written === true) {
     const write = entry.write;
     entry.write = undefined;
@@ -121,6 +121,13 @@ export const channelRegistry: ChannelRegistry = Object.freeze<ChannelRegistry>({
     // Throws without a socket service, for an address its policy refuses,
     // or over Limits::open_channels.
     const id = dispatch<number>("socket.open", address);
+    track(id, listener);
+    return id;
+  },
+  websocket(request, listener): number {
+    // Throws without a WebSocket service, for an origin its policy refuses,
+    // or over Limits::open_channels.
+    const id = dispatch<number>("websocket.open", request);
     track(id, listener);
     return id;
   },

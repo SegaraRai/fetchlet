@@ -6,7 +6,7 @@ export type {
   ChannelClose,
   ChannelStream,
   HostChannel,
-} from "@fetchlet/web/websocket";
+} from "@fetchlet/web/channels";
 
 /** A host service binding: a fetch scoped by the Rust FetchPolicy. */
 export interface ServiceBinding {

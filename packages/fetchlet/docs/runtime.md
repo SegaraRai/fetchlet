@@ -92,6 +92,25 @@ const secure = plain.startTls();
 await secure.opened;
 ```
 
+## Client WebSockets
+
+The global `WebSocket` connects to a server through Rust's WebSocket
+service, which authorizes the URL's origin with the same kind of policy as
+`fetch` and may add credentials to the handshake that JavaScript does not
+see ([host services](../../../docs/host-services.md#client-websockets)):
+
+```ts
+const socket = new WebSocket("wss://chat.example.com/room", ["chat.v2"]);
+socket.addEventListener("open", () => socket.send("hello"));
+socket.addEventListener("message", (event) => console.log(event.data));
+```
+
+A socket belongs to the current invocation and closes when it ends, so an
+invocation that waits for the conversation it needs, as a request handler
+awaits a fetch, keeps it. A refused origin, a failed handshake and a host
+without a WebSocket service fire `error` and then `close` with 1006.
+`binaryType` chooses `Blob` or `ArrayBuffer` for binary messages.
+
 ## Server WebSockets
 
 `upgradeWebSocket(request, { protocol })` from `fetchlet/runtime` accepts the

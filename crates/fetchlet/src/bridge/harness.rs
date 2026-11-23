@@ -4,8 +4,9 @@ use serde_json::Value;
 use super::{HostBridge, InvocationScope};
 use crate::fetch::BodySender;
 use crate::{
-    Body, ChannelEnd, ChannelService, Error, HostServices, Limits, Result, SocketPolicy,
-    SocketService, channel_fn, socket_fn,
+    Body, ChannelEnd, ChannelService, Error, FetchPolicy, HostServices, Limits, Result,
+    SocketPolicy, SocketService, WebSocketAccept, WebSocketService, channel_fn, socket_fn,
+    websocket_fn,
 };
 
 /// Drives the host bridge as a guest would, for fuzz targets.
@@ -120,6 +121,27 @@ pub fn harness_socket_service() -> (SocketService, std::sync::mpsc::Receiver<Cha
         .allow_ports("open.test", 1..=100)
         .expect("a valid rule");
     (SocketService::new(transport, policy), received)
+}
+
+/// A WebSocket service for fuzz targets: its policy allows the origin
+/// `https://open.test`, and its transport completes each handshake with the
+/// `chat` subprotocol at the first poll, handing Rust's end to the receiver
+/// as the open is requested.
+pub fn harness_websocket_service() -> (WebSocketService, std::sync::mpsc::Receiver<ChannelFeed>) {
+    let (feeds, received) = std::sync::mpsc::channel();
+    let transport = websocket_fn(move |request| {
+        let _ = feeds.send(ChannelFeed(request.end));
+        async {
+            Ok(WebSocketAccept {
+                protocol: "chat".into(),
+                extensions: String::new(),
+            })
+        }
+    });
+    let policy = FetchPolicy::deny_all()
+        .allow_origin("https://open.test")
+        .expect("a valid origin");
+    (WebSocketService::new(transport, policy), received)
 }
 
 /// Rust's end of a channel opened with [`BridgeHarness::open_connection`]

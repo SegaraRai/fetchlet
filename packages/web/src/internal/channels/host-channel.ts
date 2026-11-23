@@ -5,8 +5,10 @@
 // a byte stream of its binary messages.
 
 import { runtime } from "../runtime/runtime";
-import { channelRegistry, openSocket } from "./websocket";
-import type { ChannelListener, ChannelRegistry } from "./websocket";
+import { openSocket } from "../websocket/websocket";
+import { deferred } from "./deferred";
+import { channelRegistry, type ChannelListener, type ChannelRegistry } from "./registry";
+import { streamView, type ChannelStream } from "./stream-view";
 
 const CREATE = Symbol("create");
 
@@ -14,12 +16,6 @@ const CREATE = Symbol("create");
 export interface ChannelClose {
   code: number;
   reason: string;
-}
-
-/** The byte stream view of a channel. */
-export interface ChannelStream {
-  readable: ReadableStream<Uint8Array>;
-  writable: WritableStream<BufferSource>;
 }
 
 /** A channel that a Rust ChannelService opened for this invocation. */
@@ -40,40 +36,12 @@ export interface ChannelBinding {
   connect(options?: unknown): HostChannel;
 }
 
-function settled<T>(): {
-  promise: Promise<T>;
-  resolve(value: T): void;
-  reject(error: unknown): void;
-} {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  // A channel nobody awaits must not report an unhandled rejection.
-  promise.catch(() => {});
-  return { promise, resolve, reject };
-}
-
-export function bufferSourceBytes(chunk: unknown): Uint8Array {
-  if (chunk instanceof ArrayBuffer) {
-    return new Uint8Array(chunk.slice(0));
-  }
-  if (ArrayBuffer.isView(chunk)) {
-    return new Uint8Array(
-      chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength),
-    );
-  }
-  throw new TypeError("A channel stream writes ArrayBuffer or ArrayBufferView chunks");
-}
-
 class HostChannelImpl implements HostChannel {
   #registry: ChannelRegistry;
   #id: number;
   #service: string;
-  #opened = settled<void>();
-  #closed = settled<ChannelClose>();
+  #opened = deferred<void>();
+  #closed = deferred<ChannelClose>();
   /** The view's listener, once a view is taken. */
   #view: ChannelListener | undefined;
   /** Arrivals before a view is taken, replayed to it. */
@@ -172,94 +140,6 @@ class HostChannelImpl implements HostChannel {
   get [Symbol.toStringTag](): string {
     return `HostChannel ${this.#service}`;
   }
-}
-
-/**
- * The byte stream view of channel `id`: its binary messages as `readable`,
- * and `writable`, whose writes wait for `opened` and Rust's room. The
- * listener drives it.
- */
-export function streamView(
-  registry: ChannelRegistry,
-  id: number,
-  opened: Promise<unknown>,
-): ChannelStream & { listener: ChannelListener } {
-  let controller!: ReadableStreamDefaultController<Uint8Array>;
-  let paused = false;
-  let ended = false;
-  const fail = (error: unknown) => {
-    if (!ended) {
-      ended = true;
-      controller.error(error);
-    }
-  };
-  const readable: ReadableStream<Uint8Array> = new runtime.ReadableStream({
-    start(start: ReadableStreamDefaultController<Uint8Array>) {
-      controller = start;
-    },
-    pull() {
-      // The reader has room again: Rust delivers what it held back.
-      if (paused) {
-        paused = false;
-        registry.pause(id, false);
-      }
-    },
-    cancel() {
-      ended = true;
-      registry.close(id, 1000, "");
-    },
-  });
-  const writable: WritableStream<BufferSource> = new runtime.WritableStream({
-    async write(chunk: unknown) {
-      const bytes = bufferSourceBytes(chunk);
-      await opened;
-      await registry.write(id, bytes);
-    },
-    close() {
-      registry.close(id, 1000, "");
-    },
-    abort() {
-      registry.close(id, 1000, "");
-    },
-  });
-  const listener: ChannelListener = {
-    open() {},
-    message(data) {
-      if (ended) {
-        return;
-      }
-      if (typeof data === "string") {
-        fail(new TypeError("A text message arrived on a byte stream"));
-        // 1003: the endpoint cannot accept this type of data.
-        registry.close(id, 1003, "text message on a byte stream");
-        return;
-      }
-      controller.enqueue(data);
-      // The reader is full: Rust holds further messages, and its sender
-      // waits for room.
-      if (!paused && (controller.desiredSize ?? 0) <= 0) {
-        paused = true;
-        registry.pause(id, true);
-      }
-    },
-    close(code, reason) {
-      // 1006: no close arrived; 1011: the peer failed.
-      if (code === 1006 || code === 1011) {
-        fail(new TypeError(reason || "The channel ended without a close"));
-      } else if (!ended) {
-        ended = true;
-        controller.close();
-      }
-    },
-    refused(message) {
-      fail(new TypeError(message));
-    },
-  };
-  return {
-    readable,
-    writable,
-    listener,
-  };
 }
 
 /** Open a channel of the env binding `service`, as `env.NAME.connect` does. */

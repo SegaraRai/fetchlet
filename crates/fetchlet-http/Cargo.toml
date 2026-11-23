@@ -26,6 +26,17 @@ dev = ["dep:tokio"]
 vite-dev = ["dep:hyper", "hyper/client", "dep:hyper-util", "dep:tokio"]
 # Open TCP and TLS connections for JavaScript's connect() as a socket transport.
 sockets = ["dep:tokio", "tokio/net", "tokio/io-util", "dep:tokio-rustls", "dep:webpki-roots"]
+# Open client WebSockets for JavaScript's WebSocket as a WebSocket transport.
+websocket-client = [
+  "dep:tokio",
+  "tokio/net",
+  "tokio/io-util",
+  "dep:tokio-rustls",
+  "dep:webpki-roots",
+  "dep:tokio-tungstenite",
+  "dep:futures-util",
+  "futures-util/sink",
+]
 
 [dependencies]
 fetchlet.workspace = true
@@ -43,6 +54,10 @@ axum = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 futures-core = { version = "0.3", optional = true }
+futures-util = { version = "0.3", default-features = false, optional = true }
+tokio-tungstenite = { version = "0.30", default-features = false, features = [
+  "handshake",
+], optional = true }
 tokio = { workspace = true, optional = true }
 hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"], optional = true }
 tokio-rustls = { version = "0.26", default-features = false, features = [
@@ -109,3 +124,7 @@ required-features = ["axum"]
 [[test]]
 name = "sockets"
 required-features = ["sockets"]
+
+[[test]]
+name = "websocket_client"
+required-features = ["websocket-client"]

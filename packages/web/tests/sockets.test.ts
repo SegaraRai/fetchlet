@@ -4,11 +4,11 @@
 
 import { describe, expect, test, vi } from "vite-plus/test";
 
-import { runtime } from "../src/internal/runtime/runtime.ts";
+import type { ChannelListener } from "../src/internal/channels/registry.ts";
 import "../src/internal/foundation/foundation.ts";
 import "../src/internal/dom/events.ts";
+import { runtime } from "../src/internal/runtime/runtime.ts";
 import { connect } from "../src/internal/sockets/sockets.ts";
-import type { ChannelListener } from "../src/internal/websocket/websocket.ts";
 
 vi.mock(import("../src/internal/runtime/runtime.ts"), async () => {
   const { fetchGlobals, isolatedRuntime } = await import("./isolated-runtime.ts");

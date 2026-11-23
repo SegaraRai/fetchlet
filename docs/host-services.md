@@ -163,6 +163,65 @@ with `"starttls"`; channels of env bindings never receive them.
 and `crates/fetchlet-http/tests/sockets.rs` checks `TcpTransport` against
 local plain, TLS and STARTTLS servers, with a test certificate authority.
 
+## Client WebSockets
+
+`HostServices::websockets(service)` serves the global `WebSocket`: each
+`new WebSocket(url, protocols)` opens through a `WebSocketService`, which
+pairs a `WebSocketTransport` with the `FetchPolicy` that authorizes the
+URL's origin, `ws:` and `wss:` counting as `http:` and `https:`:
+
+```rust,ignore
+use fetchlet::{FetchPolicy, HostServices, WebSocketService};
+use fetchlet_http::WebSocketClient;
+
+let policy = FetchPolicy::deny_all().allow_origin("https://chat.example.com")?;
+let service = WebSocketService::new(WebSocketClient::new(), policy)
+    .credentials(|url, headers| {
+        if url.host_str() == Some("chat.example.com") {
+            headers.insert("authorization", "Bearer token".parse()?);
+        }
+        Ok(())
+    });
+let hosts = HostServices::new().websockets(service);
+```
+
+The constructor checks the URL and subprotocols as the WebSockets standard
+says and throws `SyntaxError` for an invalid one: `http:` and `https:` URLs
+become `ws:` and `wss:`, and a fragment, invalid tokens and duplicates are
+refused. The host checks them again, then applies `rewrite`, the policy,
+and `credentials`, whose headers join the opening handshake without
+JavaScript seeing them; `forward_context` passes the invocation's `Context`
+to the transport. An origin the policy refuses, a failed handshake and a
+`WebSocket` without a service fire `error` and then `close` with 1006, as a
+connection that failed does.
+
+The transport performs the opening handshake and settles with the server's
+selection, a `WebSocketAccept` whose subprotocol and extensions become the
+socket's `protocol` and `extensions`. It then relays text and binary
+messages between the connection and the channel's end, answers
+JavaScript's close with the closing handshake and reports the server's
+close with `ChannelEnd::close`; a connection that ends without a closing
+handshake drops the end, which JavaScript sees as 1006. `websocket_fn`
+adapts an async function, such as an in-process server or a mock, to a
+transport.
+
+fetchlet-http's `websocket-client` feature provides `WebSocketClient`. It
+resolves and checks addresses as `TcpTransport` does, refusing addresses
+that are not public unless `allow_private_addresses`, speaks TLS for
+`wss:` with the `webpki-roots` certificates or the configuration given to
+`with_tls_config`, and uses tungstenite for the handshake and framing. It
+asks for the subprotocols JavaScript requested and for no extensions, and
+bounds each message and frame from the server by
+`Limits::channel_message_bytes`, closing with 1009 for a larger one.
+
+A client WebSocket is a channel of the invocation, viewed as messages: it
+counts against `Limits::open_channels`, its messages stay within
+`channel_message_bytes` and `channel_buffer_bytes`, and it closes when the
+invocation ends. `crates/fetchlet/tests/websocket_client.rs` checks the
+contract on all three engines, and
+`crates/fetchlet-http/tests/websocket_client.rs` checks `WebSocketClient`
+against local `ws:` and `wss:` servers.
+
 ## Console
 
 The callback passed to `HostServices::console` receives each

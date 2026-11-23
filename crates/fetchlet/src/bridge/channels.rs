@@ -9,14 +9,20 @@ use tokio::time::Sleep;
 use super::handles::{Handles, Resource};
 use crate::host::{GuestEnd, Refused};
 use crate::wire::ByteStore;
-use crate::{ChannelEvent, ChannelFuture, CloseFrame, Error, Limits, Message, Result};
+use crate::{
+    ChannelEvent, ChannelFuture, CloseFrame, Error, Limits, Message, Result, WebSocketFuture,
+};
+
+/// A channel's open in progress: what it settles with goes to JavaScript
+/// with the open, such as a client WebSocket's selected subprotocol.
+type Opening = Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send + 'static>>;
 
 /// JavaScript's end of one channel and the budgets that close it, held in
 /// the invocation's [`Handles`].
 pub(super) struct OpenChannel {
     end: GuestEnd,
     /// The service's open, until it settles. Nothing is delivered before.
-    opening: Option<ChannelFuture>,
+    opening: Option<Opening>,
     /// Bytes of the stream view's write still to queue for Rust.
     write: Option<Bytes>,
     /// The stream view's reader is full: arrivals wait in Rust, whose
@@ -184,7 +190,7 @@ impl Handles {
     /// the invocation, without the budgets of held connections.
     pub fn open_requested(&mut self, end: GuestEnd, opening: ChannelFuture) -> Result<u64> {
         self.insert(Resource::Channel(Box::new(OpenChannel {
-            opening: Some(opening),
+            opening: Some(Box::pin(async move { opening.await.map(|()| None) })),
             ..OpenChannel::new(end)
         })))
     }
@@ -197,7 +203,7 @@ impl Handles {
         start_tls: bool,
     ) -> Result<u64> {
         self.insert(Resource::Channel(Box::new(OpenChannel {
-            opening: Some(opening),
+            opening: Some(Box::pin(async move { opening.await.map(|()| None) })),
             socket: Some(SocketSignals { start_tls }),
             ..OpenChannel::new(end)
         })))
@@ -219,6 +225,22 @@ impl Handles {
         socket.start_tls = false;
         channel.end.start_tls();
         Ok(Value::Null)
+    }
+
+    /// Add JavaScript's end of a client WebSocket whose handshake a
+    /// transport is performing. The open reports the server's selection.
+    pub fn open_websocket(&mut self, end: GuestEnd, handshake: WebSocketFuture) -> Result<u64> {
+        let opening = async move {
+            let accepted = handshake.await?;
+            Ok(Some(json!({
+                "protocol": accepted.protocol,
+                "extensions": accepted.extensions,
+            })))
+        };
+        self.insert(Resource::Channel(Box::new(OpenChannel {
+            opening: Some(Box::pin(opening)),
+            ..OpenChannel::new(end)
+        })))
     }
 
     fn channel(&mut self, id: u64) -> Result<&mut OpenChannel> {
@@ -309,9 +331,13 @@ impl Handles {
             if let Some(opening) = channel.opening.as_mut() {
                 match opening.as_mut().poll(context) {
                     Poll::Pending => continue,
-                    Poll::Ready(Ok(())) => {
+                    Poll::Ready(Ok(accepted)) => {
                         channel.opening = None;
-                        events.push(json!({ "channel": id, "open": true }));
+                        let mut event = json!({ "channel": id, "open": true });
+                        if let Some(accepted) = accepted {
+                            event["accepted"] = accepted;
+                        }
+                        events.push(event);
                     }
                     Poll::Ready(Err(error)) => {
                         events.push(json!({

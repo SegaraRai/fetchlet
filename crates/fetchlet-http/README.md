@@ -2,14 +2,15 @@
 
 Serves a shared fetchlet application (`fetchlet::AppHandle`) over HTTP. The Tower service is always available; Cargo features add thin layers for specific servers. The JavaScript engine is selected on the `fetchlet` crate, so this crate has no engine features.
 
-| Feature     | Adds                                                                           |
-| ----------- | ------------------------------------------------------------------------------ |
-| (none)      | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`           |
-| `hyper`     | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
-| `axum`      | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
-| `actix`     | `ActixService` for actix-web 4                                                 |
-| `websocket` | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)              |
-| `sockets`   | `TcpTransport`, the TCP and TLS transport of JavaScript's `connect()`          |
+| Feature            | Adds                                                                           |
+| ------------------ | ------------------------------------------------------------------------------ |
+| (none)             | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`           |
+| `hyper`            | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
+| `axum`             | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
+| `actix`            | `ActixService` for actix-web 4                                                 |
+| `websocket`        | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)              |
+| `sockets`          | `TcpTransport`, the TCP and TLS transport of JavaScript's `connect()`          |
+| `websocket-client` | `WebSocketClient`, the transport of JavaScript's global `WebSocket`            |
 
 ```toml
 [dependencies]
@@ -219,6 +220,33 @@ readable, the socket closes normally once both have ended, a connection or
 handshake error closes it with 1011, and the end of the invocation drops
 the connection. `tests/sockets.rs` checks it against local plain, TLS and
 STARTTLS servers on every engine.
+
+## Client WebSockets
+
+With the `websocket-client` feature, `WebSocketClient` opens the
+connections of JavaScript's global `WebSocket` for a `WebSocketService`,
+whose `FetchPolicy` names the origins JavaScript may reach, `ws:` and `wss:`
+counting as `http:` and `https:`
+([host services](../../docs/host-services.md#client-websockets)):
+
+```rust,ignore
+use fetchlet::{FetchPolicy, HostServices, WebSocketService};
+use fetchlet_http::WebSocketClient;
+
+let policy = FetchPolicy::deny_all().allow_origin("https://chat.example.com")?;
+let hosts = HostServices::new().websockets(WebSocketService::new(WebSocketClient::new(), policy));
+```
+
+`WebSocketClient` resolves and checks addresses as `TcpTransport` does and
+speaks TLS for `wss:` with the same configuration. tungstenite performs
+the opening handshake, with the subprotocols JavaScript requested, the
+service's credential headers and no extensions, then the framing, pings and
+the closing handshake on the Tokio runtime that polls the host pump.
+`Limits::channel_message_bytes` bounds each message and frame from the
+server, and a larger one closes the socket with 1009. A failed handshake
+fires `error` and `close` with 1006 in JavaScript, as does a connection
+that ends without a closing handshake. `tests/websocket_client.rs` checks it
+against local `ws:` and `wss:` servers on every engine.
 
 ## Reloading during development
 

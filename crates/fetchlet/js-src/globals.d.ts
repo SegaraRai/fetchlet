@@ -49,6 +49,18 @@ interface ResponseBodyRegistry {
 }
 
 /** The destination and options of a TCP connection, as Rust's socket.open takes them. */
+/** What a client WebSocket's server selected in its handshake. */
+interface WebSocketAccepted {
+  protocol: string;
+  extensions: string;
+}
+
+/** A client WebSocket JavaScript opens. */
+interface WebSocketOpen {
+  url: string;
+  protocols: string[];
+}
+
 interface SocketOpen {
   hostname: string;
   port: number;
@@ -61,7 +73,7 @@ interface ChannelListener {
    * The channel is open: the handler has returned its upgrade, or the
    * service accepted the open.
    */
-  open(): void;
+  open(accepted?: WebSocketAccepted): void;
   message(data: string | Uint8Array<ArrayBuffer>): void;
   close(code: number, reason: string): void;
   /** The service refused the open; nothing else arrives. */
@@ -81,6 +93,8 @@ interface ChannelRegistry {
   open(service: string, options: unknown, listener: ChannelListener): number;
   /** Open a TCP connection through the host's socket service. */
   connect(address: SocketOpen, listener: ChannelListener): number;
+  /** Open a client WebSocket through the host's WebSocket service. */
+  websocket(request: WebSocketOpen, listener: ChannelListener): number;
   /**
    * End a socket's writes after those queued, as a TCP half close. Throws
    * unless the socket is open with no write pending.

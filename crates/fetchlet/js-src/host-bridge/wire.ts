@@ -27,6 +27,11 @@ export interface ChannelArrival {
   channel: number;
   /** The service accepted the open. */
   open?: true;
+  /** What a client WebSocket's server selected, with its open. */
+  accepted?: {
+    protocol: string;
+    extensions: string;
+  };
   /** The service refused the open. */
   refused?: {
     code: string;

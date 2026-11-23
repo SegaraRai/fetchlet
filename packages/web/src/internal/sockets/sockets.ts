@@ -4,13 +4,10 @@
 // authorizes the address, and carries its bytes over a channel of the
 // current invocation; the socket closes when the invocation ends.
 
+import { bufferSourceBytes } from "../channels/bytes";
+import { deferred } from "../channels/deferred";
+import { channelRegistry, type ChannelListener, type ChannelRegistry } from "../channels/registry";
 import { runtime } from "../runtime/runtime";
-import { bufferSourceBytes } from "../websocket/channel";
-import {
-  channelRegistry,
-  type ChannelListener,
-  type ChannelRegistry,
-} from "../websocket/websocket";
 
 const CREATE = Symbol("create");
 
@@ -49,22 +46,6 @@ export interface Socket {
   readonly secureTransport: "off" | "on" | "starttls";
   close(): Promise<void>;
   startTls(): Socket;
-}
-
-function settled<T>(): {
-  promise: Promise<T>;
-  resolve(value: T): void;
-  reject(error: unknown): void;
-} {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  // A socket nobody awaits must not report an unhandled rejection.
-  promise.catch(() => {});
-  return { promise, resolve, reject };
 }
 
 /** Split `host:port`, with brackets around an IPv6 host. */
@@ -128,8 +109,8 @@ class SocketImpl implements Socket {
   readonly secureTransport: "off" | "on" | "starttls";
   #connection: Connection | undefined;
   #allowHalfOpen: boolean;
-  #opened = settled<SocketInfo>();
-  #closed = settled<void>();
+  #opened = deferred<SocketInfo>();
+  #closed = deferred<void>();
   #isOpen = false;
   #isClosed = false;
   #upgraded = false;

@@ -1,14 +1,8 @@
-// Server WebSockets and channels of the fetchlet App host: accept a Fetch
-// request's WebSocket upgrade, and type the channels of env bindings.
+// WebSockets of the fetchlet App host: accept a Fetch request's WebSocket
+// upgrade. Client connections use the global `WebSocket`.
 
-export type {
-  ChannelBinding,
-  ChannelClose,
-  ChannelStream,
-  HostChannel,
-} from "./internal/websocket/channel";
 export {
   upgradeResponse,
   upgradeWebSocket,
   type UpgradeWebSocketOptions,
-} from "./internal/websocket/websocket";
+} from "./internal/websocket/upgrade";

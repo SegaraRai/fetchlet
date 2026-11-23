@@ -88,7 +88,7 @@
 		}
 		else if (arrival.end === true) entry.listener.end?.();
 		else if (arrival.secure === true) entry.listener.secure?.();
-		else if (arrival.open === true) entry.listener.open();
+		else if (arrival.open === true) entry.listener.open(arrival.accepted);
 		else if (arrival.written === true) {
 			const write = entry.write;
 			entry.write = void 0;
@@ -117,6 +117,11 @@
 		},
 		connect(address, listener) {
 			const id = dispatch("socket.open", address);
+			track(id, listener);
+			return id;
+		},
+		websocket(request, listener) {
+			const id = dispatch("websocket.open", request);
 			track(id, listener);
 			return id;
 		},

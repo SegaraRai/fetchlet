@@ -11,7 +11,9 @@
 //! build tool rewrites it, and the `vite-dev` feature adds `ViteDev`, which
 //! runs the server module from a Vite dev server through Vite's module runner.
 //! The `sockets` feature adds `TcpTransport`, which opens the TCP and TLS
-//! connections of JavaScript's `connect()` for a `SocketService`.
+//! connections of JavaScript's `connect()` for a `SocketService`, and the
+//! `websocket-client` feature adds `WebSocketClient`, which opens the
+//! connections of JavaScript's `WebSocket` for a `WebSocketService`.
 //! The JavaScript engine is chosen on the `fetchlet` crate.
 
 mod artifact;
@@ -27,10 +29,14 @@ mod axum_server;
 mod dev;
 #[cfg(feature = "hyper")]
 mod hyper_server;
+#[cfg(any(feature = "sockets", feature = "websocket-client"))]
+mod network;
 #[cfg(feature = "sockets")]
 mod socket;
 #[cfg(feature = "vite-dev")]
 mod vite_dev;
+#[cfg(feature = "websocket-client")]
+mod websocket_client;
 
 pub use artifact::{Artifact, ArtifactError};
 pub use assets::{Asset, AssetArchive, AssetArchiveError, AssetBody, AssetFuture, AssetService};
@@ -52,10 +58,14 @@ pub use dev::{
 };
 #[cfg(feature = "hyper")]
 pub use hyper_server::{HyperConnection, HyperService, PeerAddr, peer_addr};
+#[cfg(any(feature = "sockets", feature = "websocket-client"))]
+pub use network::rustls;
 #[cfg(feature = "sockets")]
-pub use socket::{TcpTransport, rustls};
+pub use socket::TcpTransport;
 #[cfg(feature = "vite-dev")]
 pub use vite_dev::{VITE_BINDING, ViteBody, ViteDev, ViteDevError, ViteProxy};
+#[cfg(feature = "websocket-client")]
+pub use websocket_client::WebSocketClient;
 
 #[doc(hidden)]
 pub mod __private {

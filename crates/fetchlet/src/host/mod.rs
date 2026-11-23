@@ -9,6 +9,7 @@ mod router;
 mod service;
 mod socket;
 mod transport;
+mod websocket;
 
 pub use bindings::HostServices;
 pub use channel::{
@@ -25,6 +26,10 @@ pub use socket::{
     socket_fn,
 };
 pub use transport::{FetchTransport, TransportFuture, transport_fn};
+pub use websocket::{
+    WebSocketAccept, WebSocketFuture, WebSocketRequest, WebSocketService, WebSocketTransport,
+    websocket_fn,
+};
 
 #[cfg(any(
     feature = "boa",

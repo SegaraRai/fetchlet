@@ -15,6 +15,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./async-context": "./src/async-context.ts",
+    "./channels": "./src/channels.ts",
     "./host": "./src/host.ts",
     "./sockets": "./src/sockets.ts",
     "./websocket": "./src/websocket.ts",
@@ -24,6 +25,7 @@
     "exports": {
       ".": "./dist/index.js",
       "./async-context": "./dist/async-context.js",
+      "./channels": "./dist/channels.js",
       "./host": "./dist/host.js",
       "./sockets": "./dist/sockets.js",
       "./websocket": "./dist/websocket.js",

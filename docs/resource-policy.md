@@ -31,9 +31,9 @@ services, concurrency and the process's total capacity.
 | `redirects`               | Redirects one fetch follows, within the Fetch specification's limit                                                                       |
 | `background_timeout`      | Cooperative elapsed time of `fetchlet.waitUntil` work, counted from the end of the result or body                                         |
 | `background_tasks`        | `fetchlet.waitUntil` registrations per invocation, completed ones included                                                                |
-| `channel_message_bytes`   | Bytes of one message on a channel, such as a server WebSocket, in either direction                                                        |
+| `channel_message_bytes`   | Bytes of one message on a channel, such as a WebSocket, in either direction                                                               |
 | `channel_buffer_bytes`    | Bytes queued on one channel in each direction: from Rust, unread by JavaScript; from JavaScript, unsent by Rust                           |
-| `open_channels`           | Channels JavaScript opens from env bindings or with `connect()` in an invocation, refused opens included                                  |
+| `open_channels`           | Channels JavaScript opens from env bindings, with `connect()` or with `new WebSocket()` in an invocation, refused opens included          |
 | `connection_idle_timeout` | Time a held connection may pass without a message in either direction                                                                     |
 | `connection_lifetime`     | Time a held connection may stay open after its upgrade                                                                                    |
 

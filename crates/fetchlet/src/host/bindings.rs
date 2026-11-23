@@ -5,6 +5,7 @@ use super::FetchService;
 use super::channel::ChannelService;
 use super::console::{ConsoleLevel, ConsoleSink};
 use super::socket::SocketService;
+use super::websocket::WebSocketService;
 use crate::{Error, Result};
 
 /// Fixed bindings and services for one App. No process environment is inherited.
@@ -14,6 +15,7 @@ pub struct HostServices {
     pub(crate) services: BTreeMap<String, FetchService>,
     pub(crate) channels: BTreeMap<String, Arc<dyn ChannelService>>,
     pub(crate) sockets: Option<SocketService>,
+    pub(crate) websockets: Option<WebSocketService>,
     pub(crate) env: BTreeMap<String, String>,
     pub(crate) console: Option<ConsoleSink>,
 }
@@ -40,6 +42,15 @@ impl HostServices {
     /// fails with `PermissionDenied`.
     pub fn sockets(mut self, service: SocketService) -> Self {
         self.sockets = Some(service);
+        self
+    }
+
+    /// Serve the global `WebSocket` of the Web API profile: each connection
+    /// to an origin the service's policy allows opens through its
+    /// transport, as a channel of the invocation. Without a WebSocket
+    /// service, a `WebSocket` fails as a refused connection.
+    pub fn websockets(mut self, service: WebSocketService) -> Self {
+        self.websockets = Some(service);
         self
     }
 

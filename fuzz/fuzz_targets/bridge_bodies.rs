@@ -20,6 +20,9 @@
 //! - a socket's end of writes and `startTls` are accepted only for an open
 //!   socket with no write pending and writes not ended, `startTls` once and
 //!   only for a socket opened with "starttls";
+//! - a client WebSocket opens like a channel for a URL whose origin its
+//!   policy allows, reporting the server's selection with the open, and any
+//!   other URL or invalid subprotocols are refused at once;
 //! - a channel write is queued at the next poll unless the channel closed,
 //!   and `channel.buffered` counts the bytes queued.
 
@@ -31,7 +34,7 @@ use serde_json::Value;
 
 use fetchlet::{
     BodyFeed, BridgeHarness, ChannelFeed, HostServices, Limits, harness_channel_service,
-    harness_socket_service,
+    harness_socket_service, harness_websocket_service,
 };
 
 /// Services the target binds: one accepts, one refuses; the third name is
@@ -40,6 +43,18 @@ const SERVICES: [&str; 3] = ["OPEN", "REFUSE", "NOPE"];
 /// Hosts for `socket.open`: the first normalizes to the one the policy
 /// allows, the second is refused, the last is no host.
 const SOCKET_HOSTS: [&str; 3] = ["OPEN.test", "other.test", "no host"];
+/// URLs for `websocket.open`: the first two reach the origin the policy
+/// allows, the others are refused or invalid.
+const WEBSOCKET_URLS: [&str; 6] = [
+    "wss://OPEN.test/chat",
+    "wss://open.test:443/?room=1",
+    "https://open.test",
+    "ws://open.test/",
+    "wss://open.test/#top",
+    "not a url",
+];
+/// Subprotocol lists for `websocket.open`: only the first two are valid.
+const WEBSOCKET_PROTOCOLS: [&[&str]; 4] = [&[], &["chat", "v2"], &["chat", "chat"], &["a b"]];
 
 struct Input<'a>(&'a [u8]);
 
@@ -108,6 +123,8 @@ struct Model {
     closed: BTreeSet<u64>,
     /// Sockets by handle, and whether each may still start TLS.
     sockets: BTreeMap<u64, bool>,
+    /// Client WebSockets, whose open reports the server's selection.
+    websockets: BTreeSet<u64>,
     /// Sockets whose writes JavaScript ended.
     ended_writes: BTreeSet<u64>,
     /// Pending writes' lengths, and the bytes queued for Rust, by channel.
@@ -141,6 +158,7 @@ impl Model {
         self.writing.clear();
         self.queued.clear();
         self.sockets.clear();
+        self.websockets.clear();
         self.ended_writes.clear();
         self.upgraded = false;
         self.active = false;
@@ -167,6 +185,7 @@ impl Model {
         self.writing.remove(&id);
         self.queued.remove(&id);
         self.sockets.remove(&id);
+        self.websockets.remove(&id);
         self.ended_writes.remove(&id);
         self.stale_channels.push(id);
     }
@@ -268,6 +287,11 @@ fn poll(harness: &BridgeHarness, model: &mut Model) {
         if let Some(id) = completion["channel"].as_u64() {
             assert!(model.has_channel(id), "{completion}");
             if completion["open"] == true {
+                assert_eq!(
+                    completion["accepted"].is_object(),
+                    model.websockets.contains(&id),
+                    "{completion}"
+                );
                 assert_eq!(
                     model.requested.insert(id, true),
                     Some(false),
@@ -395,8 +419,10 @@ fuzz_target!(|data: &[u8]| {
     let (accepting, feeds) = harness_channel_service(true);
     let (refusing, _) = harness_channel_service(false);
     let (sockets, socket_feeds) = harness_socket_service();
+    let (websockets, websocket_feeds) = harness_websocket_service();
     let services = HostServices::new()
         .sockets(sockets)
+        .websockets(websockets)
         .channel(SERVICES[0], accepting)
         .and_then(|services| services.channel(SERVICES[1], refusing))
         .expect("services");
@@ -558,6 +584,30 @@ fuzz_target!(|data: &[u8]| {
             }
             9 => poll(&harness, &mut model),
             10 => url_operation(&mut input, &harness),
+            12 if input.0.first().is_some_and(|selector| selector & 0x80 != 0) => {
+                let selector = input.byte().unwrap_or(0) & 0x7f;
+                let url_index = usize::from(selector) % WEBSOCKET_URLS.len();
+                let protocols_index =
+                    usize::from(selector) / WEBSOCKET_URLS.len() % WEBSOCKET_PROTOCOLS.len();
+                let message = serde_json::json!({
+                    "url": WEBSOCKET_URLS[url_index],
+                    "protocols": WEBSOCKET_PROTOCOLS[protocols_index],
+                })
+                .to_string();
+                let reply = harness.dispatch("websocket.open", &message);
+                let expected = model.active
+                    && model.fits(message.len())
+                    && url_index < 2
+                    && protocols_index < 2;
+                assert_eq!(ok(&reply), expected, "websocket {message}: {reply}");
+                if expected {
+                    let id = reply["value"].as_u64().expect("websocket handle");
+                    assert!(!model.has_channel(id) && !model.bodies.contains_key(&id));
+                    model.channels.insert(id, take_feed(&websocket_feeds));
+                    model.requested.insert(id, false);
+                    model.websockets.insert(id);
+                }
+            }
             12 => match harness.open_connection() {
                 Ok((channel, id)) => {
                     assert!(model.active && !model.upgraded && model.fits(4));

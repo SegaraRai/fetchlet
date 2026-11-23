@@ -1,13 +1,13 @@
-// Server WebSockets in a Fetch handler of the fetchlet App host.
-// `upgradeWebSocket(request)` accepts the upgrade, in the shape Deno uses: it
-// returns the socket and the response the handler returns. The socket
-// follows the WebSocket interface of the WHATWG WebSockets standard
-// (https://websockets.spec.whatwg.org/) over a host channel: Rust performs
-// the handshake, framing and pings, and carries each message to and from
-// the socket. The invocation, and with it the instance, stays open until the
-// connection closes.
+// The WebSocket interface of the WHATWG WebSockets standard
+// (https://websockets.spec.whatwg.org/) over a channel of the fetchlet App
+// host. Rust performs the handshake, framing, pings and the closing
+// handshake, and carries each message to and from the socket. The same
+// socket serves a client connection, which `new WebSocket(url, protocols)`
+// opens through the host's WebSocket service, an upgrade the Fetch handler
+// accepts (./upgrade.ts), and the message view of an env binding's channel.
 
 import { Snapshot } from "../async-context/async-context";
+import { channelRegistry, type ChannelListener, type ChannelRegistry } from "../channels/registry";
 import { EventImpl, EventTargetImpl, defineEventHandler, dispatchTrusted } from "../dom/events";
 import { encode } from "../encoding/bytes";
 import { blobBytes } from "../file/blob";
@@ -23,50 +23,15 @@ const CLOSED = 3;
 
 const CREATE = Symbol("create");
 
-/** What a channel of the fetchlet App host's bridge delivers. */
-export interface ChannelListener {
-  open(): void;
-  message(data: string | Uint8Array<ArrayBuffer>): void;
-  close(code: number, reason: string): void;
-  refused?(message: string): void;
-  /** A socket's peer ended its bytes; the socket still writes. */
-  end?(): void;
-  /** A socket's connection switched to TLS, answering `startTls`. */
-  secure?(): void;
-}
-
-/** The channel registry of the fetchlet App host's bridge. */
-export interface ChannelRegistry {
-  upgrade(listener: ChannelListener): number;
-  accepted(): number | undefined;
-  open(service: string, options: unknown, listener: ChannelListener): number;
-  connect(
-    address: {
-      hostname: string;
-      port: number;
-      secureTransport: "off" | "on" | "starttls";
-    },
-    listener: ChannelListener,
-  ): number;
-  endWrites(id: number): void;
-  startTls(id: number): void;
-  send(id: number, data: string | Uint8Array): void;
-  write(id: number, data: Uint8Array): Promise<void>;
-  pause(id: number, paused: boolean): void;
-  close(id: number, code: number, reason: string): void;
-  buffered(id: number): number;
-}
-
-/** The bridge's channel registry, when the host has one. */
-export function channelRegistry(): ChannelRegistry | undefined {
-  return runtime.__fetchletChannels as ChannelRegistry | undefined;
-}
-
 interface SocketState {
   channel: number;
-  registry: ChannelRegistry;
+  /** Absent when the host has no channels: the socket only fails. */
+  registry: ChannelRegistry | undefined;
   url: string;
   protocol: string;
+  extensions: string;
+  /** The origin of message events. */
+  origin: string;
   readyState: number;
   binaryType: "blob" | "arraybuffer";
   /** The context of the upgrade, in which the socket's listeners run. */
@@ -74,13 +39,6 @@ interface SocketState {
 }
 
 const sockets = new WeakMap<object, SocketState>();
-
-/**
- * The channel an upgrade response hands to the host. A registered symbol, so
- * that the wire encoder finds it when a framework build bundles another copy
- * of this module. A forged value names no upgrade the host accepted.
- */
-const UPGRADE = Symbol.for("fetchlet.websocket.upgrade");
 
 function socket(value: unknown): SocketState {
   const found = sockets.get(value as object);
@@ -153,20 +111,49 @@ function binaryPayload(data: unknown): Uint8Array | undefined {
   return blob === undefined ? undefined : blob.slice();
 }
 
+type SocketInit = Pick<SocketState, "registry" | "url" | "protocol" | "origin">;
+
 class WebSocketImpl extends EventTargetImpl {
-  constructor(token?: symbol, state?: Omit<SocketState, "readyState" | "binaryType" | "snapshot">) {
-    if (token !== CREATE || !state) {
-      // Outgoing connections need a WebSocket transport in the host.
-      throw new TypeError("WebSocket connections are not available in this host");
+  /**
+   * `new WebSocket(url, protocols)` opens a client connection through the
+   * host's WebSocket service. The host's views construct sockets with an
+   * internal token instead.
+   */
+  constructor(url?: unknown, protocols?: unknown) {
+    if (url === CREATE) {
+      super();
+      const init = protocols as SocketInit;
+      sockets.set(this, newState(init));
+      return;
     }
+    if (arguments.length < 1) {
+      throw new TypeError("WebSocket requires a URL");
+    }
+    const target = clientUrl(url);
+    const requested = clientProtocols(protocols);
     super();
-    const entry: SocketState = {
-      ...state,
-      readyState: CONNECTING,
-      binaryType: "blob",
-      snapshot: new Snapshot(),
-    };
-    sockets.set(this, entry);
+    const registry = channelRegistry();
+    const state = newState({
+      registry,
+      url: target.href,
+      protocol: "",
+      origin: target.origin,
+    });
+    sockets.set(this, state);
+    try {
+      if (!registry) {
+        throw new TypeError("This host has no WebSocket connections");
+      }
+      state.channel = registry.websocket(
+        { url: target.href, protocols: requested },
+        socketListener(this, state),
+      );
+    } catch {
+      // The host refused at once: the connection fails as one the network
+      // refused, after the constructor returns.
+      state.registry = undefined;
+      runtime.setTimeout(() => ended(this, state, 1006, ""), 0);
+    }
   }
 
   get url(): string {
@@ -179,14 +166,13 @@ class WebSocketImpl extends EventTargetImpl {
 
   get bufferedAmount(): number {
     const state = socket(this);
-    return state.readyState === OPEN || state.readyState === CLOSING
+    return state.registry && (state.readyState === OPEN || state.readyState === CLOSING)
       ? state.registry.buffered(state.channel)
       : 0;
   }
 
   get extensions(): string {
-    socket(this);
-    return "";
+    return socket(this).extensions;
   }
 
   get protocol(): string {
@@ -218,7 +204,7 @@ class WebSocketImpl extends EventTargetImpl {
       return;
     }
     const bytes = binaryPayload(data);
-    state.registry.send(state.channel, bytes ?? usvString(data));
+    state.registry?.send(state.channel, bytes ?? usvString(data));
   }
 
   close(code?: unknown, reason?: unknown): void {
@@ -238,7 +224,9 @@ class WebSocketImpl extends EventTargetImpl {
       return;
     }
     state.readyState = CLOSING;
-    state.registry.close(state.channel, closeCode, closeReason);
+    // Closing while connecting fails the connection: the host abandons the
+    // handshake and the socket closes with 1006.
+    state.registry?.close(state.channel, closeCode, closeReason);
   }
 
   override get [Symbol.toStringTag](): string {
@@ -273,66 +261,129 @@ for (const [constructor, name] of [
 
 runtime.CloseEvent ??= CloseEventImpl;
 
-function asksForWebSocket(request: Request): boolean {
-  const upgrade = request.headers.get("upgrade") ?? "";
-  return upgrade.split(",").some((token) => token.trim().toLowerCase() === "websocket");
+if (channelRegistry()) {
+  runtime.WebSocket ??= WebSocketImpl;
 }
 
-export interface UpgradeWebSocketOptions {
-  /** The subprotocol the server selects, sent as `Sec-WebSocket-Protocol`. */
-  protocol?: string;
-  /**
-   * Other headers of the 101 response, such as cookies. A
-   * `Sec-WebSocket-Protocol` among them selects the subprotocol when
-   * `protocol` does not.
-   */
-  headers?: HeadersInit;
-}
-
-/**
- * Accept the WebSocket upgrade a Fetch request asks for. Return `response`
- * from the handler; the socket opens once the host has sent it. Throws
- * unless the request asks for a WebSocket and the host can hold the
- * connection: Rust's `Instances::max_held_connections` bounds them, and
- * hosts other than the fetchlet App host have none.
- */
-export function upgradeWebSocket(
-  request: Request,
-  options: UpgradeWebSocketOptions = {},
-): {
-  socket: WebSocket;
-  response: Response;
-} {
-  if (!asksForWebSocket(request)) {
-    throw new TypeError("The request does not ask for a WebSocket upgrade");
-  }
-  const registry = channelRegistry();
-  if (!registry) {
-    throw new TypeError("This host does not hold WebSocket connections");
-  }
-  const headers = new runtime.Headers(options.headers);
-  const protocol =
-    options.protocol === undefined
-      ? (headers.get("sec-websocket-protocol") ?? "")
-      : domString(options.protocol);
-  const url = new runtime.URL(request.url);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-
-  const { socket: target, channel } = openSocket(
-    (listener) => registry.upgrade(listener),
-    registry,
-    url.href,
-    protocol,
-    url.origin,
-  );
-
-  headers.delete("sec-websocket-protocol");
-  if (protocol !== "") {
-    headers.set("sec-websocket-protocol", protocol);
-  }
+function newState(init: SocketInit): SocketState {
   return {
-    socket: target as unknown as WebSocket,
-    response: switchingProtocols(channel, headers),
+    ...init,
+    channel: 0,
+    extensions: "",
+    readyState: CONNECTING,
+    binaryType: "blob",
+    snapshot: new Snapshot(),
+  };
+}
+
+/** A client URL: absolute, ws or wss (http and https map to them), no fragment. */
+function clientUrl(value: unknown): URL {
+  let url: URL;
+  try {
+    url = new runtime.URL(usvString(value));
+  } catch {
+    throw new runtime.DOMException("Invalid WebSocket URL", "SyntaxError");
+  }
+  if (url.protocol === "http:") {
+    url.protocol = "ws:";
+  } else if (url.protocol === "https:") {
+    url.protocol = "wss:";
+  }
+  if (url.protocol !== "ws:" && url.protocol !== "wss:") {
+    throw new runtime.DOMException("A WebSocket URL is ws: or wss:", "SyntaxError");
+  }
+  if (url.hash !== "" || url.href.endsWith("#")) {
+    throw new runtime.DOMException("A WebSocket URL has no fragment", "SyntaxError");
+  }
+  return url;
+}
+
+// RFC 9110 token characters, which a subprotocol name consists of.
+const TOKEN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+
+/** The subprotocols to request: tokens, each once. */
+function clientProtocols(value: unknown): string[] {
+  let protocols: string[];
+  if (value === undefined) {
+    protocols = [];
+  } else if (typeof value === "object" && value !== null && Symbol.iterator in value) {
+    protocols = Array.from(value as Iterable<unknown>, domString);
+  } else {
+    protocols = [domString(value)];
+  }
+  const seen = new Set<string>();
+  for (const protocol of protocols) {
+    if (!TOKEN.test(protocol) || seen.has(protocol)) {
+      throw new runtime.DOMException("Invalid WebSocket subprotocol", "SyntaxError");
+    }
+    seen.add(protocol);
+  }
+  return protocols;
+}
+
+/** The socket's end: error first unless clean, then close. */
+function ended(target: WebSocketImpl, state: SocketState, code: number, reason: string): void {
+  if (state.readyState === CLOSED) {
+    return;
+  }
+  state.readyState = CLOSED;
+  // 1006: the connection ended without a closing handshake.
+  const wasClean = code !== 1006;
+  if (!wasClean) {
+    dispatch(target, state, new EventImpl("error"));
+  }
+  dispatch(
+    target,
+    state,
+    new CloseEventImpl("close", {
+      wasClean,
+      code,
+      reason,
+    }),
+  );
+}
+
+/** The listener that drives `target` from its channel's arrivals. */
+function socketListener(target: WebSocketImpl, state: SocketState): ChannelListener {
+  return {
+    open(accepted): void {
+      if (state.readyState !== CONNECTING) {
+        return;
+      }
+      if (accepted) {
+        state.protocol = accepted.protocol;
+        state.extensions = accepted.extensions;
+      }
+      state.readyState = OPEN;
+      dispatch(target, state, new EventImpl("open"));
+    },
+    message(data): void {
+      if (state.readyState !== OPEN) {
+        return;
+      }
+      let value: unknown = data;
+      if (typeof data !== "string") {
+        value =
+          state.binaryType === "arraybuffer"
+            ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+            : new runtime.Blob([data]);
+      }
+      dispatch(
+        target,
+        state,
+        new MessageEventImpl("message", {
+          data: value,
+          origin: state.origin,
+        }),
+      );
+    },
+    close(code, reason): void {
+      ended(target, state, code, reason);
+    },
+    refused(): void {
+      // A refused connection fails as one the network refused.
+      ended(target, state, 1006, "");
+    },
   };
 }
 
@@ -350,116 +401,18 @@ export function openSocket(
   socket: WebSocketImpl;
   channel: number;
 } {
-  // The listener runs once the socket exists.
-  const opened: {
-    target?: WebSocketImpl;
-    state?: SocketState;
-  } = {};
-  const ended = (code: number, reason: string): void => {
-    const { target, state } = opened;
-    if (!target || !state || state.readyState === CLOSED) {
-      return;
-    }
-    state.readyState = CLOSED;
-    // 1006: the connection ended without a closing handshake.
-    const wasClean = code !== 1006;
-    if (!wasClean) {
-      dispatch(target, state, new EventImpl("error"));
-    }
-    dispatch(
-      target,
-      state,
-      new CloseEventImpl("close", {
-        wasClean,
-        code,
-        reason,
-      }),
-    );
-  };
-  const channel = connect({
-    open(): void {
-      const { target, state } = opened;
-      if (target && state?.readyState === CONNECTING) {
-        state.readyState = OPEN;
-        dispatch(target, state, new EventImpl("open"));
-      }
-    },
-    message(data): void {
-      const { target, state } = opened;
-      if (!target || state?.readyState !== OPEN) {
-        return;
-      }
-      let value: unknown = data;
-      if (typeof data !== "string") {
-        value =
-          state.binaryType === "arraybuffer"
-            ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
-            : new runtime.Blob([data]);
-      }
-      dispatch(
-        target,
-        state,
-        new MessageEventImpl("message", {
-          data: value,
-          origin,
-        }),
-      );
-    },
-    close: ended,
-    refused(): void {
-      // A refused connection fails as one the network refused.
-      ended(1006, "");
-    },
-  });
   const target = new WebSocketImpl(CREATE, {
-    channel,
     registry,
     url,
     protocol,
-  });
-  opened.target = target;
-  opened.state = socket(target);
+    origin,
+  } satisfies SocketInit);
+  const state = socket(target);
+  state.channel = connect(socketListener(target, state));
   return {
     socket: target,
-    channel,
+    channel: state.channel,
   };
-}
-
-/** The 101 response that hands `channel` to the host. */
-function switchingProtocols(channel: number, headers: Headers): Response {
-  const response = new runtime.Response(null, {
-    status: 200,
-    headers,
-  });
-  // A 101 cannot be constructed; the host completes the handshake for it.
-  Object.defineProperty(response, "status", {
-    value: 101,
-    configurable: true,
-    writable: true,
-  });
-  Object.defineProperty(response, UPGRADE, {
-    value: channel,
-  });
-  return response;
-}
-
-/**
- * The upgrade response of the WebSocket the current invocation accepted, with
- * `headers`. For framework integrations whose framework copies the handler's
- * response into one of its own, which cannot be constructed with status 101.
- */
-export function upgradeResponse(headers?: HeadersInit): Response {
-  const channel = channelRegistry()?.accepted();
-  if (channel === undefined) {
-    throw new TypeError("No WebSocket upgrade was accepted");
-  }
-  return switchingProtocols(channel, new runtime.Headers(headers));
-}
-
-/** The channel of an upgrade response from upgradeWebSocket, if it is one. */
-export function upgradeOf(response: Response): number | undefined {
-  const channel = (response as unknown as Record<symbol, unknown>)[UPGRADE];
-  return typeof channel === "number" ? channel : undefined;
 }
 
 export { CloseEventImpl, WebSocketImpl };

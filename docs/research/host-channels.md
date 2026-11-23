@@ -18,9 +18,10 @@ the semantics chosen, the alternatives rejected and the order of work.
 
 ## Status
 
-The handle table, request-scoped channels, `connect()` and held connections
-(steps 1, 2, 3 and 5 of the [order of work](#order-of-work)) are
-implemented, the last for the axum integration:
+The handle table, request-scoped channels, `connect()`, the client
+`WebSocket` and held connections (steps 1 to 5 of the
+[order of work](#order-of-work)) are implemented, the last for the axum
+integration:
 
 - `HostServices::channel(name, service)` binds a `ChannelService`, and
   `env.NAME.connect(options)` opens a channel of it in the current
@@ -46,6 +47,14 @@ implemented, the last for the axum integration:
   order with its bytes as `ChannelEvent::End` and `ChannelEvent::StartTls`,
   through the `socket.end` and `socket.startTls` operations, so half-open
   sockets and STARTTLS need no second channel.
+- `HostServices::websockets` takes a `WebSocketService`, whose `FetchPolicy`
+  authorizes each URL's origin after an optional rewrite and whose
+  credentials hook adds handshake headers. The global `WebSocket` opens a
+  channel of it with the `websocket.open` operation and takes the message
+  view; the open's arrival carries the server's subprotocol and extensions.
+  fetchlet-http's `websocket-client` feature provides `WebSocketClient`,
+  which shares `TcpTransport`'s address checks and TLS and runs tungstenite
+  over them.
 - A request-scoped channel closes when its invocation ends, after its
   `waitUntil` work and an open response body. The bridge forgets an upgrade
   the handler did not return when the handler returns, and the
@@ -92,7 +101,10 @@ every engine, `packages/web/tests/channel.test.ts` and the vanilla-axum
 example's progress routes. Sockets are tested in
 `crates/fetchlet/tests/sockets.rs` on every engine,
 `crates/fetchlet-http/tests/sockets.rs` against a local TCP server and
-`packages/web/tests/sockets.test.ts`. `ChannelEnd` does not implement `Stream` and
+`packages/web/tests/sockets.test.ts`; client WebSockets in
+`crates/fetchlet/tests/websocket_client.rs` on every engine,
+`crates/fetchlet-http/tests/websocket_client.rs` against local `ws:` and
+`wss:` servers and `packages/web/tests/websocket.test.ts`. `ChannelEnd` does not implement `Stream` and
 `Sink` yet, the actix integration does not upgrade, and `ViteDev` does not
 serve upgrades. The channel object keeps its handle in a private field, but
 the bridge's registry, which `@fetchlet/web` reaches as a global, still
@@ -339,7 +351,7 @@ The Sockets API of TC55 is `connect(address, options)`. It returns a
 A global `WebSocket` in `@fetchlet/web` follows the WHATWG WebSockets
 standard over the message view of a request-scoped channel.
 
-- `HostServices::websocket(WebSocketService)` sets the transport.
+- `HostServices::websockets(WebSocketService)` sets the transport.
   `WebSocketService` takes a `FetchPolicy`, which applies to `ws:` and
   `wss:` as to `http:` and `https:`. It also takes the credentials hook,
   which adds headers to the opening handshake, as fetch requests get them.
@@ -479,7 +491,7 @@ Each step lands with tests at its own boundary:
 3. `connect()` with `SocketService` and `SocketPolicy` in fetchlet-http
    behind a `sockets` feature. Done.
 4. The client `WebSocket` with `WebSocketService` in fetchlet-http behind a
-   `websocket` feature.
+   `websocket-client` feature. Done.
 5. Held connections and `upgradeWebSocket` with server upgrades in the axum
    and actix integrations, after [instance pools](instance-pools.md).
 6. Resources in call arguments and results.

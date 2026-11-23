@@ -482,6 +482,7 @@ impl HostBridge {
             "socket.end" => self.end_socket(input),
             "socket.open" => self.open_socket(input),
             "socket.startTls" => self.start_socket_tls(input),
+            "websocket.open" => self.open_websocket(input),
             "websocket.upgrade" => self.upgrade_websocket(),
             _ => Err(Error::PermissionDenied),
         }
@@ -828,6 +829,42 @@ impl HostBridge {
             invocation
                 .handles
                 .open_socket(guest, opening, secure == SecureTransport::StartTls)?;
+        self.wake.notify();
+        Ok(Value::from(id))
+    }
+
+    /// `new WebSocket(url, protocols)`: start the handshake through the
+    /// WebSocket service. Counts against `Limits::open_channels`.
+    fn open_websocket(&self, input: &str) -> Result<Value> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Open {
+            url: String,
+            protocols: Vec<String>,
+        }
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let opened = invocation
+            .opened_channels
+            .checked_add(1)
+            .ok_or(Error::LimitExceeded("channel counter"))?;
+        check_limit(invocation.limits.open_channels, opened, "open channels")?;
+        invocation.opened_channels = opened;
+
+        let open: Open = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid WebSocket open".into()))?;
+        let service = self
+            .services
+            .websockets
+            .as_ref()
+            .ok_or(Error::PermissionDenied)?;
+        let (end, guest) = pair(&invocation.limits);
+        let handshake = {
+            let _opening = reentry::enter(self.key);
+            let _runtime = self.runtime.as_ref().map(tokio::runtime::Handle::enter);
+            service.open(&open.url, open.protocols, invocation.context.clone(), end)?
+        };
+        let id = invocation.handles.open_websocket(guest, handshake)?;
         self.wake.notify();
         Ok(Value::from(id))
     }

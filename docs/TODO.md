@@ -79,8 +79,6 @@ documented refusal, and a check in a framework example:
     engine against the serialized implementation.
 - Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
   QuickJS and Boa, which libraries such as depd call at load time.
-- Client WebSockets, through
-  [host channels](#host-channels-and-resources).
 - A runtime key for package `exports`: choose fetchlet's condition name
   following WinterTC Runtime Keys and which of `worker`, `edge-light` and
   `workerd` it implies, so adapters stop adding conditions one by one.
@@ -113,14 +111,13 @@ WebSocket and stream views, `upgradeWebSocket` from `fetchlet/runtime`,
 `Instances::max_held_connections`, the channel and connection budgets,
 server upgrades in fetchlet-http's axum integration behind the `websocket`
 feature, a WebSocket route with an end-to-end check in every axum example,
-and `connect()` over a `SocketService` with fetchlet-http's `TcpTransport`
-([status](research/host-channels.md#status)). The rest:
+`connect()` over a `SocketService` with fetchlet-http's `TcpTransport`, and
+the global `WebSocket` over a `WebSocketService` with fetchlet-http's
+`WebSocketClient` ([status](research/host-channels.md#status)). The rest:
 
-1. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`, on
-   the message view.
-2. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
+1. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
    and `Sink` for `ChannelEnd`.
-3. Resources in function arguments and results
+2. Resources in function arguments and results
    ([values beyond JSON](#values-beyond-json)).
 
 Several connections per instance wait until async context is available on

@@ -81,7 +81,8 @@ can perform through native callbacks: storing and claiming byte handles,
 `fetch.poll` on body sources, accepting a WebSocket upgrade, opening
 channels from an accepting, a refusing and an unbound service, connecting
 sockets to allowed, refused and invalid addresses, ending their writes and
-starting TLS,
+starting TLS, opening client WebSockets to allowed, refused and invalid
+URLs with valid and invalid subprotocols,
 `channel.write`, `channel.buffered` and `channel.close`, arbitrary host
 operations, producer chunks, ends and failures, and invocation start and
 end. It compares the results with a model and checks that:
@@ -100,6 +101,9 @@ end. It compares the results with a model and checks that:
   socket with no write pending and its writes not ended, `startTls` once
   and only for a socket opened with `"starttls"`, and never for a channel
   of an env binding;
+- a client WebSocket opens only for a URL whose origin the policy allows,
+  with distinct valid subprotocols, its open reports the server's
+  selection, and any other URL is refused at once;
 - a write is queued at the next poll unless its channel closed, and
   `channel.buffered` counts exactly the bytes queued;
 - body reads return the producer's chunks in order, within budget, and a

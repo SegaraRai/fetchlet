@@ -21,6 +21,7 @@ pub(crate) use dispatcher::InvocationScope;
 #[cfg(feature = "fuzzing")]
 pub use harness::{
     BodyFeed, BridgeHarness, ChannelFeed, harness_channel_service, harness_socket_service,
+    harness_websocket_service,
 };
 
 #[cfg(test)]
