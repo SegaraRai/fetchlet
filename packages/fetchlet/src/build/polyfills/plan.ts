@@ -1,6 +1,8 @@
 import { createRequire } from "node:module";
 
-import { backendCapabilities, intlPolyfills, type IntlPolyfill } from "./catalog.ts";
+import { hostApiRequirements } from "@fetchlet/web/capabilities";
+
+import { backendCapabilities, engineOnlyApis, polyfills, type Polyfill } from "./catalog.ts";
 
 export type BuildBackend = "quickjs" | "boa" | "v8" | "portable";
 
@@ -24,8 +26,13 @@ export interface PlanOptions {
 export interface PolyfillPlan {
   backend: BuildBackend;
   requirements: string[];
-  /** Requirements the backend provides natively, checked when the artifact starts. */
+  /**
+   * Requirements left to the engine, checked when the artifact starts: APIs
+   * the backend provides natively, and on `portable`, engine-only APIs.
+   */
   nativeRequirements: string[];
+  /** fetchlet-web APIs the requirements need from the host, sorted. */
+  hostApis: string[];
   polyfills: {
     api: string;
     package: string;
@@ -41,12 +48,8 @@ export interface PolyfillPlan {
 
 const require = createRequire(import.meta.url);
 
-function polyfillFor(api: string): IntlPolyfill {
-  const polyfill = Object.hasOwn(intlPolyfills, api) ? intlPolyfills[api] : undefined;
-  if (!polyfill) {
-    throw new Error("Unsupported fetchlet Intl API: " + api);
-  }
-  return polyfill;
+function polyfillFor(api: string): Polyfill | undefined {
+  return Object.hasOwn(polyfills, api) ? polyfills[api] : undefined;
 }
 
 function validateApiList(name: string, value: unknown): void {
@@ -74,7 +77,13 @@ function localeModule(packageName: string, locale: string): string {
   throw new Error("FormatJS locale data is unavailable: " + packageName + " / " + locale);
 }
 
-/** Resolve only missing Intl APIs, in dependency order, before bundling. */
+/**
+ * Sort each requirement: an API the backend provides natively, an API to
+ * polyfill (with its dependencies, in dependency order), an engine-only API
+ * (left to the host's check on `portable`, a build error on a backend that
+ * lacks it), or a global that the Web API profile installs only over a host
+ * API. Any other name fails, so a requirement never passes unchecked.
+ */
 export function planPolyfills({
   backend = "portable",
   requirements = [],
@@ -97,47 +106,82 @@ export function planPolyfills({
   const native = new Set(backendCapabilities[backend]);
   const selected = new Set<string>();
   const nativeRequirements = new Set<string>();
-  function include(api: string): void {
-    if (!api.startsWith("Intl.")) {
-      return;
-    }
-    const polyfill = polyfillFor(api);
+  const hostApis = new Set<string>();
+  // Returns false for a name that is neither an engine API nor polyfillable.
+  function include(api: string): boolean {
     if (native.has(api)) {
       nativeRequirements.add(api);
-      return;
+      return true;
     }
-    if (selected.has(api)) {
-      return;
+    if (engineOnlyApis.includes(api)) {
+      if (backend !== "portable") {
+        throw new Error(
+          api +
+            " is not available on the " +
+            backend +
+            " backend and has no polyfill; build for a backend that provides it",
+        );
+      }
+      nativeRequirements.add(api);
+      return true;
     }
-    for (const dependency of polyfill.dependencies) {
-      include(dependency);
+    const polyfill = polyfillFor(api);
+    if (!polyfill) {
+      return false;
     }
-    selected.add(api);
+    if (!selected.has(api)) {
+      for (const dependency of polyfill.dependencies) {
+        include(dependency);
+      }
+      selected.add(api);
+    }
+    return true;
   }
   for (const api of requested) {
-    include(api);
+    if (include(api)) {
+      continue;
+    }
+    if (api.startsWith("Intl.")) {
+      throw new Error("Unsupported fetchlet Intl API: " + api);
+    }
+    const needs = Object.hasOwn(hostApiRequirements, api) ? hostApiRequirements[api] : undefined;
+    if (!needs) {
+      throw new Error(
+        "Unknown fetchlet requirement: " +
+          api +
+          "; expected an Intl API, an engine API (" +
+          engineOnlyApis.filter((name) => !name.startsWith("Intl.")).join(", ") +
+          ") or a global over a host Web API (" +
+          Object.keys(hostApiRequirements).join(", ") +
+          ")",
+      );
+    }
+    for (const hostApi of needs) {
+      hostApis.add(hostApi);
+    }
   }
-  const polyfills: PolyfillPlan["polyfills"] = [];
+  const selectedPolyfills: PolyfillPlan["polyfills"] = [];
   const imports: string[] = [];
   for (const api of selected) {
-    const implementation = polyfillFor(api);
+    const implementation = polyfillFor(api)!;
     const modules = [implementation.package + "/polyfill.js"];
     if (implementation.localeData) {
       modules.push(
         ...new Set(canonicalLocales.map((locale) => localeModule(implementation.package, locale))),
       );
     }
-    if (api === "Intl.DateTimeFormat" && timeZoneData !== "utc") {
+    if (implementation.timeZoneData && timeZoneData !== "utc") {
       modules.push(implementation.package + "/add-" + timeZoneData + "-tz.js");
     }
     imports.push(...modules.map((specifier) => require.resolve(specifier)));
-    polyfills.push({ api, package: implementation.package, modules });
+    selectedPolyfills.push({ api, package: implementation.package, modules });
   }
   return {
     backend,
     requirements: requested,
     nativeRequirements: [...nativeRequirements],
-    polyfills,
+    hostApis: [...hostApis].sort(),
+    polyfills: selectedPolyfills,
     intl: {
       locales: canonicalLocales,
       timeZoneData,

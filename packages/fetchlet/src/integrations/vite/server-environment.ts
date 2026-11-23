@@ -37,6 +37,13 @@ export interface ViteArtifactOptions {
   backend?: BuildBackend;
   /** Intl data for engines without native Intl, as in fetchlet/build. */
   intl?: IntlOptions;
+  /**
+   * APIs the application needs beyond the Web API profile, as in
+   * fetchlet/build: Intl APIs such as `Intl.DateTimeFormat`, and globals over
+   * host Web APIs such as `crypto.subtle`. Recorded in fetchlet.json, where
+   * the Rust host checks them before the server runs.
+   */
+  requirements?: string[];
 }
 
 /** What an integration puts around its framework's built server module. */
@@ -128,7 +135,13 @@ export interface ServerArtifactSource {
 /** Writes the artifact around a framework's built server module. */
 export async function writeServerArtifact(
   integration: ArtifactIntegration,
-  { outDir = "build", backend = "portable", intl = {}, assets = false }: ViteArtifactOptions,
+  {
+    outDir = "build",
+    backend = "portable",
+    intl = {},
+    requirements = [],
+    assets = false,
+  }: ViteArtifactOptions,
   { root, serverModule, resolveDir = dirname(serverModule), hashedAssets }: ServerArtifactSource,
 ): Promise<void> {
   const defaults = integration.assetDefaults ?? {};
@@ -147,6 +160,7 @@ export async function writeServerArtifact(
     ...(integration.asyncContext ? { asyncContext: integration.asyncContext } : {}),
     backend,
     intl,
+    requirements,
     ...(assets
       ? { assets: frameworkAssets(assets, cache.length ? { ...defaults, cache } : defaults) }
       : {}),

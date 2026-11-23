@@ -24,14 +24,15 @@ export default defineConfig({
 });
 ```
 
-| Option    | Default           | Meaning                                                                                  |
-| --------- | ----------------- | ---------------------------------------------------------------------------------------- |
-| `server`  | `"src/server.ts"` | The server module                                                                        |
-| `client`  | none              | Browser entries; without them, `index.html` is the client entry when the project has one |
-| `outDir`  | `"build"`         | The artifact directory                                                                   |
-| `backend` | `"portable"`      | The engine the artifact targets, as in [fetchlet/build](build.md)                        |
-| `intl`    | `{}`              | Intl data for engines without native Intl, as in [fetchlet/build](build.md)              |
-| `assets`  | `false`           | Pack `client/` into `assets.flpk`; see below                                             |
+| Option         | Default           | Meaning                                                                                  |
+| -------------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| `server`       | `"src/server.ts"` | The server module                                                                        |
+| `client`       | none              | Browser entries; without them, `index.html` is the client entry when the project has one |
+| `outDir`       | `"build"`         | The artifact directory                                                                   |
+| `backend`      | `"portable"`      | The engine the artifact targets, as in [fetchlet/build](build.md)                        |
+| `intl`         | `{}`              | Intl data for engines without native Intl, as in [fetchlet/build](build.md)              |
+| `requirements` | `[]`              | APIs beyond the Web API profile, as in [fetchlet/build](build.md)                        |
+| `assets`       | `false`           | Pack `client/` into `assets.flpk`; see below                                             |
 
 Libraries that need WebAssembly do not run on the `quickjs` and `boa`
 backends ([engine limits](build.md#engine-limits)).

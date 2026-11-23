@@ -27,6 +27,13 @@ export interface FetchletVinextOptions {
   backend?: BuildBackend;
   /** Intl data for engines without native Intl, as in fetchlet/build. */
   intl?: IntlOptions;
+  /**
+   * APIs the application needs beyond the Web API profile, as in
+   * fetchlet/build: Intl APIs such as `Intl.DateTimeFormat`, and globals over
+   * host Web APIs such as `crypto.subtle`. Recorded in fetchlet.json, where
+   * the Rust host checks them before the server runs.
+   */
+  requirements?: string[];
 }
 
 // React's server packages, such as react-server-dom-webpack/client, have
@@ -44,6 +51,7 @@ export default function fetchletVinext({
   outDir = "build",
   backend = "portable",
   intl = {},
+  requirements = [],
   assets = false,
 }: FetchletVinextOptions = {}): Plugin {
   let root = process.cwd();
@@ -116,6 +124,7 @@ export default function fetchletVinext({
           define: vinextNodeDefines,
           backend,
           intl,
+          requirements,
           ...(assets
             ? {
                 assets: frameworkAssets(assets, {

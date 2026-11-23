@@ -1,5 +1,6 @@
 // Builds Intl artifacts for each backend with fetchlet/build and checks the
-// selected polyfills, their locale data and the native capability catalog.
+// selected polyfills, their locale data and the native capability catalog,
+// which covers every polyfillable and engine-only API.
 // Records results/polyfill-matrix.json: `vp run test:polyfills`.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -16,7 +17,13 @@ import {
 import { buildArtifact, type BuildArtifactOptions } from "fetchlet/build";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 
-// The planner is internal to fetchlet/build; this suite checks it directly.
+// The planner and catalog are internal to fetchlet/build; this suite checks
+// them directly.
+import {
+  backendCapabilities,
+  engineOnlyApis,
+  polyfills as polyfillCatalog,
+} from "../../packages/fetchlet/src/build/polyfills/catalog.ts";
 import {
   planPolyfills,
   type PlanOptions,
@@ -107,6 +114,11 @@ beforeAll(async () => {
     "Intl.NumberFormat",
     "Intl.PluralRules",
     "Intl.Locale",
+    "Intl.ListFormat",
+    "Intl.DisplayNames",
+    "Intl.RelativeTimeFormat",
+    "Intl.Segmenter",
+    "Intl.DurationFormat",
   ];
   const intl = {
     locales: ["en", "ja"],
@@ -145,15 +157,20 @@ afterAll(() => {
   });
 });
 
-check("default backend Intl capabilities match the build catalog", () => {
+check("each engine's native APIs match the build catalog", () => {
   const file = resolve(output, "native.js");
   writeFileSync(
     file,
     `var fetchletExports = {
     capabilities() {
       return Object.fromEntries(
-        ["getCanonicalLocales", "Locale", "PluralRules", "NumberFormat", "DateTimeFormat"]
-          .map(name => ["Intl." + name, typeof globalThis.Intl?.[name] === "function"]),
+        ${JSON.stringify([...Object.keys(polyfillCatalog), ...engineOnlyApis])}.map((api) => {
+          let value = globalThis;
+          for (const key of api.split(".")) {
+            value = value === undefined || value === null ? undefined : value[key];
+          }
+          return [api, value !== undefined && value !== null];
+        }),
       );
     }
   };`,
@@ -163,19 +180,14 @@ check("default backend Intl capabilities match the build catalog", () => {
     if (!reply.ok) {
       expect.fail(reply.error);
     }
-    const capabilities = reply.value as Record<string, boolean>;
-    nativeCapabilities[backend] = capabilities;
-    const plan = planPolyfills({
-      backend,
-      requirements: Object.keys(capabilities),
-    });
-    expect(new Set(plan.nativeRequirements)).toStrictEqual(
-      new Set(
-        Object.entries(capabilities)
-          .filter(([, native]) => native)
-          .map(([api]) => api),
-      ),
-    );
+    nativeCapabilities[backend] = reply.value as Record<string, boolean>;
+  }
+  // Every engine is measured first, so a mismatch shows them all.
+  for (const backend of backends) {
+    const measured = Object.entries(nativeCapabilities[backend]!)
+      .filter(([, native]) => native)
+      .map(([api]) => api);
+    expect(new Set(measured), backend).toStrictEqual(new Set(backendCapabilities[backend]));
   }
 });
 
@@ -197,6 +209,28 @@ for (const backend of backends) {
     });
     expect(usesFormatJS).toBe(backend !== "v8");
     expect(frenchSupported).toBe(backend === "v8");
+  });
+}
+
+for (const backend of backends) {
+  check(backend + " executes list, display name, relative time, segment and duration APIs", () => {
+    const artifact = artifactNamed(backend === "v8" ? "v8" : "quickjs");
+    const reply = execute(backend, artifact.server, "formatText");
+    if (!reply.ok) {
+      expect.fail(reply.error);
+    }
+    expect(reply.value).toStrictEqual({
+      list: "a, b, and c",
+      listJa: "a\u3001b\u3001c",
+      region: "Japan",
+      languageJa: "\u82f1\u8a9e",
+      yesterday: "yesterday",
+      inHoursJa: "3 \u6642\u9593\u5f8c",
+      words: ["Hello", "world"],
+      graphemes: 2,
+      duration: "1 hour, 30 minutes",
+      digital: "1:05:03",
+    });
   });
 }
 

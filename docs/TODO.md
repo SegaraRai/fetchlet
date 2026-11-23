@@ -89,8 +89,6 @@ Deferred until an adapter or application needs them:
 - The Cache API (`caches`), which some edge adapters use for ISR and fetch
   caching. It would map to a cache store configured in Rust, with an
   in-memory default, as an optional fetchlet-web API.
-- `SharedArrayBuffer` and `Atomics` on QuickJS and Boa, which some
-  WebAssembly builds and libraries detect.
 
 ### Host channels and resources
 
@@ -119,13 +117,18 @@ every engine ([concurrent request context](#framework-runtime-needs-beyond-winte
 
 ### Capability negotiation
 
-`fetchlet.json` records the target backend, required APIs, chosen polyfills,
-the Fetch handler and the exported functions. Rust reads the handler, so an
-App built from an artifact of functions only refuses `fetch`, but `Module`
-takes only source, so Rust does not compare the rest with the engine it runs.
-Add a check at build time of the `App` that refuses an artifact whose
-requirements the backend lacks, and extend the capability table beyond Intl as
-each polyfill gains conformance tests.
+`Module::requires` checks a module's `Requirements` (native engine APIs
+and locales, async context, fetchlet-web APIs and protocol) against the
+engine before the module runs. Builds record them as `needs` in
+`fetchlet.json`, from the shared `requirements` option and `node:*`
+imports, and `Artifact::requirements` reads them back. The polyfill catalog
+covers every Intl API FormatJS implements, and names the engine-only APIs
+(`Intl.Collator`, `Intl.supportedValuesOf`, `WebAssembly`,
+`SharedArrayBuffer`, `Atomics`). Next, following
+[capability negotiation](research/capability-negotiation.md): polyfills
+beyond Intl, each with its tests on every engine, such as the
+`Error.captureStackTrace` stub under
+[framework runtime needs](#framework-runtime-needs-beyond-wintertc).
 
 ### Enforcement and isolation
 

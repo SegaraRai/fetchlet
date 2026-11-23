@@ -2,6 +2,8 @@ import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 
+import { moduleHostApis } from "@fetchlet/node/host-apis";
+import { PROTOCOL_VERSION } from "@fetchlet/web/capabilities";
 import { build, type Plugin } from "rolldown";
 
 import { archiveAssets, type AssetsOption } from "./asset-option.ts";
@@ -152,6 +154,40 @@ function artifactEntry(input: string, plan: PolyfillPlan, source?: string): Plug
   };
 }
 
+/**
+ * What the artifact needs from the host that runs it, which fetchlet-http's
+ * `Artifact::requirements` checks before the server module runs: the APIs
+ * left to the engine and the locales Intl ones must support, the engine's async context,
+ * and the fetchlet-web APIs that required globals and imported Node modules
+ * call, with the protocol the bundled profile speaks.
+ */
+export function artifactNeeds(
+  plan: PolyfillPlan,
+  asyncContext: AsyncContextMode | undefined,
+  importedNodeModules: Iterable<string>,
+): {
+  engineApis: string[];
+  locales: string[];
+  asyncContext: boolean;
+  hostApis: string[];
+  hostProtocol?: number;
+} {
+  const hostApis = new Set(plan.hostApis);
+  for (const name of importedNodeModules) {
+    for (const api of Object.hasOwn(moduleHostApis, name) ? moduleHostApis[name]! : []) {
+      hostApis.add(api);
+    }
+  }
+  return {
+    engineApis: plan.nativeRequirements,
+    locales: plan.intl.locales,
+    asyncContext: asyncContext === "propagated",
+    hostApis: [...hostApis].sort(),
+    // The protocol matters only to the host APIs the artifact relies on.
+    ...(hostApis.size > 0 ? { hostProtocol: PROTOCOL_VERSION } : {}),
+  };
+}
+
 /** Initialize the Web API profile before evaluating framework modules. */
 export async function buildArtifact({
   entry,
@@ -168,6 +204,7 @@ export async function buildArtifact({
   assets,
 }: BuildArtifactOptions): Promise<void> {
   const plan = planPolyfills({ backend, requirements, intl });
+  const importedNodeModules = new Set<string>();
   const output = resolve(outDir);
   mkdirSync(output, { recursive: true });
   const { output: chunks } = await build({
@@ -185,7 +222,7 @@ export async function buildArtifact({
         : artifactEntry(join(resolve(entry.resolveDir), sourceEntryName), plan, entry.source),
       exportedHandlerPlugin(),
       ...plugins,
-      nodeBuiltins(asyncContext),
+      nodeBuiltins(asyncContext, importedNodeModules),
     ],
     transform: {
       target: "es2022",
@@ -224,6 +261,7 @@ export async function buildArtifact({
     nativeRequirements: plan.nativeRequirements,
     polyfills: plan.polyfills,
     intl: plan.intl,
+    needs: artifactNeeds(plan, asyncContext, importedNodeModules),
   };
   const manifestPath = join(output, "fetchlet.json");
   if (assets) {

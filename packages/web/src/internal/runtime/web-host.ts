@@ -2,10 +2,8 @@
 // installs only globals the host can serve. A host with another protocol
 // version provides none of them, and the profile keeps its fallbacks.
 
+import { PROTOCOL_VERSION } from "../../capabilities";
 import { hostFunctions } from "./host";
-
-/** The fetchlet-web protocol this profile speaks. */
-const PROTOCOL_VERSION = 3;
 
 let provided: Set<string> | undefined;
 

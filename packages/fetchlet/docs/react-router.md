@@ -14,7 +14,7 @@ export default {
 } satisfies Config;
 ```
 
-`backend` and `intl` are the [builder's](build.md) settings. The preset
+`backend`, `intl` and `requirements` are the [builder's](build.md) settings. The preset
 requires `ssr: true` and one server bundle; `serverBundles` or `ssr: false`
 fails the build.
 

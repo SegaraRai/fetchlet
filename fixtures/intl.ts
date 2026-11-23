@@ -25,3 +25,30 @@ export function format() {
       typeof (Intl.DateTimeFormat as { __addLocaleData?: unknown }).__addLocaleData === "function",
   };
 }
+
+// The Intl APIs beyond formatting numbers and dates, with results that
+// native ICU and the FormatJS polyfills agree on.
+export function formatText() {
+  const intl = Intl as unknown as Record<string, new (...args: unknown[]) => any>;
+  const words = [...new intl.Segmenter!("en", { granularity: "word" }).segment("Hello, world")] as {
+    segment: string;
+    isWordLike: boolean;
+  }[];
+  const graphemes = [...new intl.Segmenter!("en").segment("éa")];
+  return {
+    list: new intl.ListFormat!("en", { type: "conjunction" }).format(["a", "b", "c"]),
+    listJa: new intl.ListFormat!("ja", { type: "conjunction" }).format(["a", "b", "c"]),
+    region: new intl.DisplayNames!("en", { type: "region" }).of("JP"),
+    languageJa: new intl.DisplayNames!("ja", { type: "language" }).of("en"),
+    yesterday: new intl.RelativeTimeFormat!("en", { numeric: "auto" }).format(-1, "day"),
+    inHoursJa: new intl.RelativeTimeFormat!("ja").format(3, "hour"),
+    words: words.filter((segment) => segment.isWordLike).map((segment) => segment.segment),
+    graphemes: graphemes.length,
+    duration: new intl.DurationFormat!("en", { style: "long" }).format({ hours: 1, minutes: 30 }),
+    digital: new intl.DurationFormat!("en", { style: "digital" }).format({
+      hours: 1,
+      minutes: 5,
+      seconds: 3,
+    }),
+  };
+}

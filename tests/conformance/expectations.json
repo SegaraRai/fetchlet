@@ -21,49 +21,49 @@
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for brotli\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for deflate\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for deflate-raw\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for gzip\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for brotli\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for deflate\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for deflate-raw\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for gzip\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
@@ -177,49 +177,49 @@
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for brotli\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for deflate\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for deflate-raw\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for gzip\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for brotli\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for deflate\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for deflate-raw\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"boa\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for gzip\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
@@ -2481,97 +2481,97 @@
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for brotli\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for deflate\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for deflate-raw\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for gzip\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for brotli\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for deflate\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for deflate-raw\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/compression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for gzip\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for brotli\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for deflate\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for deflate-raw\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type SharedArrayBuffer should error the stream for gzip\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for brotli\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for deflate\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for deflate-raw\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },
     {
       "key": "[\"wpt\",\"quickjs\",\"compression/decompression-bad-chunks.any.js\",\"shell\",\"chunk of type shared Uint8Array should error the stream for gzip\"]",
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass.",
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass.",
       "category": "backend-capability",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\""
     },

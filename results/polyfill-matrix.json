@@ -10,7 +10,7 @@
     }
   },
   "summary": {
-    "passed": 8,
+    "passed": 11,
     "failed": 0
   },
   "nativeCapabilities": {
@@ -19,26 +19,56 @@
       "Intl.Locale": false,
       "Intl.PluralRules": false,
       "Intl.NumberFormat": false,
-      "Intl.DateTimeFormat": false
+      "Intl.DateTimeFormat": false,
+      "Intl.ListFormat": false,
+      "Intl.DisplayNames": false,
+      "Intl.RelativeTimeFormat": false,
+      "Intl.Segmenter": false,
+      "Intl.DurationFormat": false,
+      "Intl.Collator": false,
+      "Intl.supportedValuesOf": false,
+      "WebAssembly": false,
+      "SharedArrayBuffer": true,
+      "Atomics": true
     },
     "boa": {
       "Intl.getCanonicalLocales": false,
       "Intl.Locale": false,
       "Intl.PluralRules": false,
       "Intl.NumberFormat": false,
-      "Intl.DateTimeFormat": false
+      "Intl.DateTimeFormat": false,
+      "Intl.ListFormat": false,
+      "Intl.DisplayNames": false,
+      "Intl.RelativeTimeFormat": false,
+      "Intl.Segmenter": false,
+      "Intl.DurationFormat": false,
+      "Intl.Collator": false,
+      "Intl.supportedValuesOf": false,
+      "WebAssembly": false,
+      "SharedArrayBuffer": true,
+      "Atomics": true
     },
     "v8": {
       "Intl.getCanonicalLocales": true,
       "Intl.Locale": true,
       "Intl.PluralRules": true,
       "Intl.NumberFormat": true,
-      "Intl.DateTimeFormat": true
+      "Intl.DateTimeFormat": true,
+      "Intl.ListFormat": true,
+      "Intl.DisplayNames": true,
+      "Intl.RelativeTimeFormat": true,
+      "Intl.Segmenter": true,
+      "Intl.DurationFormat": true,
+      "Intl.Collator": true,
+      "Intl.supportedValuesOf": true,
+      "WebAssembly": true,
+      "SharedArrayBuffer": true,
+      "Atomics": true
     }
   },
   "artifacts": {
     "quickjs": {
-      "bytes": 2243311,
+      "bytes": 2716449,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",
@@ -77,6 +107,43 @@
             "@formatjs/intl-datetimeformat/locale-data/ja.js",
             "@formatjs/intl-datetimeformat/add-golden-tz.js"
           ]
+        },
+        {
+          "api": "Intl.ListFormat",
+          "package": "@formatjs/intl-listformat",
+          "modules": [
+            "@formatjs/intl-listformat/polyfill.js",
+            "@formatjs/intl-listformat/locale-data/en.js",
+            "@formatjs/intl-listformat/locale-data/ja.js"
+          ]
+        },
+        {
+          "api": "Intl.DisplayNames",
+          "package": "@formatjs/intl-displaynames",
+          "modules": [
+            "@formatjs/intl-displaynames/polyfill.js",
+            "@formatjs/intl-displaynames/locale-data/en.js",
+            "@formatjs/intl-displaynames/locale-data/ja.js"
+          ]
+        },
+        {
+          "api": "Intl.RelativeTimeFormat",
+          "package": "@formatjs/intl-relativetimeformat",
+          "modules": [
+            "@formatjs/intl-relativetimeformat/polyfill.js",
+            "@formatjs/intl-relativetimeformat/locale-data/en.js",
+            "@formatjs/intl-relativetimeformat/locale-data/ja.js"
+          ]
+        },
+        {
+          "api": "Intl.Segmenter",
+          "package": "@formatjs/intl-segmenter",
+          "modules": ["@formatjs/intl-segmenter/polyfill.js"]
+        },
+        {
+          "api": "Intl.DurationFormat",
+          "package": "@formatjs/intl-durationformat",
+          "modules": ["@formatjs/intl-durationformat/polyfill.js"]
         }
       ],
       "formatjsModules": [
@@ -96,21 +163,32 @@
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/polyfill.js",
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/locale-data/en.js",
         "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/locale-data/ja.js",
-        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/add-golden-tz.js"
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-datetimeformat@8.2.0/node_modules/@formatjs/intl-datetimeformat/add-golden-tz.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-listformat@9.1.0/node_modules/@formatjs/intl-listformat/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-listformat@9.1.0/node_modules/@formatjs/intl-listformat/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-listformat@9.1.0/node_modules/@formatjs/intl-listformat/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-displaynames@8.0.3/node_modules/@formatjs/intl-displaynames/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-displaynames@8.0.3/node_modules/@formatjs/intl-displaynames/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-displaynames@8.0.3/node_modules/@formatjs/intl-displaynames/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-relativetimeformat@13.0.3/node_modules/@formatjs/intl-relativetimeformat/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-relativetimeformat@13.0.3/node_modules/@formatjs/intl-relativetimeformat/locale-data/en.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-relativetimeformat@13.0.3/node_modules/@formatjs/intl-relativetimeformat/locale-data/ja.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-segmenter@12.3.2/node_modules/@formatjs/intl-segmenter/polyfill.js",
+        "F:/Projects/fetchlet/node_modules/.pnpm/@formatjs+intl-durationformat@0.13.0/node_modules/@formatjs/intl-durationformat/polyfill.js"
       ]
     },
     "v8": {
-      "bytes": 472653,
+      "bytes": 490239,
       "polyfills": [],
       "formatjsModules": []
     },
     "plain": {
-      "bytes": 472559,
+      "bytes": 490027,
       "polyfills": [],
       "formatjsModules": []
     },
     "plural": {
-      "bytes": 1124795,
+      "bytes": 1142263,
       "polyfills": [
         {
           "api": "Intl.getCanonicalLocales",
@@ -146,7 +224,7 @@
   },
   "results": [
     {
-      "name": "default backend Intl capabilities match the build catalog",
+      "name": "each engine's native APIs match the build catalog",
       "status": "pass"
     },
     {
@@ -159,6 +237,18 @@
     },
     {
       "name": "v8 executes selected Intl APIs with Japanese and Tokyo data",
+      "status": "pass"
+    },
+    {
+      "name": "quickjs executes list, display name, relative time, segment and duration APIs",
+      "status": "pass"
+    },
+    {
+      "name": "boa executes list, display name, relative time, segment and duration APIs",
+      "status": "pass"
+    },
+    {
+      "name": "v8 executes list, display name, relative time, segment and duration APIs",
       "status": "pass"
     },
     {

@@ -16,6 +16,13 @@ export interface FetchletSvelteKitOptions {
   /** Intl data for engines without native Intl. */
   intl?: IntlOptions;
   /**
+   * APIs the application needs beyond the Web API profile, as in
+   * fetchlet/build: Intl APIs such as `Intl.DateTimeFormat`, and globals over
+   * host Web APIs such as `crypto.subtle`. Recorded in fetchlet.json, where
+   * the Rust host checks them before the server runs.
+   */
+  requirements?: string[];
+  /**
    * "async" supports Svelte's asynchronous server rendering and remote
    * functions: `getRequestEvent()` keeps the current request across awaits
    * within one invocation. Defaults to "synchronous".
@@ -59,6 +66,7 @@ export default function fetchletAdapter({
   out = "build",
   backend = "portable",
   intl = {},
+  requirements = [],
   rendering = "synchronous",
   assets = false,
 }: FetchletSvelteKitOptions = {}): Adapter {
@@ -121,6 +129,7 @@ export default function fetchletAdapter({
         rendering,
         backend,
         intl,
+        requirements,
         ...(assets
           ? {
               assets: frameworkAssets(assets, {

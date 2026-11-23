@@ -24,6 +24,13 @@ export interface FetchletWakuOptions {
   backend?: BuildBackend;
   /** Intl data for engines without native Intl, as in fetchlet/build. */
   intl?: IntlOptions;
+  /**
+   * APIs the application needs beyond the Web API profile, as in
+   * fetchlet/build: Intl APIs such as `Intl.DateTimeFormat`, and globals over
+   * host Web APIs such as `crypto.subtle`. Recorded in fetchlet.json, where
+   * the Rust host checks them before the server runs.
+   */
+  requirements?: string[];
   /** Hono middleware run before Waku's handler. */
   middlewareFns?: WakuMiddleware[];
   /** Waku middleware modules, as `import.meta.glob` returns them. */

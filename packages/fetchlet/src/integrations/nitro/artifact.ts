@@ -47,7 +47,12 @@ function nitroEnvironment(): Plugin {
  * server.js and fetchlet.json next to the public assets.
  */
 export async function writeArtifact(nitro: Nitro): Promise<void> {
-  const { backend = "portable", intl = {}, assets = false } = nitro.options.fetchlet ?? {};
+  const {
+    backend = "portable",
+    intl = {},
+    requirements = [],
+    assets = false,
+  } = nitro.options.fetchlet ?? {};
   const serverDir = nitro.options.output.serverDir;
   const entrySource = `
     import { createFetchHandler, getBindings, waitUntil } from "fetchlet/runtime/adapter";
@@ -84,6 +89,7 @@ export async function writeArtifact(nitro: Nitro): Promise<void> {
     asyncContext: "serialized",
     backend,
     intl,
+    requirements,
     ...(assets
       ? {
           assets: frameworkAssets(assets, {

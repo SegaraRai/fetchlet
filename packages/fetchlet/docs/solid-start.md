@@ -21,7 +21,7 @@ export default defineConfig({
 });
 ```
 
-`backend` and `intl` are the [builder's](build.md) settings. Nitro is not
+`backend`, `intl` and `requirements` are the [builder's](build.md) settings. Nitro is not
 used.
 
 Libraries that need WebAssembly do not run on the `quickjs` and `boa`

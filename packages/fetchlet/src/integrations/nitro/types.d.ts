@@ -18,6 +18,13 @@ export interface FetchletNitroOptions {
     apis?: string[];
   };
   /**
+   * APIs the application needs beyond the Web API profile, as in
+   * fetchlet/build: Intl APIs such as `Intl.DateTimeFormat`, and globals over
+   * host Web APIs such as `crypto.subtle`. Recorded in fetchlet.json, where
+   * the Rust host checks them before the server runs.
+   */
+  requirements?: string[];
+  /**
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` caches each `publicAssets` directory for its
    * `maxAge`; settings adjust that and add entries, and a function returns

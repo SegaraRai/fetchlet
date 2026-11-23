@@ -24,6 +24,13 @@ export interface FetchletAstroOptions {
   /** Intl data for engines without native Intl. */
   intl?: IntlOptions;
   /**
+   * APIs the application needs beyond the Web API profile, as in
+   * fetchlet/build: Intl APIs such as `Intl.DateTimeFormat`, and globals over
+   * host Web APIs such as `crypto.subtle`. Recorded in fetchlet.json, where
+   * the Rust host checks them before the server runs.
+   */
+  requirements?: string[];
+  /**
    * `astro dev` serves a Rust host that uses fetchlet-http's `ViteDev`
    * instead of rendering in Node: the host runs Astro's development app on
    * its engine through Vite's module runner. Defaults to false.
@@ -66,7 +73,11 @@ export default {
 `;
 
 /** The Vite plugins of development serving. */
-function devServerPlugins(backend: BuildBackend, intl: IntlOptions): Plugin[] {
+function devServerPlugins(
+  backend: BuildBackend,
+  intl: IntlOptions,
+  requirements: string[],
+): Plugin[] {
   return [
     devServerPlugin({
       name: "fetchlet/astro:dev-server",
@@ -75,7 +86,7 @@ function devServerPlugins(backend: BuildBackend, intl: IntlOptions): Plugin[] {
       runnable: false,
       framework: "astro",
       rendering: "streaming",
-      requirements: ["Intl.DateTimeFormat"],
+      requirements,
       // Astro's development app imports these on the first request; naming
       // them up front spares the reloads that discovering them one by one
       // causes in the middle of that request.
@@ -108,9 +119,12 @@ export default function fetchletAdapter({
   out = "build",
   backend = "portable",
   intl = {},
+  requirements = [],
   assets = false,
   devServer = false,
 }: FetchletAstroOptions = {}): AstroIntegration {
+  // Astro formats dates with Intl.DateTimeFormat.
+  const required = ["Intl.DateTimeFormat", ...requirements];
   let output: string;
   let serverEntry: string;
   let archive: AssetsOption | undefined;
@@ -122,7 +136,7 @@ export default function fetchletAdapter({
         if (command === "dev" && devServer) {
           updateConfig({
             vite: {
-              plugins: devServerPlugins(backend, intl),
+              plugins: devServerPlugins(backend, intl, required),
             },
           });
         }
@@ -164,7 +178,7 @@ export default function fetchletAdapter({
           outDir: output,
           framework: "astro",
           rendering: "streaming",
-          requirements: ["Intl.DateTimeFormat"],
+          requirements: required,
           backend,
           intl,
           ...(archive ? { assets: archive } : {}),

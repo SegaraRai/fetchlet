@@ -22,6 +22,13 @@ export interface FetchletPresetOptions {
   backend?: BuildBackend;
   /** Intl data for engines without native Intl, as in fetchlet/build. */
   intl?: IntlOptions;
+  /**
+   * APIs the application needs beyond the Web API profile, as in
+   * fetchlet/build: Intl APIs such as `Intl.DateTimeFormat`, and globals over
+   * host Web APIs such as `crypto.subtle`. Recorded in fetchlet.json, where
+   * the Rust host checks them before the server runs.
+   */
+  requirements?: string[];
 }
 
 interface ArtifactOptions {
@@ -31,6 +38,7 @@ interface ArtifactOptions {
   };
   backend: BuildBackend;
   intl: IntlOptions;
+  requirements: string[];
   assets: AssetsOption;
 }
 
@@ -41,6 +49,7 @@ interface ArtifactOptions {
 export function fetchletPreset({
   backend = "portable",
   intl = {},
+  requirements = [],
   assets = false,
 }: FetchletPresetOptions = {}): Preset {
   return {
@@ -53,6 +62,7 @@ export function fetchletPreset({
           reactRouterConfig,
           backend,
           intl,
+          requirements,
           assets,
         }),
     }),
@@ -71,6 +81,7 @@ async function writeArtifact({
   reactRouterConfig,
   backend,
   intl,
+  requirements,
   assets,
 }: ArtifactOptions): Promise<void> {
   const { buildDirectory, serverBuildFile } = reactRouterConfig;
@@ -104,6 +115,7 @@ async function writeArtifact({
     rendering: "streaming",
     backend,
     intl,
+    requirements,
     ...(assets
       ? {
           assets: frameworkAssets(assets, {
@@ -119,6 +131,13 @@ export interface FetchletDevServerOptions {
   backend?: BuildBackend;
   /** Intl data for engines without native Intl, as in fetchlet/build. */
   intl?: IntlOptions;
+  /**
+   * APIs the application needs beyond the Web API profile, as in
+   * fetchlet/build: Intl APIs such as `Intl.DateTimeFormat`, and globals over
+   * host Web APIs such as `crypto.subtle`. Recorded in fetchlet.json, where
+   * the Rust host checks them before the server runs.
+   */
+  requirements?: string[];
 }
 
 /** The development entry: React Router's server build with the preset's request context. */
@@ -161,6 +180,7 @@ export function fetchletDevServer(options: FetchletDevServerOptions = {}): Plugi
       rendering: "streaming",
       ...(options.backend ? { backend: options.backend } : {}),
       ...(options.intl ? { intl: options.intl } : {}),
+      ...(options.requirements ? { requirements: options.requirements } : {}),
     }),
     {
       name: "fetchlet/react-router:dev-entry",

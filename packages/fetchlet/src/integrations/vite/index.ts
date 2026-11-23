@@ -143,6 +143,7 @@ export default function fetchlet({
       rendering: "streaming",
       ...(options.backend ? { backend: options.backend } : {}),
       ...(options.intl ? { intl: options.intl } : {}),
+      ...(options.requirements ? { requirements: options.requirements } : {}),
     }),
   ];
 }

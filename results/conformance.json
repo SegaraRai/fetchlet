@@ -1335,7 +1335,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1346,7 +1346,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1357,7 +1357,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1368,7 +1368,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1379,7 +1379,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1390,7 +1390,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1401,7 +1401,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1412,7 +1412,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1621,7 +1621,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1632,7 +1632,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1643,7 +1643,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1654,7 +1654,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1665,7 +1665,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1676,7 +1676,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1687,7 +1687,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -1698,7 +1698,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5845,7 +5845,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5856,7 +5856,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5867,7 +5867,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5878,7 +5878,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5889,7 +5889,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5900,7 +5900,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5911,7 +5911,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5922,7 +5922,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5933,7 +5933,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5944,7 +5944,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5955,7 +5955,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5966,7 +5966,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5977,7 +5977,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5988,7 +5988,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -5999,7 +5999,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",
@@ -6010,7 +6010,7 @@
       "status": "fail",
       "message": "promise_test: Unhandled rejection with value: object \"ReferenceError: WebAssembly is not defined\"",
       "expected": true,
-      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly or SharedArrayBuffer, and the ArrayBuffer variants pass."
+      "reason": "The shared variants build their buffers from a shared WebAssembly.Memory; this engine has no WebAssembly, and the ArrayBuffer variants pass."
     },
     {
       "suite": "wpt",

@@ -18,6 +18,10 @@ export default defineConfig({
 });
 ```
 
+`backend`, `intl` and `requirements` are the [builder's](build.md)
+settings. The adapter adds `Intl.DateTimeFormat`, which Astro uses to
+format dates, to `requirements`.
+
 | Value                    | Content                                                            |
 | ------------------------ | ------------------------------------------------------------------ |
 | `Astro.locals.env`       | Rust's fixed bindings                                              |

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vite-plus/test";
 
-import { backendCapabilities, intlPolyfills } from "./catalog.ts";
+import { backendCapabilities, engineOnlyApis, polyfills } from "./catalog.ts";
 import { planPolyfills, type PlanOptions } from "./plan.ts";
 
 // Options from JavaScript callers, which the declared types would reject.
@@ -12,6 +12,7 @@ describe("planPolyfills", () => {
       backend: "portable",
       requirements: [],
       nativeRequirements: [],
+      hostApis: [],
       polyfills: [],
       intl: {
         locales: ["en"],
@@ -49,15 +50,27 @@ describe("planPolyfills", () => {
     ]);
   });
 
-  test("requirements outside Intl pass through without polyfills", () => {
+  test("globals over host APIs become host requirements without polyfills", () => {
     const result = planPolyfills({
-      requirements: ["fetch", "Intl.Locale"],
+      requirements: ["crypto.subtle", "CompressionStream", "crypto", "Intl.Locale"],
     });
-    expect(result.requirements).toStrictEqual(["fetch", "Intl.Locale"]);
+    expect(result.requirements).toStrictEqual([
+      "crypto.subtle",
+      "CompressionStream",
+      "crypto",
+      "Intl.Locale",
+    ]);
+    expect(result.hostApis).toStrictEqual(["compression", "crypto"]);
     expect(result.polyfills.map((polyfill) => polyfill.api)).toStrictEqual([
       "Intl.getCanonicalLocales",
       "Intl.Locale",
     ]);
+  });
+
+  test("an unknown requirement fails instead of passing unchecked", () => {
+    expect(() => planPolyfills({ requirements: ["fetch"] })).toThrow(
+      /Unknown fetchlet requirement: fetch; expected an Intl API, an engine API \(WebAssembly, .*\) or a global over a host Web API \(crypto, /,
+    );
   });
 
   test("APIs the backend provides become native requirements instead", () => {
@@ -77,9 +90,67 @@ describe("planPolyfills", () => {
   test("every backend's native capabilities are APIs the catalog knows", () => {
     for (const apis of Object.values(backendCapabilities)) {
       for (const api of apis) {
-        expect(Object.hasOwn(intlPolyfills, api), api).toBe(true);
+        expect(Object.hasOwn(polyfills, api) || engineOnlyApis.includes(api), api).toBe(true);
       }
     }
+  });
+
+  test("every polyfill's dependencies are polyfillable, so any backend can satisfy them", () => {
+    for (const [api, polyfill] of Object.entries(polyfills)) {
+      expect(engineOnlyApis.includes(api), api).toBe(false);
+      for (const dependency of polyfill.dependencies) {
+        expect(Object.hasOwn(polyfills, dependency), api + " -> " + dependency).toBe(true);
+      }
+    }
+  });
+
+  test.each([
+    ["Intl.ListFormat", ["Intl.getCanonicalLocales", "Intl.Locale", "Intl.ListFormat"]],
+    ["Intl.DisplayNames", ["Intl.getCanonicalLocales", "Intl.Locale", "Intl.DisplayNames"]],
+    [
+      "Intl.RelativeTimeFormat",
+      [
+        "Intl.getCanonicalLocales",
+        "Intl.Locale",
+        "Intl.PluralRules",
+        "Intl.NumberFormat",
+        "Intl.RelativeTimeFormat",
+      ],
+    ],
+    ["Intl.Segmenter", ["Intl.getCanonicalLocales", "Intl.Segmenter"]],
+    [
+      "Intl.DurationFormat",
+      [
+        "Intl.getCanonicalLocales",
+        "Intl.Locale",
+        "Intl.ListFormat",
+        "Intl.PluralRules",
+        "Intl.NumberFormat",
+        "Intl.DurationFormat",
+      ],
+    ],
+  ])("%s selects its dependencies first", (api, expected) => {
+    const { polyfills: selected } = planPolyfills({
+      requirements: [api],
+      intl: { locales: ["ja"] },
+    });
+    expect(selected.map((polyfill) => polyfill.api)).toStrictEqual(expected);
+  });
+
+  test("engine-only APIs are left to the engine, or fail on a backend that lacks them", () => {
+    expect(
+      planPolyfills({ requirements: ["WebAssembly", "Intl.Collator"] }).nativeRequirements,
+    ).toStrictEqual(["WebAssembly", "Intl.Collator"]);
+    expect(planPolyfills({ backend: "v8", requirements: ["WebAssembly"] })).toMatchObject({
+      nativeRequirements: ["WebAssembly"],
+      polyfills: [],
+    });
+    expect(plan({ backend: "quickjs", requirements: ["WebAssembly"] })).toThrow(
+      "WebAssembly is not available on the quickjs backend and has no polyfill",
+    );
+    expect(plan({ backend: "boa", requirements: ["Intl.supportedValuesOf"] })).toThrow(
+      /not available on the boa backend/,
+    );
   });
 
   test("locales are canonicalized and resolve through their parents", () => {
@@ -152,8 +223,8 @@ describe("planPolyfills", () => {
     expect(plan({ intl: { apis: "Intl.Locale" } })).toThrow(/intl\.apis must be an array/);
     expect(plan({ backend: "unknown" })).toThrow("Unknown fetchlet backend: unknown");
     expect(plan({ backend: "toString" })).toThrow(/Unknown fetchlet backend/);
-    expect(plan({ requirements: ["Intl.Segmenter"] })).toThrow(
-      "Unsupported fetchlet Intl API: Intl.Segmenter",
+    expect(plan({ requirements: ["Intl.Unknown"] })).toThrow(
+      "Unsupported fetchlet Intl API: Intl.Unknown",
     );
     expect(plan({ requirements: ["Intl.hasOwnProperty"] })).toThrow(/Unsupported/);
     expect(plan({ intl: { locales: [] } })).toThrow(/at least one locale/);

@@ -115,8 +115,11 @@ function stubSource(name: string, hint: string): string {
  * Other built-ins resolve to an npm package of the same name when the name
  * is bare and one is installed, and otherwise to a stub that throws when it
  * is used. Adapter plugins run first and may provide any of them.
+ *
+ * `imported` collects the names of the implemented modules the bundle
+ * imports, such as `crypto`.
  */
-export function nodeBuiltins(asyncContext?: AsyncContextMode): Plugin {
+export function nodeBuiltins(asyncContext?: AsyncContextMode, imported?: Set<string>): Plugin {
   const implementation = (name: string): string | undefined => {
     if (name === "async_hooks") {
       return asyncContext && require.resolve(asyncHooksModules[asyncContext]);
@@ -134,6 +137,7 @@ export function nodeBuiltins(asyncContext?: AsyncContextMode): Plugin {
       const name = polyfill ?? (id.startsWith("node:") ? id.slice("node:".length) : id);
       const file = implementation(name);
       if (file) {
+        imported?.add(name);
         return options.kind === "require-call" ? requirePrefix + file : file;
       }
       // Bare names such as "string_decoder" may be npm packages of the same name.

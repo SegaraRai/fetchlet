@@ -75,6 +75,12 @@ describe("buildArtifact", () => {
         locales: ["en"],
         timeZoneData: "utc",
       },
+      needs: {
+        engineApis: [],
+        locales: ["en"],
+        asyncContext: false,
+        hostApis: [],
+      },
     });
   });
 
@@ -90,6 +96,12 @@ describe("buildArtifact", () => {
       requirements: ["Intl.DateTimeFormat"],
       nativeRequirements: ["Intl.DateTimeFormat"],
       polyfills: [],
+      needs: {
+        engineApis: ["Intl.DateTimeFormat"],
+        locales: ["en"],
+        asyncContext: false,
+        hostApis: [],
+      },
     });
     expect(server).toMatch(/var requirements = \["Intl\.DateTimeFormat"\];/);
   });
@@ -110,7 +122,7 @@ describe("buildArtifact", () => {
   });
 
   test("Node built-ins are fetchlet's or stubs, but npm packages of the same name win", async () => {
-    const { server } = await build(
+    const { server, manifest } = await build(
       `import fs from "node:fs";
        import { createHash } from "node:crypto";
        import { marker } from "punycode";
@@ -129,6 +141,24 @@ describe("buildArtifact", () => {
     expect(server).toContain("nodeCrypto.hash");
     expect(server).toContain("npm punycode");
     expect(server).not.toMatch(/require\(["']node:fs["']\)/);
+    // node:crypto runs on the host's crypto operations.
+    expect(manifest.needs).toStrictEqual({
+      engineApis: [],
+      locales: ["en"],
+      asyncContext: false,
+      hostApis: ["crypto", "node-crypto"],
+      hostProtocol: 3,
+    });
+  });
+
+  test("required globals over host APIs are recorded with the protocol", async () => {
+    const { manifest } = await build("export const handle = () => crypto.subtle;", {
+      requirements: ["crypto.subtle", "URLPattern"],
+    });
+    expect(manifest.needs).toMatchObject({
+      hostApis: ["crypto", "url-pattern"],
+      hostProtocol: 3,
+    });
   });
 
   test("defines NODE_ENV as production, with the adapter's own replacements", async () => {
@@ -168,6 +198,7 @@ describe("buildArtifact", () => {
     expect(server).toContain("runInAsyncScope");
     expect(manifest).toMatchObject({
       asyncContext: "propagated",
+      needs: { asyncContext: true },
     });
   });
 
@@ -223,7 +254,7 @@ describe("buildArtifact", () => {
           resolveDir: root,
         },
         outDir: join(root, "out"),
-        requirements: ["Intl.Segmenter"],
+        requirements: ["Intl.Unknown"],
       }),
     ).rejects.toThrow(/Unsupported fetchlet Intl API/);
     expect(existsSync(join(root, "out"))).toBe(false);
@@ -268,5 +299,14 @@ describe("nativeCapabilityCheck", () => {
 
   test("checks nothing for APIs the artifact polyfills", () => {
     expect(check("portable", ["en"], {})).not.toThrow();
+  });
+
+  test("looks up engine-only APIs by their path from globalThis", () => {
+    const source = nativeCapabilityCheck(planPolyfills({ requirements: ["WebAssembly"] }));
+    // The generated check is source text that the engine evaluates.
+    // eslint-disable-next-line typescript/no-implied-eval
+    const run = (global: object) => () => new Function("globalThis", source)(global);
+    expect(run({ WebAssembly: {} })).not.toThrow();
+    expect(run({})).toThrow("fetchlet artifact requires native WebAssembly");
   });
 });

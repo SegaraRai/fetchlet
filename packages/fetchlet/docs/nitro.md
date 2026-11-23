@@ -17,8 +17,8 @@ export default defineNuxtConfig({
 ```
 
 With Nitro alone, put the same `preset` and `fetchlet` in `nitro.config.ts`.
-`fetchlet.backend` and `fetchlet.intl` are the [builder's](build.md)
-settings.
+`fetchlet.backend`, `fetchlet.intl` and `fetchlet.requirements` are the
+[builder's](build.md) settings.
 
 Libraries that need WebAssembly do not run on the `quickjs` and `boa`
 backends ([engine limits](build.md#engine-limits)).

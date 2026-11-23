@@ -32,7 +32,8 @@ export default createQwikCity({ render, qwikCityPlan, manifest });
 ```
 
 The build has two steps: `vp build && vp build --ssr`. The plugin takes
-`entry` (default `src/entry.fetchlet.tsx`), `outDir`, `backend` and `intl`.
+`entry` (default `src/entry.fetchlet.tsx`), `outDir`, `backend`, `intl` and
+`requirements`.
 
 Libraries that need WebAssembly do not run on the `quickjs` and `boa`
 backends ([engine limits](build.md#engine-limits)).

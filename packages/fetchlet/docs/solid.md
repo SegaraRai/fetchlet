@@ -34,7 +34,7 @@ export default defineConfig({
 });
 ```
 
-`outDir`, `backend`, `intl` and `assets` mean the same as in
+`outDir`, `backend`, `intl`, `requirements` and `assets` mean the same as in
 [fetchlet/vite](vite.md). Solid's `nodeServer` option is not needed.
 
 Libraries that need WebAssembly do not run on the `quickjs` and `boa`

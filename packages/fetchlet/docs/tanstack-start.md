@@ -20,7 +20,8 @@ export default defineConfig({
 });
 ```
 
-`backend` and `intl` are the [builder's](build.md) settings.
+`backend`, `intl` and `requirements` are the [builder's](build.md)
+settings.
 
 Libraries that need WebAssembly do not run on the `quickjs` and `boa`
 backends ([engine limits](build.md#engine-limits)).

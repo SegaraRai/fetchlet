@@ -19,7 +19,7 @@ const modules = Object.fromEntries(
 export default adapter(fsRouter(modules), { backend: "quickjs" });
 ```
 
-`backend`, `intl` and `outDir` are the [builder's](build.md) settings;
+`backend`, `intl`, `requirements` and `outDir` are the [builder's](build.md) settings;
 `middlewareFns` and `middlewareModules` work as in Waku's other adapters.
 Build with `waku build`.
 

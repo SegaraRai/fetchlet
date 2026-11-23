@@ -64,14 +64,14 @@ Unexpected results: 0.
 
 ## Polyfills
 
-`vp run test:polyfills`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. 8 of 8 checks passed. Bundle sizes of the test builds:
+`vp run test:polyfills`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. 11 of 11 checks passed. Bundle sizes of the test builds:
 
-| Build   | Bytes     | Intl polyfills                                                                                  |
-| ------- | --------- | ----------------------------------------------------------------------------------------------- |
-| quickjs | 2,243,311 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat |
-| v8      | 472,653   | none                                                                                            |
-| plain   | 472,559   | none                                                                                            |
-| plural  | 1,124,795 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                         |
+| Build   | Bytes     | Intl polyfills                                                                                                                                                                                    |
+| ------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| quickjs | 2,716,449 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules, Intl.NumberFormat, Intl.DateTimeFormat, Intl.ListFormat, Intl.DisplayNames, Intl.RelativeTimeFormat, Intl.Segmenter, Intl.DurationFormat |
+| v8      | 490,239   | none                                                                                                                                                                                              |
+| plain   | 490,027   | none                                                                                                                                                                                              |
+| plural  | 1,142,263 | Intl.getCanonicalLocales, Intl.Locale, Intl.PluralRules                                                                                                                                           |
 
 ## Examples
 

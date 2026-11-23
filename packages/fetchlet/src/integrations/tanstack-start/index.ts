@@ -105,6 +105,7 @@ export default function fetchletStart(options: FetchletStartOptions = {}): Plugi
         })`,
       ...(options.backend ? { backend: options.backend } : {}),
       ...(options.intl ? { intl: options.intl } : {}),
+      ...(options.requirements ? { requirements: options.requirements } : {}),
     }),
   ];
 }

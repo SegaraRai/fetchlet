@@ -98,7 +98,6 @@ Libraries that need WebAssembly therefore run only on V8
   against the incoming request.
 - **Legacy multi-byte encodings** (Shift_JIS, EUC-KR, …) are not included in
   encoding-lite.
-- **SharedArrayBuffer** is not exposed by QuickJS and Boa.
 - **Boa** is built with its `annex-b` feature, so web-legacy built-ins
   such as `String.prototype.substr`, which libraries like `yaml` call, match
   QuickJS and V8.

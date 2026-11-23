@@ -16,8 +16,8 @@ export default defineConfig(({ mode }) => ({
 }));
 ```
 
-`entry` is a module that does `export default app`. `backend` and `intl`
-are the builder's settings, and `external` is passed to `@hono/vite-build`.
+`entry` is a module that does `export default app`. `backend`, `intl` and
+`requirements` are the builder's settings, and `external` is passed to `@hono/vite-build`.
 The named exports of the modules listed in `functions` become functions that
 Rust calls with `App::call` or `AppHandle::call`, next to the Fetch handler
 (`handle` is reserved). [HonoX + Tauri](../../../examples/honox-tauri/README.md)

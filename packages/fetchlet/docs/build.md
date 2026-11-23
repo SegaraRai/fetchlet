@@ -23,28 +23,82 @@ await buildArtifact({
 `backend` is `quickjs`, `boa`, `v8` or `portable`; choose it to match the
 Rust backend. The default, `portable`, assumes no native Intl and includes
 implementations that install only where an API is missing. The framework
-adapters accept `backend` and `intl` in the same form.
+adapters accept `backend`, `intl` and `requirements` in the same form.
 
-The Intl APIs selected today are `getCanonicalLocales`, `Locale`,
-`PluralRules`, `NumberFormat` and `DateTimeFormat`. Applications add
-requirements with `requirements` or `intl.apis`, by name, such as
-`Intl.NumberFormat`. Adapters and applications state requirements
-explicitly instead of the builder inferring them from framework code.
+`requirements` names the APIs the application needs beyond the Web API
+profile. Each name is one of three kinds:
 
-| Build backend    | Intl                                                            |
-| ---------------- | --------------------------------------------------------------- |
-| `quickjs`, `boa` | FormatJS polyfills for the required APIs and their dependencies |
-| `v8`             | Native Intl; FormatJS is left out of the bundle                 |
-| `portable`       | Conditional polyfills for the required APIs                     |
+- A polyfillable Intl API: `Intl.getCanonicalLocales`, `Intl.Locale`,
+  `Intl.PluralRules`, `Intl.NumberFormat`, `Intl.DateTimeFormat`,
+  `Intl.ListFormat`, `Intl.DisplayNames`, `Intl.RelativeTimeFormat`,
+  `Intl.Segmenter` or `Intl.DurationFormat`. The build polyfills it with
+  FormatJS, or leaves it to an engine that provides it natively. `intl.apis`
+  adds Intl APIs in the same way.
+- An engine-only API: `Intl.Collator`, `Intl.supportedValuesOf`,
+  `WebAssembly`, `SharedArrayBuffer` or `Atomics`. No polyfill provides it,
+  so a build for a backend that lacks it fails, and a `portable` build
+  leaves it to the host's check (see [engine limits](#engine-limits)).
+- A global over a host Web API: `crypto`, `crypto.subtle`,
+  `CompressionStream`, `DecompressionStream` or `URLPattern`. The guest
+  implementation is always in the bundle; the Rust host must serve the
+  fetchlet-web API behind it (`crypto`, `compression` or `url-pattern`).
+
+Any other name fails the build, so a requirement cannot pass unchecked.
+Adapters and applications state requirements explicitly instead of the
+builder inferring them from framework code. The one inference is from
+`node:*` imports: a bundle that imports `node:crypto` needs the host's
+`crypto` and `node-crypto` APIs, and one that imports `node:zlib` needs
+`compression`.
+
+| Build backend    | Intl                                                            | Engine-only APIs                                        |
+| ---------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
+| `quickjs`, `boa` | FormatJS polyfills for the required APIs and their dependencies | `SharedArrayBuffer`, `Atomics`; requiring another fails |
+| `v8`             | Native Intl; FormatJS is left out of the bundle                 | All, checked when it starts                             |
+| `portable`       | Conditional polyfills for the required APIs                     | Left to the host's check                                |
+
+`Intl.DurationFormat` formats through `Intl.ListFormat` and
+`Intl.NumberFormat`, so it selects both with their locale data. The
+polyfill formats duration-like objects; it accepts duration strings only
+where a `Temporal` global exists. `Intl.Segmenter` carries its own rules; locales without CLDR
+tailoring segment with the root rules.
 
 The capability table is fixed from measurements of fetchlet's default engine
 configurations and checked by regression tests on all three engines; a
 future engine feature that changes capabilities updates the table and those
 tests together. A `v8` artifact checks the required native APIs and locales
 before evaluating the application and asks for a rebuild when the
-configuration does not match. These capabilities are the APIs above;
+configuration does not match. A Rust host that runs the artifact on another
+engine refuses it earlier, while building the App, through the manifest's
+`needs`. These capabilities are the APIs above;
 identical behavior across every ECMA-402 proposal and option is a separate
 question.
+
+## What the artifact needs from its host
+
+`fetchlet.json` records the build's assumptions about the host in `needs`:
+
+```json
+{
+  "needs": {
+    "engineApis": ["Intl.DateTimeFormat"],
+    "locales": ["en", "ja"],
+    "asyncContext": false,
+    "hostApis": ["crypto"],
+    "hostProtocol": 3
+  }
+}
+```
+
+`engineApis` are the APIs left to the engine, natively provided or
+engine-only, and `locales` the locales the Intl ones must support; `asyncContext` is true for `asyncContext: "propagated"`;
+`hostApis` are the fetchlet-web APIs the bundle calls, and `hostProtocol`,
+present when there are any, the fetchlet-web protocol version the bundle's
+Web API profile speaks. `Artifact::requirements` in fetchlet-http turns
+`needs` into `fetchlet::Requirements`, and building the App checks them all
+against the host's engine and fetchlet-web features before `server.js`
+runs, failing with one error that names every missing item. Manifests from
+builds before `needs` derive the same check from `nativeRequirements`,
+`intl.locales` and `asyncContext`.
 
 ## Engine limits
 
@@ -57,8 +111,13 @@ JavaScript when `WebAssembly` is missing takes that path. V8 provides
 WebAssembly natively; applications that need such libraries run on the `v8`
 backend.
 
-QuickJS and Boa do not expose `SharedArrayBuffer` and `Atomics` either.
-The [conformance results](../../../docs/conformance.md) record both.
+QuickJS and Boa do not provide `Intl.Collator` and `Intl.supportedValuesOf`
+either, which FormatJS does not polyfill. They do provide
+`SharedArrayBuffer` and `Atomics`, without threads to share them with. The
+polyfill matrix (`vp run test:polyfills`) measures each engine's native
+APIs. Name the ones an application needs in `requirements`: a `quickjs` or
+`boa` build then fails at once, and a `portable` artifact is refused by a
+host whose engine lacks them.
 
 ## Locales and time zones
 
