@@ -81,33 +81,33 @@ class MessageEventImpl extends EventImpl {
     this.#ports = Object.freeze(list as MessagePortImpl[]);
   }
 
-  get data() {
+  get data(): unknown {
     return this.#data;
   }
 
-  get origin() {
+  get origin(): string {
     return this.#origin;
   }
 
-  get lastEventId() {
+  get lastEventId(): string {
     return this.#lastEventId;
   }
 
-  get source() {
+  get source(): MessagePortImpl | null {
     return this.#source;
   }
 
-  get ports() {
+  get ports(): readonly MessagePortImpl[] {
     return this.#ports;
   }
 
-  get [Symbol.toStringTag]() {
+  override get [Symbol.toStringTag](): string {
     return "MessageEvent";
   }
 }
 
 /** Queues a task for the next message if the port can deliver one. */
-function queueDelivery(state: PortState) {
+function queueDelivery(state: PortState): void {
   if (state.scheduled || !state.started || state.closed || state.queue.length === 0) {
     return;
   }
@@ -115,7 +115,7 @@ function queueDelivery(state: PortState) {
   runtime.setTimeout(() => deliver(state), 0);
 }
 
-function deliver(state: PortState) {
+function deliver(state: PortState): void {
   state.scheduled = false;
   if (!state.started || state.closed || state.queue.length === 0) {
     return;
@@ -166,7 +166,7 @@ class MessagePortImpl extends EventTargetImpl {
     });
   }
 
-  postMessage(message: unknown, options?: unknown) {
+  postMessage(message: unknown, options?: unknown): void {
     if (arguments.length < 1) {
       throw new TypeError("postMessage requires a message");
     }
@@ -191,13 +191,13 @@ class MessagePortImpl extends EventTargetImpl {
     queueDelivery(target);
   }
 
-  start() {
+  start(): void {
     const state = port(this);
     state.started = true;
     queueDelivery(state);
   }
 
-  close() {
+  close(): void {
     const state = port(this);
     state.closed = true;
     state.queue.length = 0;
@@ -207,7 +207,7 @@ class MessagePortImpl extends EventTargetImpl {
     }
   }
 
-  get [Symbol.toStringTag]() {
+  override get [Symbol.toStringTag](): string {
     return "MessagePort";
   }
 }
@@ -240,15 +240,15 @@ class MessageChannelImpl {
     second.entangled = first;
   }
 
-  get port1() {
+  get port1(): MessagePortImpl {
     return this.#port1;
   }
 
-  get port2() {
+  get port2(): MessagePortImpl {
     return this.#port2;
   }
 
-  get [Symbol.toStringTag]() {
+  get [Symbol.toStringTag](): string {
     return "MessageChannel";
   }
 }

@@ -23,17 +23,29 @@ const CLOSED = 3;
 
 const CREATE = Symbol("create");
 
+/** What a channel of the fetchlet App host's bridge delivers. */
+export interface ChannelListener {
+  open(): void;
+  message(data: string | Uint8Array<ArrayBuffer>): void;
+  close(code: number, reason: string): void;
+  refused?(message: string): void;
+}
+
 /** The channel registry of the fetchlet App host's bridge. */
-interface ChannelRegistry {
-  upgrade(listener: {
-    open(): void;
-    message(data: string | Uint8Array): void;
-    close(code: number, reason: string): void;
-  }): number;
+export interface ChannelRegistry {
+  upgrade(listener: ChannelListener): number;
   accepted(): number | undefined;
+  open(service: string, options: unknown, listener: ChannelListener): number;
   send(id: number, data: string | Uint8Array): void;
+  write(id: number, data: Uint8Array): Promise<void>;
+  pause(id: number, paused: boolean): void;
   close(id: number, code: number, reason: string): void;
   buffered(id: number): number;
+}
+
+/** The bridge's channel registry, when the host has one. */
+export function channelRegistry(): ChannelRegistry | undefined {
+  return runtime.__fetchletChannels as ChannelRegistry | undefined;
 }
 
 interface SocketState {
@@ -102,7 +114,7 @@ class CloseEventImpl extends EventImpl {
     return this.#reason;
   }
 
-  get [Symbol.toStringTag](): string {
+  override get [Symbol.toStringTag](): string {
     return "CloseEvent";
   }
 }
@@ -215,7 +227,7 @@ class WebSocketImpl extends EventTargetImpl {
     state.registry.close(state.channel, closeCode, closeReason);
   }
 
-  get [Symbol.toStringTag](): string {
+  override get [Symbol.toStringTag](): string {
     return "WebSocket";
   }
 }
@@ -280,7 +292,7 @@ export function upgradeWebSocket(
   if (!asksForWebSocket(request)) {
     throw new TypeError("The request does not ask for a WebSocket upgrade");
   }
-  const registry = runtime.__fetchletChannels as ChannelRegistry | undefined;
+  const registry = channelRegistry();
   if (!registry) {
     throw new TypeError("This host does not hold WebSocket connections");
   }
@@ -292,17 +304,73 @@ export function upgradeWebSocket(
   const url = new runtime.URL(request.url);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
 
+  const { socket: target, channel } = openSocket(
+    (listener) => registry.upgrade(listener),
+    registry,
+    url.href,
+    protocol,
+    url.origin,
+  );
+
+  headers.delete("sec-websocket-protocol");
+  if (protocol !== "") {
+    headers.set("sec-websocket-protocol", protocol);
+  }
+  return {
+    socket: target as unknown as WebSocket,
+    response: switchingProtocols(channel, headers),
+  };
+}
+
+/**
+ * A WebSocket over the channel `connect` opens with the listener it is
+ * given. The socket is CONNECTING until the channel opens.
+ */
+export function openSocket(
+  connect: (listener: ChannelListener) => number,
+  registry: ChannelRegistry,
+  url: string,
+  protocol: string,
+  origin: string,
+): {
+  socket: WebSocketImpl;
+  channel: number;
+} {
   // The listener runs once the socket exists.
-  const opened: { target?: WebSocketImpl; state?: SocketState } = {};
-  const channel = registry.upgrade({
-    open() {
+  const opened: {
+    target?: WebSocketImpl;
+    state?: SocketState;
+  } = {};
+  const ended = (code: number, reason: string): void => {
+    const { target, state } = opened;
+    if (!target || !state || state.readyState === CLOSED) {
+      return;
+    }
+    state.readyState = CLOSED;
+    // 1006: the connection ended without a closing handshake.
+    const wasClean = code !== 1006;
+    if (!wasClean) {
+      dispatch(target, state, new EventImpl("error"));
+    }
+    dispatch(
+      target,
+      state,
+      new CloseEventImpl("close", {
+        wasClean,
+        code,
+        reason,
+      }),
+    );
+  };
+  const channel = connect({
+    open(): void {
       const { target, state } = opened;
       if (target && state?.readyState === CONNECTING) {
         state.readyState = OPEN;
         dispatch(target, state, new EventImpl("open"));
       }
     },
-    message(data) {
+    message(data): void {
       const { target, state } = opened;
       if (!target || state?.readyState !== OPEN) {
         return;
@@ -319,48 +387,27 @@ export function upgradeWebSocket(
         state,
         new MessageEventImpl("message", {
           data: value,
-          origin: url.origin,
+          origin,
         }),
       );
     },
-    close(code, reason) {
-      const { target, state } = opened;
-      if (!target || !state || state.readyState === CLOSED) {
-        return;
-      }
-      state.readyState = CLOSED;
-      // 1006: the connection ended without a closing handshake.
-      const wasClean = code !== 1006;
-      if (!wasClean) {
-        dispatch(target, state, new EventImpl("error"));
-      }
-      dispatch(
-        target,
-        state,
-        new CloseEventImpl("close", {
-          wasClean,
-          code,
-          reason,
-        }),
-      );
+    close: ended,
+    refused(): void {
+      // A refused connection fails as one the network refused.
+      ended(1006, "");
     },
   });
   const target = new WebSocketImpl(CREATE, {
     channel,
     registry,
-    url: url.href,
+    url,
     protocol,
   });
   opened.target = target;
   opened.state = socket(target);
-
-  headers.delete("sec-websocket-protocol");
-  if (protocol !== "") {
-    headers.set("sec-websocket-protocol", protocol);
-  }
   return {
-    socket: target as unknown as WebSocket,
-    response: switchingProtocols(channel, headers),
+    socket: target,
+    channel,
   };
 }
 
@@ -388,7 +435,7 @@ function switchingProtocols(channel: number, headers: Headers): Response {
  * response into one of its own, which cannot be constructed with status 101.
  */
 export function upgradeResponse(headers?: HeadersInit): Response {
-  const channel = (runtime.__fetchletChannels as ChannelRegistry | undefined)?.accepted();
+  const channel = channelRegistry()?.accepted();
   if (channel === undefined) {
     throw new TypeError("No WebSocket upgrade was accepted");
   }

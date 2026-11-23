@@ -5,6 +5,7 @@ export interface Bindings {
   console: boolean;
   env: Record<string, unknown>;
   services: string[];
+  channels: string[];
 }
 
 /** Budgets as decimal strings, since they may exceed a double; null is none. */
@@ -24,6 +25,15 @@ export interface WireResponse {
 /** A message or the close of a channel, delivered with the completions. */
 export interface ChannelArrival {
   channel: number;
+  /** The service accepted the open. */
+  open?: true;
+  /** The service refused the open. */
+  refused?: {
+    code: string;
+    message: string;
+  };
+  /** The pending write is queued. */
+  written?: true;
   text?: string;
   /** A byte store handle for a binary message. */
   bytes?: number;

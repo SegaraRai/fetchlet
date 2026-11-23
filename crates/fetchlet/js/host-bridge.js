@@ -47,10 +47,27 @@
 	function hasOpenChannels() {
 		return channels.size > 0;
 	}
+	function track(id, listener) {
+		let resolveClosed;
+		const closed = new Promise((resolve) => {
+			resolveClosed = resolve;
+		});
+		channels.set(id, {
+			listener,
+			closed,
+			resolveClosed
+		});
+	}
+	/** Remove an entry whose channel ended; a pending write fails with it. */
+	function end(id, entry) {
+		channels.delete(id);
+		entry.write?.reject(/* @__PURE__ */ new TypeError("The channel closed"));
+		entry.write = void 0;
+		entry.resolveClosed();
+	}
 	function forget(id) {
 		const entry = channels.get(id);
-		channels.delete(id);
-		entry?.resolveClosed();
+		if (entry) end(id, entry);
 	}
 	/** Deliver an arrival if the event is one. Returns whether it was. */
 	function completeChannel(event) {
@@ -59,13 +76,21 @@
 		const bytes = arrival.bytes === void 0 ? void 0 : takeBytes(arrival.bytes);
 		const entry = channels.get(arrival.channel);
 		if (!entry) return true;
-		if (arrival.close !== void 0) {
-			channels.delete(arrival.channel);
-			try {
-				entry.listener.close(arrival.close.code, arrival.close.reason);
-			} finally {
-				entry.resolveClosed();
-			}
+		if (arrival.close !== void 0) try {
+			entry.listener.close(arrival.close.code, arrival.close.reason);
+		} finally {
+			end(arrival.channel, entry);
+		}
+		else if (arrival.refused !== void 0) try {
+			entry.listener.refused?.(arrival.refused.message);
+		} finally {
+			end(arrival.channel, entry);
+		}
+		else if (arrival.open === true) entry.listener.open();
+		else if (arrival.written === true) {
+			const write = entry.write;
+			entry.write = void 0;
+			write?.resolve();
 		} else if (bytes !== void 0) entry.listener.message(bytes);
 		else if (arrival.text !== void 0) entry.listener.message(arrival.text);
 		return true;
@@ -73,20 +98,20 @@
 	const channelRegistry = Object.freeze({
 		upgrade(listener) {
 			const id = dispatch("websocket.upgrade", null);
-			let resolveClosed;
-			const closed = new Promise((resolve) => {
-				resolveClosed = resolve;
-			});
-			channels.set(id, {
-				listener,
-				closed,
-				resolveClosed
-			});
+			track(id, listener);
 			acceptedUpgrade = id;
 			return id;
 		},
 		accepted() {
 			return acceptedUpgrade;
+		},
+		open(service, options, listener) {
+			const id = dispatch("channel.open", {
+				service,
+				options: options ?? null
+			});
+			track(id, listener);
+			return id;
 		},
 		send(id, data) {
 			if (!channels.has(id)) return;
@@ -97,6 +122,27 @@
 			else dispatch("channel.send", {
 				id,
 				bytes: putBytes(data)
+			});
+		},
+		write(id, data) {
+			const entry = channels.get(id);
+			if (!entry) return Promise.reject(/* @__PURE__ */ new TypeError("The channel closed"));
+			if (entry.write) return Promise.reject(/* @__PURE__ */ new TypeError("A write is pending"));
+			return new Promise((resolve, reject) => {
+				dispatch("channel.write", {
+					id,
+					bytes: putBytes(data)
+				});
+				entry.write = {
+					resolve,
+					reject
+				};
+			});
+		},
+		pause(id, paused) {
+			if (channels.has(id)) dispatch("channel.pause", {
+				id,
+				paused
 			});
 		},
 		close(id, code, reason) {
@@ -110,8 +156,12 @@
 			return channels.has(id) ? dispatch("channel.buffered", id) : 0;
 		},
 		retain(id) {
-			for (const key of channels.keys()) if (key !== id) forget(key);
-			return id !== void 0 && channels.has(id);
+			const accepted = acceptedUpgrade;
+			if (accepted !== void 0 && accepted !== id) {
+				acceptedUpgrade = void 0;
+				forget(accepted);
+			}
+			return id !== void 0 && id === acceptedUpgrade && channels.has(id);
 		},
 		async hold(id) {
 			const entry = channels.get(id);
@@ -537,8 +587,8 @@
 	function clearInvocation() {
 		requestAbort = null;
 		responseBodyRegistry.closeAll();
-		channelRegistry.closeAll();
 		if (backgroundRegistry.pending() === 0) {
+			channelRegistry.closeAll();
 			globalThis.__fetchletClearTimers?.();
 			globalThis.__fetchletClearPerformanceEntries?.();
 		}
@@ -680,6 +730,11 @@
 	if (bindings.console) installConsole();
 	const env = Object.assign(Object.create(null), bindings.env);
 	for (const serviceName of bindings.services) env[serviceName] = Object.freeze({ fetch: (input, init) => hostFetch(input, init, serviceName) });
+	for (const channelName of bindings.channels) env[channelName] = Object.freeze({ connect(options) {
+		const views = globalThis.__fetchletChannelViews;
+		if (!views) throw new TypeError("Channels need the fetchlet Web API profile");
+		return views.connect(channelName, options);
+	} });
 	Object.defineProperty(globalThis, "fetchlet", {
 		value: Object.freeze({
 			env: Object.freeze(env),

@@ -10,7 +10,10 @@ mod service;
 mod transport;
 
 pub use bindings::HostServices;
-pub use channel::{ChannelEnd, ChannelEvent, CloseFrame, Message, ServerWebSocket};
+pub use channel::{
+    ChannelEnd, ChannelEvent, ChannelFuture, ChannelRequest, ChannelService, CloseFrame, Message,
+    ServerWebSocket, channel_fn,
+};
 pub use console::ConsoleLevel;
 pub use context::Context;
 pub use policy::FetchPolicy;

@@ -1,7 +1,8 @@
 # Host services
 
 `HostServices` is the authority an app receives from Rust: environment
-values, named services, outbound fetch and a console sink. This page covers
+values, named services, channel services, outbound fetch and a console
+sink. This page covers
 configuring them and the contracts they keep.
 
 ## Bindings
@@ -44,6 +45,55 @@ credentials in Rust, in the service's credentials callback.
 `App` runs calls one at a time through `&mut self`. QuickJS and Boa run on
 the caller's thread; V8 keeps a dedicated worker per isolate. `AppHandle`
 manages the thread and queue itself.
+
+## Channels
+
+`HostServices::channel(name, service)` binds a `ChannelService` under a
+name in `env`. JavaScript opens a channel with
+`fetchlet.env.NAME.connect(options)`; the service receives the options as
+JSON, the invocation's `Context` and Rust's `ChannelEnd`, and accepts or
+refuses the open. `channel_fn` adapts an async function:
+
+```rust,ignore
+use fetchlet::{ChannelRequest, CloseFrame, HostServices, channel_fn};
+
+let hosts = HostServices::new().channel(
+    "PROGRESS",
+    channel_fn(|request: ChannelRequest| async move {
+        let mut end = request.end;
+        tokio::spawn(async move {
+            for step in 1..=3 {
+                if end.send(format!("step {step}")).await.is_err() {
+                    return;
+                }
+            }
+            end.close(CloseFrame::new(CloseFrame::NORMAL, "done"));
+        });
+        Ok(())
+    }),
+)?;
+```
+
+A channel carries text and binary messages both ways and ends in a close
+with a WebSocket close code. It belongs to the invocation that opened it:
+it stays open while the invocation's `waitUntil` work or response body
+does, and Rust sees code 1006 when the invocation ends without closing it.
+`Limits::open_channels` bounds the opens of one invocation,
+`channel_message_bytes` one message, and `channel_buffer_bytes` the queue
+in each direction; Rust's `send` waits for room.
+
+In JavaScript, `connect` returns a channel with `opened` and `closed`
+promises and one of two views. `socket()` is a WebSocket of its messages.
+`stream()` is a `readable` of the bytes of its binary messages and a
+`writable` whose writes Rust queues as binary messages within the budgets;
+a full reader holds Rust's messages back, so a slow reader slows the
+service. The views come from the Web API profile, which
+`fetchlet/runtime` installs. `ChannelBinding` in `fetchlet/bindings` types
+the binding. The service's future is polled in the host pump, within the
+host runtime, and must not call the same App again; what it spawns ends
+when JavaScript's end goes away. `crates/fetchlet/tests/channels.rs`
+checks the contract on all three engines, and the vanilla-axum example
+streams a Rust job's progress as a response body.
 
 ## Console
 

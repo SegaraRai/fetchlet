@@ -14,3 +14,4 @@ import "./internal/fetch/request";
 import "./internal/fetch/response";
 import "./internal/html/timers";
 import "./internal/url/url-pattern";
+import "./internal/websocket/channel";

@@ -1,6 +1,13 @@
 // The types of the bindings the Rust host gives the application, shared by
 // every framework integration.
 
+export type {
+  ChannelBinding,
+  ChannelClose,
+  ChannelStream,
+  HostChannel,
+} from "@fetchlet/web/websocket";
+
 /** A host service binding: a fetch scoped by the Rust FetchPolicy. */
 export interface ServiceBinding {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
@@ -12,12 +19,13 @@ export interface ServiceBinding {
  * request context and `getBindings()` see them:
  *
  * ```ts
- * import type { ServiceBinding } from "fetchlet/bindings";
+ * import type { ChannelBinding, ServiceBinding } from "fetchlet/bindings";
  *
  * declare module "fetchlet/bindings" {
  *   interface FetchletBindings {
  *     MESSAGE: string;
  *     RUST: ServiceBinding;
+ *     PROGRESS: ChannelBinding;
  *   }
  * }
  * ```

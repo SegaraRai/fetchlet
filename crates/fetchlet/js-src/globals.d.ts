@@ -50,10 +50,15 @@ interface ResponseBodyRegistry {
 
 /** What a channel delivers to the object that owns it. */
 interface ChannelListener {
-  /** The connection is held: the handler has returned its upgrade. */
+  /**
+   * The channel is open: the handler has returned its upgrade, or the
+   * service accepted the open.
+   */
   open(): void;
   message(data: string | Uint8Array<ArrayBuffer>): void;
   close(code: number, reason: string): void;
+  /** The service refused the open; nothing else arrives. */
+  refused?(message: string): void;
 }
 
 /** Channels of the current invocation, such as an accepted WebSocket. */
@@ -61,7 +66,16 @@ interface ChannelRegistry {
   upgrade(listener: ChannelListener): number;
   /** The channel of the upgrade this invocation accepted, if any. */
   accepted(): number | undefined;
+  /** Open a channel of the env binding `service`. */
+  open(service: string, options: unknown, listener: ChannelListener): number;
   send(id: number, data: string | Uint8Array): void;
+  /**
+   * Queue bytes as binary messages within the channel budgets, resolving
+   * once all are queued. One write at a time.
+   */
+  write(id: number, data: Uint8Array): Promise<void>;
+  /** Hold arrivals back in Rust, or deliver them again. */
+  pause(id: number, paused: boolean): void;
   close(id: number, code: number, reason: string): void;
   buffered(id: number): number;
   retain(id: number | undefined): boolean;
@@ -92,6 +106,12 @@ declare var __fetchletClaimHost: (() => HostClaim) | undefined;
 declare var __fetchletResponseBodies: ResponseBodyRegistry;
 declare var __fetchletBackground: BackgroundRegistry;
 declare var __fetchletChannels: ChannelRegistry;
+/** Installed by the Web API profile: builds the views of a channel binding. */
+declare var __fetchletChannelViews:
+  | {
+      connect(service: string, options: unknown): unknown;
+    }
+  | undefined;
 declare var __fetchletPumpHost: (() => number) | undefined;
 
 // Installed by the guest runtime.

@@ -29,20 +29,33 @@ the profile provides.
 
 ## Binding types
 
-`fetchlet/bindings` declares `ServiceBinding`, a service's `fetch`, and
-`FetchletBindings`, the bindings Rust's `HostServices` define. An application
-declares its keys once; `getBindings()`, `ExportedHandler` and each
-framework integration's request context are typed with them:
+`fetchlet/bindings` declares `ServiceBinding`, a service's `fetch`,
+`ChannelBinding`, a channel service's `connect`, and `FetchletBindings`, the
+bindings Rust's `HostServices` define. An application declares its keys
+once; `getBindings()`, `ExportedHandler` and each framework integration's
+request context are typed with them:
 
 ```ts
-import type { ServiceBinding } from "fetchlet/bindings";
+import type { ChannelBinding, ServiceBinding } from "fetchlet/bindings";
 
 declare module "fetchlet/bindings" {
   interface FetchletBindings {
     MESSAGE: string;
     RUST: ServiceBinding;
+    PROGRESS: ChannelBinding;
   }
 }
+```
+
+`env.PROGRESS.connect(options)` opens a channel of the Rust service, which
+belongs to the current invocation. Take one view of it: `socket()`, a
+WebSocket of its messages, or `stream()`, a `readable` and `writable` of
+bytes. `opened` rejects when the service refuses, and `closed` settles with
+the close code and reason ([host services](../../../docs/host-services.md#channels)):
+
+```ts
+const channel = env.PROGRESS.connect({ steps: 3, bytes: true });
+return new Response(channel.stream().readable);
 ```
 
 ## Server WebSockets
@@ -102,7 +115,7 @@ framework copies the handler's response; the Qwik City middleware uses it.
 | `fetchlet/runtime`         | The profile itself: installs the Web APIs, and exports the wire helpers                                                    |
 | `fetchlet/runtime/adapter` | Installs the profile, then exports `createFetchHandler`, `getBindings`, `waitUntil`, `upgradeWebSocket`, `upgradeResponse` |
 | `fetchlet/runtime/handler` | The same exports without installing the profile                                                                            |
-| `fetchlet/bindings`        | Types only: `ServiceBinding` and `FetchletBindings`                                                                        |
+| `fetchlet/bindings`        | Types only: `ServiceBinding`, `ChannelBinding` and `FetchletBindings`                                                      |
 
 Framework integrations whose builder initializes the profile first use the
 side-effect-free `fetchlet/runtime/handler`. That keeps Node-only polyfills

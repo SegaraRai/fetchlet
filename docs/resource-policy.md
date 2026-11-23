@@ -33,6 +33,7 @@ services, concurrency and the process's total capacity.
 | `background_tasks`        | `fetchlet.waitUntil` registrations per invocation, completed ones included                                                                |
 | `channel_message_bytes`   | Bytes of one message on a channel, such as a server WebSocket, in either direction                                                        |
 | `channel_buffer_bytes`    | Bytes queued on one channel in each direction: from Rust, unread by JavaScript; from JavaScript, unsent by Rust                           |
+| `open_channels`           | Channels JavaScript opens from env bindings in an invocation, refused opens included                                                      |
 | `connection_idle_timeout` | Time a held connection may pass without a message in either direction                                                                     |
 | `connection_lifetime`     | Time a held connection may stay open after its upgrade                                                                                    |
 
@@ -42,6 +43,8 @@ the upgrade; the connection budgets apply after it. A message from Rust over
 `channel_message_bytes` fails its send with `LimitExceeded`, and the sender
 waits while `channel_buffer_bytes` is taken. A message from JavaScript over either budget closes
 the channel with 1009, and an expired connection budget closes it with 1001.
+A channel's stream view instead splits a write into messages within both
+budgets and waits for room, so its writes never close the channel.
 `Instances::max_held_connections` bounds the instances held by connections,
 below the pool's `max`. The `limit` passed to `Body::collect(limit)` is also a caller
 budget.

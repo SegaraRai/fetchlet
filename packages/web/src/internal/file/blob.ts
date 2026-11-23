@@ -46,29 +46,29 @@ class BlobImpl {
     this.type = /[^\x20-\x7e]/.test(type) ? "" : type.toLowerCase();
   }
 
-  get size() {
+  get size(): number {
     return this.data.length;
   }
 
-  async arrayBuffer() {
+  async arrayBuffer(): Promise<ArrayBuffer> {
     return this.data.slice().buffer;
   }
 
-  async bytes() {
+  async bytes(): Promise<Uint8Array> {
     return this.data.slice();
   }
 
-  async text() {
+  async text(): Promise<string> {
     return decode(this.data);
   }
 
-  slice(start?: number, end?: number, type?: string) {
+  slice(start?: number, end?: number, type?: string): BlobImpl {
     const from = start === undefined ? 0 : clampedLongLong(start);
     const to = end === undefined ? this.size : clampedLongLong(end);
     return new BlobImpl([this.data.slice(from, to)], { type });
   }
 
-  stream() {
+  stream(): ReadableStream<Uint8Array> {
     const data = this.data.slice();
     return new runtime.ReadableStream({
       ...(supportsByteStreams() ? { type: "bytes" } : {}),
@@ -82,11 +82,11 @@ class BlobImpl {
   }
 
   /** Decode as UTF-8 regardless of the type's charset parameter. */
-  textStream() {
+  textStream(): ReadableStream<string> {
     return this.stream().pipeThrough(new runtime.TextDecoderStream());
   }
 
-  get [Symbol.toStringTag]() {
+  get [Symbol.toStringTag](): string {
     return "Blob";
   }
 }
@@ -105,7 +105,7 @@ class FileImpl extends BlobImpl {
     this.lastModified = options.lastModified ?? Date.now();
   }
 
-  get [Symbol.toStringTag]() {
+  override get [Symbol.toStringTag](): string {
     return "File";
   }
 }

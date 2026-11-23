@@ -2,18 +2,26 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
+use bytes::Bytes;
 use serde_json::{Value, json};
 use tokio::time::Sleep;
 
 use super::handles::{Handles, Resource};
 use crate::host::{GuestEnd, Refused};
 use crate::wire::ByteStore;
-use crate::{ChannelEvent, CloseFrame, Error, Limits, Message, Result};
+use crate::{ChannelEvent, ChannelFuture, CloseFrame, Error, Limits, Message, Result};
 
 /// JavaScript's end of one channel and the budgets that close it, held in
 /// the invocation's [`Handles`].
 pub(super) struct OpenChannel {
     end: GuestEnd,
+    /// The service's open, until it settles. Nothing is delivered before.
+    opening: Option<ChannelFuture>,
+    /// Bytes of the stream view's write still to queue for Rust.
+    write: Option<Bytes>,
+    /// The stream view's reader is full: arrivals wait in Rust, whose
+    /// sender then waits for room.
+    paused: bool,
     /// A close the host decided, delivered to JavaScript at the next poll.
     forced: Option<CloseFrame>,
     idle_timeout: Option<Duration>,
@@ -32,8 +40,55 @@ impl OpenChannel {
         self.forced.get_or_insert(frame);
     }
 
+    fn new(end: GuestEnd) -> Self {
+        Self {
+            end,
+            opening: None,
+            write: None,
+            paused: false,
+            forced: None,
+            idle_timeout: None,
+            idle: None,
+            end_of_life: None,
+            lifetime: None,
+        }
+    }
+
     fn touch(&mut self) {
         self.idle = None;
+    }
+
+    /// Queue as much of the pending write as fits, in messages within the
+    /// budgets. Returns whether all of it is queued.
+    fn poll_write(&mut self, context: &mut Context<'_>) -> Poll<bool> {
+        while let Some(rest) = self.write.as_mut() {
+            if rest.is_empty() {
+                self.write = None;
+                return Poll::Ready(true);
+            }
+            let room = match self.end.poll_room(context) {
+                Poll::Pending => return Poll::Pending,
+                Poll::Ready(0) => {
+                    self.write = None;
+                    self.force(CloseFrame::new(
+                        CloseFrame::MESSAGE_TOO_BIG,
+                        "message exceeds the channel budget",
+                    ));
+                    return Poll::Ready(false);
+                }
+                Poll::Ready(room) => room,
+            };
+            let piece = rest.split_to(room.min(rest.len()));
+            match self.end.send(Message::Binary(piece)) {
+                Ok(()) => self.touch(),
+                // The channel closed; its close fails the write.
+                Err(_) => {
+                    self.write = None;
+                    return Poll::Ready(false);
+                }
+            }
+        }
+        Poll::Ready(false)
     }
 
     /// Whether the idle or lifetime budget ran out.
@@ -67,6 +122,21 @@ pub(super) struct GuestMessage {
     bytes: Option<u64>,
 }
 
+/// Bytes the stream view writes, queued as binary messages as room allows.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct GuestWrite {
+    id: u64,
+    bytes: u64,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct GuestPause {
+    id: u64,
+    paused: bool,
+}
+
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct GuestClose {
@@ -84,12 +154,18 @@ impl Handles {
             .connection_lifetime
             .and_then(|lifetime| Instant::now().checked_add(lifetime));
         self.insert(Resource::Channel(Box::new(OpenChannel {
-            end,
-            forced: None,
             idle_timeout: limits.connection_idle_timeout,
-            idle: None,
             end_of_life,
-            lifetime: None,
+            ..OpenChannel::new(end)
+        })))
+    }
+
+    /// Add JavaScript's end of a channel a service is opening. It belongs to
+    /// the invocation, without the budgets of held connections.
+    pub fn open_requested(&mut self, end: GuestEnd, opening: ChannelFuture) -> Result<u64> {
+        self.insert(Resource::Channel(Box::new(OpenChannel {
+            opening: Some(opening),
+            ..OpenChannel::new(end)
         })))
     }
 
@@ -116,9 +192,32 @@ impl Handles {
         Ok(Value::Null)
     }
 
+    pub fn write_channel(&mut self, write: GuestWrite, bytes: &mut ByteStore) -> Result<Value> {
+        let payload = bytes.take(write.bytes)?;
+        let channel = self.channel(write.id)?;
+        if channel.write.is_some() {
+            return Err(Error::InvalidRequest("a channel write is pending".into()));
+        }
+        channel.write = Some(payload);
+        Ok(Value::Null)
+    }
+
+    pub fn pause_channel(&mut self, pause: GuestPause) -> Result<Value> {
+        self.channel(pause.id)?.paused = pause.paused;
+        Ok(Value::Null)
+    }
+
     pub fn close_channel(&mut self, close: GuestClose) -> Result<Value> {
         let channel = self.channel(close.id)?;
-        channel.end.close(CloseFrame::new(close.code, close.reason));
+        let frame = CloseFrame::new(close.code, close.reason);
+        if channel.opening.take().is_some() {
+            // Closing before the open settles abandons it; a service that
+            // already holds its end sees the close.
+            channel.end.close(frame);
+            channel.forced.get_or_insert_with(CloseFrame::abnormal);
+        } else {
+            channel.end.close(frame);
+        }
         Ok(Value::Null)
     }
 
@@ -155,7 +254,32 @@ impl Handles {
                 ended.push(id);
                 continue;
             }
-            loop {
+            if let Some(opening) = channel.opening.as_mut() {
+                match opening.as_mut().poll(context) {
+                    Poll::Pending => continue,
+                    Poll::Ready(Ok(())) => {
+                        channel.opening = None;
+                        events.push(json!({ "channel": id, "open": true }));
+                    }
+                    Poll::Ready(Err(error)) => {
+                        events.push(json!({
+                            "channel": id,
+                            "refused": { "code": error.code(), "message": error.guest_message() },
+                        }));
+                        ended.push(id);
+                        continue;
+                    }
+                }
+            }
+            if channel.write.is_some() && channel.poll_write(context) == Poll::Ready(true) {
+                events.push(json!({ "channel": id, "written": true }));
+            }
+            if let Some(frame) = channel.forced.take() {
+                events.push(close_event(id, &frame));
+                ended.push(id);
+                continue;
+            }
+            while !channel.paused {
                 match channel.end.poll_recv(context) {
                     Poll::Pending => break,
                     Poll::Ready(Some(ChannelEvent::Message(Message::Text(text)))) => {

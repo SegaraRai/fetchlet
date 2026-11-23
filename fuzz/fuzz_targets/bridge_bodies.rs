@@ -12,14 +12,25 @@
 //!   UTF-8 text;
 //! - finishing, failing, cancelling or ending the invocation releases the
 //!   producer; one read per body is outstanding at a time;
-//! - ending the invocation releases JavaScript's end of each channel.
+//! - ending the invocation releases JavaScript's end of each channel;
+//! - a channel opened from a service opens or is refused at the next poll,
+//!   once; closed before then, it ends with 1006 instead;
+//! - a channel write is queued at the next poll unless the channel closed,
+//!   and `channel.buffered` counts the bytes queued.
 
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::sync::mpsc::Receiver;
 
 use libfuzzer_sys::fuzz_target;
 use serde_json::Value;
 
-use fetchlet::{BodyFeed, BridgeHarness, ChannelFeed, HostServices, Limits};
+use fetchlet::{
+    BodyFeed, BridgeHarness, ChannelFeed, HostServices, Limits, harness_channel_service,
+};
+
+/// Services the target binds: one accepts, one refuses; the third name is
+/// unbound.
+const SERVICES: [&str; 3] = ["OPEN", "REFUSE", "NOPE"];
 
 struct Input<'a>(&'a [u8]);
 
@@ -77,6 +88,18 @@ struct Model {
     /// bridge must have released.
     stale_channels: Vec<u64>,
     released_channels: Vec<ChannelFeed>,
+    /// Channels opened from the accepting service, and whether the open
+    /// has settled.
+    requested: BTreeMap<u64, bool>,
+    /// Channels of the refusing service, which end at the next poll.
+    refusing: BTreeSet<u64>,
+    /// Channels closed before their open settled, which end with 1006.
+    abandoned: BTreeSet<u64>,
+    /// Channels the guest closed.
+    closed: BTreeSet<u64>,
+    /// Pending writes' lengths, and the bytes queued for Rust, by channel.
+    writing: BTreeMap<u64, usize>,
+    queued: BTreeMap<u64, usize>,
     active: bool,
     /// bridge_message_bytes of the current invocation.
     message_limit: Option<usize>,
@@ -97,6 +120,13 @@ impl Model {
             self.stale_channels.push(id);
             self.released_channels.push(channel);
         }
+        self.stale_channels
+            .extend(std::mem::take(&mut self.refusing));
+        self.requested.clear();
+        self.abandoned.clear();
+        self.closed.clear();
+        self.writing.clear();
+        self.queued.clear();
         self.upgraded = false;
         self.active = false;
         self.message_limit = None;
@@ -105,6 +135,23 @@ impl Model {
     /// Whether a protocol message or guest buffer fits bridge_message_bytes.
     fn fits(&self, length: usize) -> bool {
         self.message_limit.is_none_or(|limit| length <= limit)
+    }
+
+    fn has_channel(&self, id: u64) -> bool {
+        self.channels.contains_key(&id) || self.refusing.contains(&id)
+    }
+
+    /// A channel the bridge released.
+    fn end_channel(&mut self, id: u64) {
+        if let Some(channel) = self.channels.remove(&id) {
+            self.released_channels.push(channel);
+        }
+        self.refusing.remove(&id);
+        self.requested.remove(&id);
+        self.closed.remove(&id);
+        self.writing.remove(&id);
+        self.queued.remove(&id);
+        self.stale_channels.push(id);
     }
 
     fn release(&mut self, id: u64) {
@@ -175,6 +222,20 @@ fn url_operation(input: &mut Input, harness: &BridgeHarness) {
     }
 }
 
+/// A channel's handle, a gone channel's, or a body's, which is never a
+/// channel's.
+fn channel_target(model: &Model, selector: u8) -> u64 {
+    let mut ids: Vec<u64> = model.channels.keys().copied().collect();
+    ids.extend(&model.refusing);
+    ids.extend(&model.stale_channels);
+    ids.extend(model.bodies.keys());
+    pick(&ids, selector).unwrap_or(u64::from(selector))
+}
+
+fn take_feed(feeds: &Receiver<ChannelFeed>) -> ChannelFeed {
+    feeds.try_recv().expect("the service received the open")
+}
+
 fn pick(values: &[u64], selector: u8) -> Option<u64> {
     (!values.is_empty()).then(|| values[usize::from(selector) % values.len()])
 }
@@ -188,10 +249,27 @@ fn poll(harness: &BridgeHarness, model: &mut Model) {
     assert!(ok(&reply), "{reply}");
     for completion in reply["value"].as_array().expect("completions") {
         if let Some(id) = completion["channel"].as_u64() {
-            // Nothing sends from Rust, so only the close a guest asked for
-            // can arrive. Rust has not answered it, so the channel stays.
-            assert!(model.channels.contains_key(&id), "{completion}");
-            assert!(completion["close"].is_object(), "{completion}");
+            assert!(model.has_channel(id), "{completion}");
+            if completion["open"] == true {
+                assert_eq!(
+                    model.requested.insert(id, true),
+                    Some(false),
+                    "{completion}"
+                );
+            } else if completion["refused"].is_object() {
+                assert!(model.refusing.contains(&id), "{completion}");
+                model.end_channel(id);
+            } else if completion["written"] == true {
+                let length = model.writing.remove(&id).expect("a pending write");
+                assert!(length == 0 || !model.closed.contains(&id), "{completion}");
+                *model.queued.entry(id).or_default() += length;
+            } else {
+                // Nothing sends from Rust, so only the abnormal close of a
+                // channel abandoned before its open can arrive.
+                assert_eq!(completion["close"]["code"], 1006, "{completion}");
+                assert!(model.abandoned.remove(&id), "{completion}");
+                model.end_channel(id);
+            }
             continue;
         }
         let ticket = completion["id"].as_str().expect("ticket");
@@ -238,6 +316,15 @@ fn poll(harness: &BridgeHarness, model: &mut Model) {
         let handle = value["chunk"].as_u64().expect("chunk handle");
         assert!(model.chunks.insert(handle, expected).is_none());
     }
+    // Opens settle at the first poll, and writes queue unless the channel
+    // closed, as no budget bounds the queue.
+    assert!(model.abandoned.is_empty() && model.refusing.is_empty());
+    assert!(model.requested.values().all(|opened| *opened));
+    let dropped: Vec<u64> = model.writing.keys().copied().collect();
+    for id in dropped {
+        assert!(model.closed.contains(&id), "write {id} was not queued");
+        model.writing.remove(&id);
+    }
 }
 
 /// A whole-body read ends with the rest of the body, a budget overrun or an
@@ -281,11 +368,17 @@ fn complete_whole_read(
 
 fuzz_target!(|data: &[u8]| {
     let mut input = Input(data);
-    let mut harness = BridgeHarness::new(HostServices::new());
+    let (accepting, feeds) = harness_channel_service(true);
+    let (refusing, _) = harness_channel_service(false);
+    let services = HostServices::new()
+        .channel(SERVICES[0], accepting)
+        .and_then(|services| services.channel(SERVICES[1], refusing))
+        .expect("services");
+    let mut harness = BridgeHarness::new(services);
     let mut model = Model::default();
 
     while let Some(operation) = input.byte() {
-        match operation % 14 {
+        match operation % 16 {
             0 => {
                 let budget = input.byte().unwrap_or(0);
                 let limits = Limits {
@@ -410,7 +503,7 @@ fuzz_target!(|data: &[u8]| {
                 let id = pick(&ids, selector).unwrap_or(u64::from(selector));
                 let current = model.bodies.get(&id).filter(|body| body.open);
                 let fits = model.fits(id.to_string().len());
-                if operation % 14 == 7 {
+                if operation % 16 == 7 {
                     let read = match selector >> 5 & 3 {
                         2 => Read::Bytes,
                         3 => Read::Text,
@@ -450,11 +543,7 @@ fuzz_target!(|data: &[u8]| {
             },
             13 => {
                 let selector = input.byte().unwrap_or(0);
-                let mut ids: Vec<u64> = model.channels.keys().copied().collect();
-                ids.extend(&model.stale_channels);
-                // A body's handle is never a channel's.
-                ids.extend(model.bodies.keys());
-                let id = pick(&ids, selector).unwrap_or(u64::from(selector));
+                let id = channel_target(&model, selector);
                 let (operation, message) = if selector & 0x80 == 0 {
                     ("channel.buffered", id.to_string())
                 } else {
@@ -464,11 +553,57 @@ fuzz_target!(|data: &[u8]| {
                     )
                 };
                 let reply = harness.dispatch(operation, &message);
-                let expected =
-                    model.active && model.fits(message.len()) && model.channels.contains_key(&id);
+                let expected = model.active && model.fits(message.len()) && model.has_channel(id);
                 assert_eq!(ok(&reply), expected, "{operation} {id}: {reply}");
                 if expected && operation == "channel.buffered" {
-                    assert_eq!(reply["value"], 0);
+                    assert_eq!(reply["value"], model.queued.get(&id).copied().unwrap_or(0));
+                } else if expected {
+                    // Closed before its open settles, a channel is abandoned.
+                    if model.refusing.contains(&id) || model.requested.get(&id) == Some(&false) {
+                        model.abandoned.insert(id);
+                    } else {
+                        model.closed.insert(id);
+                    }
+                }
+            }
+            14 => {
+                let selector = input.byte().unwrap_or(0);
+                let service = SERVICES[usize::from(selector) % SERVICES.len()];
+                let message =
+                    serde_json::json!({ "service": service, "options": selector }).to_string();
+                let reply = harness.dispatch("channel.open", &message);
+                let expected = model.active && model.fits(message.len()) && service != "NOPE";
+                assert_eq!(ok(&reply), expected, "open {service}: {reply}");
+                if expected {
+                    let id = reply["value"].as_u64().expect("channel handle");
+                    assert!(!model.has_channel(id) && !model.bodies.contains_key(&id));
+                    if service == "OPEN" {
+                        model.channels.insert(id, take_feed(&feeds));
+                        model.requested.insert(id, false);
+                    } else {
+                        model.refusing.insert(id);
+                    }
+                }
+            }
+            15 => {
+                let selector = input.byte().unwrap_or(0);
+                let id = channel_target(&model, selector);
+                let (handle, length) = model
+                    .guest
+                    .as_ref()
+                    .map_or((0, 0), |(handle, bytes)| (*handle, bytes.len()));
+                let message = serde_json::json!({ "id": id, "bytes": handle }).to_string();
+                let reply = harness.dispatch("channel.write", &message);
+                let taken = model.active && model.fits(message.len()) && model.guest.is_some();
+                let expected = taken && model.has_channel(id) && !model.writing.contains_key(&id);
+                assert_eq!(ok(&reply), expected, "write {id}: {reply}");
+                // The write takes its bytes before it finds the channel.
+                if taken {
+                    model.guest = None;
+                    model.stale_handles.push(handle);
+                }
+                if expected {
+                    model.writing.insert(id, length);
                 }
             }
             _ => {

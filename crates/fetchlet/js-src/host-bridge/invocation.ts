@@ -30,9 +30,9 @@ export function abortIfDisconnected(): boolean {
 function clearInvocation(): void {
   requestAbort = null;
   responseBodyRegistry.closeAll();
-  channelRegistry.closeAll();
-  // Background work keeps its timers until Rust settles it.
+  // Background work keeps its channels and timers until Rust settles it.
   if (backgroundRegistry.pending() === 0) {
+    channelRegistry.closeAll();
     globalThis.__fetchletClearTimers?.();
     globalThis.__fetchletClearPerformanceEntries?.();
   }

@@ -95,47 +95,47 @@ class EventImpl {
 
   declare readonly isTrusted: boolean;
 
-  get type() {
+  get type(): string {
     return state(this).type;
   }
 
-  get target() {
+  get target(): EventTargetImpl | null {
     return state(this).target;
   }
 
-  get srcElement() {
+  get srcElement(): EventTargetImpl | null {
     return state(this).target;
   }
 
-  get currentTarget() {
+  get currentTarget(): EventTargetImpl | null {
     return state(this).currentTarget;
   }
 
-  get eventPhase() {
+  get eventPhase(): number {
     return state(this).phase;
   }
 
-  get bubbles() {
+  get bubbles(): boolean {
     return state(this).bubbles;
   }
 
-  get cancelable() {
+  get cancelable(): boolean {
     return state(this).cancelable;
   }
 
-  get composed() {
+  get composed(): boolean {
     return state(this).composed;
   }
 
-  get defaultPrevented() {
+  get defaultPrevented(): boolean {
     return state(this).canceled;
   }
 
-  get timeStamp() {
+  get timeStamp(): number {
     return state(this).timeStamp;
   }
 
-  get returnValue() {
+  get returnValue(): boolean {
     return !state(this).canceled;
   }
 
@@ -145,7 +145,7 @@ class EventImpl {
     }
   }
 
-  get cancelBubble() {
+  get cancelBubble(): boolean {
     return state(this).stopPropagation;
   }
 
@@ -160,24 +160,24 @@ class EventImpl {
     return currentTarget ? [currentTarget] : [];
   }
 
-  preventDefault() {
+  preventDefault(): void {
     const event = state(this);
     if (event.cancelable && !event.inPassiveListener) {
       event.canceled = true;
     }
   }
 
-  stopPropagation() {
+  stopPropagation(): void {
     state(this).stopPropagation = true;
   }
 
-  stopImmediatePropagation() {
+  stopImmediatePropagation(): void {
     const event = state(this);
     event.stopPropagation = true;
     event.stopImmediate = true;
   }
 
-  initEvent(type: string, bubbles = false, cancelable = false) {
+  initEvent(type: string, bubbles = false, cancelable = false): void {
     const event = state(this);
     if (event.dispatching) {
       return;
@@ -194,7 +194,7 @@ class EventImpl {
     });
   }
 
-  get [Symbol.toStringTag]() {
+  get [Symbol.toStringTag](): string {
     return "Event";
   }
 }
@@ -218,11 +218,11 @@ class CustomEventImpl extends EventImpl {
     this.#detail = init?.detail ?? null;
   }
 
-  get detail() {
+  get detail(): unknown {
     return this.#detail;
   }
 
-  initCustomEvent(type: string, bubbles = false, cancelable = false, detail: unknown = null) {
+  initCustomEvent(type: string, bubbles = false, cancelable = false, detail: unknown = null): void {
     if (state(this).dispatching) {
       return;
     }
@@ -230,7 +230,7 @@ class CustomEventImpl extends EventImpl {
     this.#detail = detail;
   }
 
-  get [Symbol.toStringTag]() {
+  override get [Symbol.toStringTag](): string {
     return "CustomEvent";
   }
 }
@@ -284,7 +284,7 @@ function listenersOf(target: unknown): Listener[] {
   return found;
 }
 
-function remove(list: Listener[], listener: Listener) {
+function remove(list: Listener[], listener: Listener): void {
   listener.removed = true;
   const index = list.indexOf(listener);
   if (index >= 0) {
@@ -293,7 +293,7 @@ function remove(list: Listener[], listener: Listener) {
 }
 
 /** Reports an exception thrown by a listener without interrupting the dispatch. */
-function report(error: unknown) {
+function report(error: unknown): void {
   if (typeof runtime.reportError === "function") {
     runtime.reportError(error);
   } else {
@@ -306,7 +306,7 @@ class EventTargetImpl {
     listeners.set(this, []);
   }
 
-  addEventListener(type: string, callback: any, options?: unknown) {
+  addEventListener(type: string, callback: any, options?: unknown): void {
     if (arguments.length < 2) {
       throw new TypeError("addEventListener requires two arguments");
     }
@@ -337,7 +337,7 @@ class EventTargetImpl {
     });
   }
 
-  removeEventListener(type: string, callback: any, options?: unknown) {
+  removeEventListener(type: string, callback: any, options?: unknown): void {
     if (arguments.length < 2) {
       throw new TypeError("removeEventListener requires two arguments");
     }
@@ -364,7 +364,7 @@ class EventTargetImpl {
     return dispatch(this, event);
   }
 
-  get [Symbol.toStringTag]() {
+  get [Symbol.toStringTag](): string {
     return "EventTarget";
   }
 }
@@ -417,7 +417,7 @@ function dispatch(target: EventTargetImpl, event: EventImpl): boolean {
  * so the EventTarget methods accept it as their receiver. The global scope
  * uses it.
  */
-export function adoptEventTarget(target: object) {
+export function adoptEventTarget(target: object): void {
   if (!listeners.has(target)) {
     listeners.set(target, []);
   }
@@ -437,7 +437,7 @@ export function defineEventHandler(
   prototype: object,
   type: string,
   invoke: (handler: Function, target: object, event: EventImpl) => void = invokeHandler,
-) {
+): void {
   const handlers = new WeakMap<
     object,
     {
@@ -482,7 +482,7 @@ export function defineEventHandler(
 }
 
 /** A handler that returns false cancels the event. */
-function invokeHandler(handler: Function, target: object, event: EventImpl) {
+function invokeHandler(handler: Function, target: object, event: EventImpl): void {
   if (handler.call(target, event) === false) {
     event.preventDefault();
   }

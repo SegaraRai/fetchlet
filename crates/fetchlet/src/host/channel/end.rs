@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::task::{Context, Poll};
+use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll, Waker};
 
 use tokio::sync::{Semaphore, mpsc};
 
@@ -53,6 +53,9 @@ pub struct ChannelEnd {
     credit: Option<Arc<Semaphore>>,
     /// Bytes JavaScript sent that this end has not received.
     buffered: Arc<AtomicUsize>,
+    /// JavaScript's end waiting for room in its queue, woken as this end
+    /// receives.
+    room: Arc<Mutex<Option<Waker>>>,
     budgets: Budgets,
     /// This end sent its close.
     closed: bool,
@@ -115,6 +118,9 @@ impl ChannelEnd {
         let event = match self.from_guest.recv().await {
             Some(ChannelEvent::Message(message)) => {
                 self.buffered.fetch_sub(message.len(), Ordering::AcqRel);
+                if let Some(waker) = lock(&self.room).take() {
+                    waker.wake();
+                }
                 return Some(ChannelEvent::Message(message));
             }
             Some(ChannelEvent::Close(frame)) => ChannelEvent::Close(frame),
@@ -136,15 +142,29 @@ impl ChannelEnd {
     }
 }
 
+impl Drop for ChannelEnd {
+    fn drop(&mut self) {
+        // A JavaScript write waiting for room learns that nobody will read.
+        if let Some(waker) = lock(&self.room).take() {
+            waker.wake();
+        }
+    }
+}
+
 /// JavaScript's end of a channel, kept in its invocation's state.
 pub(crate) struct GuestEnd {
     to_host: mpsc::UnboundedSender<ChannelEvent>,
     from_host: mpsc::UnboundedReceiver<ChannelEvent>,
     credit: Option<Arc<Semaphore>>,
     buffered: Arc<AtomicUsize>,
+    room: Arc<Mutex<Option<Waker>>>,
     budgets: Budgets,
     closed: bool,
     finished: bool,
+}
+
+fn lock(room: &Mutex<Option<Waker>>) -> std::sync::MutexGuard<'_, Option<Waker>> {
+    room.lock().unwrap_or_else(|error| error.into_inner())
 }
 
 /// Why JavaScript's end could not queue a message.
@@ -183,6 +203,28 @@ impl GuestEnd {
             self.closed = true;
             let _ = self.to_host.send(ChannelEvent::Close(frame));
         }
+    }
+
+    /// The bytes one message may have now: the queue's free space, at most
+    /// the message budget. Pending, and woken as Rust receives, while the
+    /// queue is full. Zero only when the message budget is zero.
+    pub fn poll_room(&mut self, context: &mut Context<'_>) -> Poll<usize> {
+        let message = self.budgets.message_bytes.unwrap_or(usize::MAX);
+        let Some(queue) = self.budgets.buffer_bytes else {
+            return Poll::Ready(message);
+        };
+        // With Rust's end gone, the send that follows fails the write.
+        if self.to_host.is_closed() {
+            return Poll::Ready(message.max(1));
+        }
+        // Registered before the check, so a receive in between still wakes.
+        *lock(&self.room) = Some(context.waker().clone());
+        let free = queue.saturating_sub(self.buffered.load(Ordering::Acquire));
+        if free == 0 && message > 0 {
+            return Poll::Pending;
+        }
+        lock(&self.room).take();
+        Poll::Ready(free.min(message))
     }
 
     /// Bytes sent that Rust has not received yet: WebSocket's
@@ -240,11 +282,13 @@ pub(crate) fn pair(limits: &Limits) -> (ChannelEnd, GuestEnd) {
         .buffer_bytes
         .map(|bytes| Arc::new(Semaphore::new(bytes)));
     let buffered = Arc::new(AtomicUsize::new(0));
+    let room = Arc::default();
     let host = ChannelEnd {
         to_guest,
         from_guest,
         credit: credit.clone(),
         buffered: buffered.clone(),
+        room: Arc::clone(&room),
         budgets,
         closed: false,
         finished: false,
@@ -254,6 +298,7 @@ pub(crate) fn pair(limits: &Limits) -> (ChannelEnd, GuestEnd) {
         from_host,
         credit,
         buffered,
+        room,
         budgets,
         closed: false,
         finished: false,

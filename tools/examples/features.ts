@@ -23,6 +23,7 @@ export const features = {
   "wait-until": "waitUntil",
   concurrency: "Concurrency",
   websocket: "WebSockets",
+  channels: "Host channels",
 } as const;
 
 export type Feature = keyof typeof features;

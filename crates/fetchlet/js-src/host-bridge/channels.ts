@@ -1,15 +1,22 @@
-// Channels the host holds for the current invocation, such as an accepted
-// server WebSocket. JavaScript sends through host operations; Rust delivers
-// messages and closes in the host pump, each channel's in order. Every entry
-// belongs to the current invocation and is forgotten when it ends.
+// Channels the host holds for the current invocation: an accepted server
+// WebSocket, and channels opened from env bindings. JavaScript sends through
+// host operations; Rust delivers opens, messages and closes in the host
+// pump, each channel's in order. Every entry belongs to the current
+// invocation and is forgotten when it ends.
 
 import { dispatch, putBytes, takeBytes } from "./host.ts";
 import type { ChannelArrival } from "./wire.ts";
+
+interface PendingWrite {
+  resolve(): void;
+  reject(error: unknown): void;
+}
 
 interface ChannelEntry {
   listener: ChannelListener;
   closed: Promise<void>;
   resolveClosed(): void;
+  write?: PendingWrite;
 }
 
 const channels = new Map<number, ChannelEntry>();
@@ -20,10 +27,31 @@ export function hasOpenChannels(): boolean {
   return channels.size > 0;
 }
 
+function track(id: number, listener: ChannelListener): void {
+  let resolveClosed!: () => void;
+  const closed = new Promise<void>((resolve) => {
+    resolveClosed = resolve;
+  });
+  channels.set(id, {
+    listener,
+    closed,
+    resolveClosed,
+  });
+}
+
+/** Remove an entry whose channel ended; a pending write fails with it. */
+function end(id: number, entry: ChannelEntry): void {
+  channels.delete(id);
+  entry.write?.reject(new TypeError("The channel closed"));
+  entry.write = undefined;
+  entry.resolveClosed();
+}
+
 function forget(id: number): void {
   const entry = channels.get(id);
-  channels.delete(id);
-  entry?.resolveClosed();
+  if (entry) {
+    end(id, entry);
+  }
 }
 
 /** Deliver an arrival if the event is one. Returns whether it was. */
@@ -40,12 +68,23 @@ export function completeChannel(event: object): boolean {
   }
   if (arrival.close !== undefined) {
     // The channel has left the host table; nothing more arrives on it.
-    channels.delete(arrival.channel);
     try {
       entry.listener.close(arrival.close.code, arrival.close.reason);
     } finally {
-      entry.resolveClosed();
+      end(arrival.channel, entry);
     }
+  } else if (arrival.refused !== undefined) {
+    try {
+      entry.listener.refused?.(arrival.refused.message);
+    } finally {
+      end(arrival.channel, entry);
+    }
+  } else if (arrival.open === true) {
+    entry.listener.open();
+  } else if (arrival.written === true) {
+    const write = entry.write;
+    entry.write = undefined;
+    write?.resolve();
   } else if (bytes !== undefined) {
     entry.listener.message(bytes);
   } else if (arrival.text !== undefined) {
@@ -55,48 +94,88 @@ export function completeChannel(event: object): boolean {
 }
 
 export const channelRegistry: ChannelRegistry = Object.freeze<ChannelRegistry>({
-  upgrade(listener) {
+  upgrade(listener): number {
     // Throws unless the request asked for an upgrade the host can hold.
     const id = dispatch<number>("websocket.upgrade", null);
-    let resolveClosed!: () => void;
-    const closed = new Promise<void>((resolve) => {
-      resolveClosed = resolve;
-    });
-    channels.set(id, { listener, closed, resolveClosed });
+    track(id, listener);
     acceptedUpgrade = id;
     return id;
   },
-  accepted() {
+  accepted(): number | undefined {
     return acceptedUpgrade;
   },
-  send(id, data) {
+  open(service, options, listener): number {
+    // Throws for an unknown service or over Limits::open_channels.
+    const id = dispatch<number>("channel.open", {
+      service,
+      options: options ?? null,
+    });
+    track(id, listener);
+    return id;
+  },
+  send(id, data): void {
     if (!channels.has(id)) {
       return;
     }
     if (typeof data === "string") {
-      dispatch("channel.send", { id, text: data });
+      dispatch("channel.send", {
+        id,
+        text: data,
+      });
     } else {
-      dispatch("channel.send", { id, bytes: putBytes(data) });
+      dispatch("channel.send", {
+        id,
+        bytes: putBytes(data),
+      });
     }
   },
-  close(id, code, reason) {
+  write(id, data): Promise<void> {
+    const entry = channels.get(id);
+    if (!entry) {
+      return Promise.reject(new TypeError("The channel closed"));
+    }
+    if (entry.write) {
+      return Promise.reject(new TypeError("A write is pending"));
+    }
+    return new Promise<void>((resolve, reject) => {
+      dispatch("channel.write", {
+        id,
+        bytes: putBytes(data),
+      });
+      entry.write = { resolve, reject };
+    });
+  },
+  pause(id, paused): void {
     if (channels.has(id)) {
-      dispatch("channel.close", { id, code, reason });
+      dispatch("channel.pause", {
+        id,
+        paused,
+      });
     }
   },
-  buffered(id) {
+  close(id, code, reason): void {
+    if (channels.has(id)) {
+      dispatch("channel.close", {
+        id,
+        code,
+        reason,
+      });
+    }
+  },
+  buffered(id): number {
     return channels.has(id) ? dispatch<number>("channel.buffered", id) : 0;
   },
-  retain(id) {
-    // Deleting the entry being visited keeps a Map's iteration going.
-    for (const key of channels.keys()) {
-      if (key !== id) {
-        forget(key);
-      }
+  retain(id): boolean {
+    // An upgrade the handler accepted but did not return closes now; the
+    // invocation's other channels stay until it ends.
+    const accepted = acceptedUpgrade;
+    if (accepted !== undefined && accepted !== id) {
+      acceptedUpgrade = undefined;
+      forget(accepted);
     }
-    return id !== undefined && channels.has(id);
+    return id !== undefined && id === acceptedUpgrade && channels.has(id);
   },
-  async hold(id) {
+  async hold(id): Promise<void> {
     const entry = channels.get(id);
     if (!entry) {
       return;
@@ -104,7 +183,7 @@ export const channelRegistry: ChannelRegistry = Object.freeze<ChannelRegistry>({
     entry.listener.open();
     await entry.closed;
   },
-  closeAll() {
+  closeAll(): void {
     acceptedUpgrade = undefined;
     for (const id of channels.keys()) {
       forget(id);

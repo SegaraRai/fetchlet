@@ -1,7 +1,7 @@
 // The server module: Vite builds it with fetchlet/vite, and the Rust server
 // runs its default export for every request the axum routes leave over.
 
-import type { FetchletBindings, ServiceBinding } from "fetchlet/bindings";
+import type { ChannelBinding, FetchletBindings, ServiceBinding } from "fetchlet/bindings";
 import { upgradeWebSocket, type ExecutionContext, type ExportedHandler } from "fetchlet/runtime";
 import clientAssets from "virtual:fetchlet/client-assets";
 
@@ -10,6 +10,7 @@ declare module "fetchlet/bindings" {
   interface FetchletBindings {
     MESSAGE: string;
     RUST: ServiceBinding;
+    PROGRESS: ChannelBinding;
   }
 }
 
@@ -54,6 +55,12 @@ export default {
 
       case "GET /api/socket":
         return socket(request);
+
+      case "GET /api/progress":
+        return progress(url, env);
+
+      case "GET /api/progress/messages":
+        return progressMessages(url, env);
 
       default:
         return html(page("Page not found", ""), 404);
@@ -167,6 +174,36 @@ function socket(request: Request): Response {
     socket.send(`#${count}: ${String(event.data)}`);
   });
   return response;
+}
+
+// Stream the steps a Rust job reports over a host channel as the response
+// body. The channel belongs to this invocation, which the open body keeps.
+function progress(url: URL, env: FetchletBindings): Response {
+  const steps = Number(url.searchParams.get("steps") ?? "3");
+  const channel = env.PROGRESS.connect({ steps, bytes: true });
+  return new Response(channel.stream().readable, {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+    },
+  });
+}
+
+// Collect the same steps as messages of the channel's WebSocket view.
+async function progressMessages(url: URL, env: FetchletBindings): Promise<Response> {
+  const steps = Number(url.searchParams.get("steps") ?? "3");
+  const channel = env.PROGRESS.connect({ steps });
+  const socket = channel.socket();
+  const messages: string[] = [];
+  socket.addEventListener("message", (event) => {
+    messages.push(String(event.data));
+  });
+  try {
+    await channel.opened;
+  } catch (error) {
+    return Response.json({ error: String((error as Error).message) }, { status: 400 });
+  }
+  const closed = await channel.closed;
+  return Response.json({ messages, closed });
 }
 
 // Count an upload as the server receives it, without buffering it first.

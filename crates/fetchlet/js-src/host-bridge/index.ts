@@ -83,6 +83,18 @@ for (const serviceName of bindings.services) {
     fetch: (input: RequestInfo | URL, init?: RequestInit) => hostFetch(input, init, serviceName),
   });
 }
+for (const channelName of bindings.channels) {
+  env[channelName] = Object.freeze({
+    // The Web API profile builds the channel's views.
+    connect(options?: unknown): unknown {
+      const views = globalThis.__fetchletChannelViews;
+      if (!views) {
+        throw new TypeError("Channels need the fetchlet Web API profile");
+      }
+      return views.connect(channelName, options);
+    },
+  });
+}
 
 Object.defineProperty(globalThis, "fetchlet", {
   value: Object.freeze({

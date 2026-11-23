@@ -107,21 +107,21 @@ and JavaScript gets one channel primitive with the APIs built on it.
 table, the two channel lifetimes (request-scoped, and held connections that
 keep their invocation and instance until they close) and the order of work.
 
-The handle table and held connections are implemented:
-`upgradeWebSocket` from `fetchlet/runtime`, `Instances::max_held_connections`,
-the channel and connection budgets, server upgrades in fetchlet-http's axum
-integration behind the `websocket` feature, and a WebSocket route with an
-end-to-end check in every axum example
-([status](research/host-channels.md#status)). The rest:
+The handle table, request-scoped channels and held connections are
+implemented: `HostServices::channel` with `env.NAME.connect()` and its
+WebSocket and stream views, `upgradeWebSocket` from `fetchlet/runtime`,
+`Instances::max_held_connections`, the channel and connection budgets,
+server upgrades in fetchlet-http's axum integration behind the `websocket`
+feature, and a WebSocket route with an end-to-end check in every axum
+example ([status](research/host-channels.md#status)). The rest:
 
-1. Request-scoped channels: `HostServices::channel`, the message and
-   stream views, the `open_channels` budget, and wrappers that keep numeric
-   handles away from application code.
-2. `connect()` over a `SocketService` with a `SocketPolicy`.
-3. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`.
-4. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
+1. `connect()` over a `SocketService` with a `SocketPolicy`, on the stream
+   view.
+2. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`, on
+   the message view.
+3. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
    and `Sink` for `ChannelEnd`.
-5. Resources in function arguments and results
+4. Resources in function arguments and results
    ([values beyond JSON](#values-beyond-json)).
 
 Several connections per instance wait until async context is available on

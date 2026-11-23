@@ -27,16 +27,16 @@ pub use error::{Error, Result};
 pub use execution::Instance;
 pub use fetch::{Body, FetchApp, Request, Response};
 pub use host::{
-    ChannelEnd, ChannelEvent, CloseFrame, ConsoleLevel, Context, FetchPolicy, FetchService,
-    FetchTransport, HostServices, Message, OriginRouter, ServerWebSocket, TransportFuture,
-    transport_fn,
+    ChannelEnd, ChannelEvent, ChannelFuture, ChannelRequest, ChannelService, CloseFrame,
+    ConsoleLevel, Context, FetchPolicy, FetchService, FetchTransport, HostServices, Message,
+    OriginRouter, ServerWebSocket, TransportFuture, channel_fn, transport_fn,
 };
 pub use http;
 pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, WorkerOptions};
 
 #[cfg(feature = "fuzzing")]
 #[doc(hidden)]
-pub use bridge::{BodyFeed, BridgeHarness, ChannelFeed};
+pub use bridge::{BodyFeed, BridgeHarness, ChannelFeed, harness_channel_service};
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub use app::{App, AppBuilder, Module};

@@ -28,3 +28,30 @@ suite.check("unknown paths answer 404 from the handler", ["ssr"], async () => {
   expect(response.status).toBe(404);
   expect(await response.text()).toMatch(/Page not found/);
 });
+
+suite.check(
+  "a host channel streams a Rust job's steps as the response body",
+  ["channels"],
+  async () => {
+    const response = await fetch(suite.base + "/api/progress?steps=3");
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("step 1 of 3\nstep 2 of 3\nstep 3 of 3\n");
+  },
+);
+
+suite.check("a host channel delivers messages to its WebSocket view", ["channels"], async () => {
+  const response = await fetch(suite.base + "/api/progress/messages?steps=2");
+  expect(response.status).toBe(200);
+  expect(await response.json()).toStrictEqual({
+    messages: ["step 1 of 2\n", "step 2 of 2\n"],
+    closed: { code: 1000, reason: "done" },
+  });
+});
+
+suite.check("a channel service refuses options it does not accept", ["channels"], async () => {
+  const response = await fetch(suite.base + "/api/progress/messages?steps=100");
+  expect(response.status).toBe(400);
+  expect(await response.json()).toStrictEqual({
+    error: "host resource limit exceeded",
+  });
+});

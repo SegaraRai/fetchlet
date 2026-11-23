@@ -18,9 +18,27 @@ the semantics chosen, the alternatives rejected and the order of work.
 
 ## Status
 
-The handle table (step 1 of the [order of work](#order-of-work)) and held
-connections (step 5) are implemented, the latter for the axum integration,
-ahead of request-scoped channels:
+The handle table, request-scoped channels and held connections (steps 1, 2
+and 5 of the [order of work](#order-of-work)) are implemented, the last for
+the axum integration:
+
+- `HostServices::channel(name, service)` binds a `ChannelService`, and
+  `env.NAME.connect(options)` opens a channel of it in the current
+  invocation. `channel_fn` adapts an async function; the service gets the
+  options, the `Context` and the `ChannelEnd` in a `ChannelRequest`, and
+  its future settles the open in the host pump. `Limits::open_channels`
+  bounds the opens of one invocation.
+- `@fetchlet/web` builds the channel object, with `opened`, `closed`,
+  `close()` and two views: `socket()`, a WebSocket over the message view,
+  and `stream()`, a `readable` and `writable` of bytes. The bridge's env
+  binding calls the profile through `__fetchletChannelViews`. The stream
+  view writes with `channel.write`, which Rust splits into binary messages
+  within the budgets and completes when all are queued, and a full reader
+  pauses delivery with `channel.pause`, so Rust's sender waits.
+- A request-scoped channel closes when its invocation ends, after its
+  `waitUntil` work and an open response body. The bridge forgets an upgrade
+  the handler did not return when the handler returns, and the
+  invocation's other channels when it ends.
 
 - `Instances::max_held_connections` bounds held connections, and
   `AppHandle::reserve_connection` takes one place as a `HeldConnection`
@@ -58,10 +76,13 @@ Tests: `crates/fetchlet/tests/websocket.rs` on every engine,
 `crates/fetchlet-http/tests/websocket.rs` over a real socket, the handle
 table's tests in `bridge/handles.rs` and `bridge/tests.rs`, the
 `bridge_bodies` fuzz target, and the examples' end-to-end checks.
-`ChannelEnd` does not implement `Stream` and `Sink` yet, the actix
-integration does not upgrade, `ViteDev` does not serve upgrades, and the
-bridge hands JavaScript numeric handles rather than the wrappers described
-below.
+Request-scoped channels are tested in `crates/fetchlet/tests/channels.rs` on
+every engine, `packages/web/tests/channel.test.ts` and the vanilla-axum
+example's progress routes. `ChannelEnd` does not implement `Stream` and
+`Sink` yet, the actix integration does not upgrade, and `ViteDev` does not
+serve upgrades. The channel object keeps its handle in a private field, but
+the bridge's registry, which `@fetchlet/web` reaches as a global, still
+takes numeric handles.
 
 ## Constraints
 
@@ -255,9 +276,11 @@ The core types live in `crates/fetchlet/src/host/channel/`:
   receiver of messages that ends in a close, and it implements `Stream` and
   `Sink` for transports that prefer them. Dropping it closes the channel
   with code 1006.
-- **`ChannelService`** answers an open request from JavaScript with a
-  `ChannelEnd`, or refuses it. It receives the request's options and the
-  invocation's trusted `Context`, as host fetches do.
+- **`ChannelService`** answers an open request from JavaScript. Its
+  `ChannelRequest` carries the options, the invocation's trusted `Context`
+  and the `ChannelEnd`, which the bridge pairs with JavaScript's end within
+  the invocation's budgets; the service's future accepts or refuses the
+  open.
 - **`HostServices::channel(name, service)`** binds a service under a name in
   `env`. JavaScript opens it with `env.NAME.connect(options)`. Its name
   shares the binding namespace with `env` values and services.
@@ -265,9 +288,10 @@ The core types live in `crates/fetchlet/src/host/channel/`:
 Host code polled for a channel must not call the same application again;
 the reentry guard of `fetch.poll` covers channel polling too.
 
-Bridge operations are `channel.open`, `channel.send`, `channel.close` and,
-for the stream view, `channel.read`. Arrivals are delivered with the
-completions of `fetch.poll`. They are bridge operations of the fetchlet
+Bridge operations are `channel.open`, `channel.send`, `channel.close`,
+`channel.buffered` and, for the stream view, `channel.write` and
+`channel.pause`. Opens, refusals, finished writes, messages and closes are
+delivered with the completions of `fetch.poll`. They are bridge operations of the fetchlet
 crate, not fetchlet-web operations, so `PROTOCOL_VERSION` is unaffected.
 
 ## APIs on channels
@@ -437,7 +461,7 @@ Each step lands with tests at its own boundary:
    behavior, and the existing tests and fuzz targets cover it. Done, with
    channels on it too.
 2. Request-scoped channels with `HostServices::channel`, both views and the
-   new `Limits`.
+   new `Limits`. Done.
 3. `connect()` with `SocketService` and `SocketPolicy` in fetchlet-http
    behind a `sockets` feature.
 4. The client `WebSocket` with `WebSocketService` in fetchlet-http behind a

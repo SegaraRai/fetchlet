@@ -97,7 +97,7 @@ Unexpected results: 0.
 | qwik-city-axum               | 12 / 12 | 12 / 12 | 12 / 12 | @builder.io/qwik-city 1.20.4  | 159.0.8154.6  |
 | waku-axum                    | 12 / 12 | 12 / 12 | 12 / 12 | waku 1.0.0-rc.5               | 159.0.8154.6  |
 | vinext-axum                  | 12 / 12 | 12 / 12 | 12 / 12 | vinext 1.4.6                  | 159.0.8154.6  |
-| vanilla-axum                 | 14 / 14 | 14 / 14 | 14 / 14 | —                             | 159.0.8154.6  |
+| vanilla-axum                 | 17 / 17 | 17 / 17 | 17 / 17 | —                             | 159.0.8154.6  |
 | vanilla-axum-vite-dev        | 5 / 5   | 5 / 5   | 5 / 5   | —                             | 159.0.8154.6  |
 | vanilla-cli                  | 5 / 5   | 5 / 5   | 5 / 5   | —                             | —             |
 
@@ -126,6 +126,7 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 | waitUntil           | ✓         | —               | —                 | ✓     | —              | ✓       | ✓            | —                     | ✓     | ✓           | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
 | Concurrency         | ✓         | —               | —                 | ✓     | —              | ✓       | ✓            | —                     | ✓     | ✓           | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
 | WebSockets          | ✓         | —               | —                 | ✓     | —              | ✓       | ✓            | —                     | ✓     | —           | ✓              | —                       | ✓          | —                   | ✓     | ✓         | ✓    | ✓      | ✓       | —                | n/a (1)     |
+| Host channels       | —         | —               | —                 | —     | —              | —       | —            | —                     | —     | —           | —              | —                       | —          | —                   | —     | —         | —    | —      | ✓       | —                | n/a (1)     |
 
 1. A command line program calls functions without HTTP requests.
 2. Tauri's UriSchemeResponder takes a complete body.
@@ -135,7 +136,7 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 
 ## Fuzzing
 
-`vp run test:fuzz`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. AddressSanitizer, up to 1,000,000 runs or 30 s per target, rustc 1.102.0-nightly (65ce8611f 2026-11-18).
+`vp run test:fuzz`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. AddressSanitizer, up to 1,000,000 runs or 60 s per target, rustc 1.102.0-nightly (65ce8611f 2026-11-18).
 
 | Target        | Status |
 | ------------- | ------ |

@@ -10,6 +10,7 @@
     await globalThis.__fetchletBackground.settle();
   } finally {
     globalThis.__fetchletResponseBodies?.closeAll();
+    globalThis.__fetchletChannels?.closeAll();
     globalThis.__fetchletClearTimers?.();
     globalThis.__fetchletClearPerformanceEntries?.();
   }

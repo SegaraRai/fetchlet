@@ -19,7 +19,7 @@
   "backend": "v8",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 14,
+    "passed": 17,
     "failed": 0
   },
   "results": [
@@ -91,6 +91,21 @@
     {
       "name": "unknown paths answer 404 from the handler",
       "features": ["ssr"],
+      "status": "pass"
+    },
+    {
+      "name": "a host channel streams a Rust job's steps as the response body",
+      "features": ["channels"],
+      "status": "pass"
+    },
+    {
+      "name": "a host channel delivers messages to its WebSocket view",
+      "features": ["channels"],
+      "status": "pass"
+    },
+    {
+      "name": "a channel service refuses options it does not accept",
+      "features": ["channels"],
       "status": "pass"
     }
   ]

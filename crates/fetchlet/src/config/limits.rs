@@ -56,6 +56,11 @@ pub struct Limits {
     /// room; a JavaScript send past it closes the channel with code 1009, as
     /// WebSocket has no way to make `send` wait.
     pub channel_buffer_bytes: Option<usize>,
+    /// Channels JavaScript opens with `env.NAME.connect` during one
+    /// invocation, including refused opens, as `subrequests` counts fetches.
+    /// A caller budget; an accepted WebSocket upgrade is bounded by
+    /// `Instances::max_held_connections` instead.
+    pub open_channels: Option<usize>,
     /// How long a held connection, such as a server WebSocket, stays open
     /// without a message in either direction. Running out closes it with
     /// code 1001.

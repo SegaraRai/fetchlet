@@ -19,7 +19,7 @@ pub(crate) use dispatcher::Disconnect;
 ))]
 pub(crate) use dispatcher::InvocationScope;
 #[cfg(feature = "fuzzing")]
-pub use harness::{BodyFeed, BridgeHarness, ChannelFeed};
+pub use harness::{BodyFeed, BridgeHarness, ChannelFeed, harness_channel_service};
 
 #[cfg(test)]
 mod tests;

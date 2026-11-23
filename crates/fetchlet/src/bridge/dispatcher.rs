@@ -8,7 +8,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use super::body_source::{BodyRead, BodySource};
-use super::channels::{GuestClose, GuestMessage};
+use super::channels::{GuestClose, GuestMessage, GuestPause, GuestWrite};
 use super::clock::Clock;
 use super::handles::{Handles, Resource};
 use crate::config::check_limit;
@@ -17,8 +17,8 @@ use crate::host::{Redirect, TransportFuture, pair};
 use crate::reentry;
 use crate::wire::{BodyTransfer, ByteStore, ByteTransport, WireBytes, WireRequest, WireResponse};
 use crate::{
-    Body, ChannelEnd, CloseFrame, ConsoleLevel, Context, Error, HostServices, Limits, Response,
-    Result,
+    Body, ChannelEnd, ChannelRequest, CloseFrame, ConsoleLevel, Context, Error, HostServices,
+    Limits, Response, Result,
 };
 
 struct PendingFetch {
@@ -45,6 +45,8 @@ struct InvocationState {
     generation: u64,
     next_ticket: u64,
     started_fetches: usize,
+    /// `channel.open` attempts, which `Limits::open_channels` bounds.
+    opened_channels: usize,
     limits: Limits,
     pending_fetches: BTreeMap<String, PendingFetch>,
     bytes: ByteStore,
@@ -359,6 +361,7 @@ impl HostBridge {
             generation,
             next_ticket: 0,
             started_fetches: 0,
+            opened_channels: 0,
             limits,
             pending_fetches: BTreeMap::new(),
             bytes: ByteStore::default(),
@@ -465,7 +468,10 @@ impl HostBridge {
             "body.readText" => self.read_body(input, Some(Whole::Text)),
             "channel.buffered" => self.channel_buffered(input),
             "channel.close" => self.close_channel(input),
+            "channel.open" => self.open_channel(input),
+            "channel.pause" => self.pause_channel(input),
             "channel.send" => self.send_channel(input),
+            "channel.write" => self.write_channel(input),
             "clock" => Ok(self.clock.read()),
             "console.write" => self.write_console(input),
             "fetch.cancel" => self.cancel_fetch(input),
@@ -507,10 +513,12 @@ impl HostBridge {
 
     fn bindings(&self) -> Value {
         let service_names: Vec<_> = self.services.services.keys().collect();
+        let channel_names: Vec<_> = self.services.channels.keys().collect();
 
         json!({
             "env": self.services.env,
             "services": service_names,
+            "channels": channel_names,
             "console": self.services.console.is_some(),
         })
     }
@@ -720,6 +728,74 @@ impl HostBridge {
             .open_connection(guest, &invocation.limits)?;
         invocation.upgrade = Upgrade::Accepted { id, end: Some(end) };
         Ok(Value::from(id))
+    }
+
+    /// Open a channel of a bound service for the current invocation. The
+    /// handle is JavaScript's at once; the open settles in the host pump.
+    fn open_channel(&self, input: &str) -> Result<Value> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Open {
+            service: String,
+            #[serde(default)]
+            options: Value,
+        }
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let opened = invocation
+            .opened_channels
+            .checked_add(1)
+            .ok_or(Error::LimitExceeded("channel counter"))?;
+        check_limit(invocation.limits.open_channels, opened, "open channels")?;
+        invocation.opened_channels = opened;
+
+        let open: Open = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid channel open".into()))?;
+        let service = self
+            .services
+            .channels
+            .get(&open.service)
+            .ok_or(Error::PermissionDenied)?;
+        let (end, guest) = pair(&invocation.limits);
+        let request = ChannelRequest {
+            options: open.options,
+            context: invocation.context.clone(),
+            end,
+        };
+        // The service builds its future here; host code must not call this
+        // application again, and what it spawns belongs to the host runtime.
+        let opening = {
+            let _opening = reentry::enter(self.key);
+            let _runtime = self.runtime.as_ref().map(tokio::runtime::Handle::enter);
+            service.open(request)
+        };
+        let id = invocation.handles.open_requested(guest, opening)?;
+        // The open is polled at the next pump.
+        self.wake.notify();
+        Ok(Value::from(id))
+    }
+
+    fn write_channel(&self, input: &str) -> Result<Value> {
+        let write: GuestWrite = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid channel write".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let result = invocation
+            .handles
+            .write_channel(write, &mut invocation.bytes);
+        self.wake.notify();
+        result
+    }
+
+    fn pause_channel(&self, input: &str) -> Result<Value> {
+        let pause: GuestPause = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid channel pause".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        let result = invocation.handles.pause_channel(pause);
+        // Arrivals held back while paused are delivered at the next pump.
+        self.wake.notify();
+        result
     }
 
     fn send_channel(&self, input: &str) -> Result<Value> {
