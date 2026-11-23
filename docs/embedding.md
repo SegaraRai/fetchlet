@@ -8,12 +8,12 @@ lifecycle.
 
 ## What a binary contains
 
-| Part          | Source                                                    | How it is loaded                         |
-| ------------- | --------------------------------------------------------- | ---------------------------------------- |
-| Engine        | The `fetchlet` crate's `quickjs`, `boa` or `v8` feature   | Linked into the binary                   |
-| Server bundle | `server.js` from `fetchlet/build`                         | `Module::new(source)`                    |
-| Manifest      | `fetchlet.json`: handler, functions, backend, assets      | `Artifact::handler()`                    |
-| Client assets | `assets.flpk`, a Brotli [asset archive](asset-archive.md) | `AssetArchive`, served by `AssetService` |
+| Part          | Source                                                             | How it is loaded                                        |
+| ------------- | ------------------------------------------------------------------ | ------------------------------------------------------- |
+| Engine        | The `fetchlet` crate's `quickjs`, `boa` or `v8` feature            | Linked into the binary                                  |
+| Server bundle | `server.js` from `fetchlet/build`                                  | `Module::new(source).requires(artifact.requirements())` |
+| Manifest      | `fetchlet.json`: handler, functions, backend, requirements, assets | `Artifact::handler()`, `Artifact::requirements()`       |
+| Client assets | `assets.flpk`, a Brotli [asset archive](asset-archive.md)          | `AssetArchive`, served by `AssetService`                |
 
 `fetchlet_http::include_artifact!(dir)` embeds `fetchlet.json`, `server.js`
 and `assets.flpk` from a build directory and returns an `Artifact`;

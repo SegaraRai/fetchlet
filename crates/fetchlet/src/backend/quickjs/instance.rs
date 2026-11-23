@@ -9,6 +9,7 @@ use serde_json::Value;
 
 use super::QuickJsOptions;
 use crate::Instance;
+use crate::backend::Startup;
 use crate::bridge::HostBridge;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
@@ -28,11 +29,11 @@ impl QuickJs {
     }
 
     pub fn with_options(source: &str, options: QuickJsOptions) -> Result<Self> {
-        Self::with_host(source, HostBridge::default(), options)
+        Self::with_host(&Startup::unchecked(source), HostBridge::default(), options)
     }
 
     pub(crate) fn with_host(
-        source: &str,
+        startup: &Startup<'_>,
         host: HostBridge,
         options: QuickJsOptions,
     ) -> Result<Self> {
@@ -82,7 +83,12 @@ impl QuickJs {
             )?;
             context.eval::<(), _>(PRELUDE)?;
             context.eval::<(), _>(HOST_BOOTSTRAP)?;
-            context.eval::<(), _>(source).map_err(|error| {
+            let report = match startup.check().probe() {
+                Some(probe) => Some(context.eval::<String, _>(probe)?),
+                None => None,
+            };
+            startup.check().admit(report.as_deref())?;
+            context.eval::<(), _>(startup.source()).map_err(|error| {
                 let exception = context.catch();
                 anyhow!("{error}: {exception:?}")
             })?;

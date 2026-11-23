@@ -118,7 +118,7 @@ async fn client_assets_are_served_before_the_application() -> anyhow::Result<()>
     std::fs::write(directory.join("private.txt"), "private")?;
     let artifact = Artifact::open(&directory)?;
     let app = App::builder(Backend::quickjs())
-        .module(Module::new(artifact.server_source()?))
+        .module(Module::new(artifact.server_source()?).requires(artifact.requirements()))
         .fetch_handler(artifact.handler())
         .spawn(WorkerOptions::new(NonZeroUsize::MIN))
         .await?;
@@ -173,7 +173,7 @@ async fn an_asset_archive_replaces_the_client_directory() -> anyhow::Result<()> 
         Some(9)
     );
     let app = App::builder(Backend::quickjs())
-        .module(Module::new(artifact.server_source()?))
+        .module(Module::new(artifact.server_source()?).requires(artifact.requirements()))
         .fetch_handler(artifact.handler())
         .spawn(WorkerOptions::new(NonZeroUsize::MIN))
         .await?;

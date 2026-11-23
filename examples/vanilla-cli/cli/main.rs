@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
     let mut worker = WorkerOptions::new(NonZeroUsize::MIN);
     worker.stack_size_bytes = NonZeroUsize::new(WORKER_STACK_BYTES);
     let app = App::builder(backend()?)
-        .module(Module::new(artifact.server_source()?))
+        .module(Module::new(artifact.server_source()?).requires(artifact.requirements()))
         .fetch_handler(artifact.handler())
         .host_services(HostServices::new().env("GREETING", "Hello")?)
         .spawn(worker)

@@ -8,6 +8,7 @@ mod fetch;
 mod host;
 mod placed;
 mod reentry;
+mod requirements;
 mod wire;
 mod worker;
 
@@ -39,6 +40,7 @@ pub use host::{
     transport_fn, websocket_fn,
 };
 pub use http;
+pub use requirements::Requirements;
 pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, WorkerOptions};
 
 #[cfg(feature = "fuzzing")]

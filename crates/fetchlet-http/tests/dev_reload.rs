@@ -62,7 +62,7 @@ fn write_build(directory: &Path, server: &str) {
 
 async fn generation(artifact: Artifact) -> anyhow::Result<Generation<axum::Router>> {
     let app = App::builder(Backend::quickjs())
-        .module(Module::new(artifact.server_source()?))
+        .module(Module::new(artifact.server_source()?).requires(artifact.requirements()))
         .fetch_handler(artifact.handler())
         .spawn(WorkerOptions::new(NonZeroUsize::new(4).unwrap()))
         .await?;

@@ -125,6 +125,31 @@ async fn the_artifact_selects_the_engine() {
     let _ = std::fs::remove_dir_all(build);
 }
 
+/// An artifact built for V8 leaves Intl to the engine; a server that runs
+/// it on QuickJS refuses it before its module runs.
+#[tokio::test(flavor = "current_thread")]
+async fn an_artifact_built_for_another_engine_is_refused() {
+    let build = directory();
+    write_build(&build, "v8");
+    std::fs::write(
+        build.join("fetchlet.json"),
+        r#"{"format":"fetchlet-iife","formatVersion":1,"handler":"render","server":"server.js","client":"client","backend":"v8","nativeRequirements":["Intl.DateTimeFormat"],"intl":{"locales":["en"],"timeZoneData":"utc"}}"#,
+    )
+    .unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let error = Server::new(&build)
+        .backend(fetchlet::Backend::quickjs())
+        .serve_with_shutdown(listener, async {})
+        .await
+        .unwrap_err();
+    let message = error.to_string();
+    assert!(
+        message.contains("native Intl.DateTimeFormat") && message.contains("QuickJS"),
+        "{message}"
+    );
+    let _ = std::fs::remove_dir_all(build);
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn a_missing_build_says_to_build_first() {
     let build = directory().join("missing");

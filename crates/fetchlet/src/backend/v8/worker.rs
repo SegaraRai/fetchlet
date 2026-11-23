@@ -11,6 +11,7 @@ use tokio::sync::oneshot;
 use super::V8Options;
 use super::runtime::V8Runtime;
 use crate::Instance;
+use crate::backend::Startup;
 use crate::bridge::HostBridge;
 use crate::execution::{WakeSignal, invocation};
 
@@ -37,13 +38,18 @@ impl V8 {
     }
 
     pub fn with_options(source: &str, options: V8Options) -> Result<Self> {
-        Self::with_host(source, HostBridge::default(), options)
+        Self::with_host(&Startup::unchecked(source), HostBridge::default(), options)
     }
 
-    pub(crate) fn with_host(source: &str, host: HostBridge, options: V8Options) -> Result<Self> {
+    pub(crate) fn with_host(
+        startup: &Startup<'_>,
+        host: HostBridge,
+        options: V8Options,
+    ) -> Result<Self> {
         options.validate()?;
         let wake = host.wake_signal();
-        let source = source.to_owned();
+        let source = startup.source().to_owned();
+        let check = startup.check().clone();
         let (sender, receiver) = mpsc::channel::<Option<Call>>();
         let (ready, initialized) = mpsc::sync_channel(1);
         let mut worker = thread::Builder::new().name("fetchlet-v8".into());
@@ -57,15 +63,15 @@ impl V8 {
             {
                 Ok(runtime) => runtime,
                 Err(error) => {
-                    let _ = ready.send(Err(error.to_string()));
+                    let _ = ready.send(Err(error.into()));
                     return;
                 }
             };
             let _entered = executor.enter();
-            let mut local = match V8Runtime::new(&source, host) {
+            let mut local = match V8Runtime::new(&source, &check, host) {
                 Ok(local) => local,
                 Err(error) => {
-                    let _ = ready.send(Err(format!("{error:#}")));
+                    let _ = ready.send(Err(error));
                     return;
                 }
             };
@@ -87,7 +93,7 @@ impl V8 {
                 let _ = call.reply.send((result, local.is_reusable()));
             }
         })?;
-        let isolate = initialized.recv()?.map_err(|error| anyhow!(error))?;
+        let isolate = initialized.recv()??;
         Ok(Self {
             sender,
             worker: Some(worker),

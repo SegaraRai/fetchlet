@@ -7,6 +7,7 @@ use deno_error::JsErrorBox;
 use serde_json::Value;
 
 use crate::Instance;
+use crate::backend::Check;
 use crate::bridge::HostBridge;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
@@ -65,7 +66,7 @@ impl V8Runtime {
         self.cancelled = flag;
     }
 
-    pub(super) fn new(source: &str, host: HostBridge) -> Result<Self> {
+    pub(super) fn new(source: &str, check: &Check, host: HostBridge) -> Result<Self> {
         let mut runtime = JsRuntime::new(RuntimeOptions {
             extensions: vec![fetchlet_host::init()],
             ..Default::default()
@@ -103,6 +104,17 @@ impl V8Runtime {
         runtime
             .execute_script("fetchlet:bridge", HOST_BOOTSTRAP)
             .map_err(|error| anyhow!("{error}"))?;
+        let report = match check.probe() {
+            Some(probe) => {
+                let value = runtime
+                    .execute_script("fetchlet:probe", probe.to_owned())
+                    .map_err(|error| anyhow!("{error}"))?;
+                deno_core::scope!(scope, &mut runtime);
+                Some(v8::Local::new(scope, value).to_rust_string_lossy(scope))
+            }
+            None => None,
+        };
+        check.admit(report.as_deref())?;
         runtime
             .execute_script("fetchlet:bundle", source.to_owned())
             .map_err(|error| anyhow!("{error}"))?;

@@ -1,5 +1,6 @@
 mod engine;
 mod selection;
+mod startup;
 
 #[cfg(feature = "boa")]
 mod boa;
@@ -8,7 +9,6 @@ mod quickjs;
 #[cfg(feature = "v8")]
 mod v8;
 
-pub(crate) use engine::Engine;
 pub use selection::Backend;
 
 #[cfg(feature = "boa")]
@@ -17,3 +17,9 @@ pub use boa::{Boa, BoaOptions};
 pub use quickjs::{QuickJs, QuickJsOptions};
 #[cfg(feature = "v8")]
 pub use v8::{V8, V8Options};
+
+pub(crate) use engine::Engine;
+pub(crate) use startup::Startup;
+
+#[cfg(feature = "v8")]
+pub(crate) use startup::Check;

@@ -154,7 +154,7 @@ use fetchlet_http::{Artifact, AxumService, artifact_router};
 
 let artifact = Artifact::open("build")?;
 let app = App::builder(Backend::quickjs())
-    .module(Module::new(artifact.server_source()?))
+    .module(Module::new(artifact.server_source()?).requires(artifact.requirements()))
     .fetch_handler(artifact.handler())
     .spawn(WorkerOptions::new(queue_capacity))
     .await?;
@@ -165,6 +165,8 @@ let router = axum::Router::new()
     .merge(artifact_router(&artifact, rendering));
 axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>()).await?;
 ```
+
+`artifact.requirements()` carries what the build left to the host, such as native Intl APIs on a V8 build; building the App checks them against its engine before `server.js` runs, and refuses a host that lacks one with an error naming each. `Server` does this itself.
 
 Manifest paths that leave the artifact directory are refused. Client files answer GET and HEAD; other methods and missing files reach the application, so the framework handles its own routes, actions and 404 pages.
 

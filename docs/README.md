@@ -72,3 +72,5 @@
   app while the Rust host keeps running.
 - [Async context propagation](research/async-context.md): the design for
   isolating concurrent `AsyncLocalStorage` runs on every engine.
+- [Capability negotiation](research/capability-negotiation.md): checking
+  an artifact's engine and host requirements when an App is built.

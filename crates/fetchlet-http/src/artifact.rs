@@ -4,6 +4,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
 use bytes::Bytes;
+use fetchlet::Requirements;
 use serde::Deserialize;
 
 use crate::assets::{AssetArchive, AssetArchiveError};
@@ -45,6 +46,30 @@ struct Manifest {
     client: Option<String>,
     assets: Option<String>,
     backend: Option<String>,
+    /// What the artifact needs from its host, from builds that record it.
+    needs: Option<Needs>,
+    /// The fields older builds derive needs from.
+    #[serde(default)]
+    native_requirements: Vec<String>,
+    intl: Option<Intl>,
+    async_context: Option<String>,
+}
+
+/// `needs` in the manifest: the assumptions the build made about the host.
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+struct Needs {
+    engine_apis: Vec<String>,
+    locales: Vec<String>,
+    async_context: bool,
+    host_apis: Vec<String>,
+    host_protocol: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(default)]
+struct Intl {
+    locales: Vec<String>,
 }
 
 /// A failure to read an artifact.
@@ -155,6 +180,49 @@ impl Artifact {
     /// The engine the server module was built for, such as `quickjs`.
     pub fn backend(&self) -> Option<&str> {
         self.manifest.backend.as_deref()
+    }
+
+    /// What the server module needs from the host that runs it, for
+    /// `fetchlet::Module::requires`: the engine APIs the build left to the
+    /// engine and their locales, the engine's async context, and the Web
+    /// APIs and protocol of fetchlet-web. Building an App with them refuses
+    /// a host that lacks one before the module runs.
+    ///
+    /// ```ignore
+    /// let module = Module::new(artifact.server_source()?).requires(artifact.requirements());
+    /// ```
+    ///
+    /// For a manifest without `needs`, they come from `nativeRequirements`,
+    /// `intl.locales` and `asyncContext`.
+    pub fn requirements(&self) -> Requirements {
+        let manifest = &self.manifest;
+        let needs = match &manifest.needs {
+            Some(needs) => needs.clone(),
+            None => Needs {
+                engine_apis: manifest.native_requirements.clone(),
+                locales: manifest
+                    .intl
+                    .as_ref()
+                    .map(|intl| intl.locales.clone())
+                    .unwrap_or_default(),
+                async_context: manifest.async_context.as_deref() == Some("propagated"),
+                ..Needs::default()
+            },
+        };
+        let mut requirements = Requirements::new().locales(needs.locales);
+        for api in needs.engine_apis {
+            requirements = requirements.engine_api(api);
+        }
+        if needs.async_context {
+            requirements = requirements.async_context();
+        }
+        for api in needs.host_apis {
+            requirements = requirements.host_api(api);
+        }
+        if let Some(version) = needs.host_protocol {
+            requirements = requirements.host_protocol(version);
+        }
+        requirements
     }
 
     /// The server module's file, for an artifact read from a directory.
@@ -324,6 +392,42 @@ mod tests {
         let older = Artifact::embedded(&manifest(r#""server":"server.js""#), "", None).unwrap();
         assert_eq!(older.handler(), Some("handle"));
         assert_eq!(older.functions(), None);
+    }
+
+    fn requirements(fields: &str) -> Requirements {
+        Artifact::embedded(
+            &manifest(&format!(r#""server":"server.js"{fields}"#)),
+            "",
+            None,
+        )
+        .unwrap()
+        .requirements()
+    }
+
+    #[test]
+    fn requirements_come_from_needs_or_the_older_fields() {
+        assert!(requirements("").is_empty());
+        assert_eq!(
+            requirements(
+                r#","nativeRequirements":["Intl.DateTimeFormat"],"intl":{"locales":["en","ja"],"timeZoneData":"utc"},"asyncContext":"propagated""#
+            ),
+            Requirements::new()
+                .engine_api("Intl.DateTimeFormat")
+                .locales(["en", "ja"])
+                .async_context()
+        );
+        assert!(requirements(r#","nativeRequirements":[],"asyncContext":"serialized""#).is_empty());
+        // needs, when present, is the whole answer.
+        assert_eq!(
+            requirements(
+                r#","nativeRequirements":["Intl.Locale"],"needs":{"engineApis":["Intl.NumberFormat"],"locales":["en"],"asyncContext":false,"hostApis":["crypto"],"hostProtocol":3}"#
+            ),
+            Requirements::new()
+                .engine_api("Intl.NumberFormat")
+                .locales(["en"])
+                .host_api("crypto")
+                .host_protocol(3)
+        );
     }
 
     #[test]

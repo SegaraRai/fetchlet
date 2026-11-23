@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::Backend;
+use super::{Backend, Startup};
 use crate::bridge::HostBridge;
 use crate::{Error, Instance, Module, Result};
 
@@ -15,20 +15,25 @@ pub(crate) enum Engine {
 
 impl Engine {
     pub(crate) fn new(backend: Backend, module: &Module, host: HostBridge) -> Result<Self> {
+        let startup = Startup::new(module, &backend);
         let result = match backend {
             #[cfg(feature = "quickjs")]
             Backend::QuickJs(options) => {
-                super::QuickJs::with_host(module.source(), host, options).map(Self::QuickJs)
+                super::QuickJs::with_host(&startup, host, options).map(Self::QuickJs)
             }
             #[cfg(feature = "boa")]
-            Backend::Boa(options) => super::Boa::with_host(module.source(), host, options)
+            Backend::Boa(options) => super::Boa::with_host(&startup, host, options)
                 .map(|engine| Self::Boa(Box::new(engine))),
             #[cfg(feature = "v8")]
-            Backend::V8(options) => {
-                super::V8::with_host(module.source(), host, options).map(Self::V8)
-            }
+            Backend::V8(options) => super::V8::with_host(&startup, host, options).map(Self::V8),
         };
-        result.map_err(|error| Error::JavaScript(error.to_string()))
+        // An unmet requirement keeps its own error; anything else the
+        // engine reported while starting is JavaScript's.
+        result.map_err(|error| match error.downcast::<Error>() {
+            Ok(error @ Error::Configuration(_)) => error,
+            Ok(error) => Error::JavaScript(error.to_string()),
+            Err(error) => Error::JavaScript(error.to_string()),
+        })
     }
 
     /// Evaluate a prepared invocation expression (see `execution::script`).

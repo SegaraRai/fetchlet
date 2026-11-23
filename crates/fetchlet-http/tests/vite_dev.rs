@@ -66,7 +66,7 @@ async fn serves_vite_modules_in_front_of_the_development_artifact() -> anyhow::R
 
     let services = vite.host_services(HostServices::new())?;
     let app = App::builder(Backend::quickjs())
-        .module(Module::new(artifact.server_source()?))
+        .module(Module::new(artifact.server_source()?).requires(artifact.requirements()))
         .fetch_handler(artifact.handler())
         .host_services(services)
         .spawn(WorkerOptions::new(NonZeroUsize::new(4).unwrap()))

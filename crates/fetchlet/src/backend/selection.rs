@@ -102,6 +102,31 @@ impl Backend {
         }
     }
 
+    /// The engine's name, for messages.
+    pub(crate) fn engine_name(&self) -> &'static str {
+        match self {
+            #[cfg(feature = "boa")]
+            Self::Boa(_) => "Boa",
+            #[cfg(feature = "quickjs")]
+            Self::QuickJs(_) => "QuickJS",
+            #[cfg(feature = "v8")]
+            Self::V8(_) => "V8",
+        }
+    }
+
+    /// Whether fetchlet gives the engine an async context slot, which
+    /// carries a value through promise reactions. QuickJS has none.
+    pub(crate) fn has_async_context(&self) -> bool {
+        match self {
+            #[cfg(feature = "boa")]
+            Self::Boa(_) => true,
+            #[cfg(feature = "quickjs")]
+            Self::QuickJs(_) => false,
+            #[cfg(feature = "v8")]
+            Self::V8(_) => true,
+        }
+    }
+
     pub(crate) fn validate(&self) -> crate::Result<()> {
         match self {
             #[cfg(feature = "boa")]

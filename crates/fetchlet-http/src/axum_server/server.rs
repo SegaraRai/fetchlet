@@ -451,16 +451,20 @@ impl Settings {
             Some(backend) => backend,
             None => default_backend(artifact, &worker)?,
         };
-        let mut builder = App::builder(backend)
-            .module(Module::new(artifact.server_source().map_err(|source| {
-                ServerError::Artifact {
-                    directory: artifact.directory().map(PathBuf::from).unwrap_or_default(),
-                    source,
-                }
-            })?))
-            .fetch_handler(artifact.handler())
-            .host_services(services)
-            .limits(self.limits.clone());
+        let mut builder =
+            App::builder(backend)
+                .module(
+                    Module::new(artifact.server_source().map_err(|source| {
+                        ServerError::Artifact {
+                            directory: artifact.directory().map(PathBuf::from).unwrap_or_default(),
+                            source,
+                        }
+                    })?)
+                    .requires(artifact.requirements()),
+                )
+                .fetch_handler(artifact.handler())
+                .host_services(services)
+                .limits(self.limits.clone());
         // Host transport tasks, such as pooled connections, run on the
         // server's runtime, so no instance's JavaScript holds them up. A
         // current-thread runtime progresses only while its own thread waits,

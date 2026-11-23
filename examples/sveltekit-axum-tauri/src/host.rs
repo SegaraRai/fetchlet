@@ -132,7 +132,7 @@ impl Site {
             .console(|level, message| eprintln!("[js {level:?}] {message}"))
             .env("MDW_SHELL", self.shell.as_str())?;
         let app = App::builder(config.backend()?)
-            .module(Module::new(artifact.server_source()?))
+            .module(Module::new(artifact.server_source()?).requires(artifact.requirements()))
             .fetch_handler(artifact.handler())
             .host_services(hosts)
             .limits(config.limits())

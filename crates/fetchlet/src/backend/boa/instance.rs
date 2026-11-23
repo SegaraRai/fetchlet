@@ -17,6 +17,7 @@ use serde_json::Value;
 
 use super::{BoaOptions, array_buffer};
 use crate::Instance;
+use crate::backend::Startup;
 use crate::bridge::HostBridge;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
@@ -32,10 +33,18 @@ struct BoaHost(HostBridge);
 
 impl Boa {
     pub fn new(source: &str) -> Result<Self> {
-        Self::with_host(source, HostBridge::default(), BoaOptions::default())
+        Self::with_host(
+            &Startup::unchecked(source),
+            HostBridge::default(),
+            BoaOptions::default(),
+        )
     }
 
-    pub(crate) fn with_host(source: &str, host: HostBridge, options: BoaOptions) -> Result<Self> {
+    pub(crate) fn with_host(
+        startup: &Startup<'_>,
+        host: HostBridge,
+        options: BoaOptions,
+    ) -> Result<Self> {
         let mut context = Context::builder()
             .host_hooks(Rc::new(EngineHooks))
             .build()
@@ -86,8 +95,19 @@ impl Boa {
         context
             .eval(Source::from_bytes(HOST_BOOTSTRAP))
             .map_err(|error| anyhow!("{error}"))?;
+        let report = match startup.check().probe() {
+            Some(probe) => Some(
+                context
+                    .eval(Source::from_bytes(probe))
+                    .and_then(|value| value.to_string(&mut context))
+                    .map_err(|error| anyhow!("{error}"))?
+                    .to_std_string_escaped(),
+            ),
+            None => None,
+        };
+        startup.check().admit(report.as_deref())?;
         context
-            .eval(Source::from_bytes(source))
+            .eval(Source::from_bytes(startup.source()))
             .map_err(|error| anyhow!("{error}"))?;
         context
             .eval(Source::from_bytes(SEAL_HOST))
