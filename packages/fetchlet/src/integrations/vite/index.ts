@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import type { Plugin, ResolvedConfig } from "vite";
 
+import { runtimeConditions } from "../../build/conditions.ts";
 import { exportedHandlerSource } from "../../build/exported-handler.ts";
 import { devServerPlugin } from "./dev-server.ts";
 import { serverEnvironmentPlugin, type ViteArtifactOptions } from "./server-environment.ts";
@@ -125,8 +126,8 @@ export default function fetchlet({
         isServerEntry: (chunk) => chunk.name === "server",
         serverEnvironment: {
           resolve: {
-            // Web-standard builds of dependencies, bundled for the engine.
-            conditions: ["worker", "module", "import", "production", "default"],
+            // fetchlet's builds of dependencies, bundled for the engine.
+            conditions: runtimeConditions(),
           },
         },
         entrySource: exportedHandlerSource,

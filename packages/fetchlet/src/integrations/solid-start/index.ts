@@ -1,5 +1,6 @@
 import type { Plugin } from "vite";
 
+import { runtimeConditions } from "../../build/conditions.ts";
 import { devServerPlugin } from "../vite/dev-server.ts";
 import {
   importPath,
@@ -39,10 +40,9 @@ export default function fetchletSolidStart(options: FetchletSolidStartOptions = 
       },
       serverEnvironment: {
         resolve: {
-          // Bundle every dependency for a Web-standard server: "solid" compiles
-          // Solid libraries from source for SSR, "worker" selects the server
-          // build of solid-js, and h3 keeps its generic build.
-          conditions: ["solid", "worker", "generic", "module", "import", "production", "default"],
+          // Bundle every dependency for fetchlet: "solid" compiles Solid
+          // libraries from source for SSR, and h3 keeps its generic build.
+          conditions: ["solid", "generic", ...runtimeConditions()],
         },
       },
       // h3 reads the client address, waitUntil and the runtime from the

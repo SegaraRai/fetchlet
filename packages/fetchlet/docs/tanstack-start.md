@@ -32,8 +32,9 @@ The client builds to `build/client/` and the server to
 `build/server.js`, connected to the server's `fetch`, and
 `build/fetchlet.json`.
 
-The SSR environment bundles every dependency with the `worker` and
-`edge-light` conditions, so router-core uses its server build.
+The SSR environment bundles every dependency with
+[fetchlet's export conditions](build.md#export-conditions), whose `worker`
+selects router-core's server build.
 `react-dom/server` resolves to `react-dom/server.edge` (the worker build
 uses `MessageChannel`). `process.env.TSS_PRERENDERING` and `TSS_SHELL`,
 which Start reads while evaluating modules, are replaced with `"false"`.

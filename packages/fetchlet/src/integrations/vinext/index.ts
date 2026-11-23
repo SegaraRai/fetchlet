@@ -5,6 +5,7 @@ import type { Plugin } from "vite";
 
 import { IMMUTABLE } from "../../build/asset-entries.ts";
 import { frameworkAssets, type AssetsOption } from "../../build/asset-option.ts";
+import { runtimeConditions } from "../../build/conditions.ts";
 import { buildArtifact, type BuildBackend, type IntlOptions } from "../../build/index.ts";
 import { vinextNodeCompat, vinextNodeDefines } from "./node-compat.ts";
 
@@ -28,8 +29,11 @@ export interface FetchletVinextOptions {
   intl?: IntlOptions;
 }
 
-// Web-standard builds, such as react-dom/server.edge, bundled with the server.
-const serverConditions = ["workerd", "edge-light", "worker"];
+// React's server packages, such as react-server-dom-webpack/client, have
+// server-side builds only under "workerd" or "edge-light" among the Web
+// runtime keys; their "worker" builds expect a browser.
+const extraConditions = ["workerd"];
+const serverConditions = [...extraConditions, ...runtimeConditions()];
 
 /**
  * A Vite plugin for the vinext App Router. The client build goes to the
@@ -107,7 +111,7 @@ export default function fetchletVinext({
           rendering: "streaming",
           asyncContext: "serialized",
           // vinext keeps React external in its SSR build.
-          conditions: serverConditions,
+          conditions: extraConditions,
           plugins: [vinextNodeCompat()],
           define: vinextNodeDefines,
           backend,

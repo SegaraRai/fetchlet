@@ -1,6 +1,7 @@
 import type { FetchletBindings } from "fetchlet/bindings";
 import type { Plugin } from "vite";
 
+import { runtimeConditions } from "../../build/conditions.ts";
 import { devServerPlugin } from "../vite/dev-server.ts";
 import {
   importPath,
@@ -21,9 +22,9 @@ export interface FetchletRequestContext<Env = Readonly<FetchletBindings>> {
   waitUntil(promise: unknown): void;
 }
 
-// Web-standard builds of dependencies, such as react-dom/server.edge,
-// resolved and bundled here. fetchlet/build bundles the output again.
-const conditions = ["worker", "edge-light", "module", "import", "production", "default"];
+// fetchlet's builds of dependencies, resolved and bundled here.
+// fetchlet/build bundles the output again.
+const conditions = runtimeConditions();
 
 /**
  * A Vite plugin for TanStack Start that builds the server environment into a

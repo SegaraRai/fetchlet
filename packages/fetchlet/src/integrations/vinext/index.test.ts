@@ -57,7 +57,15 @@ describe("fetchlet/vinext", () => {
     for (const name of ["rsc", "ssr"]) {
       expect(configEnvironment.call({}, name)).toStrictEqual({
         resolve: {
-          conditions: ["workerd", "edge-light", "worker"],
+          conditions: [
+            "workerd",
+            "fetchlet",
+            "worker",
+            "module",
+            "import",
+            "production",
+            "default",
+          ],
           noExternal: true,
         },
       });
@@ -75,7 +83,7 @@ describe("fetchlet/vinext", () => {
       framework: "vinext",
       rendering: "streaming",
       asyncContext: "serialized",
-      conditions: ["workerd", "edge-light", "worker"],
+      conditions: ["workerd"],
       define: {
         "process.env": "{}",
       },

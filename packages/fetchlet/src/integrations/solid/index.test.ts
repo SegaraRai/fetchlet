@@ -35,8 +35,9 @@ describe("fetchlet/solid", () => {
   test("resolves Solid libraries from source and Web-standard builds", () => {
     const plugin = fetchletSolid();
     const config = hook(plugin, "config").call({}) as { environments: Record<string, any> };
-    expect(config.environments.ssr.resolve.conditions.slice(0, 2)).toStrictEqual([
+    expect(config.environments.ssr.resolve.conditions.slice(0, 3)).toStrictEqual([
       "solid",
+      "fetchlet",
       "worker",
     ]);
   });

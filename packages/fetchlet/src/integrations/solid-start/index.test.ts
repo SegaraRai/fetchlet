@@ -32,7 +32,12 @@ describe("fetchlet/solid-start", () => {
     const config = hook(plugin, "config").call({}) as { environments: Record<string, any> };
     const ssr = config.environments.ssr;
     expect(ssr.resolve.noExternal).toBe(true);
-    expect(ssr.resolve.conditions.slice(0, 3)).toStrictEqual(["solid", "worker", "generic"]);
+    expect(ssr.resolve.conditions.slice(0, 4)).toStrictEqual([
+      "solid",
+      "generic",
+      "fetchlet",
+      "worker",
+    ]);
     expect(ssr.build.outDir).toBe("node_modules/.cache/fetchlet-solid-start");
   });
 

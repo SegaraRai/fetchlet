@@ -79,9 +79,6 @@ documented refusal, and a check in a framework example:
     engine against the serialized implementation.
 - Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
   QuickJS and Boa, which libraries such as depd call at load time.
-- A runtime key for package `exports`: choose fetchlet's condition name
-  following WinterTC Runtime Keys and which of `worker`, `edge-light` and
-  `workerd` it implies, so adapters stop adding conditions one by one.
 
 Streaming outbound request bodies, Intl coverage checks and legacy
 multi-byte encodings are tracked under

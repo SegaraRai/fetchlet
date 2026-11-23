@@ -3,6 +3,7 @@ import { parse, resolve } from "node:path";
 import type { Plugin } from "vite";
 
 import { IMMUTABLE } from "../../build/asset-entries.ts";
+import { runtimeConditions } from "../../build/conditions.ts";
 import {
   findServerEntry,
   importPath,
@@ -61,9 +62,9 @@ export function fetchletAdapter({
         return;
       }
       return {
-        // Web-standard builds of dependencies, bundled into one module.
+        // fetchlet's builds of dependencies, bundled into one module.
         resolve: {
-          conditions: ["edge-light", "webworker", "worker", "browser", "module", "main"],
+          conditions: runtimeConditions(),
         },
         ssr: {
           target: "webworker",

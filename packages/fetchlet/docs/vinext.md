@@ -25,8 +25,10 @@ backends ([engine limits](build.md#engine-limits)).
 The client environment builds directly to `build/client`. After vinext
 builds every environment, the plugin writes `build/server.js`, connected to
 `dist/server/index.js`, and `build/fetchlet.json`. The rsc and ssr
-environments and the rebundle resolve dependencies with the `workerd`,
-`edge-light` and `worker` conditions (`react-dom/server.edge` and so on).
+environments and the rebundle resolve dependencies with
+[fetchlet's export conditions](build.md#export-conditions) and `workerd`,
+which selects the server builds of React's server packages, such as
+`react-dom/server.edge`.
 
 `assets: true` packs the client assets into `assets.flpk` and caches
 `_next/static/` for a year ([asset archive](../../../docs/asset-archive.md)).

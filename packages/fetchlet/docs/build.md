@@ -128,7 +128,7 @@ which `Artifact::functions()` returns. A server module that itself exports
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asyncContext: "serialized"` | Replaces `node:async_hooks` with an `AsyncLocalStorage` that keeps its store for one invocation. `run` keeps the store until the callback's promise settles; `snapshot` and `bind` capture every storage's value. Each storage keeps its unsettled `run`s in start order and returns the value of the last started one; settled `run`s are removed regardless of order, so overlapping `run`s that settle out of order leave no settled store behind. The app runs invocations serially, so per-invocation context is correct. Within one invocation, concurrent `run`s see the store of the last started `run` (they are not isolated). Implemented in `@fetchlet/node/async-hooks/serialized`, tested by `vp run test:js` |
 | `asyncContext: "propagated"` | Replaces `node:async_hooks` with `AsyncLocalStorage` and `AsyncResource` over the engine's async context slot, which carries the context through promise reactions. Concurrent `run`s keep their own stores across `await`, timers and messages, with Node's semantics, including `enterWith` and `disable`. Requires V8 or Boa; the module throws when it loads on QuickJS. Implemented in `@fetchlet/node/async-hooks`, compared with Node's `AsyncLocalStorage` by `vp run test:js`; see the [async context design](../../../docs/research/async-context.md)                                                                                                                                                             |
-| `conditions`                 | Extra package resolution conditions for the rebundle, which resolve dependencies the framework left external to Web-standard entries such as `workerd`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `conditions`                 | Conditions added to [fetchlet's export conditions](#export-conditions) for the rebundle, for dependencies the framework left external, such as `workerd`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `plugins`                    | Extra Rolldown plugins for the rebundle; vinext uses them to replace Node APIs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `define`                     | Global expressions to replace, in addition to `process.env.NODE_ENV`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
@@ -148,6 +148,44 @@ not copied next to `server.js`. The HonoX, TanStack Start, SolidStart, Waku
 and vinext adapters, and the SvelteKit adapter with `rendering: "async"`, use
 `asyncContext: "serialized"`, since their artifacts may run on any engine.
 Both modes are recorded in `fetchlet.json`.
+
+## Export conditions
+
+fetchlet's runtime key for package `exports` is `fetchlet`, following
+[WinterTC Runtime Keys](https://runtime-keys.proposal.wintertc.org/). The
+rebundle and every adapter's server environment resolve dependencies with
+
+```
+fetchlet, worker, module, import, production, default
+```
+
+with `development` in place of `production` while Vite serves the app.
+`runtimeConditions()` and `runtimeKey` from `fetchlet/build` export them.
+
+- `fetchlet` selects a build made for fetchlet, which may use `env`
+  bindings and `fetchlet/runtime`.
+- `worker` is the one generic key fetchlet implies: Web APIs as globals,
+  with no DOM and no Node.js.
+- `workerd`, `edge-light`, `browser` and `node` are not implied. Their
+  builds may rely on Cloudflare modules, a platform's edge APIs, the DOM or
+  Node.js. An adapter adds one only for the packages that need it, with the
+  reason beside it; the vinext adapter adds `workerd` for the server builds
+  of React's server packages.
+
+A library that supports fetchlet can list a `fetchlet` entry before its
+generic ones:
+
+```json
+{
+  "exports": {
+    ".": {
+      "fetchlet": "./dist/fetchlet.js",
+      "worker": "./dist/worker.js",
+      "default": "./dist/index.js"
+    }
+  }
+}
+```
 
 ## Asset archives
 

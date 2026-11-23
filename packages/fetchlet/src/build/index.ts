@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { build, type Plugin } from "rolldown";
 
 import { archiveAssets, type AssetsOption } from "./asset-option.ts";
+import { runtimeConditions } from "./conditions.ts";
 import { exportedHandlerPlugin } from "./exported-handler.ts";
 import { writeManifest } from "./manifest.ts";
 import { type AsyncContextMode, nodeBuiltins, nodeGlobals } from "./node-builtins.ts";
@@ -45,6 +46,7 @@ export {
   type AssetSettings,
   type AssetsOption,
 } from "./asset-option.ts";
+export { runtimeConditions, runtimeKey } from "./conditions.ts";
 export { exportedHandler } from "./exported-handler.ts";
 export { implementedNodeBuiltins, type AsyncContextMode } from "./node-builtins.ts";
 export type { BuildBackend, IntlOptions } from "./polyfills/plan.ts";
@@ -85,7 +87,10 @@ export interface BuildArtifactOptions {
    * Without it, node:async_hooks throws when used. Recorded in fetchlet.json.
    */
   asyncContext?: AsyncContextMode;
-  /** Extra resolve conditions for dependencies a framework left external. */
+  /**
+   * Conditions added to fetchlet's runtime conditions for dependencies a
+   * framework left external.
+   */
   conditions?: string[];
   /** Global replacements, in addition to `process.env.NODE_ENV`. */
   define?: Record<string, string>;
@@ -171,8 +176,8 @@ export async function buildArtifact({
     resolve: {
       mainFields: ["module", "main"],
       // Adapters add conditions for dependencies a framework left external,
-      // such as "workerd" for react-dom/server.edge.
-      conditionNames: [...conditions, "module", "production", "import", "default"],
+      // such as "workerd" for the edge builds of React's server packages.
+      conditionNames: [...conditions, ...runtimeConditions()],
     },
     plugins: [
       typeof entry === "string"

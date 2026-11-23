@@ -357,9 +357,9 @@ The Sockets API of TC55 is `connect(address, options)`. It returns a
 - **Guest.** `@fetchlet/web` implements `connect` over the stream view of a
   request-scoped channel and exports it from a subpath that `fetchlet`
   adapters expose. postgres.js's Workers build imports `cloudflare:sockets`.
-  Aliasing that module is part of the
-  [runtime key](../TODO.md#framework-runtime-needs-beyond-wintertc)
-  decision, because it would come from choosing builds for `workerd`.
+  fetchlet's [runtime key](../../packages/fetchlet/docs/build.md#export-conditions)
+  does not imply `workerd`, so that build is chosen only where an adapter
+  adds `workerd`, and aliasing the module belongs with that choice.
 - **Host.** A `SocketService` opens TCP in Rust, performs TLS when
   `secureTransport` is `"on"` or after `startTls()`, and authorizes every
   address with a `SocketPolicy`. Like `FetchPolicy`, it starts as

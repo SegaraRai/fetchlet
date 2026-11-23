@@ -1,5 +1,6 @@
 import type { Plugin } from "vite";
 
+import { runtimeConditions } from "../../build/conditions.ts";
 import {
   importPath,
   serverEnvironmentPlugin,
@@ -29,9 +30,8 @@ export default function fetchletSolid(options: FetchletSolidOptions = {}): Plugi
       embedsClientBuild: true,
       serverEnvironment: {
         resolve: {
-          // "solid" compiles Solid libraries from source for SSR, and
-          // "worker" selects Web-standard builds of other dependencies.
-          conditions: ["solid", "worker", "module", "import", "production", "default"],
+          // "solid" compiles Solid libraries from source for SSR.
+          conditions: ["solid", ...runtimeConditions()],
         },
       },
       entrySource: (serverModule) => `

@@ -37,7 +37,8 @@ describe("fetchlet/tanstack-start", () => {
     };
     expect(config.environments.client.build.outDir).toBe(join("out", "client"));
     expect(config.environments.ssr.resolve.noExternal).toBe(true);
-    expect(config.environments.ssr.resolve.conditions).toContain("worker");
+    expect(config.environments.ssr.resolve.conditions).toContain("fetchlet");
+    expect(config.environments.ssr.resolve.conditions).not.toContain("edge-light");
     expect(config.environments.ssr.define["process.env.TSS_SHELL"]).toBe('"false"');
   });
 
