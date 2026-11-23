@@ -211,10 +211,14 @@ not public, such as loopback, private and link-local ones, unless
 `allow_private_addresses`. It speaks TLS for `secureTransport: "on"` with
 rustls and the `ring` provider, verifying servers against the
 `webpki-roots` certificates or a `rustls::ClientConfig` given to
-`with_tls_config`. It relays bytes on the Tokio runtime that polls the
-host pump: the peer's end closes the socket normally, a connection error
-closes it with 1011, and the end of the invocation drops the connection.
-`tests/sockets.rs` checks it against a local server on every engine.
+`with_tls_config`, and for `"starttls"` performs the same handshake when
+JavaScript calls `startTls()`. It relays bytes on the Tokio runtime that
+polls the host pump: JavaScript's end of writes shuts down the
+connection's write half, the peer's end of its bytes ends JavaScript's
+readable, the socket closes normally once both have ended, a connection or
+handshake error closes it with 1011, and the end of the invocation drops
+the connection. `tests/sockets.rs` checks it against local plain, TLS and
+STARTTLS servers on every engine.
 
 ## Reloading during development
 

@@ -9,10 +9,11 @@ use tokio_rustls::rustls::pki_types::ServerName;
 use tokio_rustls::rustls::{self, ClientConfig, RootCertStore};
 
 use super::address::is_public;
-use super::relay::relay;
+use super::relay::{StartTls, relay, relay_secure};
 
-/// A [`SocketTransport`] that opens TCP connections, with TLS for
-/// `secureTransport: "on"`.
+/// A [`SocketTransport`] that opens TCP connections, with TLS from the
+/// start for `secureTransport: "on"` and after `startTls()` for
+/// `"starttls"`.
 ///
 /// Pair it with a `SocketPolicy` in a `SocketService`: the policy
 /// authorizes the names JavaScript connects to, and this transport resolves
@@ -110,21 +111,27 @@ impl SocketTransport for TcpTransport {
             let stream = connect_any(&addresses).await.map_err(|error| {
                 Error::Transport(format!("cannot connect to {address}: {error}"))
             })?;
+            let name = || {
+                ServerName::try_from(host.to_owned())
+                    .map_err(|_| Error::InvalidRequest(format!("invalid TLS server name {host}")))
+            };
+            let connector = TlsConnector::from(transport.tls);
             match secure_transport {
                 SecureTransport::Off => {
-                    runtime.spawn(relay(stream, end));
+                    runtime.spawn(relay(stream, end, None));
                 }
                 SecureTransport::On => {
-                    let name = ServerName::try_from(host.to_owned()).map_err(|_| {
-                        Error::InvalidRequest(format!("invalid TLS server name {host}"))
+                    let stream = connector.connect(name()?, stream).await.map_err(|error| {
+                        Error::Transport(format!("TLS with {address} failed: {error}"))
                     })?;
-                    let stream = TlsConnector::from(transport.tls)
-                        .connect(name, stream)
-                        .await
-                        .map_err(|error| {
-                            Error::Transport(format!("TLS with {address} failed: {error}"))
-                        })?;
-                    runtime.spawn(relay(stream, end));
+                    runtime.spawn(relay_secure(stream, end));
+                }
+                SecureTransport::StartTls => {
+                    let upgrade = StartTls {
+                        connector,
+                        name: name()?,
+                    };
+                    runtime.spawn(relay(stream, end, Some(upgrade)));
                 }
             }
             Ok(())

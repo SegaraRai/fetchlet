@@ -29,6 +29,10 @@ export interface ChannelListener {
   message(data: string | Uint8Array<ArrayBuffer>): void;
   close(code: number, reason: string): void;
   refused?(message: string): void;
+  /** A socket's peer ended its bytes; the socket still writes. */
+  end?(): void;
+  /** A socket's connection switched to TLS, answering `startTls`. */
+  secure?(): void;
 }
 
 /** The channel registry of the fetchlet App host's bridge. */
@@ -40,10 +44,12 @@ export interface ChannelRegistry {
     address: {
       hostname: string;
       port: number;
-      secureTransport: "off" | "on";
+      secureTransport: "off" | "on" | "starttls";
     },
     listener: ChannelListener,
   ): number;
+  endWrites(id: number): void;
+  startTls(id: number): void;
   send(id: number, data: string | Uint8Array): void;
   write(id: number, data: Uint8Array): Promise<void>;
   pause(id: number, paused: boolean): void;

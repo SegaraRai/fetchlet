@@ -76,8 +76,21 @@ await writer.write(new TextEncoder().encode("PING"));
 ```
 
 A socket belongs to the current invocation and closes when it ends, after
-its `waitUntil` work and response body. `secureTransport: "starttls"`,
-`startTls()` and `allowHalfOpen: true` are not supported yet.
+its `waitUntil` work and response body. Closing the writable sends the
+end of the writes and keeps reading. When the peer's bytes end, the
+readable ends, and so does the writable unless `allowHalfOpen: true`.
+
+With `secureTransport: "starttls"`, the socket speaks plain TCP until
+`startTls()`, which returns the TLS socket that carries the connection
+from then on; the plain socket's streams end, and its writes still in
+flight go out first:
+
+```ts
+const plain = connect("mail.example.com:587", { secureTransport: "starttls" });
+// ... the plain-text exchange that asks the server to start TLS ...
+const secure = plain.startTls();
+await secure.opened;
+```
 
 ## Server WebSockets
 

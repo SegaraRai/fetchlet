@@ -79,6 +79,10 @@ export function completeChannel(event: object): boolean {
     } finally {
       end(arrival.channel, entry);
     }
+  } else if (arrival.end === true) {
+    entry.listener.end?.();
+  } else if (arrival.secure === true) {
+    entry.listener.secure?.();
   } else if (arrival.open === true) {
     entry.listener.open();
   } else if (arrival.written === true) {
@@ -119,6 +123,17 @@ export const channelRegistry: ChannelRegistry = Object.freeze<ChannelRegistry>({
     const id = dispatch<number>("socket.open", address);
     track(id, listener);
     return id;
+  },
+  endWrites(id): void {
+    if (channels.has(id)) {
+      dispatch("socket.end", id);
+    }
+  },
+  startTls(id): void {
+    if (!channels.has(id)) {
+      throw new TypeError("The socket closed");
+    }
+    dispatch("socket.startTls", id);
   },
   send(id, data): void {
     if (!channels.has(id)) {

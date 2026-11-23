@@ -30,6 +30,14 @@ pub(super) struct OpenChannel {
     /// When the connection's lifetime ends, counted from the upgrade.
     end_of_life: Option<Instant>,
     lifetime: Option<Pin<Box<Sleep>>>,
+    /// Opened with `socket.open`, which allows the socket signals.
+    socket: Option<SocketSignals>,
+}
+
+/// What a socket's channel still allows.
+struct SocketSignals {
+    /// Opened with `secureTransport: "starttls"` and not upgraded yet.
+    start_tls: bool,
 }
 
 impl OpenChannel {
@@ -51,7 +59,19 @@ impl OpenChannel {
             idle: None,
             end_of_life: None,
             lifetime: None,
+            socket: None,
         }
+    }
+
+    /// A socket that is open, with no write pending, for a socket signal,
+    /// which must follow the bytes written before it.
+    fn ready_socket(&mut self) -> Result<&mut SocketSignals> {
+        if self.opening.is_some() || self.write.is_some() || self.end.is_ended() {
+            return Err(Error::InvalidRequest("socket is not ready".into()));
+        }
+        self.socket
+            .as_mut()
+            .ok_or_else(|| Error::InvalidRequest("not a socket".into()))
     }
 
     fn touch(&mut self) {
@@ -167,6 +187,38 @@ impl Handles {
             opening: Some(opening),
             ..OpenChannel::new(end)
         })))
+    }
+
+    /// Add JavaScript's end of a socket a transport is opening.
+    pub fn open_socket(
+        &mut self,
+        end: GuestEnd,
+        opening: ChannelFuture,
+        start_tls: bool,
+    ) -> Result<u64> {
+        self.insert(Resource::Channel(Box::new(OpenChannel {
+            opening: Some(opening),
+            socket: Some(SocketSignals { start_tls }),
+            ..OpenChannel::new(end)
+        })))
+    }
+
+    pub fn end_socket(&mut self, id: u64) -> Result<Value> {
+        let channel = self.channel(id)?;
+        channel.ready_socket()?;
+        channel.end.end();
+        Ok(Value::Null)
+    }
+
+    pub fn start_socket_tls(&mut self, id: u64) -> Result<Value> {
+        let channel = self.channel(id)?;
+        let socket = channel.ready_socket()?;
+        if !socket.start_tls {
+            return Err(Error::InvalidRequest("socket cannot start TLS".into()));
+        }
+        socket.start_tls = false;
+        channel.end.start_tls();
+        Ok(Value::Null)
     }
 
     fn channel(&mut self, id: u64) -> Result<&mut OpenChannel> {
@@ -290,6 +342,12 @@ impl Handles {
                         channel.touch();
                         let handle = bytes.put(data)?;
                         events.push(json!({ "channel": id, "bytes": handle }));
+                    }
+                    Poll::Ready(Some(ChannelEvent::End)) => {
+                        events.push(json!({ "channel": id, "end": true }));
+                    }
+                    Poll::Ready(Some(ChannelEvent::StartTls)) => {
+                        events.push(json!({ "channel": id, "secure": true }));
                     }
                     Poll::Ready(Some(ChannelEvent::Close(frame))) => {
                         if !channel.end.is_closed() && frame.code != CloseFrame::ABNORMAL {

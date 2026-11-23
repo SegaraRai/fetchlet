@@ -56,6 +56,8 @@ async fn echo(mut end: ChannelEnd, options: Value) {
                 end.close(frame);
                 return;
             }
+            // Socket signals never reach a channel service.
+            _ => {}
         }
     }
 }

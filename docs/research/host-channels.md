@@ -41,8 +41,11 @@ implemented, the last for the axum integration:
   `fetchlet/runtime`, opens a channel of it with the `socket.open`
   operation and takes its stream view. fetchlet-http's `sockets` feature
   provides `TcpTransport`, which refuses non-public resolved addresses
-  unless allowed and speaks TLS with rustls. `startTls()` and half-open
-  sockets are not supported yet.
+  unless allowed and speaks TLS with rustls, from the start or after
+  `startTls()`. A socket's end of writes and its TLS upgrade travel in
+  order with its bytes as `ChannelEvent::End` and `ChannelEvent::StartTls`,
+  through the `socket.end` and `socket.startTls` operations, so half-open
+  sockets and STARTTLS need no second channel.
 - A request-scoped channel closes when its invocation ends, after its
   `waitUntil` work and an open response body. The bridge forgets an upgrade
   the handler did not return when the handler returns, and the
@@ -474,7 +477,7 @@ Each step lands with tests at its own boundary:
 2. Request-scoped channels with `HostServices::channel`, both views and the
    new `Limits`. Done.
 3. `connect()` with `SocketService` and `SocketPolicy` in fetchlet-http
-   behind a `sockets` feature. Done, without `startTls()`.
+   behind a `sockets` feature. Done.
 4. The client `WebSocket` with `WebSocketService` in fetchlet-http behind a
    `websocket` feature.
 5. Held connections and `upgradeWebSocket` with server upgrades in the axum

@@ -479,7 +479,9 @@ impl HostBridge {
             "fetch.start" => self.start_fetch(input),
             "invocation.disconnected" => self.invocation_disconnected(),
             "invocation.limits" => self.invocation_limits(),
+            "socket.end" => self.end_socket(input),
             "socket.open" => self.open_socket(input),
+            "socket.startTls" => self.start_socket_tls(input),
             "websocket.upgrade" => self.upgrade_websocket(),
             _ => Err(Error::PermissionDenied),
         }
@@ -792,6 +794,7 @@ impl HostBridge {
         enum SecureTransportInput {
             Off,
             On,
+            Starttls,
         }
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
@@ -813,6 +816,7 @@ impl HostBridge {
         let secure = match open.secure_transport {
             SecureTransportInput::Off => SecureTransport::Off,
             SecureTransportInput::On => SecureTransport::On,
+            SecureTransportInput::Starttls => SecureTransport::StartTls,
         };
         let (end, guest) = pair(&invocation.limits);
         let opening = {
@@ -820,9 +824,30 @@ impl HostBridge {
             let _runtime = self.runtime.as_ref().map(tokio::runtime::Handle::enter);
             service.open(address, secure, invocation.context.clone(), end)?
         };
-        let id = invocation.handles.open_requested(guest, opening)?;
+        let id =
+            invocation
+                .handles
+                .open_socket(guest, opening, secure == SecureTransport::StartTls)?;
         self.wake.notify();
         Ok(Value::from(id))
+    }
+
+    /// A socket's writable closed: Rust receives the end of its messages.
+    fn end_socket(&self, input: &str) -> Result<Value> {
+        let id: u64 = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid socket id".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.handles.end_socket(id)
+    }
+
+    /// `startTls()`: Rust switches the connection to TLS at this point.
+    fn start_socket_tls(&self, input: &str) -> Result<Value> {
+        let id: u64 = serde_json::from_str(input)
+            .map_err(|_| Error::InvalidRequest("invalid socket id".into()))?;
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        invocation.handles.start_socket_tls(id)
     }
 
     fn write_channel(&self, input: &str) -> Result<Value> {

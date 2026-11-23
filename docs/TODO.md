@@ -118,12 +118,9 @@ and `connect()` over a `SocketService` with fetchlet-http's `TcpTransport`
 
 1. The client `WebSocket` over a `WebSocketService` with `FetchPolicy`, on
    the message view.
-2. `secureTransport: "starttls"` with `startTls()`, and half-open sockets.
-   Both need the transport to take over the connection mid-stream, so the
-   relay hands its stream back instead of ending.
-3. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
+2. Server upgrades in the actix integration and in `ViteDev`, and `Stream`
    and `Sink` for `ChannelEnd`.
-4. Resources in function arguments and results
+3. Resources in function arguments and results
    ([values beyond JSON](#values-beyond-json)).
 
 Several connections per instance wait until async context is available on

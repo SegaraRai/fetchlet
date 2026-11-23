@@ -5,7 +5,14 @@ const channels = globalThis.__fetchletChannels;
 
 /** Connect to `hostname:port` and record what arrives. */
 function connect(hostname, port, secureTransport = "off") {
-  const record = { messages: [], opened: false, refused: null, close: null };
+  const record = {
+    messages: [],
+    opened: false,
+    secured: false,
+    ended: false,
+    refused: null,
+    close: null,
+  };
   let wake = () => {};
   record.changed = () =>
     new Promise((resolve) => {
@@ -17,6 +24,14 @@ function connect(hostname, port, secureTransport = "off") {
     {
       open() {
         record.opened = true;
+        notify();
+      },
+      secure() {
+        record.secured = true;
+        notify();
+      },
+      end() {
+        record.ended = true;
         notify();
       },
       message(data) {
@@ -72,6 +87,60 @@ globalThis.fetchletExports = {
     await until(record, () => record.opened);
     channels.send(record.id, ascii("left open"));
     return "returned";
+  },
+  /**
+   * Exchange plain bytes, switch to TLS, exchange again and end the writes:
+   * the service sees each signal after the bytes before it.
+   */
+  async signals(hostname, port) {
+    const record = connect(hostname, port, "starttls");
+    await until(record, () => record.opened);
+    await channels.write(record.id, ascii("a"));
+    await until(record, () => record.messages.length === 1);
+    channels.startTls(record.id);
+    await until(record, () => record.secured);
+    await channels.write(record.id, ascii("b"));
+    await until(record, () => record.messages.length === 2);
+    channels.endWrites(record.id);
+    await until(record, () => record.close !== null);
+    return {
+      received: record.messages.map((message) => text([message])),
+      secured: record.secured,
+      ended: record.ended,
+      close: record.close,
+    };
+  },
+  /** The error codes of socket signals the bridge refuses. */
+  async misplaced(hostname, port) {
+    const code = (operation) => {
+      try {
+        operation();
+        return "accepted";
+      } catch (error) {
+        return error.code;
+      }
+    };
+    const result = {};
+    const starting = connect(hostname, port, "starttls");
+    result.beforeOpen = code(() => channels.startTls(starting.id));
+    await until(starting, () => starting.opened);
+    channels.startTls(starting.id);
+    result.twice = code(() => channels.startTls(starting.id));
+    const plain = connect(hostname, port, "off");
+    await until(plain, () => plain.opened);
+    result.plain = code(() => channels.startTls(plain.id));
+    const ending = connect(hostname, port, "starttls");
+    await until(ending, () => ending.opened);
+    channels.endWrites(ending.id);
+    result.afterEnd = code(() => channels.startTls(ending.id));
+    result.endTwice = code(() => channels.endWrites(ending.id));
+    const channel = channels.open("ECHO", null, {
+      open() {},
+      message() {},
+      close() {},
+    });
+    result.channel = code(() => channels.endWrites(channel));
+    return result;
   },
   /** The error code of a connect the host refuses at once. */
   code(hostname, port, secureTransport) {

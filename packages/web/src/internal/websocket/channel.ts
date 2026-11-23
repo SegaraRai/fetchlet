@@ -56,7 +56,7 @@ function settled<T>(): {
   return { promise, resolve, reject };
 }
 
-function bufferSourceBytes(chunk: unknown): Uint8Array {
+export function bufferSourceBytes(chunk: unknown): Uint8Array {
   if (chunk instanceof ArrayBuffer) {
     return new Uint8Array(chunk.slice(0));
   }

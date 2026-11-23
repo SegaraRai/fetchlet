@@ -28,22 +28,32 @@ fn backends() -> Vec<Backend> {
     ]
 }
 
-/// Answer each write with `<address>:<tls>:` and the bytes written.
-async fn echo(mut end: ChannelEnd, prefix: String) {
+/// Answer each write with `<address>:<tls>:` and the bytes written, as a
+/// server that switches to TLS on request and ends its bytes when the
+/// client ends its writes.
+async fn echo(mut end: ChannelEnd, address: String, mut tls: &'static str) {
     while let Some(event) = end.recv().await {
         match event {
             ChannelEvent::Message(Message::Binary(bytes)) => {
-                let mut reply = prefix.clone().into_bytes();
+                let mut reply = format!("{address}:{tls}:").into_bytes();
                 reply.extend_from_slice(&bytes);
                 if end.send(reply).await.is_err() {
                     return;
                 }
             }
-            ChannelEvent::Message(Message::Text(_)) => {}
+            ChannelEvent::StartTls => {
+                tls = "tls";
+                end.confirm_tls();
+            }
+            ChannelEvent::End => {
+                end.finish();
+                end.close(CloseFrame::new(CloseFrame::NORMAL, ""));
+            }
             ChannelEvent::Close(frame) => {
                 end.close(frame);
                 return;
             }
+            _ => {}
         }
     }
 }
@@ -97,8 +107,9 @@ fn service() -> anyhow::Result<(SocketService, Seen)> {
                     let tls = match request.secure_transport {
                         SecureTransport::Off => "plain",
                         SecureTransport::On => "tls",
+                        SecureTransport::StartTls => "starttls",
                     };
-                    tokio::spawn(echo(end, format!("{address}:{tls}:")));
+                    tokio::spawn(echo(end, address.to_string(), tls));
                     Ok(())
                 }
             }
@@ -205,7 +216,7 @@ async fn the_policy_and_a_missing_service_refuse_at_once() -> anyhow::Result<()>
         for (host, port, tls) in [
             ("bad host", 80, "off"),
             ("db.internal", 0, "off"),
-            ("db.internal", 5432, "starttls"),
+            ("db.internal", 5432, "tls"),
         ] {
             assert_eq!(
                 app.call_json("code", &args(&[json!(host), json!(port), json!(tls)]))
@@ -332,6 +343,53 @@ async fn sockets_count_against_open_channels() -> anyhow::Result<()> {
             )
             .await?,
             json!("LIMIT_EXCEEDED")
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn start_tls_and_the_end_of_writes_travel_in_order() -> anyhow::Result<()> {
+    for backend in backends() {
+        let (sockets, _) = service()?;
+        let mut app = app(
+            backend,
+            HostServices::new().sockets(sockets),
+            Limits::default(),
+        )?;
+        assert_eq!(
+            app.call_json("signals", &args(&[json!("db.internal"), json!(5432)]))
+                .await?,
+            json!({
+                "received": ["db.internal:5432:starttls:a", "db.internal:5432:tls:b"],
+                "secured": true,
+                "ended": true,
+                "close": { "code": 1000, "reason": "" },
+            })
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn socket_signals_are_refused_out_of_place() -> anyhow::Result<()> {
+    for backend in backends() {
+        let (sockets, _) = service()?;
+        let hosts = HostServices::new()
+            .sockets(sockets)
+            .channel("ECHO", fetchlet::channel_fn(|_| async { Ok(()) }))?;
+        let mut app = app(backend, hosts, Limits::default())?;
+        assert_eq!(
+            app.call_json("misplaced", &args(&[json!("db.internal"), json!(5432)]))
+                .await?,
+            json!({
+                "beforeOpen": "INVALID_REQUEST",
+                "plain": "INVALID_REQUEST",
+                "twice": "INVALID_REQUEST",
+                "afterEnd": "INVALID_REQUEST",
+                "endTwice": "INVALID_REQUEST",
+                "channel": "INVALID_REQUEST",
+            })
         );
     }
     Ok(())

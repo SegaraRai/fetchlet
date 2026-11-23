@@ -86,6 +86,8 @@
 		} finally {
 			end(arrival.channel, entry);
 		}
+		else if (arrival.end === true) entry.listener.end?.();
+		else if (arrival.secure === true) entry.listener.secure?.();
 		else if (arrival.open === true) entry.listener.open();
 		else if (arrival.written === true) {
 			const write = entry.write;
@@ -117,6 +119,13 @@
 			const id = dispatch("socket.open", address);
 			track(id, listener);
 			return id;
+		},
+		endWrites(id) {
+			if (channels.has(id)) dispatch("socket.end", id);
+		},
+		startTls(id) {
+			if (!channels.has(id)) throw new TypeError("The socket closed");
+			dispatch("socket.startTls", id);
 		},
 		send(id, data) {
 			if (!channels.has(id)) return;

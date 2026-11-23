@@ -144,6 +144,8 @@ async fn relay(mut socket: WebSocket, mut end: ChannelEnd) {
                         channel_open = false;
                         ws::Message::Close(close_to_peer(frame))
                     }
+                    // Socket signals never reach a WebSocket.
+                    Some(_) => continue,
                     None => {
                         channel_open = false;
                         continue;

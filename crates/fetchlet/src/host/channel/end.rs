@@ -8,10 +8,23 @@ use super::{CloseFrame, Message};
 use crate::config::check_limit;
 use crate::{Error, Limits, Result};
 
-/// What one end of a channel receives: a message, or the close that ends it.
+/// What one end of a channel receives: a message, a socket's signal, or the
+/// close that ends it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ChannelEvent {
     Message(Message),
+    /// The other end sent its last message and still reads, as a TCP half
+    /// close. Only sockets carry it: JavaScript sends it when a socket's
+    /// writable closes, and a socket transport with [`ChannelEnd::finish`]
+    /// when the peer's bytes end.
+    End,
+    /// The connection speaks TLS from this point of the stream. JavaScript
+    /// sends it from `startTls()` on a socket opened with
+    /// [`SecureTransport::StartTls`](crate::SecureTransport::StartTls), and
+    /// the transport answers with [`ChannelEnd::confirm_tls`] once the
+    /// handshake completes.
+    StartTls,
     Close(CloseFrame),
 }
 
@@ -59,6 +72,8 @@ pub struct ChannelEnd {
     budgets: Budgets,
     /// This end sent its close.
     closed: bool,
+    /// This end sent its last message.
+    ended: bool,
     /// This end received a close, or reported the abnormal end.
     finished: bool,
 }
@@ -81,7 +96,7 @@ impl ChannelEnd {
     /// end has closed or JavaScript's end has gone away.
     pub async fn send(&mut self, message: impl Into<Message>) -> Result<()> {
         let message = message.into();
-        if self.closed {
+        if self.closed || self.ended {
             return Err(Error::InvocationClosed);
         }
         check_limit(
@@ -110,7 +125,25 @@ impl ChannelEnd {
         }
     }
 
-    /// The next message from JavaScript, or its close, then None.
+    /// End this end's messages and keep receiving: a socket's half close,
+    /// such as when the peer's bytes end. JavaScript's readable ends; later
+    /// sends fail with `InvocationClosed`. Ending twice sends one end.
+    pub fn finish(&mut self) {
+        if !self.closed && !self.ended {
+            self.ended = true;
+            let _ = self.to_guest.send(ChannelEvent::End);
+        }
+    }
+
+    /// Answer JavaScript's [`ChannelEvent::StartTls`] once the connection
+    /// speaks TLS: the socket `startTls()` returned opens.
+    pub fn confirm_tls(&mut self) {
+        if !self.closed && !self.ended {
+            let _ = self.to_guest.send(ChannelEvent::StartTls);
+        }
+    }
+
+    /// The next message or signal from JavaScript, or its close, then None.
     pub async fn recv(&mut self) -> Option<ChannelEvent> {
         if self.finished {
             return None;
@@ -124,6 +157,7 @@ impl ChannelEnd {
                 return Some(ChannelEvent::Message(message));
             }
             Some(ChannelEvent::Close(frame)) => ChannelEvent::Close(frame),
+            Some(signal) => return Some(signal),
             None => ChannelEvent::Close(CloseFrame::abnormal()),
         };
         self.finished = true;
@@ -174,6 +208,8 @@ pub(crate) struct GuestEnd {
     room: Arc<Mutex<Option<Waker>>>,
     budgets: Budgets,
     closed: bool,
+    /// JavaScript sent its last message: a socket's writable closed.
+    ended: bool,
     finished: bool,
 }
 
@@ -194,7 +230,7 @@ impl GuestEnd {
     /// Queue a message for Rust. JavaScript does not wait: a message over a
     /// budget is refused, and the caller closes the channel.
     pub fn send(&mut self, message: Message) -> std::result::Result<(), Refused> {
-        if self.closed || self.finished {
+        if self.closed || self.ended || self.finished {
             return Err(Refused::Closed);
         }
         let len = message.len();
@@ -209,6 +245,29 @@ impl GuestEnd {
         // A Rust end that went away reports the abnormal close through recv.
         let _ = self.to_host.send(ChannelEvent::Message(message));
         Ok(())
+    }
+
+    /// Send JavaScript's last message mark to Rust, once: a socket's half
+    /// close. Later messages are refused as after a close.
+    pub fn end(&mut self) {
+        if !self.ended {
+            self.ended = true;
+            if !self.closed {
+                let _ = self.to_host.send(ChannelEvent::End);
+            }
+        }
+    }
+
+    /// Whether JavaScript ended its messages.
+    pub fn is_ended(&self) -> bool {
+        self.ended
+    }
+
+    /// Ask Rust to switch the connection to TLS at this point of the stream.
+    pub fn start_tls(&mut self) {
+        if !self.closed && !self.ended {
+            let _ = self.to_host.send(ChannelEvent::StartTls);
+        }
     }
 
     /// Send JavaScript's close to Rust, once.
@@ -266,6 +325,7 @@ impl GuestEnd {
                 return Poll::Ready(Some(ChannelEvent::Message(message)));
             }
             Poll::Ready(Some(ChannelEvent::Close(frame))) => ChannelEvent::Close(frame),
+            Poll::Ready(Some(signal)) => return Poll::Ready(Some(signal)),
             Poll::Ready(None) => ChannelEvent::Close(CloseFrame::abnormal()),
         };
         self.finished = true;
@@ -305,6 +365,7 @@ pub(crate) fn pair(limits: &Limits) -> (ChannelEnd, GuestEnd) {
         room: Arc::clone(&room),
         budgets,
         closed: false,
+        ended: false,
         finished: false,
     };
     let guest = GuestEnd {
@@ -315,6 +376,7 @@ pub(crate) fn pair(limits: &Limits) -> (ChannelEnd, GuestEnd) {
         room,
         budgets,
         closed: false,
+        ended: false,
         finished: false,
     };
     (host, guest)

@@ -12,6 +12,11 @@ pub enum SecureTransport {
     Off,
     /// TLS from the start, verifying the server for the address's host.
     On,
+    /// Plain TCP until JavaScript calls `startTls()`: the transport then
+    /// receives [`ChannelEvent::StartTls`](crate::ChannelEvent::StartTls)
+    /// where TLS begins, performs the handshake for the address's host and
+    /// answers with [`ChannelEnd::confirm_tls`](crate::ChannelEnd::confirm_tls).
+    StartTls,
 }
 
 /// A TCP connection JavaScript asked for with `connect(address, options)`.
@@ -25,7 +30,12 @@ pub struct SocketRequest {
     pub context: Option<Context>,
     /// Rust's end of the socket's channel. The transport carries the bytes
     /// of its binary messages to the connection and the connection's bytes
-    /// back as binary messages, and closes it when the connection ends.
+    /// back as binary messages. [`ChannelEvent::End`](crate::ChannelEvent::End)
+    /// from JavaScript shuts down the connection's writing, and the end of
+    /// the peer's bytes is reported with
+    /// [`ChannelEnd::finish`](crate::ChannelEnd::finish); the transport
+    /// closes the channel normally once both directions ended, and with
+    /// 1011 when the connection fails.
     pub end: ChannelEnd,
 }
 

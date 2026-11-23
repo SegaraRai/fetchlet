@@ -17,6 +17,9 @@
 //!   once; closed before then, it ends with 1006 instead;
 //! - a socket opens like a channel for an address its policy allows, and
 //!   any other address or an invalid one is refused at once;
+//! - a socket's end of writes and `startTls` are accepted only for an open
+//!   socket with no write pending and writes not ended, `startTls` once and
+//!   only for a socket opened with "starttls";
 //! - a channel write is queued at the next poll unless the channel closed,
 //!   and `channel.buffered` counts the bytes queued.
 
@@ -103,6 +106,10 @@ struct Model {
     abandoned: BTreeSet<u64>,
     /// Channels the guest closed.
     closed: BTreeSet<u64>,
+    /// Sockets by handle, and whether each may still start TLS.
+    sockets: BTreeMap<u64, bool>,
+    /// Sockets whose writes JavaScript ended.
+    ended_writes: BTreeSet<u64>,
     /// Pending writes' lengths, and the bytes queued for Rust, by channel.
     writing: BTreeMap<u64, usize>,
     queued: BTreeMap<u64, usize>,
@@ -133,6 +140,8 @@ impl Model {
         self.closed.clear();
         self.writing.clear();
         self.queued.clear();
+        self.sockets.clear();
+        self.ended_writes.clear();
         self.upgraded = false;
         self.active = false;
         self.message_limit = None;
@@ -157,6 +166,8 @@ impl Model {
         self.closed.remove(&id);
         self.writing.remove(&id);
         self.queued.remove(&id);
+        self.sockets.remove(&id);
+        self.ended_writes.remove(&id);
         self.stale_channels.push(id);
     }
 
@@ -267,7 +278,11 @@ fn poll(harness: &BridgeHarness, model: &mut Model) {
                 model.end_channel(id);
             } else if completion["written"] == true {
                 let length = model.writing.remove(&id).expect("a pending write");
-                assert!(length == 0 || !model.closed.contains(&id), "{completion}");
+                assert!(
+                    length == 0
+                        || !(model.closed.contains(&id) || model.ended_writes.contains(&id)),
+                    "{completion}"
+                );
                 *model.queued.entry(id).or_default() += length;
             } else {
                 // Nothing sends from Rust, so only the abnormal close of a
@@ -328,7 +343,10 @@ fn poll(harness: &BridgeHarness, model: &mut Model) {
     assert!(model.requested.values().all(|opened| *opened));
     let dropped: Vec<u64> = model.writing.keys().copied().collect();
     for id in dropped {
-        assert!(model.closed.contains(&id), "write {id} was not queued");
+        assert!(
+            model.closed.contains(&id) || model.ended_writes.contains(&id),
+            "write {id} was not queued"
+        );
         model.writing.remove(&id);
     }
 }
@@ -578,10 +596,11 @@ fuzz_target!(|data: &[u8]| {
                 let selector = input.byte().unwrap_or(0);
                 let port = input.byte().unwrap_or(0);
                 let hostname = SOCKET_HOSTS[usize::from(selector) % SOCKET_HOSTS.len()];
+                let secure_transport = ["off", "on", "starttls"][usize::from(selector >> 3) % 3];
                 let message = serde_json::json!({
                     "hostname": hostname,
                     "port": port,
-                    "secureTransport": if selector & 0x40 == 0 { "off" } else { "on" },
+                    "secureTransport": secure_transport,
                 })
                 .to_string();
                 let reply = harness.dispatch("socket.open", &message);
@@ -595,6 +614,7 @@ fuzz_target!(|data: &[u8]| {
                     assert!(!model.has_channel(id) && !model.bodies.contains_key(&id));
                     model.channels.insert(id, take_feed(&socket_feeds));
                     model.requested.insert(id, false);
+                    model.sockets.insert(id, secure_transport == "starttls");
                 }
             }
             14 => {
@@ -613,6 +633,37 @@ fuzz_target!(|data: &[u8]| {
                         model.requested.insert(id, false);
                     } else {
                         model.refusing.insert(id);
+                    }
+                }
+            }
+            15 if input.0.first().is_some_and(|selector| selector & 0x80 != 0) => {
+                let selector = input.byte().unwrap_or(0);
+                let id = channel_target(&model, selector >> 1);
+                let start_tls = selector & 1 == 1;
+                let message = id.to_string();
+                let operation = if start_tls {
+                    "socket.startTls"
+                } else {
+                    "socket.end"
+                };
+                let reply = harness.dispatch(operation, &message);
+                let ready = model.active
+                    && model.fits(message.len())
+                    && model.channels.contains_key(&id)
+                    && model.requested.get(&id) == Some(&true)
+                    && !model.writing.contains_key(&id)
+                    && !model.ended_writes.contains(&id);
+                let expected = ready
+                    && model
+                        .sockets
+                        .get(&id)
+                        .is_some_and(|allowed| !start_tls || *allowed);
+                assert_eq!(ok(&reply), expected, "{operation} {id}: {reply}");
+                if expected {
+                    if start_tls {
+                        model.sockets.insert(id, false);
+                    } else {
+                        model.ended_writes.insert(id);
                     }
                 }
             }

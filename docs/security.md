@@ -80,7 +80,8 @@ can perform through native callbacks: storing and claiming byte handles,
 `body.read`, `body.readAll`, `body.readText`, `body.cancel` and
 `fetch.poll` on body sources, accepting a WebSocket upgrade, opening
 channels from an accepting, a refusing and an unbound service, connecting
-sockets to allowed, refused and invalid addresses,
+sockets to allowed, refused and invalid addresses, ending their writes and
+starting TLS,
 `channel.write`, `channel.buffered` and `channel.close`, arbitrary host
 operations, producer chunks, ends and failures, and invocation start and
 end. It compares the results with a model and checks that:
@@ -95,6 +96,10 @@ end. It compares the results with a model and checks that:
   refusal, and a channel closed before then ends with 1006;
 - a socket opens only for an address the socket policy allows, after
   normalization, and any other or invalid address is refused at once;
+- a socket's end of writes and `startTls` are accepted only for an open
+  socket with no write pending and its writes not ended, `startTls` once
+  and only for a socket opened with `"starttls"`, and never for a channel
+  of an env binding;
 - a write is queued at the next poll unless its channel closed, and
   `channel.buffered` counts exactly the bytes queued;
 - body reads return the producer's chunks in order, within budget, and a

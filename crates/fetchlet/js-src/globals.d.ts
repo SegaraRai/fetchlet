@@ -52,7 +52,7 @@ interface ResponseBodyRegistry {
 interface SocketOpen {
   hostname: string;
   port: number;
-  secureTransport: "off" | "on";
+  secureTransport: "off" | "on" | "starttls";
 }
 
 /** What a channel delivers to the object that owns it. */
@@ -66,6 +66,10 @@ interface ChannelListener {
   close(code: number, reason: string): void;
   /** The service refused the open; nothing else arrives. */
   refused?(message: string): void;
+  /** A socket's peer ended its bytes; the channel stays open for writes. */
+  end?(): void;
+  /** A socket's connection switched to TLS, answering `startTls`. */
+  secure?(): void;
 }
 
 /** Channels of the current invocation, such as an accepted WebSocket. */
@@ -77,6 +81,16 @@ interface ChannelRegistry {
   open(service: string, options: unknown, listener: ChannelListener): number;
   /** Open a TCP connection through the host's socket service. */
   connect(address: SocketOpen, listener: ChannelListener): number;
+  /**
+   * End a socket's writes after those queued, as a TCP half close. Throws
+   * unless the socket is open with no write pending.
+   */
+  endWrites(id: number): void;
+  /**
+   * Switch a socket opened with "starttls" to TLS after the bytes written
+   * so far. Throws unless it is open with no write pending, once.
+   */
+  startTls(id: number): void;
   send(id: number, data: string | Uint8Array): void;
   /**
    * Queue bytes as binary messages within the channel budgets, resolving

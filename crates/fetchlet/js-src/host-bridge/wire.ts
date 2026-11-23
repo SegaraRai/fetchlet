@@ -37,6 +37,10 @@ export interface ChannelArrival {
   text?: string;
   /** A byte store handle for a binary message. */
   bytes?: number;
+  /** A socket's peer ended its bytes; the socket still writes. */
+  end?: true;
+  /** A socket's connection speaks TLS from here, answering startTls. */
+  secure?: true;
   close?: {
     code: number;
     reason: string;

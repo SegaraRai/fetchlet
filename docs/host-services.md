@@ -134,13 +134,34 @@ async function, such as an in-process server or a mock, to a transport.
 A socket is a channel of the invocation, viewed as a stream: it counts
 against `Limits::open_channels`, its reads and writes are binary messages
 within `channel_message_bytes` and `channel_buffer_bytes`, and it closes
-when the invocation ends, after its `waitUntil` work and response body. The
-peer's end of the stream closes the socket normally, and a connection error
-rejects `closed`. `secureTransport: "starttls"`, `startTls()` and
-`allowHalfOpen: true` are not supported yet and throw a `TypeError`.
+when the invocation ends, after its `waitUntil` work and response body.
+
+Two signals travel in order with a socket's bytes as `ChannelEvent`s:
+
+- **End of writes.** Closing the writable sends `ChannelEvent::End`, a half
+  close: the transport shuts down the connection's write half and keeps
+  reading. When the peer's bytes end, the transport calls
+  `ChannelEnd::finish` and the readable ends. Without `allowHalfOpen`, that
+  also closes the writable, after the write in flight; with it, the
+  writable stays open until JavaScript closes it. The transport closes the
+  channel normally once both directions have ended, and a connection error
+  rejects `closed`.
+- **TLS upgrade.** A socket connected with `secureTransport: "starttls"`
+  speaks plain TCP until `startTls()`, which returns a new socket and
+  marks the old one `upgraded`: the old socket's streams end and its
+  `closed` resolves, and after the plain bytes already written the
+  transport receives `ChannelEvent::StartTls` (`SecureTransport::StartTls`
+  in its request). It performs the handshake for the address's host and
+  answers with `ChannelEnd::confirm_tls`, which resolves the new socket's
+  `opened`; its writes wait for that. A failed handshake closes the
+  channel with 1011.
+
+The bridge accepts each signal only for an open socket with no write
+pending and its writes not ended, and `startTls` once, for a socket opened
+with `"starttls"`; channels of env bindings never receive them.
 `crates/fetchlet/tests/sockets.rs` checks the contract on all three engines,
-and `crates/fetchlet-http/tests/sockets.rs` checks `TcpTransport` against a
-local server.
+and `crates/fetchlet-http/tests/sockets.rs` checks `TcpTransport` against
+local plain, TLS and STARTTLS servers, with a test certificate authority.
 
 ## Console
 
