@@ -86,7 +86,9 @@ queue is full, further requests wait for room rather than fail, so a slow
 handler shows up as latency. When the server runs on a multi-thread Tokio
 runtime, it passes that runtime to `AppBuilder::host_runtime`, so tasks that
 host transports spawn, such as pooled connections, keep running while an
-instance runs JavaScript.
+instance runs JavaScript. To watch a pool, read `AppHandle::pool_state`
+from the handle that `routes` receives, for example in a route of your own
+behind your access control; the server serves no metrics by itself.
 
 The crate's development features change how `serve` serves the build, with
 the same routes and services:

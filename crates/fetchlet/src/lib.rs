@@ -41,7 +41,7 @@ pub use host::{
 };
 pub use http;
 pub use requirements::Requirements;
-pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, WorkerOptions};
+pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, PoolState, WorkerOptions};
 
 #[cfg(feature = "fuzzing")]
 #[doc(hidden)]

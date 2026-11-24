@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -12,7 +13,7 @@ use crate::{Call, CallOutput, Error, Limits, Request, Response, Result};
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 use {
-    super::{WorkerOptions, runtime},
+    super::{PoolState, WorkerOptions, runtime},
     crate::AppBuilder,
     crate::reentry::new_key,
 };
@@ -27,6 +28,8 @@ struct Shared {
     /// Places for connections that hold an instance.
     held: Arc<Semaphore>,
     max_held: usize,
+    /// Reservations refused because every place was taken.
+    refused_connections: AtomicU64,
     /// The workers, which a queued command may ask to grow.
     #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
     pool: Arc<runtime::Pool>,
@@ -76,6 +79,7 @@ impl AppHandle {
                 key,
                 held,
                 max_held,
+                refused_connections: AtomicU64::new(0),
                 pool,
             }),
         })
@@ -91,7 +95,26 @@ impl AppHandle {
     /// are all taken. Put it in the extensions of the upgrade request; see
     /// [`HeldConnection`].
     pub fn reserve_connection(&self) -> Option<HeldConnection> {
-        HeldConnection::try_reserve(&self.shared.held)
+        let place = HeldConnection::try_reserve(&self.shared.held);
+        if place.is_none() {
+            self.shared
+                .refused_connections
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        place
+    }
+
+    /// What the instances and queue are doing, and totals since the spawn;
+    /// see [`PoolState`].
+    #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+    pub fn pool_state(&self) -> PoolState {
+        let shared = &self.shared;
+        PoolState {
+            queued: shared.sender.max_capacity() - shared.sender.capacity(),
+            held_connections: shared.max_held - shared.held.available_permits(),
+            refused_connections: shared.refused_connections.load(Ordering::Relaxed),
+            ..shared.pool.state()
+        }
     }
 
     /// [`Instances::max_held_connections`](super::Instances::max_held_connections):

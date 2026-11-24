@@ -179,6 +179,26 @@ it: the cache removes 77 to 88% of a build on QuickJS and V8, 20 to 120 ms
 per instance, which a request waits for while a pool grows or replaces an
 instance.
 
+## Pool state
+
+`AppHandle::pool_state` returns a `PoolState` that operators read to size
+`max`, `min` and the queue from their own load:
+
+- at one moment: instances building, idle, busy and retiring, commands
+  queued and connection places taken, with `min`, `max`, `queue_capacity`
+  and `max_held_connections`;
+- since the spawn: builds, failed builds and the time they took, instances
+  replaced after a call left them unusable, idle retirements and refused
+  connection places.
+
+A queue that stays near its capacity while every instance is busy calls
+for a larger `max` or a faster handler; frequent idle retirements followed
+by builds call for a higher `min` or a longer `idle_timeout`; replacements
+point at cancelled or timed-out calls. Reading the state takes the pool's
+lock only to copy a few counts. fetchlet depends on no metrics system: the
+embedder records the state in its own, and decides whether and where to
+serve it, as fetchlet-http's `Server::routes` allows.
+
 ## What waits for async context
 
 These need host operations attributed to one of several invocations
@@ -222,6 +242,7 @@ carries an async context through promise jobs and the adapters move to
 4. Held connections and `max_held_connections`, with
    [host channels](host-channels.md).
 5. Compiled code caching on QuickJS and V8.
+6. Pool state for operators.
 
 ## Sizing
 
@@ -264,5 +285,3 @@ reproduces them for an application of its own.
 - Whether `App`, the single-threaded type, needs a pool too, or whether
   pools are only an `AppHandle` feature. Embedders that drive `App` on their
   own thread can build several `App`s already.
-- How a pool reports its state, such as instances by state, queue length
-  and rebuilds, for operators to size `max`.

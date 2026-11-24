@@ -96,8 +96,9 @@ the native stack of the thread running it. `fetchlet_http::Server` sets a
 platform default and Boa's 512 calls stop ordinary code with an uncatchable
 error. It also limits each QuickJS heap to 64 MiB, twice what the largest
 example needs ([startup and memory](research/startup-and-memory.md#memory)),
-so that `Instances::max` times it bounds a pool's QuickJS heap. Boa's `JSON.stringify` recurses on the native stack without a depth
-check, so deep enough data aborts the process instead of throwing.
+so that `Instances::max` times it bounds a pool's QuickJS heap. Boa's
+`JSON.stringify` recurses on the native stack without a depth check, so
+deep enough data aborts the process instead of throwing.
 examples/vinext-axum also raises Boa's value stack to 131,072 slots for
 React Server Components rendering.
 

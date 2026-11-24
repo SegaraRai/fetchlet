@@ -84,6 +84,20 @@ axum.
 fetch that calls its own app fails with `Reentrant` even when another
 instance is idle.
 
+`AppHandle::pool_state` reports what the pool is doing, for operators to
+size it from their own load: instances building, idle, busy and retiring,
+commands queued, connection places taken, the settings, and totals since
+the spawn of builds, failed builds, build time, replaced instances, idle
+retirements and refused connections. fetchlet exports no metrics itself;
+read the state as often as a metrics system scrapes and record it there.
+
+```rust
+let state = handle.pool_state();
+if state.queued == state.queue_capacity && state.busy == state.max {
+    // Every instance is busy and the queue is full: requests now wait.
+}
+```
+
 Dropping a call's future cancels that call. An instance retired by
 cancellation, an expired deadline or unfinished work is rebuilt from the
 same module, bindings and settings right after that call, before its worker

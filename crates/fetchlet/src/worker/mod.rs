@@ -3,6 +3,7 @@ mod held;
 mod lifecycle;
 mod options;
 mod protocol;
+mod state;
 
 // Only an engine runs the worker thread; the handle and its options are
 // engine-independent so HTTP integrations can depend on them alone.
@@ -14,3 +15,4 @@ mod streaming;
 pub use handle::AppHandle;
 pub use held::HeldConnection;
 pub use options::{CancelledCalls, Instances, WorkerOptions};
+pub use state::PoolState;

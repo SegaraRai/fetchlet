@@ -132,11 +132,16 @@ beyond Intl, each with its tests on every engine, such as the
 
 ### Enforcement and isolation
 
-Deadlines are cooperative. Stopping JavaScript that never yields, stopping
-initialization and bounding the whole heap need per-engine interrupts and
-heap limits, and third-party code needs a process boundary. Each engine's
-mechanism needs a regression test that stops a non-yielding script and
-retires the instance.
+Deadlines are cooperative, and only QuickJS has a heap limit.
+[Interrupts and heap limits](research/interrupts-and-heap-limits.md)
+designs the enforcement, in this order: a QuickJS interrupt handler that
+stops non-yielding JavaScript at the deadline; `Limits::busy_timeout` and
+`Limits::startup_timeout` on every engine, with a watchdog for V8 and
+checks between jobs and a loop iteration limit for Boa; a counting QuickJS
+allocator and V8 heap and array buffer limits; and an interrupt poll in
+Boa's VM, proposed upstream. Every stop retires the instance and has a
+regression test on each engine. Third-party code still needs a process
+boundary.
 
 ### Instance pools
 
@@ -152,11 +157,10 @@ for a server, and [sizing](research/instance-pools.md#sizing) records the
 throughput by pool size that its recommendation rests on. On QuickJS and
 V8, the instances built from one `AppBuilder` reuse the first one's compiled
 code ([startup and memory](research/startup-and-memory.md#compiled-code-caching)).
+`AppHandle::pool_state` reports instances by state, the queue, held
+connections and build and retirement totals for operators.
 
-1. Pool state for operators, such as instances by state and queue length,
-   held connections included, so a deployment can size `max` from its own
-   load.
-2. Seed each QuickJS context from host entropy. QuickJS seeds
+1. Seed each QuickJS context from host entropy. QuickJS seeds
    `Math.random` and its property hash seed from the time in microseconds,
    and quickjs-ng has no API to set them, so instances that a pool builds at
    the same moment on two threads, such as a replacement and a new instance,
@@ -267,8 +271,10 @@ settings from them. Two gaps remain:
 
 - A QuickJS heap past `memory_limit_bytes` fails with an exception that
   reads `Null"null"`; report it as the heap running out.
-- Only QuickJS has a heap limit. Add one for V8 and Boa, so a pool's
-  `max` times the limit bounds its memory on every engine.
+- Only QuickJS has a heap limit. Add one for V8, so a pool's `max` times
+  the limit bounds its memory; Boa has no allocation limit to build on.
+
+Both are part of [enforcement and isolation](#enforcement-and-isolation).
 
 The measurements cover a page per request on fresh instances; measure the
 heap of a long-running instance under varied pages before raising the

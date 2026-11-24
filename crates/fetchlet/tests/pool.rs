@@ -14,7 +14,7 @@ use tokio::sync::{Semaphore, mpsc};
 
 use fetchlet::{
     App, AppHandle, Backend, Body, Error, FetchPolicy, FetchService, HostServices, Instances,
-    Module, Response, WorkerOptions, transport_fn,
+    Module, PoolState, Response, WorkerOptions, transport_fn,
 };
 
 const SOURCE: &str = include_str!("fixtures/pool.js");
@@ -115,6 +115,20 @@ impl Pool {
             .unwrap()
             .to_owned())
     }
+}
+
+/// The pool's state once `condition` holds of it.
+async fn state_when(handle: &AppHandle, condition: impl Fn(&PoolState) -> bool) -> PoolState {
+    within("the pool state", async {
+        loop {
+            let state = handle.pool_state();
+            if condition(&state) {
+                return state;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
 }
 
 async fn within<T>(what: &str, future: impl Future<Output = T>) -> T {
@@ -299,6 +313,106 @@ async fn shutdown_without_calls_finishes() -> anyhow::Result<()> {
             let pool = Pool::spawn(backend, instances).await?;
             within("shutdown", pool.handle.shutdown()).await?;
         }
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn the_state_follows_instances_and_the_queue() -> anyhow::Result<()> {
+    for backend in backends() {
+        let instances = Instances {
+            min: count(1),
+            max: count(2),
+            idle_timeout: Some(Duration::from_millis(100)),
+            max_held_connections: 0,
+        };
+        let mut pool = Pool::spawn(backend, instances).await?;
+        // A worker reads as busy from its ready report until it waits.
+        let state = state_when(&pool.handle, |state| state.idle == 1).await;
+        assert_eq!(
+            (state.busy, state.building, state.builds),
+            (0, 0, 1),
+            "{backend:?}"
+        );
+        assert_eq!(
+            (
+                state.min,
+                state.max,
+                state.queue_capacity,
+                state.max_held_connections
+            ),
+            (1, 2, 8, 0)
+        );
+        assert!(state.build_time > Duration::ZERO);
+
+        let first = pool.start_waiting().await;
+        let state = state_when(&pool.handle, |state| state.busy == 1).await;
+        assert_eq!((state.idle, state.queued, state.builds), (0, 0, 1));
+
+        // A second waiting call grows the pool to max; a third waits.
+        let second = pool.start_waiting().await;
+        let state = state_when(&pool.handle, |state| state.busy == 2).await;
+        assert_eq!(state.builds, 2);
+        let handle = pool.handle.clone();
+        let queued = tokio::spawn(async move { handle.call_json("calls", &[]).await });
+        let state = state_when(&pool.handle, |state| state.queued == 1).await;
+        assert_eq!((state.busy, state.idle, state.builds), (2, 0, 2));
+
+        pool.gate.add_permits(2);
+        within("first", first).await??;
+        within("second", second).await??;
+        within("queued", queued).await??;
+
+        // Past the idle timeout, the instance above min stops.
+        let state = state_when(&pool.handle, |state| state.idle_retirements == 1).await;
+        assert_eq!(state.replaced, 0);
+        state_when(&pool.handle, |state| {
+            (state.idle, state.busy, state.retiring, state.queued) == (1, 0, 0, 0)
+        })
+        .await;
+        pool.handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn an_abandoned_call_counts_its_replacement() -> anyhow::Result<()> {
+    for backend in backends() {
+        let mut pool = Pool::spawn(backend, Instances::default()).await?;
+        let waiting = pool.start_waiting().await;
+        waiting.abort();
+        let state = state_when(&pool.handle, |state| state.replaced == 1 && state.idle == 1).await;
+        assert_eq!(
+            (
+                state.builds,
+                state.failed_builds,
+                state.busy,
+                state.building
+            ),
+            (2, 0, 0, 0),
+            "{backend:?}"
+        );
+        pool.handle.shutdown().await?;
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn the_state_counts_held_and_refused_connections() -> anyhow::Result<()> {
+    for backend in backends() {
+        let instances = Instances {
+            max_held_connections: 1,
+            ..Instances::fixed(count(2))
+        };
+        let pool = Pool::spawn(backend, instances).await?;
+        let place = pool.handle.reserve_connection().expect("a free place");
+        assert!(pool.handle.reserve_connection().is_none());
+        let state = pool.handle.pool_state();
+        assert_eq!((state.held_connections, state.refused_connections), (1, 1));
+        drop(place);
+        let state = pool.handle.pool_state();
+        assert_eq!((state.held_connections, state.refused_connections), (0, 1));
+        pool.handle.shutdown().await?;
     }
     Ok(())
 }

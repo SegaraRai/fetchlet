@@ -3,13 +3,14 @@ use std::future::Future;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use tokio::sync::{mpsc, oneshot, watch};
 
 use super::lifecycle::WorkerStatus;
 use super::protocol::Command;
 use super::streaming::stream_response_body;
-use super::{CancelledCalls, WorkerOptions};
+use super::{CancelledCalls, PoolState, WorkerOptions};
 use crate::app::Opened;
 use crate::{App, AppBuilder, Body, Error, Response, Result};
 
@@ -23,15 +24,17 @@ pub(super) struct Pool {
     receiver: tokio::sync::Mutex<mpsc::Receiver<Command>>,
     shutdown: Arc<watch::Sender<bool>>,
     status: watch::Sender<WorkerStatus>,
-    state: Mutex<PoolState>,
+    state: Mutex<Workers>,
 }
 
 #[derive(Default)]
-struct PoolState {
+struct Workers {
     /// Worker threads alive, including those still building their instance.
     workers: usize,
     /// Workers building their first instance.
     starting: usize,
+    /// Workers building the replacement of a retired instance.
+    rebuilding: usize,
     /// Workers waiting for a command.
     idle: usize,
     /// Idle workers above `min` that are exiting.
@@ -39,6 +42,12 @@ struct PoolState {
     /// The first worker panic, reported as the pool's final state.
     failure: Option<String>,
     finished: bool,
+    /// Totals since the spawn, for [`PoolState`].
+    builds: u64,
+    failed_builds: u64,
+    build_time: Duration,
+    replaced: u64,
+    idle_retirements: u64,
 }
 
 impl Pool {
@@ -70,7 +79,7 @@ impl Pool {
             receiver: tokio::sync::Mutex::new(receiver),
             shutdown,
             status,
-            state: Mutex::new(PoolState::default()),
+            state: Mutex::new(Workers::default()),
         });
         // One build at a time: QuickJS seeds Math.random and its hash seed
         // from the time in microseconds, so contexts created at the same
@@ -127,11 +136,61 @@ impl Pool {
         }
     }
 
-    fn lock_state(&self) -> MutexGuard<'_, PoolState> {
+    fn lock_state(&self) -> MutexGuard<'_, Workers> {
         self.state.lock().unwrap_or_else(|error| error.into_inner())
     }
 
-    /// Spawn a worker counted by [`PoolState::reserve_worker`].
+    /// The instance counts and totals of [`PoolState`]; the handle adds the
+    /// queue and held connections.
+    pub fn state(&self) -> PoolState {
+        let state = self.lock_state();
+        let instances = self.options.instances;
+        let building = state.starting + state.rebuilding;
+        PoolState {
+            building,
+            idle: state.idle,
+            // A worker between two counts, such as one exiting after a
+            // failed build, reads as busy for that moment.
+            busy: state
+                .workers
+                .saturating_sub(building + state.idle + state.retiring),
+            retiring: state.retiring,
+            min: instances.min.get(),
+            max: instances.max.get(),
+            queue_capacity: self.options.queue_capacity.get(),
+            max_held_connections: instances.max_held_connections,
+            builds: state.builds,
+            failed_builds: state.failed_builds,
+            build_time: state.build_time,
+            replaced: state.replaced,
+            idle_retirements: state.idle_retirements,
+            ..PoolState::default()
+        }
+    }
+
+    /// Build an instance, counting it in the totals.
+    fn build(&self) -> Result<App> {
+        let started = Instant::now();
+        let built = self.builder.clone().build();
+        let mut state = self.lock_state();
+        state.build_time += started.elapsed();
+        match built {
+            Ok(_) => state.builds += 1,
+            Err(_) => state.failed_builds += 1,
+        }
+        built
+    }
+
+    /// Build the replacement of a retired instance while counted as
+    /// rebuilding.
+    fn rebuild(&self) -> Result<App> {
+        self.lock_state().rebuilding += 1;
+        let built = self.build();
+        self.lock_state().rebuilding -= 1;
+        built
+    }
+
+    /// Spawn a worker counted by [`Workers::reserve_worker`].
     fn start_worker(self: &Arc<Self>) -> Result<oneshot::Receiver<Result<()>>> {
         let (initialized, ready) = oneshot::channel();
         let mut thread = thread::Builder::new().name("fetchlet-app".into());
@@ -169,7 +228,7 @@ impl Pool {
             }
         };
         let _entered = executor.enter();
-        let built = self.builder.clone().build();
+        let built = self.build();
         self.lock_state().starting -= 1;
         let app = match built {
             Ok(app) => app,
@@ -228,7 +287,7 @@ impl Pool {
             }
             let instance = match app.as_mut() {
                 Some(instance) => instance,
-                None => match self.builder.clone().build() {
+                None => match self.rebuild() {
                     Ok(instance) => app.insert(instance),
                     Err(error) => {
                         command.reject(error);
@@ -243,7 +302,8 @@ impl Pool {
             // the queue, rather than when the next command arrives. A build
             // that fails is retried, and reported, by the next command.
             if !instance.is_reusable() {
-                app = self.builder.clone().build().ok();
+                self.lock_state().replaced += 1;
+                app = self.rebuild().ok();
             }
         }
     }
@@ -254,6 +314,7 @@ impl Pool {
         let mut state = self.lock_state();
         if state.workers - state.starting - state.retiring > self.options.instances.min.get() {
             state.retiring += 1;
+            state.idle_retirements += 1;
             return true;
         }
         false
@@ -290,7 +351,7 @@ impl Pool {
     }
 }
 
-impl PoolState {
+impl Workers {
     fn reserve_worker(&mut self) {
         self.workers += 1;
         self.starting += 1;
