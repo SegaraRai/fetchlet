@@ -271,14 +271,9 @@ distributable alone.
 
 [Startup and memory](research/startup-and-memory.md) measured build time,
 memory, latency and size for every example on each engine and recommends
-settings from them. Two gaps remain:
-
-- A QuickJS heap past `memory_limit_bytes` fails with an exception that
-  reads `Null"null"`; report it as the heap running out.
-- Only QuickJS has a heap limit. Add one for V8, so a pool's `max` times
-  the limit bounds its memory; Boa has no allocation limit to build on.
-
-Both are part of [enforcement and isolation](#enforcement-and-isolation).
+settings from them. QuickJS and V8 stop an instance at its heap limit, so a
+pool's `max` times the limit bounds its memory there; Boa has no allocation
+limit ([enforcement and isolation](#enforcement-and-isolation)).
 
 The measurements cover a page per request on fresh instances; measure the
 heap of a long-running instance under varied pages before raising the
