@@ -10,11 +10,20 @@ pub struct BoaOptions {
     pub stack_size_limit: Option<usize>,
     /// The number of nested JavaScript calls before a call throws.
     pub recursion_limit: Option<usize>,
+    /// The loop iterations one call frame may run before Boa stops it with
+    /// an error JavaScript cannot catch. Boa cannot be interrupted inside
+    /// its interpreter, so this count, not a time, bounds a loop that never
+    /// calls the host or queues a promise job. A caller budget; None keeps
+    /// Boa's own, which is unlimited.
+    pub loop_iteration_limit: Option<u64>,
 }
 
 impl BoaOptions {
     pub(crate) fn validate(&self) -> crate::Result<()> {
-        if self.stack_size_limit == Some(0) || self.recursion_limit == Some(0) {
+        if self.stack_size_limit == Some(0)
+            || self.recursion_limit == Some(0)
+            || self.loop_iteration_limit == Some(0)
+        {
             return Err(crate::Error::Configuration(
                 "engine resource sizes must be positive".into(),
             ));
@@ -29,6 +38,9 @@ impl BoaOptions {
         }
         if let Some(depth) = self.recursion_limit {
             limits.set_recursion_limit(depth);
+        }
+        if let Some(iterations) = self.loop_iteration_limit {
+            limits.set_loop_iteration_limit(iterations);
         }
     }
 }

@@ -31,10 +31,12 @@ process. The permission policy controls fetchlet's host operations.
 Isolation from engine bugs or memory corruption in native code requires an
 outer boundary: a separate process, an OS sandbox or similar.
 
-On QuickJS and V8, the invocation deadline stops JavaScript that never
-yields and retires the instance; on Boa it is cooperative. Stopping
-initialization, a busy budget for invocations without a deadline, and
-bounding the whole heap are per-engine work
+On QuickJS and V8, the invocation deadline, `Limits::busy_timeout` and
+`Limits::startup_timeout` stop JavaScript that never yields and retire the
+instance. Boa stops it only at its next promise job or host call, or past
+`BoaOptions::loop_iteration_limit`; other non-yielding JavaScript on Boa,
+such as deep recursion, holds its thread until it finishes. Bounding the
+whole heap is per-engine work
 ([interrupts and heap limits](research/interrupts-and-heap-limits.md)). Running
 third-party code requires choosing the enforcement it needs and checking
 what each engine provides. Ahead-of-time compiled code is native code.

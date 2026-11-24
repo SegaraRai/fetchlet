@@ -8,8 +8,20 @@ use crate::{Error, Result};
 /// the surrounding host, such as an HTTP server or a process supervisor.
 #[derive(Debug, Clone, Default)]
 pub struct Limits {
-    /// Cooperative duration of one invocation, including host I/O and timers.
+    /// Duration of one invocation, including host I/O and timers. QuickJS
+    /// and V8 stop JavaScript still running when it passes; Boa stops it at
+    /// its next promise job or host call.
     pub timeout: Option<Duration>,
+    /// How long JavaScript may run without returning to the event loop,
+    /// counted from each entry into the engine, whether or not the
+    /// invocation has a deadline. A caller budget: it keeps one script from
+    /// holding an instance's thread, such as a busy loop in a held
+    /// connection's message handler. Exceeding it fails the evaluation with
+    /// `LimitExceeded("engine busy time")` and retires the instance.
+    pub busy_timeout: Option<Duration>,
+    /// Duration of the module's evaluation when an instance is built. A
+    /// caller budget; exceeding it fails the build with `DeadlineExceeded`.
+    pub startup_timeout: Option<Duration>,
     /// Byte budget for each input or outbound request body.
     pub request_body_bytes: Option<usize>,
     /// Chunk budget when reading a guest outbound request, including empty chunks.
@@ -79,6 +91,8 @@ impl Limits {
     pub(crate) fn validate(&self) -> Result<()> {
         for (name, timeout) in [
             ("background_timeout", self.background_timeout),
+            ("busy_timeout", self.busy_timeout),
+            ("startup_timeout", self.startup_timeout),
             ("connection_idle_timeout", self.connection_idle_timeout),
             ("connection_lifetime", self.connection_lifetime),
             ("timeout", self.timeout),

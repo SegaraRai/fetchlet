@@ -4,7 +4,8 @@ use serde_json::Value;
 
 use super::{Backend, CodeCache, Startup};
 use crate::bridge::HostBridge;
-use crate::{Error, Instance, Module, Result};
+use crate::execution::Interrupted;
+use crate::{Error, Instance, Limits, Module, Result};
 
 pub(crate) enum Engine {
     #[cfg(feature = "quickjs")]
@@ -21,8 +22,9 @@ impl Engine {
         module: &Module,
         host: HostBridge,
         code_cache: Arc<CodeCache>,
+        limits: &Limits,
     ) -> Result<Self> {
-        let startup = Startup::new(module, &backend, code_cache);
+        let startup = Startup::new(module, &backend, code_cache, limits);
         let result = match backend {
             #[cfg(feature = "quickjs")]
             Backend::QuickJs(options) => {
@@ -36,32 +38,37 @@ impl Engine {
         };
         // An unmet requirement keeps its own error; anything else the
         // engine reported while starting is JavaScript's.
-        result.map_err(|error| match error.downcast::<Error>() {
-            Ok(error @ Error::Configuration(_)) => error,
-            Ok(error) => Error::JavaScript(error.to_string()),
-            Err(error) => Error::JavaScript(error.to_string()),
+        result.map_err(|error| {
+            let error = match error.downcast::<Interrupted>() {
+                Ok(interrupted) => return interrupted.into(),
+                Err(error) => error,
+            };
+            match error.downcast::<Error>() {
+                Ok(error @ Error::Configuration(_)) => error,
+                Ok(error) => Error::JavaScript(error.to_string()),
+                Err(error) => Error::JavaScript(error.to_string()),
+            }
         })
     }
 
     /// Evaluate a prepared invocation expression (see `execution::script`).
-    /// An engine that polls stops JavaScript still running at `deadline`
-    /// with [`Interrupted`](crate::execution::Interrupted); the caller's
-    /// timer covers the others' time spent outside JavaScript, and V8's
-    /// cancellation terminates its isolate when that timer drops the call.
+    /// JavaScript still running at `deadline` or past the busy timeout
+    /// stops with [`Interrupted`](crate::execution::Interrupted): QuickJS
+    /// polls, V8's watchdog and the caller's timer terminate the isolate,
+    /// and Boa checks at its promise jobs and host calls. The caller's timer
+    /// covers time spent outside JavaScript.
     pub(crate) async fn evaluate(
         &mut self,
         expression: String,
-        #[cfg_attr(not(feature = "quickjs"), allow(unused_variables))] deadline: Option<
-            std::time::Instant,
-        >,
+        deadline: Option<std::time::Instant>,
     ) -> anyhow::Result<Value> {
         match self {
             #[cfg(feature = "quickjs")]
             Self::QuickJs(engine) => engine.evaluate_until(expression, deadline).await,
             #[cfg(feature = "boa")]
-            Self::Boa(engine) => engine.evaluate(expression).await,
+            Self::Boa(engine) => engine.evaluate_until(expression, deadline).await,
             #[cfg(feature = "v8")]
-            Self::V8(engine) => engine.evaluate(expression).await,
+            Self::V8(engine) => engine.evaluate_until(expression, deadline).await,
         }
     }
 }

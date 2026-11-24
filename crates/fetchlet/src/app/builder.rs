@@ -90,7 +90,13 @@ impl AppBuilder {
         if let Some(runtime) = self.host_runtime {
             host = host.with_runtime(runtime);
         }
-        let engine = Engine::new(self.backend, &module, host.clone(), self.code_cache)?;
+        let engine = Engine::new(
+            self.backend,
+            &module,
+            host.clone(),
+            self.code_cache,
+            &self.limits,
+        )?;
         Ok(App {
             engine,
             host,

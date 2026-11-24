@@ -52,13 +52,14 @@ impl QuickJs {
         // QuickJS calls the handler every 10,000 interpreter polls (calls,
         // backward jumps, regular expression steps). Stopping throws an
         // uncatchable `InternalError: interrupted`.
-        let interrupt = Interrupt::default();
+        let interrupt = startup.interrupt();
         let handler = interrupt.clone();
         runtime.set_interrupt_handler(Some(Box::new(move || handler.expired())));
 
         let wake = host.wake_signal();
         let context = Context::full(&runtime)?;
-        context.with(|context| -> Result<()> {
+        interrupt.arm_startup(startup.deadline());
+        let loaded = context.with(|context| -> Result<()> {
             let take = host.clone();
             context.globals().set(
                 "__fetchletTakeBytes",
@@ -104,7 +105,14 @@ impl QuickJs {
             )?;
             context.eval::<(), _>(SEAL_HOST)?;
             Ok(())
-        })?;
+        });
+        interrupt.disarm();
+        if let Err(error) = loaded {
+            return Err(match interrupt.stopped() {
+                Some(reason) => Interrupted(reason).into(),
+                None => error,
+            });
+        }
 
         Ok(Self {
             context,
@@ -128,8 +136,9 @@ impl Instance for QuickJs {
 
 impl QuickJs {
     /// Evaluate an invocation expression and drive its Promise to completion,
-    /// stopping JavaScript still running at `deadline` with [`Interrupted`].
-    /// A stopped instance is not reusable.
+    /// stopping JavaScript still running at `deadline`, or running past the
+    /// busy timeout without returning to the loop, with [`Interrupted`]. A
+    /// stopped instance is not reusable.
     pub(crate) async fn evaluate_until(
         &mut self,
         expression: String,
@@ -155,11 +164,14 @@ impl QuickJs {
         }
 
         self.poisoned = true;
+        self.interrupt.enter();
         let promise = self.context.with(|context| -> Result<_> {
             let promise: Promise = context.eval(observed(&expression))?;
             Ok(Persistent::save(&context, promise))
         })?;
 
+        // The busy clock runs from each entry into JavaScript, the first
+        // evaluation or a return from the loop's wait, until the next wait.
         loop {
             let step = self.context.with(|context| -> Result<_> {
                 let promise = promise.clone().restore(&context)?;
@@ -199,6 +211,7 @@ impl QuickJs {
                 return Ok(serde_json::from_str(&json)?);
             }
 
+            self.interrupt.leave();
             if let Some(state) = state {
                 if state.progress {
                     tokio::task::yield_now().await;
@@ -206,6 +219,7 @@ impl QuickJs {
                     self.wake.wait(state.timer_delay()).await;
                 }
             }
+            self.interrupt.enter();
         }
     }
 }

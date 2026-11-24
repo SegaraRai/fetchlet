@@ -10,8 +10,8 @@ use crate::Instance;
 use crate::backend::{Check, CodeCache, Script};
 use crate::bridge::HostBridge;
 use crate::execution::{
-    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
-    invocation, observed,
+    FLUSH_REJECTIONS, HOST_BOOTSTRAP, Interrupt, Interrupted, LOOP_STEP, LoopState, PRELUDE,
+    SEAL_HOST, WakeSignal, invocation, observed,
 };
 
 /// The engine name compiled code is cached under.
@@ -100,6 +100,7 @@ fn execute_script(
 pub(super) struct V8Runtime {
     runtime: JsRuntime,
     cancelled: Arc<AtomicBool>,
+    interrupt: Interrupt,
     reusable: bool,
     wake: WakeSignal,
 }
@@ -149,16 +150,45 @@ impl V8Runtime {
         self.cancelled = flag;
     }
 
+    /// Create the isolate, hand its handle to `on_isolate` so that a
+    /// watchdog can terminate it, and evaluate the module, which `interrupt`
+    /// stops at `deadline`.
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn new(
         source: &str,
         check: &Check,
         cache: Option<&CodeCache>,
         host: HostBridge,
+        interrupt: Interrupt,
+        deadline: Option<std::time::Instant>,
+        on_isolate: impl FnOnce(v8::IsolateHandle),
     ) -> Result<Self> {
         let mut runtime = JsRuntime::new(RuntimeOptions {
             extensions: vec![fetchlet_host::init()],
             ..Default::default()
         });
+        on_isolate(runtime.v8_isolate().thread_safe_handle());
+        interrupt.arm_startup(deadline);
+        let loaded = Self::load(&mut runtime, source, check, cache, host);
+        interrupt.disarm();
+        let wake = loaded?;
+        Ok(Self {
+            runtime,
+            cancelled: Arc::new(AtomicBool::new(false)),
+            interrupt,
+            reusable: true,
+            wake,
+        })
+    }
+
+    /// Install the host and evaluate the scripts and the module.
+    fn load(
+        runtime: &mut JsRuntime,
+        source: &str,
+        check: &Check,
+        cache: Option<&CodeCache>,
+        host: HostBridge,
+    ) -> Result<WakeSignal> {
         // fetchlet drives microtasks itself rather than through deno_core's
         // event loop, so the profile, not deno_core, tracks rejections.
         runtime
@@ -186,15 +216,9 @@ impl V8Runtime {
                  delete globalThis.__bootstrap;",
             )
             .map_err(|error| anyhow!("{error}"))?;
+        execute_script(runtime, cache, Script::Prelude, "fetchlet:prelude", PRELUDE)?;
         execute_script(
-            &mut runtime,
-            cache,
-            Script::Prelude,
-            "fetchlet:prelude",
-            PRELUDE,
-        )?;
-        execute_script(
-            &mut runtime,
+            runtime,
             cache,
             Script::Bridge,
             "fetchlet:bridge",
@@ -205,28 +229,17 @@ impl V8Runtime {
                 let value = runtime
                     .execute_script("fetchlet:probe", probe.to_owned())
                     .map_err(|error| anyhow!("{error}"))?;
-                deno_core::scope!(scope, &mut runtime);
+                deno_core::scope!(scope, runtime);
                 Some(v8::Local::new(scope, value).to_rust_string_lossy(scope))
             }
             None => None,
         };
         check.admit(report.as_deref())?;
-        execute_script(
-            &mut runtime,
-            cache,
-            Script::Module,
-            "fetchlet:bundle",
-            source,
-        )?;
+        execute_script(runtime, cache, Script::Module, "fetchlet:bundle", source)?;
         runtime
             .execute_script("fetchlet:seal", SEAL_HOST)
             .map_err(|error| anyhow!("{error}"))?;
-        Ok(Self {
-            runtime,
-            cancelled: Arc::new(AtomicBool::new(false)),
-            reusable: true,
-            wake,
-        })
+        Ok(wake)
     }
 }
 
@@ -245,6 +258,9 @@ impl V8Runtime {
     /// The invocation script owns timer and response-body cleanup.
     pub(super) async fn evaluate(&mut self, expression: String) -> Result<Value> {
         self.reusable = false;
+        // The busy clock runs from each entry into JavaScript, the first
+        // evaluation or a return from the loop's wait, until the next wait.
+        self.interrupt.enter();
         let promise = self
             .runtime
             .execute_script("fetchlet:call", observed(&expression))
@@ -254,6 +270,12 @@ impl V8Runtime {
                 anyhow::bail!("Invocation cancelled");
             }
             self.runtime.v8_isolate().perform_microtask_checkpoint();
+            // V8 ends a termination once no JavaScript runs, so the
+            // microtask it stopped is gone and the promise stays pending:
+            // the recorded stop ends the evaluation instead of the wait.
+            if let Some(reason) = self.interrupt.stopped() {
+                return Err(Interrupted(reason).into());
+            }
             let result = {
                 deno_core::scope!(scope, &mut self.runtime);
                 let local = v8::Local::new(scope, promise.clone());
@@ -284,12 +306,17 @@ impl V8Runtime {
                 v8::Local::new(scope, state).to_rust_string_lossy(scope)
             };
             let state: LoopState = serde_json::from_str(&state)?;
+            if let Some(reason) = self.interrupt.stopped() {
+                return Err(Interrupted(reason).into());
+            }
 
+            self.interrupt.leave();
             if state.progress {
                 tokio::task::yield_now().await;
             } else {
                 self.wake.wait(state.timer_delay()).await;
             }
+            self.interrupt.enter();
         }
     }
 }

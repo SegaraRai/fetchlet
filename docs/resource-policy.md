@@ -14,7 +14,9 @@ services, concurrency and the process's total capacity.
 
 | Field                     | Unit and scope                                                                                                                            |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `timeout`                 | Cooperative elapsed time of one app call, until its streaming body completes, or of a `FetchService` call from Rust                       |
+| `timeout`                 | Elapsed time of one app call, until its streaming body completes, or of a `FetchService` call from Rust                                   |
+| `busy_timeout`            | Time JavaScript may run from each entry into the engine before it returns to the event loop, in calls and held connections                |
+| `startup_timeout`         | Elapsed time of the module's evaluation when an instance is built, by `AppBuilder::build` or a pool                                       |
 | `request_body_bytes`      | Bytes of each incoming request body and each outbound request body; streams are checked against the declared length and the running total |
 | `request_body_chunks`     | Chunks read from an outbound request body in JavaScript, empty chunks included, read first or streamed                                    |
 | `response_body_bytes`     | Bytes of each outgoing response body and each upstream response body; declared length and running total                                   |
@@ -75,10 +77,13 @@ instead of aborting the process.
 
 Body, header and message checks apply at each boundary. Copies made during
 JSON conversion and buffering, and the engine's total heap, are managed
-separately. On QuickJS and V8, the invocation deadline stops JavaScript that
-never yields, fails the call with `DeadlineExceeded` and retires the
-instance. On Boa, and for code running during initialization on every
-engine, stopping it needs an external process supervisor
+separately. On QuickJS and V8, the invocation deadline and `startup_timeout`
+stop JavaScript that never yields with `DeadlineExceeded`, and
+`busy_timeout` stops it with `LimitExceeded("engine busy time")`; the
+instance retires, and a pool replaces it. Boa stops JavaScript the same way
+at its next promise job or host call, and `BoaOptions::loop_iteration_limit`
+stops a loop by count. JavaScript on Boa that does neither, such as deep
+recursion, can only be stopped by an external process supervisor
 ([interrupts and heap limits](research/interrupts-and-heap-limits.md)).
 
 ## Engine settings
@@ -88,6 +93,7 @@ engine, stopping it needs an external process supervisor
 | `QuickJsOptions` heap and stack | The caller; unset values keep QuickJS's own defaults (1 MiB stack) |
 | `V8Options` worker stack        | The caller; unset keeps the platform's thread stack size           |
 | `BoaOptions` value stack, calls | The caller; unset values keep Boa's own (10,240 slots, 512 calls)  |
+| `BoaOptions` loop iterations    | The caller; unset keeps Boa's own, which is unlimited              |
 | `WorkerOptions` stack           | The caller; unset keeps the platform's thread stack size           |
 
 Explicit values must be positive. How well a setting is enforced depends on

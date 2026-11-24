@@ -10,10 +10,11 @@ use tokio::sync::oneshot;
 
 use super::V8Options;
 use super::runtime::V8Runtime;
+use super::watchdog::{IsolateSlot, Watchdog};
 use crate::Instance;
 use crate::backend::Startup;
 use crate::bridge::HostBridge;
-use crate::execution::{WakeSignal, invocation};
+use crate::execution::{Interrupt, Interrupted, WakeSignal, invocation};
 
 struct Call {
     expression: String,
@@ -28,6 +29,10 @@ pub struct V8 {
     sender: mpsc::Sender<Option<Call>>,
     worker: Option<JoinHandle<()>>,
     isolate: v8::IsolateHandle,
+    interrupt: Interrupt,
+    /// Terminates the isolate past the busy timeout; None without one.
+    /// Dropped before the worker is joined.
+    watchdog: Option<Watchdog>,
     poisoned: bool,
     wake: WakeSignal,
 }
@@ -51,6 +56,11 @@ impl V8 {
         let source = startup.source().to_owned();
         let check = startup.check().clone();
         let code_cache = startup.code_cache().cloned();
+        let interrupt = startup.interrupt();
+        let slot = IsolateSlot::default();
+        let watchdog = Watchdog::start(&interrupt, startup.startup_timeout(), &slot)?;
+        let deadline = startup.deadline();
+        let worker_interrupt = interrupt.clone();
         let (sender, receiver) = mpsc::channel::<Option<Call>>();
         let (ready, initialized) = mpsc::sync_channel(1);
         let mut worker = thread::Builder::new().name("fetchlet-v8".into());
@@ -69,7 +79,18 @@ impl V8 {
                 }
             };
             let _entered = executor.enter();
-            let mut local = match V8Runtime::new(&source, &check, code_cache.as_deref(), host) {
+            let loaded = V8Runtime::new(
+                &source,
+                &check,
+                code_cache.as_deref(),
+                host,
+                worker_interrupt,
+                deadline,
+                |isolate| {
+                    let _ = slot.set(isolate);
+                },
+            );
+            let mut local = match loaded {
                 Ok(local) => local,
                 Err(error) => {
                     let _ = ready.send(Err(error));
@@ -94,11 +115,23 @@ impl V8 {
                 let _ = call.reply.send((result, local.is_reusable()));
             }
         })?;
-        let isolate = initialized.recv()??;
+        let isolate = match initialized.recv()? {
+            Ok(isolate) => isolate,
+            Err(error) => {
+                drop(watchdog);
+                let _ = worker.join();
+                return Err(match interrupt.stopped() {
+                    Some(reason) => Interrupted(reason).into(),
+                    None => error,
+                });
+            }
+        };
         Ok(Self {
             sender,
             worker: Some(worker),
             isolate,
+            interrupt,
+            watchdog,
             poisoned: false,
             wake,
         })
@@ -111,13 +144,35 @@ impl Instance for V8 {
     }
 
     async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
-        self.evaluate(invocation(export, args)?).await
+        self.evaluate_until(invocation(export, args)?, None).await
     }
 }
 
 impl V8 {
     /// Evaluate an invocation expression on the isolate's worker thread.
-    pub(crate) async fn evaluate(&mut self, expression: String) -> Result<Value> {
+    /// The caller's timer terminates the isolate at `deadline` by dropping
+    /// the call; the watchdog terminates it past the busy timeout, or at
+    /// `deadline` when it checks first. A stopped instance is not reusable.
+    pub(crate) async fn evaluate_until(
+        &mut self,
+        expression: String,
+        deadline: Option<std::time::Instant>,
+    ) -> Result<Value> {
+        self.interrupt.arm(deadline);
+        let result = self.evaluate(expression).await;
+        self.interrupt.disarm();
+        // A stop the watchdog recorded retires the instance even if the
+        // evaluation finished first: its termination may still be pending.
+        match self.interrupt.stopped() {
+            Some(reason) => {
+                self.poisoned = true;
+                Err(Interrupted(reason).into())
+            }
+            None => result,
+        }
+    }
+
+    async fn evaluate(&mut self, expression: String) -> Result<Value> {
         if self.poisoned {
             anyhow::bail!("Instance cannot be reused after an interrupted call");
         }
@@ -147,6 +202,7 @@ impl V8 {
 
 impl Drop for V8 {
     fn drop(&mut self) {
+        drop(self.watchdog.take());
         let _ = self.sender.send(None);
         if let Some(worker) = self.worker.take() {
             let _ = worker.join();

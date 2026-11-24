@@ -132,16 +132,18 @@ beyond Intl, each with its tests on every engine, such as the
 
 ### Enforcement and isolation
 
-The invocation deadline stops non-yielding JavaScript on QuickJS and V8;
-on Boa it is cooperative, and only QuickJS has a heap limit.
+The invocation deadline, `Limits::busy_timeout` and
+`Limits::startup_timeout` stop non-yielding JavaScript on QuickJS and V8.
+Boa stops it at its next promise job or host call and bounds loops with
+`BoaOptions::loop_iteration_limit`; JavaScript that does neither, such as
+deep recursion, runs on, so untrusted code belongs on QuickJS, V8 or behind
+a process boundary. Only QuickJS has a heap limit.
 [Interrupts and heap limits](research/interrupts-and-heap-limits.md)
-designs the rest, in this order: `Limits::busy_timeout` and
-`Limits::startup_timeout` on every engine, with a watchdog for V8 and
-checks between jobs and a loop iteration limit for Boa; a counting QuickJS
-allocator and V8 heap and array buffer limits; and an interrupt poll in
-Boa's VM, proposed upstream. Every stop retires the instance and has a
-regression test on each engine. Third-party code still needs a process
-boundary.
+designs the rest, in this order: a counting QuickJS allocator and V8 heap
+and array buffer limits; then fetchlet-http's `Server` defaults for the
+busy and startup timeouts and Boa's loop iteration limit, measured against
+the examples. Every stop retires the instance and has a regression test on
+each engine. Third-party code still needs a process boundary.
 
 ### Instance pools
 

@@ -53,7 +53,7 @@ kept.
 | fetch and env       | Async bridge to Rust services, origin policy, fixed bindings                                                                                                                                                                                  |
 | Server WebSocket    | `upgradeWebSocket(request)` from `fetchlet/runtime` returns a `WebSocket` and its 101 response; text and binary messages, `binaryType`, `bufferedAmount`, close codes and reasons, `CloseEvent`; the connection holds its instance            |
 | Bodies, background  | Streaming response bodies, request and upstream bodies as `ReadableStream`, binary transfer through the byte store, `fetchlet.waitUntil`, timer cleanup at the end of a call                                                                  |
-| Execution control   | Optional deadline, enforced inside JavaScript on QuickJS and V8, and engine options                                                                                                                                                           |
+| Execution control   | Optional deadline, busy and startup timeouts, enforced inside JavaScript on QuickJS and V8 and at jobs and host calls on Boa, and engine options                                                                                              |
 
 Request and Response bodies created from a string, BufferSource or
 URLSearchParams stay as bytes until `body` is read. `arrayBuffer()`,

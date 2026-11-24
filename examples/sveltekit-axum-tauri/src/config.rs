@@ -87,6 +87,7 @@ impl Config {
             Engine::Boa => Ok(Backend::Boa(fetchlet::BoaOptions {
                 stack_size_limit: self.boa_stack_slots,
                 recursion_limit: self.boa_recursion_limit,
+                ..fetchlet::BoaOptions::default()
             })),
             #[cfg(feature = "v8")]
             Engine::V8 => Ok(Backend::V8(fetchlet::V8Options {

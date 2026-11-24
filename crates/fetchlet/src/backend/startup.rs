@@ -4,11 +4,13 @@
 //! the instance itself.
 
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
 use super::{Backend, CodeCache};
-use crate::{Error, Module, Requirements, Result};
+use crate::execution::Interrupt;
+use crate::{Error, Limits, Module, Requirements, Result};
 
 /// The module an instance evaluates, with the check it passes first and
 /// the compiled code it shares with the other instances of its application.
@@ -16,10 +18,19 @@ pub(crate) struct Startup<'a> {
     source: &'a str,
     check: Check,
     code_cache: Option<Arc<CodeCache>>,
+    /// `Limits::busy_timeout`, for the instance's interrupt.
+    busy_timeout: Option<Duration>,
+    /// `Limits::startup_timeout`.
+    startup_timeout: Option<Duration>,
 }
 
 impl<'a> Startup<'a> {
-    pub fn new(module: &'a Module, backend: &Backend, code_cache: Arc<CodeCache>) -> Self {
+    pub fn new(
+        module: &'a Module,
+        backend: &Backend,
+        code_cache: Arc<CodeCache>,
+        limits: &Limits,
+    ) -> Self {
         let requirements = module.requirements();
         Self {
             source: module.source(),
@@ -29,6 +40,8 @@ impl<'a> Startup<'a> {
                 probe: probe_script(requirements),
             },
             code_cache: Some(code_cache),
+            busy_timeout: limits.busy_timeout,
+            startup_timeout: limits.startup_timeout,
         }
     }
 
@@ -42,6 +55,8 @@ impl<'a> Startup<'a> {
                 probe: None,
             },
             code_cache: None,
+            busy_timeout: None,
+            startup_timeout: None,
         }
     }
 
@@ -51,6 +66,23 @@ impl<'a> Startup<'a> {
 
     pub fn check(&self) -> &Check {
         &self.check
+    }
+
+    /// The interrupt of the instance being built, with its busy timeout.
+    pub fn interrupt(&self) -> Interrupt {
+        Interrupt::new(self.busy_timeout)
+    }
+
+    /// When the module's evaluation must have ended, from now.
+    pub fn deadline(&self) -> Option<Instant> {
+        self.startup_timeout
+            .and_then(|timeout| Instant::now().checked_add(timeout))
+    }
+
+    /// `Limits::startup_timeout`.
+    #[cfg_attr(not(feature = "v8"), allow(dead_code))]
+    pub fn startup_timeout(&self) -> Option<Duration> {
+        self.startup_timeout
     }
 
     /// The application's compiled code, None for an engine built directly.
