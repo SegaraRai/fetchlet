@@ -1,3 +1,4 @@
+mod heap;
 mod instance;
 mod options;
 

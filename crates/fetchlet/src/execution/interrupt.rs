@@ -3,8 +3,8 @@
 //! entry into JavaScript starts the busy clock of `Limits::busy_timeout`,
 //! and the engine asks [`Interrupt::expired`] at the points where it can
 //! stop: QuickJS's interrupt handler, V8's watchdog, and Boa's job and host
-//! callbacks. The evaluation then fails with [`Interrupted`], which names
-//! why, and the instance retires.
+//! callbacks. A heap limit records its stop directly. The evaluation then
+//! fails with [`Interrupted`], which names why, and the instance retires.
 
 use std::fmt;
 use std::sync::atomic::{AtomicU8, AtomicU64, Ordering};
@@ -23,6 +23,8 @@ pub(crate) enum StopReason {
     /// JavaScript ran for `Limits::busy_timeout` without returning to the
     /// event loop.
     Busy,
+    /// The engine reached the instance's heap limit.
+    Heap,
 }
 
 impl StopReason {
@@ -31,6 +33,7 @@ impl StopReason {
             Self::Deadline => 1,
             Self::Startup => 2,
             Self::Busy => 3,
+            Self::Heap => 4,
         }
     }
 
@@ -39,6 +42,7 @@ impl StopReason {
             1 => Some(Self::Deadline),
             2 => Some(Self::Startup),
             3 => Some(Self::Busy),
+            4 => Some(Self::Heap),
             _ => None,
         }
     }
@@ -55,6 +59,7 @@ impl fmt::Display for Interrupted {
             StopReason::Deadline => "JavaScript ran past its deadline",
             StopReason::Startup => "the module ran past its startup timeout",
             StopReason::Busy => "JavaScript ran past its busy timeout",
+            StopReason::Heap => "JavaScript reached the engine's heap limit",
         })
     }
 }
@@ -66,6 +71,7 @@ impl From<Interrupted> for Error {
         match interrupted.0 {
             StopReason::Deadline | StopReason::Startup => Error::DeadlineExceeded,
             StopReason::Busy => Error::LimitExceeded("engine busy time"),
+            StopReason::Heap => Error::LimitExceeded("engine heap"),
         }
     }
 }
@@ -151,10 +157,22 @@ impl Interrupt {
         self.inner.busy_until.store(0, Ordering::Relaxed);
     }
 
+    /// Record a stop that the engine reported itself, such as its heap
+    /// limit, from any thread. JavaScript that caught the engine's error is
+    /// stopped at the next check, and the instance retires.
+    #[cfg_attr(not(any(feature = "quickjs", feature = "v8")), allow(dead_code))]
+    pub fn stop(&self, reason: StopReason) {
+        self.inner.reason.store(reason.code(), Ordering::Relaxed);
+    }
+
     /// Whether the armed evaluation must stop now, recording why. It reads
-    /// the clock only while a deadline or the busy clock runs.
+    /// the clock only while a deadline or the busy clock runs. After a heap
+    /// stop it always does: the heap stays full.
     pub fn expired(&self) -> bool {
         let state = &self.inner;
+        if state.reason.load(Ordering::Relaxed) == StopReason::Heap.code() {
+            return true;
+        }
         let deadline = state.deadline.load(Ordering::Relaxed);
         let busy_until = state.busy_until.load(Ordering::Relaxed);
         if deadline == 0 && busy_until == 0 {
@@ -221,6 +239,21 @@ mod tests {
         interrupt.arm_startup(Some(Instant::now()));
         assert!(interrupt.expired());
         assert_eq!(interrupt.stopped(), Some(StopReason::Startup));
+    }
+
+    #[test]
+    fn a_heap_stop_expires_until_the_next_evaluation() {
+        let interrupt = Interrupt::default();
+        interrupt.arm(None);
+        interrupt.stop(StopReason::Heap);
+        assert!(interrupt.expired());
+        // A deadline passing afterwards does not replace the reason.
+        interrupt.arm_with(Some(Instant::now()), StopReason::Deadline);
+        interrupt.stop(StopReason::Heap);
+        assert!(interrupt.expired());
+        assert_eq!(interrupt.stopped(), Some(StopReason::Heap));
+        interrupt.disarm();
+        assert!(interrupt.expired());
     }
 
     #[test]

@@ -84,6 +84,7 @@ impl V8 {
                 &check,
                 code_cache.as_deref(),
                 host,
+                &options,
                 worker_interrupt,
                 deadline,
                 |isolate| {

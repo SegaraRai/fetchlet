@@ -137,13 +137,15 @@ The invocation deadline, `Limits::busy_timeout` and
 Boa stops it at its next promise job or host call and bounds loops with
 `BoaOptions::loop_iteration_limit`; JavaScript that does neither, such as
 deep recursion, runs on, so untrusted code belongs on QuickJS, V8 or behind
-a process boundary. Only QuickJS has a heap limit.
+a process boundary. QuickJS and V8 stop an instance at its heap limit; Boa
+has none.
 [Interrupts and heap limits](research/interrupts-and-heap-limits.md)
-designs the rest, in this order: a counting QuickJS allocator and V8 heap
-and array buffer limits; then fetchlet-http's `Server` defaults for the
-busy and startup timeouts and Boa's loop iteration limit, measured against
-the examples. Every stop retires the instance and has a regression test on
-each engine. Third-party code still needs a process boundary.
+lists the rest: fetchlet-http's `Server` defaults for the busy and startup
+timeouts, V8's heap limit and Boa's loop iteration limit, measured against
+the examples; and V8 not terminating a hot loop around
+`new Array(n).fill(value)`, which needs tracing. Every stop retires the
+instance and has a regression test on each engine. Third-party code still
+needs a process boundary.
 
 ### Instance pools
 

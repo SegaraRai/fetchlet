@@ -92,6 +92,7 @@ impl Config {
             #[cfg(feature = "v8")]
             Engine::V8 => Ok(Backend::V8(fetchlet::V8Options {
                 worker_stack_bytes: self.worker_stack_bytes.map(NonZeroUsize::get),
+                ..fetchlet::V8Options::default()
             })),
             #[allow(unreachable_patterns)]
             engine => anyhow::bail!("build mdw with the {engine:?} feature to use it"),

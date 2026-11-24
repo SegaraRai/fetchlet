@@ -4,8 +4,9 @@ The invocation deadline, `Limits::busy_timeout` and
 `Limits::startup_timeout` stop JavaScript that never yields on QuickJS and
 V8, and retire the instance. Boa stops it at its next promise job or host
 call, and `BoaOptions::loop_iteration_limit` bounds loops by count;
-JavaScript that does neither runs on. Only QuickJS has a heap limit, and it
-reports exhaustion as an exception that reads `Null"null"`. This document
+JavaScript that does neither runs on. QuickJS and V8 stop an instance that
+reaches its heap limit with `LimitExceeded("engine heap")`; Boa has no heap
+limit. This document
 records what each engine provides, as of the versions in `Cargo.lock`, and
 designs enforcement on top of it: stopping non-yielding JavaScript at the
 invocation deadline, during initialization and after a busy budget, and
@@ -13,11 +14,11 @@ bounding each instance's heap.
 
 ## Status
 
-| Engine         | Non-yielding JavaScript                                                                                                                                                                                                                                       | Heap                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| QuickJS (0.14) | Stopped at the deadline, past the busy timeout and past the startup timeout. The interrupt handler and the job loop check the instance's `Interrupt`; the evaluation fails and the instance retires.                                                          | `QuickJsOptions::memory_limit_bytes` sets `JS_SetMemoryLimit`. Exhaustion surfaces as an unnamed error. |
-| Boa (0.22)     | Stopped at the next promise job or host call once the deadline, busy timeout or startup timeout passes. `loop_iteration_limit` stops a loop by count. JavaScript that queues no job, calls no host and runs no limited loop, such as deep recursion, runs on. | None.                                                                                                   |
-| V8 (deno_core) | Stopped at the deadline, past the busy timeout and past the startup timeout. A watchdog thread per instance, and the caller dropping the call, terminate the isolate; the instance retires.                                                                   | None. Exhaustion aborts the process with V8's fatal out-of-memory error.                                |
+| Engine         | Non-yielding JavaScript                                                                                                                                                                                                                                       | Heap                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| QuickJS (0.14) | Stopped at the deadline, past the busy timeout and past the startup timeout. The interrupt handler and the job loop check the instance's `Interrupt`; the evaluation fails and the instance retires.                                                          | A counting allocator enforces `memory_limit_bytes`; the instance stops and retires, even if JavaScript caught the error. |
+| Boa (0.22)     | Stopped at the next promise job or host call once the deadline, busy timeout or startup timeout passes. `loop_iteration_limit` stops a loop by count. JavaScript that queues no job, calls no host and runs no limited loop, such as deep recursion, runs on. | None.                                                                                                                    |
+| V8 (deno_core) | Stopped at the deadline, past the busy timeout and past the startup timeout. A watchdog thread per instance, and the caller dropping the call, terminate the isolate; the instance retires. One loop shape is not stopped (see below).                        | `heap_limit_bytes` stops the isolate near the limit; `array_buffer_limit_bytes` refuses buffers with a `RangeError`.     |
 
 `crates/fetchlet/tests/interrupts.rs` stops, on QuickJS and V8, a loop, a
 loop inside `try`/`catch`, a loop in a promise reaction, an endless
@@ -28,7 +29,22 @@ chain and the host calls. On every engine it checks that the instance
 retires, that a pool replaces it, that a call which yields often outlasts
 the busy timeout, and that a module looping at top level fails `build`
 past the startup timeout. `crates/fetchlet/tests/boa_options.rs` stops a
-loop past `loop_iteration_limit`.
+loop past `loop_iteration_limit`. `crates/fetchlet/tests/heap.rs` exhausts
+the heap on QuickJS and V8, in a call, in a call that catches the error and
+carries on, and at startup, and checks that the process survives, that the
+instance retires and that a pool replaces it, and that V8 refuses an
+`ArrayBuffer` past its budget with a `RangeError` the call can catch.
+
+V8 does not deliver termination to a hot loop whose body allocates with
+`new Array(n).fill(value)` for an `n` of 200 or more, on V8 150.4 through
+deno_core 0.413: the watchdog's `terminate_execution` and the
+near-heap-limit callback's both go unanswered, so neither the time limits
+nor the heap limit stop it, and a heap limit lets it grow until V8 ends the
+process. The same loop with `new Array(16).fill(value)`, with `fill` on an
+existing array, or with an array built by `push` stops within the busy
+timeout. The probes ran against the shipped V8 build; where V8 drops the
+interrupt has not been traced. Deployments that run untrusted code on V8
+need a process boundary for this case.
 
 CPU time would not count time spent waiting for a busy host. Measuring it
 costs a system call, and V8's thread would need its own clock. CPU time can
@@ -129,10 +145,11 @@ to recover either way.
 
 ### Heap limits
 
-**QuickJS.** Replace `set_memory_limit` with an `Allocator` passed to
-`Runtime::new_with_alloc`. The allocator counts bytes against
-`memory_limit_bytes` and refuses allocations past it. On the first refusal
-it calls `interrupt.stop(Heap)`. Then:
+**QuickJS.** `set_memory_limit` is replaced by an `Allocator` passed to
+`Runtime::new_with_alloc`. The allocator counts each block's usable size
+plus its 8-byte header against `memory_limit_bytes`, the same total
+QuickJS's own `malloc_size` keeps, and refuses allocations past it. On a
+refusal it records `interrupt.stop(Heap)`. Then:
 
 - the failure is named precisely, whatever exception QuickJS manages to
   build, which fixes the `Null"null"` report;
@@ -140,25 +157,33 @@ it calls `interrupt.stop(Heap)`. Then:
   carried on;
 - the instance retires after the invocation.
 
-The allocator is a thin counter over the system allocator. Its cost is
-measured against `set_memory_limit` with the examples before it replaces
-it. If the cost shows, the fallback keeps `set_memory_limit` and classifies
-an error as heap exhaustion when `memory_usage().malloc_size` is within one
-allocation of the limit.
+The allocator is a thin counter over Rust's global allocator. On a script
+that builds and serializes 50,000-object arrays and concatenates strings,
+release builds of the counting allocator and of the system allocator with
+`set_memory_limit` took the same time within run-to-run variation (best of
+five: 2.31 s and 2.33 s in one round, 2.61 s and 2.29 s in another). Its
+counter has no atomics, because a QuickJS runtime allocates on one
+thread.
 
-**V8.** A new `V8Options::heap_limit_bytes` passes
-`heap_limits(initial, max)` through `create_params`. A near-heap-limit
-callback calls `interrupt.stop(Heap)` and `terminate_execution`, and
-returns the current limit plus headroom (a quarter of the limit, at least
-8 MiB) so that termination can unwind. The instance retires. An array
-buffer allocator counts backing stores against a separate
-`V8Options::array_buffer_limit_bytes`, which defaults to the heap limit and
-refuses with a `RangeError`. These budgets have precise limits:
+**V8.** `V8Options::heap_limit_bytes` passes `heap_limits(0, max)` through
+`create_params`. A near-heap-limit callback records `interrupt.stop(Heap)`,
+calls `terminate_execution`, and the first time returns the current limit
+plus headroom (a quarter of the limit, at least 8 MiB) so that termination
+can unwind; later calls keep the limit. The instance retires. An array
+buffer allocator counts backing stores against
+`V8Options::array_buffer_limit_bytes`, which defaults to the heap limit, and
+refuses past it, which JavaScript sees as a `RangeError`. These budgets
+have precise limits:
 
 - A single allocation larger than the headroom, such as one enormous
-  string, can still end the process with V8's fatal out-of-memory error.
+  string, or growth past the headroom before the termination lands, ends
+  the process with V8's fatal out-of-memory error. The loop shape above
+  that V8 does not terminate is one such case.
 - The headroom is extra memory each instance may briefly use; a pool's
   bound is `max` times the limit plus the headroom.
+- Backing stores that deno_core creates from Rust buffers, such as the
+  bytes a host operation returns, are not counted against the array buffer
+  budget; the body and message budgets in `Limits` bound them.
 
 **Boa.** No limit in this phase. A process-wide counting allocator was
 considered. It would be installed by the embedder as `#[global_allocator]`
@@ -175,14 +200,14 @@ Boa deployments that need a memory bound rely on the process boundary.
 
 ### Configuration
 
-| Setting                               | Owner  | Default        | fetchlet-http `Server`                           |
-| ------------------------------------- | ------ | -------------- | ------------------------------------------------ |
-| `Limits::busy_timeout`                | Caller | `None`         | Not set yet; to be measured, in seconds          |
-| `Limits::startup_timeout`             | Caller | `None`         | Not set yet; from the slowest example's startup  |
-| `QuickJsOptions::memory_limit_bytes`  | Caller | `None`         | 64 MiB, as today                                 |
-| `V8Options::heap_limit_bytes`         | Caller | `None`         | From [startup and memory](startup-and-memory.md) |
-| `V8Options::array_buffer_limit_bytes` | Caller | The heap limit | The heap limit                                   |
-| `BoaOptions::loop_iteration_limit`    | Caller | `None`         | Not set yet; to be measured, with a large margin |
+| Setting                               | Owner  | Default        | fetchlet-http `Server`                                        |
+| ------------------------------------- | ------ | -------------- | ------------------------------------------------------------- |
+| `Limits::busy_timeout`                | Caller | `None`         | Not set yet; to be measured, in seconds                       |
+| `Limits::startup_timeout`             | Caller | `None`         | Not set yet; from the slowest example's startup               |
+| `QuickJsOptions::memory_limit_bytes`  | Caller | `None`         | 64 MiB, as before                                             |
+| `V8Options::heap_limit_bytes`         | Caller | `None`         | Not set yet; from [startup and memory](startup-and-memory.md) |
+| `V8Options::array_buffer_limit_bytes` | Caller | The heap limit | The heap limit                                                |
+| `BoaOptions::loop_iteration_limit`    | Caller | `None`         | Not set yet; to be measured, with a large margin              |
 
 `Backend::with_default_*` helpers set the engine values where the caller
 has not, as they do for stacks and the QuickJS heap today.
@@ -192,7 +217,7 @@ has not, as they do for stacks and the QuickJS heap today.
 Each test runs on every engine and expects the same outcome. The Boa cases
 listed under its remaining gap are the only exception. Those not yet in
 `crates/fetchlet/tests` are the held connection, the pool's report of a
-failed startup, the heap cases and the fuzz action.
+failed startup and the fuzz action.
 
 - `while (true) {}` in a call with a 200 ms timeout fails with
   `DeadlineExceeded` within the timeout plus scheduling slack, and the
@@ -226,10 +251,13 @@ failed startup, the heap cases and the fuzz action.
    `crates/fetchlet/tests/interrupts.rs` with V8 alongside.
 2. Done: `busy_timeout` and `startup_timeout` across engines, with the V8
    watchdog, and Boa's checks and loop iteration limit.
-3. Heap limits: the QuickJS allocator, after measuring it, and V8's heap
-   and array buffer budgets.
-4. fetchlet-http's `Server` defaults for the busy and startup timeouts and
-   Boa's loop iteration limit, measured against the examples.
+3. Done: heap limits, with the QuickJS counting allocator and V8's heap and
+   array buffer budgets.
+4. fetchlet-http's `Server` defaults for the busy and startup timeouts, V8's
+   heap limit and Boa's loop iteration limit, measured against the
+   examples.
+5. Trace where V8 drops termination in a loop around
+   `new Array(n).fill(value)`, and work around it or report it.
 
 Each step updates [Resource policy](../resource-policy.md) and
 [Security](../security.md).

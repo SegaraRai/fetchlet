@@ -1,3 +1,4 @@
+mod heap;
 mod options;
 mod runtime;
 mod watchdog;

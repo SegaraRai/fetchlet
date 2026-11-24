@@ -63,7 +63,7 @@ Today fetchlet runs trusted application code in-process. Deadlines and
 busy and startup timeouts stop JavaScript that never yields on QuickJS and
 V8, and on Boa at its next promise job or host call,
 and request and response bodies stream in both directions.
-Hard CPU and heap enforcement, process isolation and instance pools are
+QuickJS and V8 stop an instance at its heap limit. Process isolation is
 planned work, listed in [open work](TODO.md). An investigation of
 ahead-of-time compilation with Perry and scriptc is in
 [research](research/native-aot.md).

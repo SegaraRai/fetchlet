@@ -6,6 +6,7 @@ use deno_core::{JsRuntime, OpState, RuntimeOptions, v8};
 use deno_error::JsErrorBox;
 use serde_json::Value;
 
+use super::{V8Options, heap};
 use crate::Instance;
 use crate::backend::{Check, CodeCache, Script};
 use crate::bridge::HostBridge;
@@ -159,14 +160,17 @@ impl V8Runtime {
         check: &Check,
         cache: Option<&CodeCache>,
         host: HostBridge,
+        options: &V8Options,
         interrupt: Interrupt,
         deadline: Option<std::time::Instant>,
         on_isolate: impl FnOnce(v8::IsolateHandle),
     ) -> Result<Self> {
         let mut runtime = JsRuntime::new(RuntimeOptions {
             extensions: vec![fetchlet_host::init()],
+            create_params: heap::create_params(options),
             ..Default::default()
         });
+        heap::watch(&mut runtime, options, interrupt.clone());
         on_isolate(runtime.v8_isolate().thread_safe_handle());
         interrupt.arm_startup(deadline);
         let loaded = Self::load(&mut runtime, source, check, cache, host);

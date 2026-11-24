@@ -123,6 +123,12 @@ Boa stops it at its next promise job or host call, and
 on Boa runs until it yields. A deadline that includes queueing can be
 applied in Rust to the whole call future.
 
+`QuickJsOptions::memory_limit_bytes` and `V8Options::heap_limit_bytes` bound
+an instance's heap: reaching the limit fails the call with
+`LimitExceeded("engine heap")` and retires the instance.
+`V8Options::array_buffer_limit_bytes` bounds `ArrayBuffer` storage, which
+lives outside V8's heap; past it, JavaScript gets a `RangeError`.
+
 `call` takes one Serde argument and `call_json` several JSON arguments.
 `fetch_with_context` passes a per-request Serde value as the entry's second
 argument.

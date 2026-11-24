@@ -83,7 +83,10 @@ stop JavaScript that never yields with `DeadlineExceeded`, and
 instance retires, and a pool replaces it. Boa stops JavaScript the same way
 at its next promise job or host call, and `BoaOptions::loop_iteration_limit`
 stops a loop by count. JavaScript on Boa that does neither, such as deep
-recursion, can only be stopped by an external process supervisor
+recursion, can only be stopped by an external process supervisor, and so
+can a V8 loop around `new Array(n).fill(value)` for large `n`, to which V8
+does not deliver termination. An instance that reaches its QuickJS or V8
+heap limit fails with `LimitExceeded("engine heap")` and retires
 ([interrupts and heap limits](research/interrupts-and-heap-limits.md)).
 
 ## Engine settings
@@ -92,6 +95,7 @@ recursion, can only be stopped by an external process supervisor
 | ------------------------------- | ------------------------------------------------------------------ |
 | `QuickJsOptions` heap and stack | The caller; unset values keep QuickJS's own defaults (1 MiB stack) |
 | `V8Options` worker stack        | The caller; unset keeps the platform's thread stack size           |
+| `V8Options` heap, array buffers | The caller; unset keeps V8's heap limit and no buffer limit        |
 | `BoaOptions` value stack, calls | The caller; unset values keep Boa's own (10,240 slots, 512 calls)  |
 | `BoaOptions` loop iterations    | The caller; unset keeps Boa's own, which is unlimited              |
 | `WorkerOptions` stack           | The caller; unset keeps the platform's thread stack size           |

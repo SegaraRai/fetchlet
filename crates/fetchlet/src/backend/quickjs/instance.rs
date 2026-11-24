@@ -8,6 +8,7 @@ use rquickjs::{
 use serde_json::Value;
 
 use super::QuickJsOptions;
+use super::heap::HeapLimit;
 use crate::Instance;
 use crate::backend::{CodeCache, Script, Startup};
 use crate::bridge::HostBridge;
@@ -39,11 +40,11 @@ impl QuickJs {
         options: QuickJsOptions,
     ) -> Result<Self> {
         options.validate()?;
-        let runtime = Runtime::new()?;
-
-        if let Some(limit) = options.memory_limit_bytes {
-            runtime.set_memory_limit(limit);
-        }
+        let interrupt = startup.interrupt();
+        let runtime = match options.memory_limit_bytes {
+            Some(limit) => Runtime::new_with_alloc(HeapLimit::new(limit, interrupt.clone()))?,
+            None => Runtime::new()?,
+        };
         if let Some(limit) = options.stack_limit_bytes {
             runtime.set_max_stack_size(limit);
         }
@@ -52,7 +53,6 @@ impl QuickJs {
         // QuickJS calls the handler every 10,000 interpreter polls (calls,
         // backward jumps, regular expression steps). Stopping throws an
         // uncatchable `InternalError: interrupted`.
-        let interrupt = startup.interrupt();
         let handler = interrupt.clone();
         runtime.set_interrupt_handler(Some(Box::new(move || handler.expired())));
 
@@ -147,12 +147,14 @@ impl QuickJs {
         self.interrupt.arm(deadline);
         let result = self.evaluate(expression).await;
         self.interrupt.disarm();
-        match (result, self.interrupt.stopped()) {
-            (Err(_), Some(reason)) => {
+        // A heap stop retires the instance even when JavaScript caught the
+        // out-of-memory error and finished.
+        match self.interrupt.stopped() {
+            Some(reason) => {
                 self.poisoned = true;
                 Err(Interrupted(reason).into())
             }
-            (result, _) => result,
+            None => result,
         }
     }
 
