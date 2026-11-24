@@ -31,8 +31,11 @@ process. The permission policy controls fetchlet's host operations.
 Isolation from engine bugs or memory corruption in native code requires an
 outer boundary: a separate process, an OS sandbox or similar.
 
-Deadlines are cooperative. Stopping JavaScript that never yields, stopping
-initialization, and bounding the whole heap are per-engine work. Running
+On QuickJS and V8, the invocation deadline stops JavaScript that never
+yields and retires the instance; on Boa it is cooperative. Stopping
+initialization, a busy budget for invocations without a deadline, and
+bounding the whole heap are per-engine work
+([interrupts and heap limits](research/interrupts-and-heap-limits.md)). Running
 third-party code requires choosing the enforcement it needs and checking
 what each engine provides. Ahead-of-time compiled code is native code.
 

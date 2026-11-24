@@ -132,10 +132,10 @@ beyond Intl, each with its tests on every engine, such as the
 
 ### Enforcement and isolation
 
-Deadlines are cooperative, and only QuickJS has a heap limit.
+The invocation deadline stops non-yielding JavaScript on QuickJS and V8;
+on Boa it is cooperative, and only QuickJS has a heap limit.
 [Interrupts and heap limits](research/interrupts-and-heap-limits.md)
-designs the enforcement, in this order: a QuickJS interrupt handler that
-stops non-yielding JavaScript at the deadline; `Limits::busy_timeout` and
+designs the rest, in this order: `Limits::busy_timeout` and
 `Limits::startup_timeout` on every engine, with a watchdog for V8 and
 checks between jobs and a loop iteration limit for Boa; a counting QuickJS
 allocator and V8 heap and array buffer limits; and an interrupt poll in

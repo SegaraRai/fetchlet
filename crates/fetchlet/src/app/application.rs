@@ -11,7 +11,8 @@ use crate::backend::Engine;
 use crate::bridge::{Disconnect, HostBridge, InvocationScope};
 use crate::config::check_limit;
 use crate::execution::{
-    BACKGROUND_SETTLE, deadline_after, fetch_invocation, placed_invocation, with_deadline,
+    BACKGROUND_SETTLE, Interrupted, deadline_after, fetch_invocation, placed_invocation,
+    with_deadline,
 };
 use crate::host::GuestEnd;
 use crate::placed::{ByteLayout, Placed};
@@ -367,9 +368,12 @@ impl App {
     ) -> Result<Value> {
         // This remains false if the caller drops the future at any await point.
         self.reusable = false;
-        let result = with_deadline(deadline, self.engine.evaluate(expression)).await;
+        let result = with_deadline(deadline, self.engine.evaluate(expression, deadline)).await;
         self.reusable = result.is_ok() && self.engine.is_reusable();
-        result?.map_err(|error| Error::JavaScript(error.to_string()))
+        result?.map_err(|error| match error.downcast::<Interrupted>() {
+            Ok(interrupted) => interrupted.into(),
+            Err(error) => Error::JavaScript(error.to_string()),
+        })
     }
 
     /// End an invocation's result or body. Background work keeps the scope

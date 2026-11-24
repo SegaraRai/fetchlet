@@ -112,10 +112,12 @@ instances are expensive to build use it.
 on every instance and their resources. Calls waiting for queue capacity receive
 `WorkerClosed`. Dropping the last handle also ends the thread.
 
-The `Limits::timeout` deadline is cooperative and counts from the start of
-execution. A deadline that includes queueing can be applied in Rust to the
-whole call future. Forcibly stopping JavaScript that never yields, or
-initialization, is per-engine work ([open work](../../docs/TODO.md)).
+The `Limits::timeout` deadline counts from the start of execution. On
+QuickJS and V8 it stops JavaScript that never yields, fails the call with
+`DeadlineExceeded` and retires the instance; on Boa it applies once
+JavaScript returns to the event loop. A deadline that includes queueing can
+be applied in Rust to the whole call future. Stopping initialization is
+per-engine work ([open work](../../docs/TODO.md)).
 
 `call` takes one Serde argument and `call_json` several JSON arguments.
 `fetch_with_context` passes a per-request Serde value as the entry's second

@@ -12,14 +12,15 @@ use crate::Instance;
 use crate::backend::{CodeCache, Script, Startup};
 use crate::bridge::HostBridge;
 use crate::execution::{
-    FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
-    invocation, observed,
+    FLUSH_REJECTIONS, HOST_BOOTSTRAP, Interrupt, Interrupted, LOOP_STEP, LoopState, PRELUDE,
+    SEAL_HOST, WakeSignal, invocation, observed,
 };
 
 pub struct QuickJs {
     context: Context,
     runtime: Runtime,
     wake: WakeSignal,
+    interrupt: Interrupt,
     poisoned: bool,
 }
 
@@ -48,6 +49,12 @@ impl QuickJs {
         }
 
         runtime.set_host_promise_rejection_tracker(Some(Box::new(track_rejection)));
+        // QuickJS calls the handler every 10,000 interpreter polls (calls,
+        // backward jumps, regular expression steps). Stopping throws an
+        // uncatchable `InternalError: interrupted`.
+        let interrupt = Interrupt::default();
+        let handler = interrupt.clone();
+        runtime.set_interrupt_handler(Some(Box::new(move || handler.expired())));
 
         let wake = host.wake_signal();
         let context = Context::full(&runtime)?;
@@ -103,6 +110,7 @@ impl QuickJs {
             context,
             runtime,
             wake,
+            interrupt,
             poisoned: false,
         })
     }
@@ -114,14 +122,34 @@ impl Instance for QuickJs {
     }
 
     async fn call_json(&mut self, export: &str, args: &[Value]) -> Result<Value> {
-        self.evaluate(invocation(export, args)?).await
+        self.evaluate_until(invocation(export, args)?, None).await
     }
 }
 
 impl QuickJs {
+    /// Evaluate an invocation expression and drive its Promise to completion,
+    /// stopping JavaScript still running at `deadline` with [`Interrupted`].
+    /// A stopped instance is not reusable.
+    pub(crate) async fn evaluate_until(
+        &mut self,
+        expression: String,
+        deadline: Option<std::time::Instant>,
+    ) -> Result<Value> {
+        self.interrupt.arm(deadline);
+        let result = self.evaluate(expression).await;
+        self.interrupt.disarm();
+        match (result, self.interrupt.stopped()) {
+            (Err(_), Some(reason)) => {
+                self.poisoned = true;
+                Err(Interrupted(reason).into())
+            }
+            (result, _) => result,
+        }
+    }
+
     /// Evaluate an invocation expression and drive its Promise to completion.
     /// The invocation script owns timer and response-body cleanup.
-    pub(crate) async fn evaluate(&mut self, expression: String) -> Result<Value> {
+    async fn evaluate(&mut self, expression: String) -> Result<Value> {
         if self.poisoned {
             anyhow::bail!("Instance cannot be reused after an interrupted call");
         }
@@ -135,7 +163,7 @@ impl QuickJs {
         loop {
             let step = self.context.with(|context| -> Result<_> {
                 let promise = promise.clone().restore(&context)?;
-                match promise.finish::<String>() {
+                match finish(&promise, &self.interrupt) {
                     Ok(json) => {
                         self.poisoned = false;
                         Ok((Some(json), None))
@@ -147,7 +175,11 @@ impl QuickJs {
                     }
                     Err(error) => {
                         let exception = context.catch();
-                        self.poisoned = false;
+                        // A stopped invocation leaves its state unknown, so
+                        // the instance stays poisoned and runs nothing more.
+                        if self.interrupt.stopped().is_none() {
+                            self.poisoned = false;
+                        }
                         Err(anyhow!("{error}: {exception:?}"))
                     }
                 }
@@ -188,6 +220,24 @@ impl QuickJs {
             }
         });
         while !matches!(self.runtime.execute_pending_job(), Ok(false)) {}
+    }
+}
+
+/// Run pending jobs until `promise` settles, as `Promise::finish` does, but
+/// stop once `interrupt` expires. `Ctx::execute_pending_job` discards the
+/// exception of a job that threw, the interrupt's included, so without this
+/// check a chain of short jobs would keep running after the stop.
+fn finish(promise: &Promise<'_>, interrupt: &Interrupt) -> rquickjs::Result<String> {
+    loop {
+        if let Some(result) = promise.result() {
+            return result;
+        }
+        if interrupt.expired() {
+            return Err(Error::Exception);
+        }
+        if !promise.ctx().execute_pending_job() {
+            return Err(Error::WouldBlock);
+        }
     }
 }
 

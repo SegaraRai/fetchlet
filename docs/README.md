@@ -77,3 +77,6 @@
   isolating concurrent `AsyncLocalStorage` runs on every engine.
 - [Capability negotiation](research/capability-negotiation.md): checking
   an artifact's engine and host requirements when an App is built.
+- [Interrupts and heap limits](research/interrupts-and-heap-limits.md):
+  what each engine provides to stop JavaScript that never yields and to
+  bound its heap, and the design built on it.

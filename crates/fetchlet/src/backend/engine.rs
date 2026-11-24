@@ -44,10 +44,20 @@ impl Engine {
     }
 
     /// Evaluate a prepared invocation expression (see `execution::script`).
-    pub(crate) async fn evaluate(&mut self, expression: String) -> anyhow::Result<Value> {
+    /// An engine that polls stops JavaScript still running at `deadline`
+    /// with [`Interrupted`](crate::execution::Interrupted); the caller's
+    /// timer covers the others' time spent outside JavaScript, and V8's
+    /// cancellation terminates its isolate when that timer drops the call.
+    pub(crate) async fn evaluate(
+        &mut self,
+        expression: String,
+        #[cfg_attr(not(feature = "quickjs"), allow(unused_variables))] deadline: Option<
+            std::time::Instant,
+        >,
+    ) -> anyhow::Result<Value> {
         match self {
             #[cfg(feature = "quickjs")]
-            Self::QuickJs(engine) => engine.evaluate(expression).await,
+            Self::QuickJs(engine) => engine.evaluate_until(expression, deadline).await,
             #[cfg(feature = "boa")]
             Self::Boa(engine) => engine.evaluate(expression).await,
             #[cfg(feature = "v8")]

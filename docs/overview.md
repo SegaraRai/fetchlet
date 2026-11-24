@@ -59,8 +59,9 @@ state is reused only within one application, tenant and authority boundary.
 
 ## Scope
 
-Today fetchlet runs trusted application code in-process. Deadlines are
-cooperative, and request and response bodies stream in both directions.
+Today fetchlet runs trusted application code in-process. Deadlines stop
+JavaScript that never yields on QuickJS and V8 and are cooperative on Boa,
+and request and response bodies stream in both directions.
 Hard CPU and heap enforcement, process isolation and instance pools are
 planned work, listed in [open work](TODO.md). An investigation of
 ahead-of-time compilation with Perry and scriptc is in

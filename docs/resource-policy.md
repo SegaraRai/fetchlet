@@ -75,9 +75,11 @@ instead of aborting the process.
 
 Body, header and message checks apply at each boundary. Copies made during
 JSON conversion and buffering, and the engine's total heap, are managed
-separately. JavaScript that never yields, and code running during
-initialization, needs engine interrupts or an external process supervisor
-to stop.
+separately. On QuickJS and V8, the invocation deadline stops JavaScript that
+never yields, fails the call with `DeadlineExceeded` and retires the
+instance. On Boa, and for code running during initialization on every
+engine, stopping it needs an external process supervisor
+([interrupts and heap limits](research/interrupts-and-heap-limits.md)).
 
 ## Engine settings
 

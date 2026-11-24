@@ -1,6 +1,8 @@
 mod instance;
 mod timeout;
 
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+mod interrupt;
 #[cfg(any(
     feature = "boa",
     feature = "quickjs",
@@ -17,6 +19,10 @@ pub(crate) use timeout::with_timeout;
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) use timeout::{deadline_after, with_deadline};
 
+#[cfg(feature = "quickjs")]
+pub(crate) use interrupt::Interrupt;
+#[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
+pub(crate) use interrupt::Interrupted;
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) use scheduler::LoopState;
 #[cfg(any(
