@@ -50,6 +50,7 @@ impl V8 {
         let wake = host.wake_signal();
         let source = startup.source().to_owned();
         let check = startup.check().clone();
+        let code_cache = startup.code_cache().cloned();
         let (sender, receiver) = mpsc::channel::<Option<Call>>();
         let (ready, initialized) = mpsc::sync_channel(1);
         let mut worker = thread::Builder::new().name("fetchlet-v8".into());
@@ -68,7 +69,7 @@ impl V8 {
                 }
             };
             let _entered = executor.enter();
-            let mut local = match V8Runtime::new(&source, &check, host) {
+            let mut local = match V8Runtime::new(&source, &check, code_cache.as_deref(), host) {
                 Ok(local) => local,
                 Err(error) => {
                     let _ = ready.send(Err(error));

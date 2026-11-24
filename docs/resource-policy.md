@@ -94,7 +94,9 @@ the native stack of the thread running it. `fetchlet_http::Server` sets a
 64 MiB worker stack, a 4 MiB QuickJS limit and, on Boa, a recursion limit of
 10,000 calls, because framework recursion in debug builds exceeds the
 platform default and Boa's 512 calls stop ordinary code with an uncatchable
-error. Boa's `JSON.stringify` recurses on the native stack without a depth
+error. It also limits each QuickJS heap to 64 MiB, twice what the largest
+example needs ([startup and memory](research/startup-and-memory.md#memory)),
+so that `Instances::max` times it bounds a pool's QuickJS heap. Boa's `JSON.stringify` recurses on the native stack without a depth
 check, so deep enough data aborts the process instead of throwing.
 examples/vinext-axum also raises Boa's value stack to 131,072 slots for
 React Server Components rendering.

@@ -85,6 +85,21 @@ impl Backend {
         }
     }
 
+    /// Set QuickJS's heap limit to `bytes` when it has none; other engines
+    /// are unchanged.
+    #[cfg_attr(not(feature = "quickjs"), allow(unused_variables))]
+    pub fn with_default_quickjs_memory(self, bytes: usize) -> Self {
+        match self {
+            #[cfg(feature = "quickjs")]
+            Self::QuickJs(mut options) => {
+                options.memory_limit_bytes.get_or_insert(bytes);
+                Self::QuickJs(options)
+            }
+            #[allow(unreachable_patterns)]
+            other => other,
+        }
+    }
+
     /// Set Boa's value stack limit to `slots` and its recursion limit to
     /// `depth` where it has none; other engines are unchanged. Both must fit
     /// the native stack of the thread the engine runs on.
@@ -196,6 +211,13 @@ mod tests {
                 unreachable!()
             };
             assert_eq!(options.stack_limit_bytes, Some(1024));
+            let Backend::QuickJs(options) = Backend::quickjs()
+                .with_default_quickjs_memory(64)
+                .with_default_quickjs_memory(32)
+            else {
+                unreachable!()
+            };
+            assert_eq!(options.memory_limit_bytes, Some(64));
         }
     }
 }

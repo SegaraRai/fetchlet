@@ -70,6 +70,7 @@ impl App {
             handler: Some("handle".into()),
             key: None,
             host_runtime: None,
+            code_cache: Default::default(),
         }
     }
 

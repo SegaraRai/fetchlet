@@ -7,12 +7,95 @@ use deno_error::JsErrorBox;
 use serde_json::Value;
 
 use crate::Instance;
-use crate::backend::Check;
+use crate::backend::{Check, CodeCache, Script};
 use crate::bridge::HostBridge;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
     invocation, observed,
 };
+
+/// The engine name compiled code is cached under.
+const ENGINE: &str = "v8";
+
+/// Run a script as `JsRuntime::execute_script` does, consuming the
+/// application's code cache for it when another instance made one. Without
+/// one, or when V8 refuses it, the script compiles from source and its cache
+/// is made after it ran, so that it holds the functions the run compiled
+/// too: V8 compiles a function only when it is first called.
+fn execute_script(
+    runtime: &mut JsRuntime,
+    cache: Option<&CodeCache>,
+    script: Script,
+    name: &'static str,
+    source: &str,
+) -> Result<()> {
+    let Some(cache) = cache else {
+        runtime
+            .execute_script(name, source.to_owned())
+            .map_err(|error| anyhow!("{error}"))?;
+        return Ok(());
+    };
+    let cached = cache.get(ENGINE, script);
+    deno_core::scope!(scope, runtime);
+    let code = v8::String::new(scope, source).ok_or_else(|| anyhow!("{name} is too long"))?;
+    let resource = v8::String::new(scope, name).ok_or_else(|| anyhow!("{name} is too long"))?;
+    let origin = v8::ScriptOrigin::new(
+        scope,
+        resource.into(),
+        0,
+        0,
+        false,
+        0,
+        None,
+        false,
+        false,
+        false,
+        None,
+    );
+    v8::tc_scope!(let tc, scope);
+    let (compiled, consumed) = match &cached {
+        Some(data) => {
+            let mut source = v8::script_compiler::Source::new_with_cached_data(
+                code,
+                Some(&origin),
+                v8::CachedData::new(data),
+            );
+            let compiled = v8::script_compiler::compile(
+                tc,
+                &mut source,
+                v8::script_compiler::CompileOptions::ConsumeCodeCache,
+                v8::script_compiler::NoCacheReason::NoReason,
+            );
+            let accepted = source
+                .get_cached_data()
+                .is_some_and(|data| !data.rejected());
+            (compiled, accepted)
+        }
+        None => (v8::Script::compile(tc, code, Some(&origin)), false),
+    };
+    let Some(compiled) = compiled else {
+        let exception = tc
+            .exception()
+            .ok_or_else(|| anyhow!("{name} did not compile"))?;
+        return Err(anyhow!(
+            "{}",
+            deno_core::error::exception_to_err(tc, exception, false, false)
+        ));
+    };
+    if compiled.run(tc).is_none() {
+        let exception = tc
+            .exception()
+            .ok_or_else(|| anyhow!("{name} was terminated"))?;
+        return Err(anyhow!(
+            "{}",
+            deno_core::error::exception_to_err(tc, exception, false, false)
+        ));
+    }
+    if !consumed && let Some(data) = compiled.get_unbound_script(tc).create_code_cache() {
+        cache.put(ENGINE, script, &data);
+    }
+    Ok(())
+}
 
 pub(super) struct V8Runtime {
     runtime: JsRuntime,
@@ -66,7 +149,12 @@ impl V8Runtime {
         self.cancelled = flag;
     }
 
-    pub(super) fn new(source: &str, check: &Check, host: HostBridge) -> Result<Self> {
+    pub(super) fn new(
+        source: &str,
+        check: &Check,
+        cache: Option<&CodeCache>,
+        host: HostBridge,
+    ) -> Result<Self> {
         let mut runtime = JsRuntime::new(RuntimeOptions {
             extensions: vec![fetchlet_host::init()],
             ..Default::default()
@@ -98,12 +186,20 @@ impl V8Runtime {
                  delete globalThis.__bootstrap;",
             )
             .map_err(|error| anyhow!("{error}"))?;
-        runtime
-            .execute_script("fetchlet:prelude", PRELUDE)
-            .map_err(|error| anyhow!("{error}"))?;
-        runtime
-            .execute_script("fetchlet:bridge", HOST_BOOTSTRAP)
-            .map_err(|error| anyhow!("{error}"))?;
+        execute_script(
+            &mut runtime,
+            cache,
+            Script::Prelude,
+            "fetchlet:prelude",
+            PRELUDE,
+        )?;
+        execute_script(
+            &mut runtime,
+            cache,
+            Script::Bridge,
+            "fetchlet:bridge",
+            HOST_BOOTSTRAP,
+        )?;
         let report = match check.probe() {
             Some(probe) => {
                 let value = runtime
@@ -115,9 +211,13 @@ impl V8Runtime {
             None => None,
         };
         check.admit(report.as_deref())?;
-        runtime
-            .execute_script("fetchlet:bundle", source.to_owned())
-            .map_err(|error| anyhow!("{error}"))?;
+        execute_script(
+            &mut runtime,
+            cache,
+            Script::Module,
+            "fetchlet:bundle",
+            source,
+        )?;
         runtime
             .execute_script("fetchlet:seal", SEAL_HOST)
             .map_err(|error| anyhow!("{error}"))?;

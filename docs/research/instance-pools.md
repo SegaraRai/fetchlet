@@ -167,13 +167,17 @@ pays that cost.
 
 ## Startup cost and shared code
 
-Every instance evaluates the module from source. Engines can cache compiled
-code: QuickJS bytecode and V8's code cache. A cache keyed by the module's
-hash, the engine and its version, and the build profile would make growth
-cheaper. It stays in the process and is built from the module the pool was
-given, so it adds no input that the pool did not already trust. It is an
-optimization after pools work. Measuring the build time of each example on
-each engine first shows whether it matters ([measurements](../TODO.md#measurements)).
+The first instance of a pool compiles the prelude, the host bridge and the
+module; the others reuse its compiled code: QuickJS bytecode, and a V8 code
+cache made after the first run. The `AppBuilder` holds the cache, so the
+instances of one pool share it, and setting another module starts a new
+one. It stays in the process and is built from the module the pool was
+given, so it adds no input that the pool did not already trust. Boa
+compiles each instance from source.
+[Startup and memory](startup-and-memory.md#compiled-code-caching) measured
+it: the cache removes 77 to 88% of a build on QuickJS and V8, 20 to 120 ms
+per instance, which a request waits for while a pool grows or replaces an
+instance.
 
 ## What waits for async context
 
@@ -217,7 +221,7 @@ carries an async context through promise jobs and the adapters move to
    that recommend defaults.
 4. Held connections and `max_held_connections`, with
    [host channels](host-channels.md).
-5. Compiled code caching, if the measurements show build time matters.
+5. Compiled code caching on QuickJS and V8.
 
 ## Sizing
 

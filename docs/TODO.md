@@ -149,13 +149,14 @@ and retirement after `idle_timeout` (`crates/fetchlet/tests/pool.rs`).
 runtime, which fetchlet-http's `Server` passes
 (`crates/fetchlet/tests/host_runtime.rs`). `Server::instances` sets the pool
 for a server, and [sizing](research/instance-pools.md#sizing) records the
-throughput by pool size that its recommendation rests on.
+throughput by pool size that its recommendation rests on. On QuickJS and
+V8, the instances built from one `AppBuilder` reuse the first one's compiled
+code ([startup and memory](research/startup-and-memory.md#compiled-code-caching)).
 
-1. Compiled code caching, if measurements show build time matters.
-2. Pool state for operators, such as instances by state and queue length,
+1. Pool state for operators, such as instances by state and queue length,
    held connections included, so a deployment can size `max` from its own
    load.
-3. Seed each QuickJS context from host entropy. QuickJS seeds
+2. Seed each QuickJS context from host entropy. QuickJS seeds
    `Math.random` and its property hash seed from the time in microseconds,
    and quickjs-ng has no API to set them, so instances that a pool builds at
    the same moment on two threads, such as a replacement and a new instance,
@@ -258,12 +259,20 @@ verified. examples/sveltekit-axum-tauri also reads its configuration from a
 file next to the binary; defaults compiled into the binary would make `mdw`
 distributable alone.
 
-### Measurements
+### Engine memory
 
-Startup time, time to first content, distribution size, RSS and latency
-under load have not been measured per engine and polyfill selection. Measure
-them on the same application, compare with a static build of the same pages,
-and use the results to recommend `Limits` values.
+[Startup and memory](research/startup-and-memory.md) measured build time,
+memory, latency and size for every example on each engine and recommends
+settings from them. Two gaps remain:
+
+- A QuickJS heap past `memory_limit_bytes` fails with an exception that
+  reads `Null"null"`; report it as the heap running out.
+- Only QuickJS has a heap limit. Add one for V8 and Boa, so a pool's
+  `max` times the limit bounds its memory on every engine.
+
+The measurements cover a page per request on fresh instances; measure the
+heap of a long-running instance under varied pages before raising the
+recommended limits.
 
 ### Windows CRT
 

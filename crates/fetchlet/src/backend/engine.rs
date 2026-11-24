@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use serde_json::Value;
 
-use super::{Backend, Startup};
+use super::{Backend, CodeCache, Startup};
 use crate::bridge::HostBridge;
 use crate::{Error, Instance, Module, Result};
 
@@ -14,8 +16,13 @@ pub(crate) enum Engine {
 }
 
 impl Engine {
-    pub(crate) fn new(backend: Backend, module: &Module, host: HostBridge) -> Result<Self> {
-        let startup = Startup::new(module, &backend);
+    pub(crate) fn new(
+        backend: Backend,
+        module: &Module,
+        host: HostBridge,
+        code_cache: Arc<CodeCache>,
+    ) -> Result<Self> {
+        let startup = Startup::new(module, &backend, code_cache);
         let result = match backend {
             #[cfg(feature = "quickjs")]
             Backend::QuickJs(options) => {

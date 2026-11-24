@@ -3,13 +3,13 @@ use bytes::Bytes;
 use rquickjs::function::Func;
 use rquickjs::{
     Context, Ctx, Error, Exception, IntoJs, Persistent, Promise, Runtime, TypedArray,
-    Value as JsValue,
+    Value as JsValue, qjs,
 };
 use serde_json::Value;
 
 use super::QuickJsOptions;
 use crate::Instance;
-use crate::backend::Startup;
+use crate::backend::{CodeCache, Script, Startup};
 use crate::bridge::HostBridge;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, LoopState, PRELUDE, SEAL_HOST, WakeSignal,
@@ -81,17 +81,20 @@ impl QuickJs {
                 "__fetchletHost",
                 Func::from(move |operation: String, input: String| host.dispatch(operation, input)),
             )?;
-            context.eval::<(), _>(PRELUDE)?;
-            context.eval::<(), _>(HOST_BOOTSTRAP)?;
+            let cache = startup.code_cache().map(|cache| &**cache);
+            evaluate_script(&context, cache, Script::Prelude, PRELUDE)?;
+            evaluate_script(&context, cache, Script::Bridge, HOST_BOOTSTRAP)?;
             let report = match startup.check().probe() {
                 Some(probe) => Some(context.eval::<String, _>(probe)?),
                 None => None,
             };
             startup.check().admit(report.as_deref())?;
-            context.eval::<(), _>(startup.source()).map_err(|error| {
-                let exception = context.catch();
-                anyhow!("{error}: {exception:?}")
-            })?;
+            evaluate_script(&context, cache, Script::Module, startup.source()).map_err(
+                |error| {
+                    let exception = context.catch();
+                    anyhow!("{error}: {exception:?}")
+                },
+            )?;
             context.eval::<(), _>(SEAL_HOST)?;
             Ok(())
         })?;
@@ -186,6 +189,95 @@ impl QuickJs {
         });
         while !matches!(self.runtime.execute_pending_job(), Ok(false)) {}
     }
+}
+
+/// The engine name compiled code is cached under.
+const ENGINE: &str = "quickjs";
+
+/// Evaluate a global script as `Ctx::eval` does, in strict mode, through the
+/// application's bytecode for it when another instance compiled it, or
+/// compiling it and keeping its bytecode otherwise.
+fn evaluate_script(
+    ctx: &Ctx<'_>,
+    cache: Option<&CodeCache>,
+    script: Script,
+    source: &str,
+) -> rquickjs::Result<()> {
+    let Some(cache) = cache else {
+        return ctx.eval::<(), _>(source);
+    };
+    let raw = ctx.as_raw().as_ptr();
+    let function = match cache.get(ENGINE, script) {
+        // SAFETY: the bytes are what `JS_WriteObject` wrote for this script
+        // in this process, with this QuickJS, so they are well formed.
+        Some(code) => unsafe {
+            qjs::JS_ReadObject(
+                raw,
+                code.as_ptr(),
+                code.len() as _,
+                qjs::JS_READ_OBJ_BYTECODE as i32,
+            )
+        },
+        None => {
+            let text = std::ffi::CString::new(source)?;
+            // SAFETY: `text` is a NUL-terminated copy of `source`, alive for
+            // the call.
+            let function = unsafe {
+                qjs::JS_Eval(
+                    raw,
+                    text.as_ptr(),
+                    source.len() as _,
+                    c"eval_script".as_ptr(),
+                    (qjs::JS_EVAL_TYPE_GLOBAL
+                        | qjs::JS_EVAL_FLAG_STRICT
+                        | qjs::JS_EVAL_FLAG_COMPILE_ONLY) as i32,
+                )
+            };
+            if !is_exception(function) {
+                keep_bytecode(ctx, cache, script, function);
+            }
+            function
+        }
+    };
+    if is_exception(function) {
+        return Err(Error::Exception);
+    }
+    // SAFETY: `JS_EvalFunction` takes ownership of the compiled function and
+    // returns a new value, which `JsValue` then owns.
+    let result = unsafe { qjs::JS_EvalFunction(raw, function) };
+    if is_exception(result) {
+        return Err(Error::Exception);
+    }
+    drop(unsafe { JsValue::from_raw(ctx.clone(), result) });
+    Ok(())
+}
+
+/// Write `function`'s bytecode into the cache. A failed write, such as one
+/// past the memory limit, leaves the script uncached.
+fn keep_bytecode(ctx: &Ctx<'_>, cache: &CodeCache, script: Script, function: qjs::JSValue) {
+    let raw = ctx.as_raw().as_ptr();
+    let mut size: qjs::size_t = 0;
+    // SAFETY: `function` is a live compiled script; the returned buffer is
+    // `size` bytes allocated in this context, freed below.
+    unsafe {
+        let bytes =
+            qjs::JS_WriteObject(raw, &mut size, function, qjs::JS_WRITE_OBJ_BYTECODE as i32);
+        if bytes.is_null() {
+            qjs::JS_FreeValue(raw, qjs::JS_GetException(raw));
+            return;
+        }
+        cache.put(
+            ENGINE,
+            script,
+            std::slice::from_raw_parts(bytes, size as usize),
+        );
+        qjs::js_free(raw, bytes.cast());
+    }
+}
+
+fn is_exception(value: qjs::JSValue) -> bool {
+    // SAFETY: reading a value's tag has no other effect.
+    unsafe { qjs::JS_VALUE_GET_NORM_TAG(value) == qjs::JS_TAG_EXCEPTION }
 }
 
 /// HostPromiseRejectionTracker: hands each rejection without a handler, and

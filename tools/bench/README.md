@@ -117,3 +117,28 @@ node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin invoke -- .c
 | `host_us.worker_*`                                   | The same calls on a worker thread, the HTTP server's path                           |
 
 Single runs can include outliers even on one machine; compare several runs.
+
+## Startup and memory
+
+`startup` builds Apps from the artifacts `vp run bench` leaves in
+`.cache/bench`, without HTTP, the way fetchlet-http's axum server builds
+them, and reports for each framework and engine the time to build an
+instance and serve its first page, the median of further builds, the latency
+of sequential pages on one instance, the process working set and its growth
+per instance, and the artifact's sizes. Each framework and engine runs in a
+child process of its own. [Startup and memory](../../docs/research/startup-and-memory.md)
+records its results.
+
+```bash
+node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin startup -- .cache/bench --frameworks sveltekit,astro --backends quickjs,v8 --output .cache/bench/startup.json
+```
+
+| Argument               | Default                     | Meaning                                                             |
+| ---------------------- | --------------------------- | ------------------------------------------------------------------- |
+| `--frameworks`         | `bare` and the ten examples | Directories under the bench directory                               |
+| `--backends`           | `quickjs,boa,v8`            | Artifact builds and engines                                         |
+| `--builds`             | 10                          | Further instances whose build time is measured                      |
+| `--instances`          | 4                           | Instances kept alive at once to measure the memory each adds        |
+| `--requests`           | 50                          | Sequential `GET /?name=bench` on the first instance                 |
+| `--quickjs-memory-mib` |                             | `QuickJsOptions::memory_limit_bytes`, to find the heap an app needs |
+| `--output`             | standard output             | The JSON report                                                     |

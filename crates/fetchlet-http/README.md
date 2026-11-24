@@ -47,17 +47,17 @@ Server::new("build")
     .await?;
 ```
 
-| Method                  | Default                                                                                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `host_services(f)`      | No bindings. `f` runs for each application the server starts                                                                                                 |
-| `routes(f)`             | No Rust routes. `f` receives the `AppHandle`, so a route can call named exports                                                                              |
-| `rendering(f)`          | `AxumService` with errors written to standard error; `f` adds a context or streams request bodies                                                            |
-| `limits(limits)`        | `Limits::default()`                                                                                                                                          |
-| `public_origin(origin)` | `http://` and the listener's address                                                                                                                         |
-| `backend(backend)`      | `Backend::for_target` of the artifact's `backend`; with the default worker, a 4 MiB QuickJS stack limit; for Boa, 131,072 value stack slots and 10,000 calls |
-| `worker(options)`       | A queue of 8 commands and a 64 MiB native stack                                                                                                              |
-| `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                              |
-| `instances(i)`          | One instance; changes only the instances of the worker options                                                                                               |
+| Method                  | Default                                                                                                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `host_services(f)`      | No bindings. `f` runs for each application the server starts                                                                                                                                  |
+| `routes(f)`             | No Rust routes. `f` receives the `AppHandle`, so a route can call named exports                                                                                                               |
+| `rendering(f)`          | `AxumService` with errors written to standard error; `f` adds a context or streams request bodies                                                                                             |
+| `limits(limits)`        | `Limits::default()`                                                                                                                                                                           |
+| `public_origin(origin)` | `http://` and the listener's address                                                                                                                                                          |
+| `backend(backend)`      | `Backend::for_target` of the artifact's `backend` with a 64 MiB QuickJS heap limit; with the default worker, a 4 MiB QuickJS stack limit; for Boa, 131,072 value stack slots and 10,000 calls |
+| `worker(options)`       | A queue of 8 commands and a 64 MiB native stack                                                                                                                                               |
+| `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                                                               |
+| `instances(i)`          | One instance; changes only the instances of the worker options                                                                                                                                |
 
 The stack defaults are the depth the repository's framework examples need:
 React's server renderer retries an element after a QuickJS stack overflow
@@ -70,6 +70,12 @@ worker stack, which the operating system commits only as it is used, moves
 that point beyond `JSON.stringify` of 10,000 nested arrays in debug builds
 and 50,000 in release builds. QuickJS and V8 throw a catchable `RangeError`
 instead.
+
+The QuickJS heap limit is twice what the largest example, Astro, needs to
+serve its pages, and with `Instances::max` it bounds a pool's JavaScript
+heap. [Startup and memory](../../docs/research/startup-and-memory.md#recommended-settings)
+measures each example's needs and recommends the timeout, instance counts
+and queue for a server.
 
 The queue bounds the commands waiting for the instances. Each instance runs
 one request at a time, and the default worker options have one; set

@@ -60,6 +60,9 @@
   resolve them.
 - [Instance pools](research/instance-pools.md): several instances behind
   one `AppHandle`, scheduling, held instances and reentrancy.
+- [Startup, memory and compiled code caching](research/startup-and-memory.md):
+  build time, memory, latency and size per framework and engine, the effect
+  of caching compiled code, and the `Limits` they recommend.
 - [Host channels and resources](research/host-channels.md): the design of
   handles, host channels, `connect()`, `WebSocket` and server upgrades.
 - [Web API implementations](research/web-api-implementations.md): a survey

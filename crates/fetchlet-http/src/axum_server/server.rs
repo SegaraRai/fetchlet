@@ -34,6 +34,13 @@ const MINIMUM_STACK_FOR_DEFAULT_LIMITS: NonZeroUsize = NonZeroUsize::new(8 * 102
 /// partial tag behind, so the limit leaves it room.
 const DEFAULT_QUICKJS_STACK_BYTES: usize = 4 * 1024 * 1024;
 
+/// QuickJS's heap limit for each instance by default: a caller budget, so
+/// that `Instances::max` times it bounds a pool's JavaScript heap. The
+/// largest example, Astro with its Intl polyfills, needs 25 to 32 MiB to
+/// serve its pages; 64 MiB leaves room for larger pages
+/// (docs/research/startup-and-memory.md).
+const DEFAULT_QUICKJS_MEMORY_BYTES: usize = 64 * 1024 * 1024;
+
 /// Boa's value stack limit by default, in slots. React Server Components
 /// rendering on Boa, as in the vinext example, needs this depth.
 const DEFAULT_BOA_STACK_SLOTS: usize = 128 * 1024;
@@ -137,9 +144,10 @@ impl Server {
     }
 
     /// The engine and its options. By default, the engine the artifact was
-    /// built for, through [`Backend::for_target`]. While the worker keeps its
-    /// default stack, QuickJS gets a 4 MiB stack limit and Boa a value stack
-    /// of 131,072 slots and a recursion limit of 10,000 calls.
+    /// built for, through [`Backend::for_target`], with a 64 MiB QuickJS heap
+    /// limit. While the worker keeps its default stack, QuickJS also gets a
+    /// 4 MiB stack limit and Boa a value stack of 131,072 slots and a
+    /// recursion limit of 10,000 calls.
     pub fn backend(mut self, backend: Backend) -> Self {
         self.backend = Some(backend);
         self
@@ -483,10 +491,11 @@ impl Settings {
     }
 }
 
-/// The artifact's own engine, with QuickJS and Boa stack limits that fit
-/// the default worker stack.
+/// The artifact's own engine, with the default QuickJS heap limit, and
+/// QuickJS and Boa stack limits that fit the default worker stack.
 fn default_backend(artifact: &Artifact, worker: &WorkerOptions) -> Result<Backend, ServerError> {
-    let backend = Backend::for_target(artifact.backend().unwrap_or("portable"))?;
+    let backend = Backend::for_target(artifact.backend().unwrap_or("portable"))?
+        .with_default_quickjs_memory(DEFAULT_QUICKJS_MEMORY_BYTES);
     if worker.stack_size_bytes >= Some(MINIMUM_STACK_FOR_DEFAULT_LIMITS) {
         return Ok(backend
             .with_default_quickjs_stack(DEFAULT_QUICKJS_STACK_BYTES)

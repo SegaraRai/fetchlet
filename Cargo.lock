@@ -2249,6 +2249,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "fetchlet",
+ "fetchlet-http",
  "http-body-util",
  "hyper",
  "hyper-util",

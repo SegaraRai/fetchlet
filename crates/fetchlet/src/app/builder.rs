@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use super::App;
-use crate::backend::Engine;
+use crate::backend::{CodeCache, Engine};
 use crate::bridge::HostBridge;
 use crate::{AppHandle, Backend, Error, HostServices, Limits, Module, Result};
 
@@ -13,11 +15,16 @@ pub struct AppBuilder {
     /// The identity a worker keeps across the instances it recreates.
     pub(super) key: Option<u64>,
     pub(super) host_runtime: Option<tokio::runtime::Handle>,
+    /// Compiled code shared by the instances built from this builder and
+    /// its clones, for this module.
+    pub(super) code_cache: Arc<CodeCache>,
 }
 
 impl AppBuilder {
     pub fn module(mut self, module: Module) -> Self {
         self.module = Some(module);
+        // Compiled code belongs to the source it came from.
+        self.code_cache = Arc::default();
         self
     }
 
@@ -83,7 +90,7 @@ impl AppBuilder {
         if let Some(runtime) = self.host_runtime {
             host = host.with_runtime(runtime);
         }
-        let engine = Engine::new(self.backend, &module, host.clone())?;
+        let engine = Engine::new(self.backend, &module, host.clone(), self.code_cache)?;
         Ok(App {
             engine,
             host,
@@ -92,5 +99,70 @@ impl AppBuilder {
             reusable: true,
             background: None,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use crate::{App, Backend, Module};
+
+    const COUNTER: &str = "let count = 0;\
+        globalThis.fetchletExports = { next: () => ++count, name: () => 'counter' };";
+
+    /// Backends whose instances share compiled code.
+    fn caching_backends() -> Vec<Backend> {
+        vec![
+            #[cfg(feature = "quickjs")]
+            Backend::quickjs(),
+            #[cfg(feature = "v8")]
+            Backend::v8(),
+        ]
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn instances_of_one_builder_share_compiled_code_but_not_state() {
+        for backend in caching_backends() {
+            let builder = App::builder(backend).module(Module::new(COUNTER));
+            let mut first = builder.clone().build().unwrap();
+            let cached = builder.code_cache.bytes();
+            assert!(cached > 0, "{backend:?} cached nothing");
+            assert_eq!(first.call_json("next", &[]).await.unwrap(), json!(1));
+            assert_eq!(first.call_json("next", &[]).await.unwrap(), json!(2));
+
+            let mut second = builder.clone().build().unwrap();
+            assert_eq!(builder.code_cache.bytes(), cached, "{backend:?}");
+            assert_eq!(second.call_json("next", &[]).await.unwrap(), json!(1));
+            assert_eq!(
+                second.call_json("name", &[]).await.unwrap(),
+                json!("counter")
+            );
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn another_module_compiles_its_own_code() {
+        for backend in caching_backends() {
+            let builder = App::builder(backend).module(Module::new(COUNTER));
+            builder.clone().build().unwrap();
+            // Same length as COUNTER, which V8's own check cannot tell apart.
+            let other = COUNTER.replace("'counter'", "'another'");
+            assert_eq!(other.len(), COUNTER.len());
+            let mut app = builder.module(Module::new(other)).build().unwrap();
+            assert_eq!(app.call_json("name", &[]).await.unwrap(), json!("another"));
+        }
+    }
+
+    #[test]
+    fn a_module_that_throws_fails_alike_from_compiled_code() {
+        for backend in caching_backends() {
+            let builder =
+                App::builder(backend).module(Module::new("throw new Error('broken at start');"));
+            for _ in 0..2 {
+                let error = builder.clone().build().err().unwrap().to_string();
+                assert!(error.contains("broken at start"), "{backend:?}: {error}");
+            }
+        }
     }
 }

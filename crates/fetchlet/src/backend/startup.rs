@@ -3,19 +3,23 @@
 //! backend and fetchlet-web, and engine APIs through a probe evaluated in
 //! the instance itself.
 
+use std::sync::Arc;
+
 use serde_json::{Value, json};
 
-use super::Backend;
+use super::{Backend, CodeCache};
 use crate::{Error, Module, Requirements, Result};
 
-/// The module an instance evaluates, with the check it passes first.
+/// The module an instance evaluates, with the check it passes first and
+/// the compiled code it shares with the other instances of its application.
 pub(crate) struct Startup<'a> {
     source: &'a str,
     check: Check,
+    code_cache: Option<Arc<CodeCache>>,
 }
 
 impl<'a> Startup<'a> {
-    pub fn new(module: &'a Module, backend: &Backend) -> Self {
+    pub fn new(module: &'a Module, backend: &Backend, code_cache: Arc<CodeCache>) -> Self {
         let requirements = module.requirements();
         Self {
             source: module.source(),
@@ -24,6 +28,7 @@ impl<'a> Startup<'a> {
                 engine: backend.engine_name(),
                 probe: probe_script(requirements),
             },
+            code_cache: Some(code_cache),
         }
     }
 
@@ -36,6 +41,7 @@ impl<'a> Startup<'a> {
                 engine: "",
                 probe: None,
             },
+            code_cache: None,
         }
     }
 
@@ -45,6 +51,12 @@ impl<'a> Startup<'a> {
 
     pub fn check(&self) -> &Check {
         &self.check
+    }
+
+    /// The application's compiled code, None for an engine built directly.
+    #[cfg_attr(not(any(feature = "quickjs", feature = "v8")), allow(dead_code))]
+    pub fn code_cache(&self) -> Option<&Arc<CodeCache>> {
+        self.code_cache.as_ref()
     }
 }
 
