@@ -77,8 +77,6 @@ documented refusal, and a check in a framework example:
     readers each see their own request.
   - Before that change, measure `run`, `getStore` and an `await` loop per
     engine against the serialized implementation.
-- Stubs for V8's `Error.captureStackTrace` and `Error.prepareStackTrace` on
-  QuickJS and Boa, which libraries such as depd call at load time.
 
 Intl coverage checks and legacy multi-byte encodings are tracked under
 [Capability negotiation](#capability-negotiation) and
@@ -126,9 +124,7 @@ covers every Intl API FormatJS implements, and names the engine-only APIs
 (`Intl.Collator`, `Intl.supportedValuesOf`, `WebAssembly`,
 `SharedArrayBuffer`, `Atomics`). Next, following
 [capability negotiation](research/capability-negotiation.md): polyfills
-beyond Intl, each with its tests on every engine, such as the
-`Error.captureStackTrace` stub under
-[framework runtime needs](#framework-runtime-needs-beyond-wintertc).
+beyond Intl as applications need them, each with its tests on every engine.
 
 ### Enforcement and isolation
 

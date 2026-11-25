@@ -38,6 +38,14 @@ export default defineConfig({
       },
       format: "iife",
     },
+    // Likewise for the stack trace API, which QuickJS and Boa evaluate.
+    {
+      ...common,
+      entry: {
+        "stack-trace": "js-src/stack-trace.ts",
+      },
+      format: "iife",
+    },
     // Single-file scripts stay at the top level: Rust reads the completion
     // value of the event loop step and of the background settle.
     {

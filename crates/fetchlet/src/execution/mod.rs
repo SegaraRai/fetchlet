@@ -33,6 +33,8 @@ pub(crate) use scheduler::LoopState;
     test
 ))]
 pub(crate) use scheduler::WakeSignal;
+#[cfg(any(feature = "boa", feature = "quickjs"))]
+pub(crate) use script::STACK_TRACE;
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) use script::{
     BACKGROUND_SETTLE, FLUSH_REJECTIONS, HOST_BOOTSTRAP, LOOP_STEP, PRELUDE, ResponseBodyOperation,

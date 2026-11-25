@@ -130,6 +130,33 @@ interface BackgroundRegistry {
 }
 
 /** The async context slot of the guest runtime. */
+type StackFrames = (
+  skipThrough: Function | undefined,
+  limit: number,
+) => [
+  functionName: string | null,
+  fileName: string | null,
+  line: number | null,
+  column: number | null,
+  isEval: boolean,
+][];
+
+/** A call site of V8's stack trace API. */
+interface CallSite {
+  getFunctionName(): string | null;
+  getFileName(): string | undefined;
+  getLineNumber(): number | null;
+  getColumnNumber(): number | null;
+  toString(): string;
+}
+
+/** V8's stack trace API, which stack-trace.ts completes. */
+interface ErrorConstructor {
+  captureStackTrace?(target: object, constructorOpt?: Function): void;
+  prepareStackTrace?: ((error: Error, sites: CallSite[]) => unknown) | undefined;
+  stackTraceLimit?: unknown;
+}
+
 interface AsyncContextSlot {
   get(): unknown;
   set(mapping: unknown): void;
@@ -139,6 +166,12 @@ interface AsyncContextSlot {
 declare var __fetchletHost: NativeDispatch | undefined;
 declare var __fetchletTakeBytes: ((handle: number) => Uint8Array<ArrayBuffer>) | undefined;
 declare var __fetchletPutBytes: ((bytes: Uint8Array) => number) | undefined;
+/**
+ * Installed by Boa for stack-trace.ts: the frames below the caller, most
+ * recent first, up to `limit`, after the most recent call of `skipThrough`
+ * when it is given, and none when that function is not on the stack.
+ */
+declare var __fetchletStackFrames: StackFrames | undefined;
 
 // Defined by the bridge.
 declare var __fetchletClaimHost: (() => HostClaim) | undefined;

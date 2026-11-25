@@ -91,6 +91,10 @@ pub(crate) enum ResponseBodyOperation {
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) const PRELUDE: &str = include_str!("../../js/runtime.js");
 
+/// Completes V8's stack trace API on QuickJS and Boa, before the prelude.
+#[cfg(any(feature = "boa", feature = "quickjs"))]
+pub(crate) const STACK_TRACE: &str = include_str!("../../js/stack-trace.js");
+
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) const HOST_BOOTSTRAP: &str = include_str!("../../js/host-bridge.js");
 

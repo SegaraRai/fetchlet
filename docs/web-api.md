@@ -104,6 +104,9 @@ Libraries that need WebAssembly therefore run only on V8
 - **Boa** gets ArrayBuffer `transfer`, `transferToFixedLength` and
   `detached` from the backend, because Boa 0.22 keeps them behind its
   `experimental` feature. Resizable buffers transfer as fixed-length.
+- **QuickJS and Boa** get V8's `Error.captureStackTrace` API where they
+  lack it, with the differences listed in
+  [Node.js compatibility](node-compat.md#globals).
 - **Node APIs** are outside the profile. `fetchlet/build` provides a
   subset of Node's built-in modules on top of it
   ([Node.js compatibility](node-compat.md)), including `AsyncLocalStorage`

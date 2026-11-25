@@ -16,13 +16,13 @@ use boa_engine::{
 use boa_gc::{Finalize, Trace};
 use serde_json::Value;
 
-use super::{BoaOptions, array_buffer};
+use super::{BoaOptions, array_buffer, stack_trace};
 use crate::Instance;
 use crate::backend::Startup;
 use crate::bridge::HostBridge;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, Interrupt, Interrupted, LOOP_STEP, LoopState, PRELUDE,
-    SEAL_HOST, WakeSignal, invocation, observed,
+    SEAL_HOST, STACK_TRACE, WakeSignal, invocation, observed,
 };
 
 pub struct Boa {
@@ -80,6 +80,7 @@ impl Boa {
 /// Install the host's natives and evaluate the scripts and the module.
 fn load(context: &mut Context, startup: &Startup<'_>) -> Result<()> {
     array_buffer::install(context).map_err(|error| anyhow!("{error}"))?;
+    stack_trace::install(context).map_err(|error| anyhow!("{error}"))?;
     context
         .register_global_callable(
             js_string!("__fetchletHost"),
@@ -115,6 +116,9 @@ fn load(context: &mut Context, startup: &Startup<'_>) -> Result<()> {
         .map_err(|error| anyhow!("{error}"))?;
     context
         .eval(Source::from_bytes(ASYNC_CONTEXT_SLOT))
+        .map_err(|error| anyhow!("{error}"))?;
+    context
+        .eval(Source::from_bytes(STACK_TRACE))
         .map_err(|error| anyhow!("{error}"))?;
     context
         .eval(Source::from_bytes(PRELUDE))

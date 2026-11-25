@@ -37,6 +37,23 @@ use them carry none of their code. They are not properties of `globalThis`.
 `process.env.NODE_ENV` is replaced with `"production"` at build time and does
 not import `process`.
 
+V8's stack trace API, `Error.captureStackTrace` with the call sites of
+`Error.prepareStackTrace` and `Error.stackTraceLimit`, works on every
+engine, since libraries such as depd use it while they load. V8 provides
+it. QuickJS provides it with call sites that lack some of V8's methods,
+which fetchlet adds, and on Boa fetchlet implements `captureStackTrace`
+over Boa's call stack (`crates/fetchlet/tests/stack_trace.rs`). On QuickJS
+and Boa:
+
+- Call sites report no receiver, type, method name or constructor call,
+  and every frame counts as top level.
+- QuickJS lists only the frames in a captured `stack`, without the
+  target's name and message, and keeps every frame when the function to
+  skip is not on the stack, where V8 and Boa keep none.
+- On Boa, `Error.prepareStackTrace` formats the stacks that
+  `captureStackTrace` captures; the `stack` of errors Boa creates keeps
+  Boa's own format.
+
 ## Modules
 
 | Module                                | Provided                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |

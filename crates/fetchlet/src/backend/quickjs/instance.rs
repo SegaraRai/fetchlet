@@ -14,7 +14,7 @@ use crate::backend::{CodeCache, Script, Startup};
 use crate::bridge::HostBridge;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, Interrupt, Interrupted, LOOP_STEP, LoopState, PRELUDE,
-    SEAL_HOST, WakeSignal, invocation, observed,
+    SEAL_HOST, STACK_TRACE, WakeSignal, invocation, observed,
 };
 
 pub struct QuickJs {
@@ -90,6 +90,7 @@ impl QuickJs {
                 Func::from(move |operation: String, input: String| host.dispatch(operation, input)),
             )?;
             let cache = startup.code_cache().map(|cache| &**cache);
+            context.eval::<(), _>(STACK_TRACE)?;
             evaluate_script(&context, cache, Script::Prelude, PRELUDE)?;
             evaluate_script(&context, cache, Script::Bridge, HOST_BOOTSTRAP)?;
             let report = match startup.check().probe() {
