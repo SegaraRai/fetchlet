@@ -101,10 +101,14 @@ tools measure `target/` at most once an hour and run `cargo clean` when it
 exceeds 64 GiB; `FETCHLET_TARGET_BUDGET_GIB` sets another budget, and `0`
 turns the check off.
 
+On Windows, Rust builds set `CC` and `CXX` to clang-cl in-process, and
+`.cargo/config.toml` links the static C runtime for MSVC targets, as V8's
+prebuilt library requires
+([the C runtime on Windows](research/windows-crt.md)). Changing
+`RUSTFLAGS` replaces that setting, and the first build after switching
+recompiles every crate.
+
 ## Known build warnings
 
-- On Windows, Rust builds set `CC` and `CXX` to clang-cl in-process;
-  all-feature links still warn `LNK4098 libcmt.lib`. Sorting out the CRT
-  configuration is release work.
 - Bundling frameworks into an IIFE warns about upstream uses of
   `import.meta.dirname`.

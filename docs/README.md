@@ -84,3 +84,5 @@
   prerendering, split server bundles and RSC mode need from the preset.
 - [A Nitro 3 preset](research/nitro-3.md): what Nitro 3 and h3 2 change
   for `fetchlet/nitro`, and when to build the preset.
+- [The C runtime on Windows](research/windows-crt.md): why links with V8
+  warn LNK4098 and the `crt-static` configuration that removes it.

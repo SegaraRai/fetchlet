@@ -81,14 +81,14 @@ Unexpected results: 0.
 | ---------------------------- | ------- | ------- | ------- | ----------------------------- | ------------- |
 | sveltekit-axum               | 18 / 18 | 18 / 18 | 18 / 18 | @sveltejs/kit 3.4.0           | 159.0.8154.6  |
 | sveltekit-axum-tauri         | 15 / 15 | 15 / 15 | 15 / 15 | @sveltejs/kit 3.4.0           | 159.0.8154.6  |
-| sveltekit-axum-tauri-desktop | 5 / 5   | 5 / 5   | 5 / 5   | @sveltejs/kit 3.4.0           | 157.0.4341.60 |
+| sveltekit-axum-tauri-desktop | 5 / 5   | 5 / 5   | 5 / 5   | @sveltejs/kit 3.4.0           | 158.0.4370.33 |
 | astro-axum                   | 13 / 13 | 13 / 13 | 13 / 13 | astro 7.4.13                  | 159.0.8154.6  |
 | astro-axum-vite-dev          | 5 / 5   | 4 / 4   | 4 / 4   | astro 7.4.13                  | 159.0.8154.6  |
 | nuxt-axum                    | 13 / 13 | 13 / 13 | 13 / 13 | nuxt 4.6.4                    | 159.0.8154.6  |
 | react-router-axum            | 14 / 14 | 14 / 14 | 14 / 14 | react-router 8.5.2            | 159.0.8154.6  |
 | react-router-axum-vite-dev   | 5 / 5   | 5 / 5   | 5 / 5   | react-router 8.5.2            | 159.0.8154.6  |
 | honox-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | honox 0.1.62                  | 159.0.8154.6  |
-| honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 157.0.4341.60 |
+| honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 158.0.4370.33 |
 | tanstack-start-axum          | 12 / 12 | 12 / 12 | 12 / 12 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
 | tanstack-start-axum-vite-dev | 5 / 5   | —       | 4 / 4   | @tanstack/react-start 1.169.5 | 159.0.8154.6  |
 | solidstart-axum              | 13 / 13 | 13 / 13 | 13 / 13 | @solidjs/start 2.2.3          | 159.0.8154.6  |

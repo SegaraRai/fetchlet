@@ -249,11 +249,6 @@ The measurements cover a page per request on fresh instances; measure the
 heap of a long-running instance under varied pages before raising the
 recommended limits.
 
-### Windows CRT
-
-All-feature links on Windows warn `LNK4098 libcmt.lib`. Settle the CRT
-configuration before release.
-
 ## Conformance
 
 Test262 host features, negative and module tests, writable, transform and

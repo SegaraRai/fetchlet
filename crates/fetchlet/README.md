@@ -33,6 +33,19 @@ parser instead of the `url` crate.
 | `compression`        | `CompressionStream`, `DecompressionStream`              |
 | `web-crypto`         | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` |
 
+On Windows with MSVC, `v8` links V8's prebuilt library, which is compiled
+against the static C runtime. Build the binary with the static runtime as
+well, so that it contains one C runtime instead of two, in the binary's
+`.cargo/config.toml`:
+
+```toml
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
+```
+
+Without it, the link warns `LNK4098: defaultlib 'libcmt.lib' conflicts with
+use of other libs`.
+
 ## Shared handle
 
 `AppBuilder::spawn(WorkerOptions)` initializes the app on its own thread and

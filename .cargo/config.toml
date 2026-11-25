@@ -1,0 +1,6 @@
+# V8's prebuilt library is compiled against the static C runtime, so every
+# Windows MSVC build links the static runtime too: one C runtime per binary,
+# and no dependency on the Visual C++ Redistributable
+# (docs/research/windows-crt.md). RUSTFLAGS, when set, replaces this.
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
