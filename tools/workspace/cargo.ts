@@ -36,12 +36,28 @@ const defaultTargetBudgetGib = 64;
 /** How often to measure `target/`; measuring reads every file's size. */
 const targetCheckInterval = 60 * 60 * 1000;
 
-/** Total bytes of the files under `directory`. */
+/**
+ * Total bytes of the files under `directory`. Builds running at the same
+ * time create and remove files, so entries that are gone by the time they
+ * are read count as empty.
+ */
 function directoryBytes(directory: string): number {
+  let entries;
+  try {
+    entries = readdirSync(directory, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return 0;
+    }
+    throw error;
+  }
   let bytes = 0;
-  for (const entry of readdirSync(directory, { recursive: true, withFileTypes: true })) {
-    if (entry.isFile()) {
-      bytes += lstatSync(join(entry.parentPath, entry.name)).size;
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      bytes += directoryBytes(path);
+    } else if (entry.isFile()) {
+      bytes += lstatSync(path, { throwIfNoEntry: false })?.size ?? 0;
     }
   }
   return bytes;
@@ -69,7 +85,10 @@ export function enforceTargetBudget(env: NodeJS.ProcessEnv = process.env): void 
     console.log(
       `target/ holds ${gib.toFixed(1)} GiB, over the ${budgetGib} GiB budget; running cargo clean`,
     );
-    run("cargo", ["clean"], { cwd: root, env: cargoEnv(env) });
+    // Clean the directory measured, not a target directory the caller set
+    // inside it, which would leave the rest over the budget.
+    const { CARGO_TARGET_DIR: _, CARGO_BUILD_TARGET_DIR: __, ...cleanEnv } = env;
+    run("cargo", ["clean"], { cwd: root, env: cargoEnv(cleanEnv) });
     mkdirSync(target, { recursive: true });
   }
   writeFileSync(stamp, "");
