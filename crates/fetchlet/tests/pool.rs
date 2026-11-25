@@ -202,7 +202,9 @@ async fn the_pool_grows_on_demand_and_retires_idle_instances() -> anyhow::Result
             Some(first.as_str())
         );
 
-        // Beyond max, a call waits for a free instance.
+        // Beyond max, a call waits for a free instance. Either instance may
+        // have retired since the calls above, so the busy pair is named by
+        // the calls that hold it.
         let first_waiting = pool.start_waiting().await;
         let second_waiting = pool.start_waiting().await;
         let mut queued = Box::pin(pool.instance());
@@ -212,21 +214,26 @@ async fn the_pool_grows_on_demand_and_retires_idle_instances() -> anyhow::Result
                 .is_err()
         );
         pool.gate.add_permits(2);
-        within("step 7", first_waiting).await??;
-        within("step 8", second_waiting).await??;
-        let served = within("step 9", queued).await?;
-        assert!(served == first || served == grown);
+        let busy = [
+            within("step 7", first_waiting).await??,
+            within("step 8", second_waiting).await??,
+        ];
+        assert_ne!(busy[0], busy[1]);
+        let served = json!(within("step 9", queued).await?);
+        assert!(busy.contains(&served));
 
         // Once idle past the timeout, the pool is back to one of the two;
         // a second concurrent call needs a new instance.
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        state_when(&pool.handle, |state| {
+            (state.building, state.busy, state.idle, state.retiring) == (0, 0, 1, 0)
+        })
+        .await;
         let waiting = pool.start_waiting().await;
-        let fresh = within("step 10", pool.instance()).await?;
+        let fresh = json!(within("step 10", pool.instance()).await?);
         pool.gate.add_permits(1);
         let survivor = within("step 11", waiting).await??;
-        assert!(survivor == json!(first) || survivor == json!(grown));
-        assert_ne!(fresh, first);
-        assert_ne!(fresh, grown);
+        assert!(busy.contains(&survivor));
+        assert!(!busy.contains(&fresh));
         pool.handle.shutdown().await?;
     }
     Ok(())
