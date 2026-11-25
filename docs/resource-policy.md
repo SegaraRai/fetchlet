@@ -8,9 +8,11 @@ their source.
 ## Caller budgets
 
 Each `Limits` field is an `Option`. `Some(value)` enables the budget;
-`None` leaves it to the host, and every field defaults to `None`. Choose
-values by measuring the application's inputs, SSR output, upstream
-services, concurrency and the process's total capacity.
+`None` leaves it to the host, and every field defaults to `None`;
+fetchlet-http's `Server` starts from `Server::default_limits()`, a 10 s
+`busy_timeout` and a 60 s `startup_timeout`. Choose values by measuring the
+application's inputs, SSR output, upstream services, concurrency and the
+process's total capacity.
 
 | Field                     | Unit and scope                                                                                                                            |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -84,8 +86,8 @@ instance retires, and a pool replaces it. Boa stops JavaScript the same way
 at its next promise job or host call, and `BoaOptions::loop_iteration_limit`
 stops a loop by count. JavaScript on Boa that does neither, such as deep
 recursion, can only be stopped by an external process supervisor, and so
-can a V8 loop around `new Array(n).fill(value)` for large `n`, to which V8
-does not deliver termination. An instance that reaches its QuickJS or V8
+can a V8 loop around `new Array(n).fill(value)` for `n` of 17 or more,
+unless `V8Options::reliable_termination` is set. An instance that reaches its QuickJS or V8
 heap limit fails with `LimitExceeded("engine heap")` and retires
 ([interrupts and heap limits](research/interrupts-and-heap-limits.md)).
 

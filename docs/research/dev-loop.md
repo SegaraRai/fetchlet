@@ -376,8 +376,25 @@ JavaScript `TextDecoder` (170 of 310 ms in a debug build); decoding in Rust
 removes it. In debug builds that only pays off with `serde_json` optimized,
 since the text crosses the bridge as one JSON string: unoptimized, its
 escaping made the debug V8 run slower than decoding in JavaScript, so the
-workspace's dev profile builds `serde_json` at `opt-level = 3`. The Astro
-reload itself was not timed again.
+workspace's dev profile builds `serde_json` at `opt-level = 3`.
+
+Timed again in examples/astro-axum (Astro 7.4.13) with whole-body reads:
+the host started against a running `astro dev` whose transforms were
+warm, so its first `GET /` built an instance and loaded every module, as a
+reload does, three or four starts per build:
+
+| Host build, QuickJS | First `GET /` on a new instance | Warm `GET /` |
+| ------------------- | ------------------------------- | ------------ |
+| Debug               | 2.50 to 2.60 s                  | 18 to 47 ms  |
+| Release             | 0.87 to 1.13 s                  | 9 to 36 ms   |
+
+The transport the runner still pays is the heads and whole-body reads of
+about 284 fetches: 150 to 190 ms in a debug build and about 66 ms in
+release, from the lab measurement above, or 6 to 8 percent of the reload.
+Keeping the transformed modules in Rust across instances would save at
+most that share; the rest is the engine evaluating Astro's development
+modules, which a new instance must do again. The module cache is not
+worth building for this; a reload costs what evaluation costs.
 
 On Boa, the runner can spend longer than Node's 5-second keep-alive timeout
 evaluating one large module, such as the prebundled `react-dom/server.edge`,

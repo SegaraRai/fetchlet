@@ -3,7 +3,9 @@
 //! ```text
 //! startup [<bench-dir>] [--frameworks bare,astro] [--backends quickjs,boa,v8]
 //!         [--builds 10] [--instances 4] [--requests 50] [--output <file>]
-//!         [--quickjs-memory-mib <n>]
+//!         [--quickjs-memory-mib <n>] [--v8-heap-mib <n>]
+//!         [--boa-loop-limit <n>] [--busy-timeout-ms <n>]
+//!         [--startup-timeout-ms <n>] [--v8-reliable-termination]
 //! ```
 //!
 //! `<bench-dir>` (default `.cache/bench`) holds `<framework>/<backend>/build`,
@@ -12,8 +14,13 @@
 //! the same state, and builds its App as fetchlet-http's axum server does:
 //! the artifact's module, requirements and handler, the HonoX example's host
 //! services, and one instance on a worker thread with a 64 MiB stack.
-//! `--quickjs-memory-mib` sets `QuickJsOptions::memory_limit_bytes`, to find
-//! the heap an application needs.
+//! `--quickjs-memory-mib` sets `QuickJsOptions::memory_limit_bytes`,
+//! `--v8-heap-mib` `V8Options::heap_limit_bytes`, `--boa-loop-limit`
+//! `BoaOptions::loop_iteration_limit`, and `--busy-timeout-ms` and
+//! `--startup-timeout-ms` the `Limits` of the same names, to find what an
+//! application needs: a run that fails names the limit it passed.
+//! `--v8-reliable-termination` sets `V8Options::reliable_termination`, to
+//! measure its cost.
 //!
 //! The child reports, in milliseconds and bytes:
 //!
@@ -64,7 +71,7 @@ struct Options {
     instances: usize,
     requests: usize,
     output: Option<PathBuf>,
-    quickjs_memory_mib: usize,
+    settings: Settings,
 }
 
 fn main() -> Result<()> {
@@ -77,10 +84,7 @@ fn main() -> Result<()> {
         let builds = args.next().context("builds")?.parse()?;
         let instances = args.next().context("instances")?.parse()?;
         let requests = args.next().context("requests")?.parse()?;
-        let memory: usize = args.next().context("memory")?.parse()?;
-        let settings = Settings {
-            quickjs_memory_bytes: (memory > 0).then_some(memory << 20),
-        };
+        let settings = Settings::from_json(&args.next().context("settings")?)?;
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
@@ -108,11 +112,15 @@ fn main() -> Result<()> {
         instances: 4,
         requests: 50,
         output: None,
-        quickjs_memory_mib: 0,
+        settings: Settings::default(),
     };
     while let Some(argument) = args.next() {
         if !argument.starts_with("--") {
             options.directory = PathBuf::from(argument);
+            continue;
+        }
+        if argument == "--v8-reliable-termination" {
+            options.settings.v8_reliable_termination = true;
             continue;
         }
         let value = args
@@ -126,7 +134,13 @@ fn main() -> Result<()> {
             "--instances" => options.instances = value.parse()?,
             "--requests" => options.requests = value.parse()?,
             "--output" => options.output = Some(PathBuf::from(&value)),
-            "--quickjs-memory-mib" => options.quickjs_memory_mib = value.parse()?,
+            "--quickjs-memory-mib" => {
+                options.settings.quickjs_memory_bytes = Some(value.parse::<usize>()? << 20)
+            }
+            "--v8-heap-mib" => options.settings.v8_heap_bytes = Some(value.parse::<usize>()? << 20),
+            "--boa-loop-limit" => options.settings.boa_loop_limit = Some(value.parse()?),
+            "--busy-timeout-ms" => options.settings.busy_timeout_ms = Some(value.parse()?),
+            "--startup-timeout-ms" => options.settings.startup_timeout_ms = Some(value.parse()?),
             _ => bail!("unknown flag {argument}"),
         }
     }
@@ -154,7 +168,7 @@ fn main() -> Result<()> {
                 .arg(options.builds.to_string())
                 .arg(options.instances.to_string())
                 .arg(options.requests.to_string())
-                .arg(options.quickjs_memory_mib.to_string())
+                .arg(options.settings.to_json().to_string())
                 .output()?;
             if !output.status.success() {
                 eprintln!(
@@ -174,7 +188,7 @@ fn main() -> Result<()> {
         "builds": options.builds,
         "instances": options.instances,
         "requests": options.requests,
-        "quickjs_memory_mib": options.quickjs_memory_mib,
+        "settings": options.settings.to_json(),
         "rows": rows,
     });
     let text = serde_json::to_string_pretty(&result)?;
@@ -231,9 +245,41 @@ fn host_services() -> fetchlet::Result<HostServices> {
         .service("RUST", service)
 }
 
-/// Engine settings beyond fetchlet-http's defaults.
+/// Engine settings and limits beyond fetchlet-http's defaults.
+#[derive(Default)]
 struct Settings {
     quickjs_memory_bytes: Option<usize>,
+    v8_heap_bytes: Option<usize>,
+    boa_loop_limit: Option<u64>,
+    busy_timeout_ms: Option<u64>,
+    startup_timeout_ms: Option<u64>,
+    v8_reliable_termination: bool,
+}
+
+impl Settings {
+    fn to_json(&self) -> Value {
+        json!({
+            "quickjs_memory_bytes": self.quickjs_memory_bytes,
+            "v8_heap_bytes": self.v8_heap_bytes,
+            "boa_loop_limit": self.boa_loop_limit,
+            "busy_timeout_ms": self.busy_timeout_ms,
+            "startup_timeout_ms": self.startup_timeout_ms,
+            "v8_reliable_termination": self.v8_reliable_termination,
+        })
+    }
+
+    fn from_json(text: &str) -> Result<Self> {
+        let value: Value = serde_json::from_str(text)?;
+        let number = |name: &str| value[name].as_u64();
+        Ok(Self {
+            quickjs_memory_bytes: number("quickjs_memory_bytes").map(|n| n as usize),
+            v8_heap_bytes: number("v8_heap_bytes").map(|n| n as usize),
+            boa_loop_limit: number("boa_loop_limit"),
+            busy_timeout_ms: number("busy_timeout_ms"),
+            startup_timeout_ms: number("startup_timeout_ms"),
+            v8_reliable_termination: value["v8_reliable_termination"].as_bool() == Some(true),
+        })
+    }
 }
 
 /// The artifact's engine with fetchlet-http's default stack limits.
@@ -246,6 +292,15 @@ fn backend(artifact: &Artifact, name: &str, settings: &Settings) -> Result<Backe
         Backend::QuickJs(mut options) if settings.quickjs_memory_bytes.is_some() => {
             options.memory_limit_bytes = settings.quickjs_memory_bytes;
             Backend::QuickJs(options)
+        }
+        Backend::V8(mut options) => {
+            options.heap_limit_bytes = settings.v8_heap_bytes;
+            options.reliable_termination = settings.v8_reliable_termination;
+            Backend::V8(options)
+        }
+        Backend::Boa(mut options) if settings.boa_loop_limit.is_some() => {
+            options.loop_iteration_limit = settings.boa_loop_limit;
+            Backend::Boa(options)
         }
         other => other,
     })
@@ -272,6 +327,8 @@ fn builder(
         .host_services(host_services()?)
         .limits(Limits {
             timeout: Some(Duration::from_secs(30)),
+            busy_timeout: settings.busy_timeout_ms.map(Duration::from_millis),
+            startup_timeout: settings.startup_timeout_ms.map(Duration::from_millis),
             ..Limits::default()
         }))
 }

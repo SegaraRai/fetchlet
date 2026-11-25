@@ -80,3 +80,5 @@
 - [Interrupts and heap limits](research/interrupts-and-heap-limits.md):
   what each engine provides to stop JavaScript that never yields and to
   bound its heap, and the design built on it.
+- [React Router build modes](research/react-router-modes.md): what
+  prerendering, split server bundles and RSC mode need from the preset.

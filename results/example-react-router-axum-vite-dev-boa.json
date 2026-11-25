@@ -26,7 +26,7 @@
   "backend": "boa",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 4,
+    "passed": 5,
     "failed": 0
   },
   "results": [
@@ -48,6 +48,11 @@
     {
       "name": "a component edit refreshes in place and renders on the next request",
       "features": ["hydration", "ssr"],
+      "status": "pass"
+    },
+    {
+      "name": "a React Router WebSocket holds its instance while others serve requests",
+      "features": ["websocket"],
       "status": "pass"
     }
   ]

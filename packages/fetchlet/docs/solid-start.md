@@ -61,6 +61,11 @@ builder's `asyncContext: "serialized"`.
 SolidStart builds each method handler of an API route (GET, POST, …) as its
 own module; keep state shared between handlers in a separate module.
 
+`fetchWithEvent(event.nativeEvent, "/api/…")` from `@solidjs/start/http`
+runs another route in JavaScript with the request's context; an absolute
+URL through `fetch` is a host fetch
+([framework fetches](../../../docs/in-process-fetch.md#framework-fetches)).
+
 ## Development serving
 
 `vite dev` with this plugin serves a Rust host that uses fetchlet-http's

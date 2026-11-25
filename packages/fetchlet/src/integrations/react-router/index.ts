@@ -14,8 +14,9 @@ export interface FetchletPresetOptions {
   /**
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` uses React Router's: hashed files under `assets/` are
-   * cached for a year; settings adjust those defaults and add entries, and
-   * a function returns every entry. See docs/asset-archive.md.
+   * cached for a year, and prerendered pages answer their path with and
+   * without a trailing slash; settings adjust those defaults and add
+   * entries, and a function returns every entry. See docs/asset-archive.md.
    */
   assets?: AssetsOption;
   /** The engine the artifact targets. */
@@ -120,6 +121,9 @@ async function writeArtifact({
       ? {
           assets: frameworkAssets(assets, {
             cache: [{ prefix: "/assets/", cacheControl: IMMUTABLE }],
+            // React Router matches a path with or without its trailing
+            // slash, so a prerendered `about/index.html` answers both.
+            routes: { trailingSlash: "ignore" },
           }),
         }
       : {}),

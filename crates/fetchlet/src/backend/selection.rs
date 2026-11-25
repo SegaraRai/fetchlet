@@ -100,6 +100,21 @@ impl Backend {
         }
     }
 
+    /// Set V8's heap limit to `bytes` when it has none; other engines are
+    /// unchanged.
+    #[cfg_attr(not(feature = "v8"), allow(unused_variables))]
+    pub fn with_default_v8_heap(self, bytes: usize) -> Self {
+        match self {
+            #[cfg(feature = "v8")]
+            Self::V8(mut options) => {
+                options.heap_limit_bytes.get_or_insert(bytes);
+                Self::V8(options)
+            }
+            #[allow(unreachable_patterns)]
+            other => other,
+        }
+    }
+
     /// Set Boa's value stack limit to `slots` and its recursion limit to
     /// `depth` where it has none; other engines are unchanged. Both must fit
     /// the native stack of the thread the engine runs on.

@@ -69,7 +69,7 @@ describe("fetchlet/react-router", () => {
     expect(options).not.toHaveProperty("assets");
   });
 
-  test("assets cache the hashed files under /assets/", async () => {
+  test("assets cache the hashed files under /assets/ and ignore trailing slashes", async () => {
     const options = await buildEnd({
       assets: {
         entries: [],
@@ -86,6 +86,7 @@ describe("fetchlet/react-router", () => {
             cacheControl: expect.stringContaining("immutable"),
           },
         ],
+        routes: { trailingSlash: "ignore" },
       },
     });
   });

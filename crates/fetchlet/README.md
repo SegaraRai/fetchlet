@@ -127,7 +127,16 @@ applied in Rust to the whole call future.
 an instance's heap: reaching the limit fails the call with
 `LimitExceeded("engine heap")` and retires the instance.
 `V8Options::array_buffer_limit_bytes` bounds `ArrayBuffer` storage, which
-lives outside V8's heap; past it, JavaScript gets a `RangeError`.
+lives outside V8's heap; past it, JavaScript gets a `RangeError`. A V8 heap
+limit below `MIN_V8_HEAP_LIMIT_BYTES`, 16 MiB, is refused, since V8 would end
+the process while the isolate starts.
+
+V8 does not stop some hot loops that allocate, such as one around
+`new Array(1000).fill(0)`, while it compiles their optimized code on a
+background thread. `V8Options::reliable_termination` compiles that code on
+the instance's thread instead, so the limits above stop every loop. It is
+off by default, applies to the whole process, and must be set on the first
+V8 instance the process starts.
 
 `call` takes one Serde argument and `call_json` several JSON arguments.
 `fetch_with_context` passes a per-request Serde value as the entry's second

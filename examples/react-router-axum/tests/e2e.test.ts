@@ -48,6 +48,40 @@ check("React Router JavaScript, CSS and public files", ["assets"], async () => {
   expect((await fetch(suite.base + "/server/index.js")).status).toBe(404);
 });
 
+check(
+  "prerendered page from the asset archive, then hydration",
+  ["assets", "hydration"],
+  async () => {
+    // react-router.config.ts prerenders /about; the archive answers it with an
+    // ETag, which server-rendered pages do not carry, with or without a slash.
+    for (const path of ["/about", "/about/"]) {
+      const response = await fetch(suite.base + path, { headers: browser, redirect: "manual" });
+      expect(response.status, path).toBe(200);
+      expect(response.headers.get("etag"), path).toBeTruthy();
+      expect(await response.text()).toMatch(/<h1>About<\/h1>/);
+    }
+    const page = await suite.page();
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(String(error)));
+    await page.goto(suite.base + "/about");
+    await page.evaluate(() => {
+      (window as unknown as Record<string, unknown>).fetchletNavigationMarker = "retained";
+    });
+    // The prerendered document hydrates and navigates on the client.
+    await page.getByRole("link", { name: "Home" }).click();
+    await page.waitForFunction(
+      () => document.querySelector<HTMLElement>("[data-counter]")?.dataset.hydrated === "true",
+    );
+    expect(
+      await page.evaluate(
+        () => (window as unknown as Record<string, unknown>).fetchletNavigationMarker,
+      ),
+    ).toBe("retained");
+    expect(errors).toStrictEqual([]);
+    await page.close();
+  },
+);
+
 check("deferred loader data streams after the shell", ["streaming-ssr"], async () => {
   await assertStreams(await fetch(suite.base + "/deferred", { headers: browser }));
 });

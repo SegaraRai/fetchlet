@@ -69,8 +69,12 @@ for example) for that age ([asset archive](../../../docs/asset-archive.md)).
   start with `NUXT_` override Nuxt's runtime config.
 - `event.waitUntil(promise)` registers with fetchlet's `waitUntil`, within
   Rust's `Limits::background_timeout` and `background_tasks`.
-- Nitro-internal calls through `useFetch` and `$fetch` keep
-  `event.context.fetchlet` and the client address.
+- Nitro-internal calls through `event.$fetch` and `event.fetch`, which
+  `useFetch` uses during SSR, run the target route in JavaScript and keep
+  `event.context.fetchlet` and the client address. Global `$fetch` with a
+  path also stays inside Nitro, but its event has no
+  `event.context.fetchlet`. An absolute URL through `fetch` is a host fetch
+  ([framework fetches](../../../docs/in-process-fetch.md#framework-fetches)).
 
 ## Tests and next work
 

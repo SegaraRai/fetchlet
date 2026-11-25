@@ -133,12 +133,21 @@ records its results.
 node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin startup -- .cache/bench --frameworks sveltekit,astro --backends quickjs,v8 --output .cache/bench/startup.json
 ```
 
-| Argument               | Default                     | Meaning                                                             |
-| ---------------------- | --------------------------- | ------------------------------------------------------------------- |
-| `--frameworks`         | `bare` and the ten examples | Directories under the bench directory                               |
-| `--backends`           | `quickjs,boa,v8`            | Artifact builds and engines                                         |
-| `--builds`             | 10                          | Further instances whose build time is measured                      |
-| `--instances`          | 4                           | Instances kept alive at once to measure the memory each adds        |
-| `--requests`           | 50                          | Sequential `GET /?name=bench` on the first instance                 |
-| `--quickjs-memory-mib` |                             | `QuickJsOptions::memory_limit_bytes`, to find the heap an app needs |
-| `--output`             | standard output             | The JSON report                                                     |
+| Argument                    | Default                     | Meaning                                                             |
+| --------------------------- | --------------------------- | ------------------------------------------------------------------- |
+| `--frameworks`              | `bare` and the ten examples | Directories under the bench directory                               |
+| `--backends`                | `quickjs,boa,v8`            | Artifact builds and engines                                         |
+| `--builds`                  | 10                          | Further instances whose build time is measured                      |
+| `--instances`               | 4                           | Instances kept alive at once to measure the memory each adds        |
+| `--requests`                | 50                          | Sequential `GET /?name=bench` on the first instance                 |
+| `--quickjs-memory-mib`      |                             | `QuickJsOptions::memory_limit_bytes`, to find the heap an app needs |
+| `--v8-heap-mib`             |                             | `V8Options::heap_limit_bytes`                                       |
+| `--boa-loop-limit`          |                             | `BoaOptions::loop_iteration_limit`                                  |
+| `--busy-timeout-ms`         |                             | `Limits::busy_timeout`                                              |
+| `--startup-timeout-ms`      |                             | `Limits::startup_timeout`                                           |
+| `--v8-reliable-termination` |                             | `V8Options::reliable_termination`, to measure its cost              |
+
+A run that passes a limit reports the failure for that framework and
+backend instead of its row, so sweeping a value finds what each
+application needs ([measured needs](../../docs/research/interrupts-and-heap-limits.md#measured-needs-of-the-examples)).
+| `--output` | standard output | The JSON report |

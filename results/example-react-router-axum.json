@@ -26,7 +26,7 @@
   "backend": "quickjs",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 13,
+    "passed": 14,
     "failed": 0
   },
   "results": [
@@ -38,6 +38,11 @@
     {
       "name": "React Router JavaScript, CSS and public files",
       "features": ["assets"],
+      "status": "pass"
+    },
+    {
+      "name": "prerendered page from the asset archive, then hydration",
+      "features": ["assets", "hydration"],
       "status": "pass"
     },
     {

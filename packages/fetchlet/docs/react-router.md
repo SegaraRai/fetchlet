@@ -106,8 +106,12 @@ has a `dev:vite` task.
 ## Tests and next work
 
 [examples/react-router-axum](../../../examples/react-router-axum/README.md)
-checks SSR, assets, streaming of deferred data, resource routes, document
-and client actions, cookies, the load context, streaming uploads,
-`waitUntil`, hydration and client navigation.
+checks SSR, assets, a prerendered page, streaming of deferred data,
+resource routes, document and client actions, cookies, the load context,
+streaming uploads, `waitUntil`, hydration and client navigation.
 
-Split server bundles, prerendering and RSC mode need their own tests.
+With `assets`, pages listed in `prerender` are served from the asset
+archive at their path with and without a trailing slash, as React Router
+matches them; other paths render per request. Split server bundles and RSC
+mode are not supported
+([research](../../../docs/research/react-router-modes.md)).

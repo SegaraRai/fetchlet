@@ -163,6 +163,23 @@ With SvelteKit's `event.fetch`:
 - Named bindings such as `platform.env.RUST` call their service without the
   framework.
 
+Other frameworks split the same way where they have a fetch of their own.
+An absolute URL on the application's public origin through global `fetch`
+is a host fetch in every framework, so the fetch policy decides it: the
+examples, which register only `https://fetchlet.internal`, refuse it with
+`PERMISSION_DENIED`.
+
+| Framework                                                  | Fetch that stays inside the framework                                                                                                                                | How it was checked                                                                       |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| SvelteKit                                                  | `event.fetch`, relative or same-origin                                                                                                                               | examples/sveltekit-axum end-to-end checks                                                |
+| Nuxt and Nitro                                             | `event.$fetch` and `event.fetch` with a path, which keep `event.context.fetchlet`; global `$fetch` with a path also stays in Nitro but without the request's context | A probe route in examples/nuxt-axum on QuickJS                                           |
+| SolidStart                                                 | `fetchWithEvent(event, path)` from `@solidjs/start/http` (h3's), with the request's context                                                                          | A probe route in examples/solidstart-axum on QuickJS                                     |
+| TanStack Start                                             | None found                                                                                                                                                           | Its server core, read at the version in reference, does not export h3's `fetchWithEvent` |
+| Astro, React Router, Qwik City, Waku, vinext, HonoX, Solid | None: loaders, actions and server components call code directly, and `fetch` has no relative base                                                                    | Their server runtimes, read at the versions in [reference](reference/README.md#examples) |
+
+vinext replaces global `fetch` with Next's caching fetch; it calls the
+original `fetch`, so its requests are host fetches like any other.
+
 Internal origins identify destinations for server-side JavaScript only.
 Browsers receive URLs on the public origin (`/api/v1` in the example), which
 reach the same router.

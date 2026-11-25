@@ -35,8 +35,10 @@ On QuickJS and V8, the invocation deadline, `Limits::busy_timeout` and
 `Limits::startup_timeout` stop JavaScript that never yields and retire the
 instance. Boa stops it only at its next promise job or host call, or past
 `BoaOptions::loop_iteration_limit`; other non-yielding JavaScript on Boa,
-such as deep recursion, holds its thread until it finishes, and V8 does not
-terminate a hot loop around `new Array(n).fill(value)` for large `n`.
+such as deep recursion, holds its thread until it finishes. V8 does not
+terminate some hot loops that allocate, such as one around
+`new Array(n).fill(value)` for `n` of 17 or more, unless
+`V8Options::reliable_termination` is set.
 QuickJS's `memory_limit_bytes` and V8's `heap_limit_bytes` stop an instance
 at its heap limit and retire it; on V8 an allocation larger than the
 unwinding headroom still ends the process, and Boa has no heap limit

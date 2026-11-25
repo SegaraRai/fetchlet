@@ -85,8 +85,8 @@ Unexpected results: 0.
 | astro-axum                   | 13 / 13 | 13 / 13 | 13 / 13 | astro 7.4.13                  | 159.0.8154.6  |
 | astro-axum-vite-dev          | 5 / 5   | 4 / 4   | 4 / 4   | astro 7.4.13                  | 159.0.8154.6  |
 | nuxt-axum                    | 12 / 12 | 12 / 12 | 12 / 12 | nuxt 4.6.4                    | 159.0.8154.6  |
-| react-router-axum            | 13 / 13 | 13 / 13 | 13 / 13 | react-router 8.5.2            | 159.0.8154.6  |
-| react-router-axum-vite-dev   | 5 / 5   | 4 / 4   | 4 / 4   | react-router 8.5.2            | 159.0.8154.6  |
+| react-router-axum            | 14 / 14 | 14 / 14 | 14 / 14 | react-router 8.5.2            | 159.0.8154.6  |
+| react-router-axum-vite-dev   | 5 / 5   | 5 / 5   | 5 / 5   | react-router 8.5.2            | 159.0.8154.6  |
 | honox-axum                   | 12 / 12 | 12 / 12 | 12 / 12 | honox 0.1.62                  | 159.0.8154.6  |
 | honox-tauri                  | 10 / 10 | 10 / 10 | 10 / 10 | honox 0.1.62                  | 157.0.4341.60 |
 | tanstack-start-axum          | 12 / 12 | 12 / 12 | 12 / 12 | @tanstack/react-start 1.169.5 | 159.0.8154.6  |

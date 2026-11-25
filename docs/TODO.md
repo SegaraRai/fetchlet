@@ -139,13 +139,11 @@ Boa stops it at its next promise job or host call and bounds loops with
 deep recursion, runs on, so untrusted code belongs on QuickJS, V8 or behind
 a process boundary. QuickJS and V8 stop an instance at its heap limit; Boa
 has none.
-[Interrupts and heap limits](research/interrupts-and-heap-limits.md)
-lists the rest: fetchlet-http's `Server` defaults for the busy and startup
-timeouts, V8's heap limit and Boa's loop iteration limit, measured against
-the examples; and V8 not terminating a hot loop around
-`new Array(n).fill(value)`, which needs tracing. Every stop retires the
-instance and has a regression test on each engine. Third-party code still
-needs a process boundary.
+Every stop retires the instance and has a regression test on each engine.
+Third-party code still needs a process boundary. On V8, some hot loops that
+allocate are stopped only with `V8Options::reliable_termination`, which is
+off by default; report that gap to V8 with the loop as a reproduction
+([the V8 termination gap](research/interrupts-and-heap-limits.md#the-v8-termination-gap)).
 
 ### Instance pools
 
@@ -202,9 +200,14 @@ opened, such as a WebSocket the handler accepted.
 
 ### Internal fetch per framework
 
-The split between framework-internal fetches and host fetches is verified
-for SvelteKit's `event.fetch`. Verify it for each other adapter and record
-the result in its guide.
+[Framework fetches](in-process-fetch.md#framework-fetches) records which
+fetches stay inside each framework: SvelteKit's `event.fetch`, Nitro's
+`event.$fetch` and `event.fetch`, and SolidStart's `fetchWithEvent`; the
+other adapters have none, and an absolute same-origin `fetch` is a host
+fetch everywhere. SvelteKit's split has end-to-end checks; Nitro's and
+SolidStart's were probed once on QuickJS. Turn those probes into checks in
+examples/nuxt-axum and examples/solidstart-axum, including that global
+`$fetch` reaches Nitro without `event.context.fetchlet`.
 
 ### Development reload per framework
 
@@ -221,33 +224,12 @@ tanstack-start-axum, solid-axum and solidstart-axum keep
   build new routes; [both need upstream changes](research/dev-loop.md#why-the-integrations-differ-under---watch).
   Their examples' `dev` tasks keep full builds until then.
 
-### Development reloads under `ViteDev`
-
-A new instance under `ViteDev` fetches and evaluates every module from Vite
-again. Cancelled requests no longer cause one (`CancelledCalls::Finish`),
-but a call past its deadline still does, and host bodies are now read whole
-([measurements](research/dev-loop.md#why-a-cancelled-request-costs-a-module-reload)).
-Keeping the runner's transformed modules in Rust across instances would
-save the remaining transport; time an Astro reload on QuickJS first to see
-what is left of the 2.4 seconds.
-
-### Waku streaming on Boa
-
-`Waku streams deferred content after the shell` fails intermittently on
-Boa: the first chunk already holds the value its page resolves after 200 ms,
-so the shell reached the client later than that. It failed in each of three
-`vp run test:examples -- waku-axum --backends boa` runs on the tree of
-fc330e7, and in one of three runs of the acceptance suite against the
-build of df94d4f on the same machine; QuickJS and V8 pass. Find where the
-shell waits on Boa (rendering time, the first response chunk, or the
-pull of the body) before deciding whether the page's delay or the engine
-path changes. `results/example-waku-axum-boa.json` keeps the passing run
-of df94d4f.
-
 ### React Router
 
-Split server bundles, prerendering and RSC mode are not supported by
-`fetchlet/react-router`; each needs its own example checks.
+[React Router build modes](research/react-router-modes.md) records what
+each needs. Split server bundles stay refused until an application needs
+one App per bundle, and RSC mode needs a Vite plugin like `fetchlet/vinext`
+once React Router stabilizes it.
 
 ### Asynchronous SvelteKit SSR
 

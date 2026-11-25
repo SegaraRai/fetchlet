@@ -161,9 +161,8 @@ old one down after its calls finish. A pool is one `AppHandle`, so this
 changes nothing. Under `ViteDev`, each new instance fetches and evaluates
 every module from Vite, so development pools default to one instance that
 grows on demand. Caching the runner's transformed modules in Rust across
-instances ([development reloads](../TODO.md#development-reloads-under-vitedev))
-benefits a pool more than a single instance, because every new instance
-pays that cost.
+instances would save only the transport, 6 to 8 percent of an Astro reload
+([development loop](dev-loop.md)), so it is not planned.
 
 ## Startup cost and shared code
 

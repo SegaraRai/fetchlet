@@ -47,17 +47,17 @@ Server::new("build")
     .await?;
 ```
 
-| Method                  | Default                                                                                                                                                                                       |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `host_services(f)`      | No bindings. `f` runs for each application the server starts                                                                                                                                  |
-| `routes(f)`             | No Rust routes. `f` receives the `AppHandle`, so a route can call named exports                                                                                                               |
-| `rendering(f)`          | `AxumService` with errors written to standard error; `f` adds a context or streams request bodies                                                                                             |
-| `limits(limits)`        | `Limits::default()`                                                                                                                                                                           |
-| `public_origin(origin)` | `http://` and the listener's address                                                                                                                                                          |
-| `backend(backend)`      | `Backend::for_target` of the artifact's `backend` with a 64 MiB QuickJS heap limit; with the default worker, a 4 MiB QuickJS stack limit; for Boa, 131,072 value stack slots and 10,000 calls |
-| `worker(options)`       | A queue of 8 commands and a 64 MiB native stack                                                                                                                                               |
-| `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                                                               |
-| `instances(i)`          | One instance; changes only the instances of the worker options                                                                                                                                |
+| Method                  | Default                                                                                                                                                                                             |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `host_services(f)`      | No bindings. `f` runs for each application the server starts                                                                                                                                        |
+| `routes(f)`             | No Rust routes. `f` receives the `AppHandle`, so a route can call named exports                                                                                                                     |
+| `rendering(f)`          | `AxumService` with errors written to standard error; `f` adds a context or streams request bodies                                                                                                   |
+| `limits(limits)`        | `Server::default_limits()`: a 10 s `busy_timeout` and a 60 s `startup_timeout`; limits given here replace them                                                                                      |
+| `public_origin(origin)` | `http://` and the listener's address                                                                                                                                                                |
+| `backend(backend)`      | `Backend::for_target` of the artifact's `backend` with a 64 MiB QuickJS or V8 heap limit; with the default worker, a 4 MiB QuickJS stack limit; for Boa, 131,072 value stack slots and 10,000 calls |
+| `worker(options)`       | A queue of 8 commands and a 64 MiB native stack                                                                                                                                                     |
+| `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                                                                     |
+| `instances(i)`          | One instance; changes only the instances of the worker options                                                                                                                                      |
 
 The stack defaults are the depth the repository's framework examples need:
 React's server renderer retries an element after a QuickJS stack overflow
@@ -72,8 +72,19 @@ and 50,000 in release builds. QuickJS and V8 throw a catchable `RangeError`
 instead.
 
 The QuickJS heap limit is twice what the largest example, Astro, needs to
-serve its pages, and with `Instances::max` it bounds a pool's JavaScript
-heap. [Startup and memory](../../docs/research/startup-and-memory.md#recommended-settings)
+serve its pages, and the V8 heap limit more than twice what vinext and Waku
+need; with `Instances::max` they bound a pool's JavaScript heap. The busy
+timeout is a backstop for JavaScript stuck in a loop: the examples' pages
+return to the event loop within 100 ms in a release build, and it leaves
+room for debug builds, which run about ten times slower. The startup
+timeout covers the slowest module evaluation measured, Astro's development
+modules on a debug build of Boa
+([measured needs](../../docs/research/interrupts-and-heap-limits.md#measured-needs-of-the-examples)).
+Neither the timeouts nor the V8 heap limit changed the examples' request
+latency measurably. `V8Options::reliable_termination` stays off: set it in
+`backend` for code that may run a loop that never returns.
+
+[Startup and memory](../../docs/research/startup-and-memory.md#recommended-settings)
 measures each example's needs and recommends the timeout, instance counts
 and queue for a server.
 

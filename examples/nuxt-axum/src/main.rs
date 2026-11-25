@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
             request_body_bytes: config.request_body_bytes,
             background_timeout: config.background_timeout_ms.map(Duration::from_millis),
             background_tasks: config.background_tasks,
-            ..Limits::default()
+            ..Server::default_limits()
         })
         // Server routes read uploads as they arrive; declared oversize bodies get 413.
         .rendering(|service| service.stream_request_bodies());

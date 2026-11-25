@@ -8,9 +8,9 @@ use serde_json::Value;
 use tokio::runtime::Handle;
 use tokio::sync::oneshot;
 
-use super::V8Options;
 use super::runtime::V8Runtime;
 use super::watchdog::{IsolateSlot, Watchdog};
+use super::{V8Options, flags};
 use crate::Instance;
 use crate::backend::Startup;
 use crate::bridge::HostBridge;
@@ -52,6 +52,7 @@ impl V8 {
         options: V8Options,
     ) -> Result<Self> {
         options.validate()?;
+        flags::initialize(&options)?;
         let wake = host.wake_signal();
         let source = startup.source().to_owned();
         let check = startup.check().clone();

@@ -76,7 +76,7 @@ async fn main() -> Result<()> {
             request_body_bytes: config.request_body_bytes,
             background_timeout: config.background_timeout_ms.map(Duration::from_millis),
             background_tasks: config.background_tasks,
-            ..Limits::default()
+            ..Server::default_limits()
         })
         // Rust decides the caller; in-process API routes receive it.
         .rendering(|service| {

@@ -117,3 +117,25 @@ async fn array_buffers_past_their_budget_throw_a_range_error() -> anyhow::Result
     assert_eq!(app.call_json("ready", &[]).await?, json!("ready"));
     Ok(())
 }
+
+/// Below the minimum, V8 would end the process while the isolate starts,
+/// before the heap limit can stop it.
+#[cfg(feature = "v8")]
+#[tokio::test]
+async fn a_v8_heap_limit_below_the_minimum_is_refused() -> anyhow::Result<()> {
+    let small = Backend::V8(fetchlet::V8Options {
+        heap_limit_bytes: Some(fetchlet::MIN_V8_HEAP_LIMIT_BYTES - 1),
+        ..fetchlet::V8Options::default()
+    });
+    assert!(matches!(
+        build(small, SOURCE).err(),
+        Some(Error::Configuration(_))
+    ));
+    let least = Backend::V8(fetchlet::V8Options {
+        heap_limit_bytes: Some(fetchlet::MIN_V8_HEAP_LIMIT_BYTES),
+        ..fetchlet::V8Options::default()
+    });
+    let mut app = build(least, SOURCE)?;
+    assert_eq!(app.call_json("ready", &[]).await?, json!("ready"));
+    Ok(())
+}

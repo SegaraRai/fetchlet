@@ -56,7 +56,7 @@ pub use app::{App, AppBuilder, Module};
 pub use backend::Backend;
 #[cfg(feature = "boa")]
 pub use backend::{Boa, BoaOptions};
+#[cfg(feature = "v8")]
+pub use backend::{MIN_V8_HEAP_LIMIT_BYTES, V8, V8Options};
 #[cfg(feature = "quickjs")]
 pub use backend::{QuickJs, QuickJsOptions};
-#[cfg(feature = "v8")]
-pub use backend::{V8, V8Options};

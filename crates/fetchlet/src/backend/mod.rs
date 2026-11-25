@@ -17,7 +17,7 @@ pub use boa::{Boa, BoaOptions};
 #[cfg(feature = "quickjs")]
 pub use quickjs::{QuickJs, QuickJsOptions};
 #[cfg(feature = "v8")]
-pub use v8::{V8, V8Options};
+pub use v8::{MIN_V8_HEAP_LIMIT_BYTES, V8, V8Options};
 
 pub(crate) use code_cache::CodeCache;
 pub(crate) use engine::Engine;

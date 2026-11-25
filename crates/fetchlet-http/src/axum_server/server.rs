@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::Router;
 use tokio::net::TcpListener;
@@ -40,6 +41,25 @@ const DEFAULT_QUICKJS_STACK_BYTES: usize = 4 * 1024 * 1024;
 /// serve its pages; 64 MiB leaves room for larger pages
 /// (docs/research/startup-and-memory.md).
 const DEFAULT_QUICKJS_MEMORY_BYTES: usize = 64 * 1024 * 1024;
+
+/// V8's heap limit for each instance by default, a caller budget like
+/// QuickJS's above. The largest examples, vinext and Waku, need 24 MiB after
+/// their pages (docs/research/interrupts-and-heap-limits.md); 64 MiB leaves
+/// room for larger pages.
+const DEFAULT_V8_HEAP_BYTES: usize = 64 * 1024 * 1024;
+
+/// `Limits::busy_timeout` by default, a caller budget and a backstop for
+/// JavaScript stuck in a loop, such as in a held connection's handler. A
+/// server-rendered page returns to the event loop within 100 ms on every
+/// engine in a release build, but debug builds run about ten times slower,
+/// and vinext's client navigation on a debug build of Boa ran past 2 s; 10 s
+/// keeps development builds working (docs/research/interrupts-and-heap-limits.md).
+const DEFAULT_BUSY_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// `Limits::startup_timeout` by default, a caller budget. The slowest
+/// module evaluation measured, Astro's development modules on a debug build
+/// of Boa, takes about 40 s.
+const DEFAULT_STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Boa's value stack limit by default, in slots. React Server Components
 /// rendering on Boa, as in the vinext example, needs this depth.
@@ -134,7 +154,7 @@ impl Server {
             backend: None,
             services: Arc::new(|| Ok(HostServices::new())),
             routes: Arc::new(|_| Router::new()),
-            limits: Limits::default(),
+            limits: Self::default_limits(),
             worker: None,
             queue_capacity: None,
             instances: None,
@@ -144,10 +164,12 @@ impl Server {
     }
 
     /// The engine and its options. By default, the engine the artifact was
-    /// built for, through [`Backend::for_target`], with a 64 MiB QuickJS heap
-    /// limit. While the worker keeps its default stack, QuickJS also gets a
-    /// 4 MiB stack limit and Boa a value stack of 131,072 slots and a
-    /// recursion limit of 10,000 calls.
+    /// built for, through [`Backend::for_target`], with a 64 MiB QuickJS or
+    /// V8 heap limit. While the worker keeps its default stack, QuickJS also
+    /// gets a 4 MiB stack limit and Boa a value stack of 131,072 slots and a
+    /// recursion limit of 10,000 calls. A backend given here is used as it
+    /// is. `V8Options::reliable_termination` stays off unless a backend
+    /// given here sets it.
     pub fn backend(mut self, backend: Backend) -> Self {
         self.backend = Some(backend);
         self
@@ -172,10 +194,24 @@ impl Server {
         self
     }
 
-    /// The application's caller budgets. [`Limits::default`] by default.
+    /// The application's caller budgets, used as they are.
+    /// [`Server::default_limits`] by default; start from it to keep its
+    /// timeouts, or from [`Limits::default`] to run without them.
     pub fn limits(mut self, limits: Limits) -> Self {
         self.limits = limits;
         self
+    }
+
+    /// The limits a server has unless [`limits`](Self::limits) replaces
+    /// them: a 10 s `busy_timeout` and a 60 s `startup_timeout`, which retire
+    /// an instance whose JavaScript stops returning to the event loop or
+    /// whose module never finishes evaluating; no others.
+    pub fn default_limits() -> Limits {
+        Limits {
+            busy_timeout: Some(DEFAULT_BUSY_TIMEOUT),
+            startup_timeout: Some(DEFAULT_STARTUP_TIMEOUT),
+            ..Limits::default()
+        }
     }
 
     /// The application's worker options. By default, a queue of 8 commands,
@@ -491,11 +527,12 @@ impl Settings {
     }
 }
 
-/// The artifact's own engine, with the default QuickJS heap limit, and
-/// QuickJS and Boa stack limits that fit the default worker stack.
+/// The artifact's own engine, with the default QuickJS and V8 heap limits,
+/// and QuickJS and Boa stack limits that fit the default worker stack.
 fn default_backend(artifact: &Artifact, worker: &WorkerOptions) -> Result<Backend, ServerError> {
     let backend = Backend::for_target(artifact.backend().unwrap_or("portable"))?
-        .with_default_quickjs_memory(DEFAULT_QUICKJS_MEMORY_BYTES);
+        .with_default_quickjs_memory(DEFAULT_QUICKJS_MEMORY_BYTES)
+        .with_default_v8_heap(DEFAULT_V8_HEAP_BYTES);
     if worker.stack_size_bytes >= Some(MINIMUM_STACK_FOR_DEFAULT_LIMITS) {
         return Ok(backend
             .with_default_quickjs_stack(DEFAULT_QUICKJS_STACK_BYTES)
