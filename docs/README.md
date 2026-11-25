@@ -82,3 +82,5 @@
   bound its heap, and the design built on it.
 - [React Router build modes](research/react-router-modes.md): what
   prerendering, split server bundles and RSC mode need from the preset.
+- [A Nitro 3 preset](research/nitro-3.md): what Nitro 3 and h3 2 change
+  for `fetchlet/nitro`, and when to build the preset.

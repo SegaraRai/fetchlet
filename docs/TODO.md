@@ -28,13 +28,15 @@ h3 and its declarations augment h3's event context, so the package declares
 `h3` ^1.0.0 as an optional peer that shares the h3 instance nitropack 2 uses.
 Nuxt 4.6.4 runs on nitropack 2, which `examples/nuxt-axum` verifies.
 
-h3 2 belongs to Nitro 3 (`nitro` on npm, at release candidate stage). Supporting
-it means a Nitro 3 preset: decide whether it extends `fetchlet/nitro` or takes
-its own subpath, port the runtime entry and the context augmentation to h3 2,
-and add an example on a framework that runs on Nitro 3. Widen the `h3` peer to
-`^1.0.0 || ^2.0.0` only when both presets are verified. SolidStart 2 and
-TanStack Start already use h3 2 internally; their adapters do not import h3,
-so they are unaffected.
+h3 2 belongs to Nitro 3 (`nitro` on npm, a release candidate since
+October 2026), which no framework release depends on yet; SolidStart 2 and
+TanStack Start use h3 2 without Nitro, and their adapters do not import h3.
+[A Nitro 3 preset](research/nitro-3.md) records what changes: the `nitro`
+package, `nitroApp.fetch`, the context on the Request as h3 2 reads it, and
+the renamed bundler hook. Build it as `fetchlet/nitro3` against the release
+candidate with an example built with `nitro/vite`, and publish it once
+Nitro 3 is stable. Widen the `h3` peer to `^1.0.0 || ^2.0.0` only when both
+presets are verified.
 
 Sources: [shared Vite plugin](../packages/fetchlet/src/integrations/vite/server-environment.ts),
 [exportedHandler](../packages/fetchlet/src/build/exported-handler.ts),
