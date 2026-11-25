@@ -166,7 +166,7 @@ check(
   },
 );
 
-check("same-origin event.fetch stays inside SvelteKit", ["internal-fetch"], async () => {
+check("same-origin event.fetch stays inside SvelteKit", ["framework-fetch"], async () => {
   const before = await stats();
   const outcome = await inProcess("internal");
   expect(outcome.status).toBe(200);

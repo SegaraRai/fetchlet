@@ -194,17 +194,6 @@ opened, such as a WebSocket the handler accepted.
 
 ## Frameworks
 
-### Internal fetch per framework
-
-[Framework fetches](in-process-fetch.md#framework-fetches) records which
-fetches stay inside each framework: SvelteKit's `event.fetch`, Nitro's
-`event.$fetch` and `event.fetch`, and SolidStart's `fetchWithEvent`; the
-other adapters have none, and an absolute same-origin `fetch` is a host
-fetch everywhere. SvelteKit's split has end-to-end checks; Nitro's and
-SolidStart's were probed once on QuickJS. Turn those probes into checks in
-examples/nuxt-axum and examples/solidstart-axum, including that global
-`$fetch` reaches Nitro without `event.context.fetchlet`.
-
 ### Development reload per framework
 
 Every axum and Tauri example has a `dev` task that rebuilds on source

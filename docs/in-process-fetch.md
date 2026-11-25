@@ -169,11 +169,11 @@ is a host fetch in every framework, so the fetch policy decides it: the
 examples, which register only `https://fetchlet.internal`, refuse it with
 `PERMISSION_DENIED`.
 
-| Framework                                                  | Fetch that stays inside the framework                                                                                                                                | How it was checked                                                                       |
+| Framework                                                  | Fetch that stays inside the framework                                                                                                                                | How it is checked                                                                        |
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | SvelteKit                                                  | `event.fetch`, relative or same-origin                                                                                                                               | examples/sveltekit-axum end-to-end checks                                                |
-| Nuxt and Nitro                                             | `event.$fetch` and `event.fetch` with a path, which keep `event.context.fetchlet`; global `$fetch` with a path also stays in Nitro but without the request's context | A probe route in examples/nuxt-axum on QuickJS                                           |
-| SolidStart                                                 | `fetchWithEvent(event, path)` from `@solidjs/start/http` (h3's), with the request's context                                                                          | A probe route in examples/solidstart-axum on QuickJS                                     |
+| Nuxt and Nitro                                             | `event.$fetch` and `event.fetch` with a path, which keep `event.context.fetchlet`; global `$fetch` with a path also stays in Nitro but without the request's context | examples/nuxt-axum end-to-end checks                                                     |
+| SolidStart                                                 | `fetchWithEvent(event, path)` from `@solidjs/start/http` (h3's), with the request's context                                                                          | examples/solidstart-axum end-to-end checks                                               |
 | TanStack Start                                             | None found                                                                                                                                                           | Its server core, read at the version in reference, does not export h3's `fetchWithEvent` |
 | Astro, React Router, Qwik City, Waku, vinext, HonoX, Solid | None: loaders, actions and server components call code directly, and `fetch` has no relative base                                                                    | Their server runtimes, read at the versions in [reference](reference/README.md#examples) |
 
@@ -192,6 +192,7 @@ reach the same router.
 | Context, redirects, refusal, reentry, 3 engines | `crates/fetchlet/tests/in_process.rs`                                               |
 | Shared axum router, `trusted_context`           | `crates/fetchlet-http/tests/axum_router.rs`, `crates/fetchlet-http/tests/contract/` |
 | End to end with SvelteKit                       | [examples/sveltekit-axum](../examples/sveltekit-axum/README.md)                     |
+| Framework fetches of Nitro and SolidStart       | examples/nuxt-axum and examples/solidstart-axum, `framework-fetch` checks           |
 
 The example checks the router over public HTTP and in-process fetch, 400,
 404 and 500 responses, the caller identity from the Context, refusal of an

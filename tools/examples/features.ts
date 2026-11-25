@@ -16,6 +16,7 @@ export const features = {
   bindings: "Bindings",
   "client-address": "Client address",
   "internal-fetch": "In-process Rust API",
+  "framework-fetch": "Framework fetch",
   functions: "Function calls",
   "rust-routes": "Rust routes",
   "body-budget": "Body budget",

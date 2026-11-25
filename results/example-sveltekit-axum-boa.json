@@ -94,7 +94,7 @@
     },
     {
       "name": "same-origin event.fetch stays inside SvelteKit",
-      "features": ["internal-fetch"],
+      "features": ["framework-fetch"],
       "status": "pass"
     },
     {

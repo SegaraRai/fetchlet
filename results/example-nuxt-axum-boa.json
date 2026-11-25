@@ -22,7 +22,7 @@
   "backend": "boa",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 12,
+    "passed": 13,
     "failed": 0
   },
   "results": [
@@ -49,6 +49,11 @@
     {
       "name": "Nitro client address and host bindings",
       "features": ["client-address", "bindings"],
+      "status": "pass"
+    },
+    {
+      "name": "fetches with a path stay inside Nitro",
+      "features": ["framework-fetch"],
       "status": "pass"
     },
     {

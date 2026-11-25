@@ -77,6 +77,17 @@ check("Nitro client address and host bindings", ["client-address", "bindings"], 
   });
 });
 
+check("fetches with a path stay inside Nitro", ["framework-fetch"], async () => {
+  const response = await fetch(suite.base + "/api/framework-fetch");
+  expect(response.status).toBe(200);
+  const withContext = { message: "Welcome to Nuxt and Rust." };
+  expect(await response.json()).toStrictEqual({
+    eventDollarFetch: withContext,
+    eventFetch: withContext,
+    globalDollarFetch: { message: null },
+  });
+});
+
 check("native axum route coexists with Nuxt", ["rust-routes"], async () => {
   const response = await fetch(suite.base + "/api/rust");
   expect(await response.json()).toStrictEqual({ message: "served by axum" });
