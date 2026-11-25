@@ -191,6 +191,35 @@ then.
   `AsyncLocalStorage` and `AsyncResource` scenario with fetchlet's classes
   and with Node's, and requires the same result.
 
+## Cost
+
+fetchlet-bench's `async-context` tool ([README](../../tools/bench/README.md#async-context))
+times `AsyncLocalStorage` inside the engine in a release build, with the
+serialized and the propagated `node:async_hooks`: 50,000 operations, the
+median of five rounds, run twice. Nanoseconds per operation, the two runs
+as a range (Boa 0.22.0, V8 150.4.0 through deno_core 0.413.0, quickjs-ng
+through rquickjs 0.14.0):
+
+| Operation                         | V8 serialized | V8 propagated | Boa serialized | Boa propagated | QuickJS serialized |
+| --------------------------------- | ------------- | ------------- | -------------- | -------------- | ------------------ |
+| `run` around a synchronous call   | 138–165       | 80–82         | 25,200–27,400  | 13,000–14,400  | 3,200–4,200        |
+| `getStore` inside a run           | 6             | 11–12         | 600–830        | 1,780–1,980    | 160–190            |
+| An `await` inside a run           | 45–48         | 46–58         | 7,600–13,200   | 7,600–8,600    | 590–690            |
+| An `await` outside any run        | 48–52         | 45–55         | 9,200–9,400    | 7,600–8,300    | 670–710            |
+| `run` around one `await` and read | 212–262       | 122–149       | 40,800–44,600  | 22,300–24,000  | 4,900–5,000        |
+
+Propagation costs nothing on `await`: on V8 and Boa an `await` takes the
+same time with either implementation, inside a run or outside one, within
+the spread between runs, so the slot's capture and restore do not show next
+to the engine's own reaction job. A propagated `run` takes about half the
+time of a serialized one, which keeps a list of active runs per storage
+and builds a map for each. `getStore` takes about twice as long when
+propagated: 6 ns more per read on V8, and about 1.2 µs more on Boa, whose
+slot is read through a host object. A request breaks even on Boa at about
+ten reads per `run`, and any count stays in microseconds next to the
+milliseconds a Boa page takes. Switching the adapters to propagation
+therefore does not need a faster slot.
+
 ## Rollout
 
 The profile module and its task sources, the V8 and Boa slots, and
@@ -201,5 +230,5 @@ continuation data API ([#1920](https://github.com/quickjs-ng/quickjs/pull/1920))
 one change implements the QuickJS slot, switches every adapter to
 propagation, and removes `"serialized"` together with the `asyncContext`
 option. [TODO](../TODO.md#framework-runtime-needs-beyond-wintertc) tracks
-the steps, the end-to-end check in the asynchronous SvelteKit example and
-the measurements against the serialized implementation.
+the steps and the end-to-end check in the asynchronous SvelteKit example;
+that change also measures the QuickJS slot as [above](#cost).

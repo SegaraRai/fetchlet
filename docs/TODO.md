@@ -75,8 +75,9 @@ documented refusal, and a check in a framework example:
   - In the same change, verify the asynchronous SvelteKit example on every
     engine with an end-to-end check that two concurrent `getRequestEvent`
     readers each see their own request.
-  - Before that change, measure `run`, `getStore` and an `await` loop per
-    engine against the serialized implementation.
+  - In the same change, measure the QuickJS slot with fetchlet-bench's
+    `async-context` tool against the serialized implementation, as
+    [measured on V8 and Boa](research/async-context.md#cost).
 
 Intl coverage checks and legacy multi-byte encodings are tracked under
 [Capability negotiation](#capability-negotiation) and

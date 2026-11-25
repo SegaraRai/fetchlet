@@ -118,6 +118,31 @@ node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin invoke -- .c
 
 Single runs can include outliers even on one machine; compare several runs.
 
+## Async context
+
+`async-context` times `AsyncLocalStorage` inside the engine, with the
+serialized and the propagated `node:async_hooks`. Build
+[async-context/entry.ts](async-context/entry.ts) for each backend and mode
+first; QuickJS has no async context slot and builds only `serialized`.
+
+```bash
+node tools/bench/build-artifact.ts async-context .cache/bench/async-context/v8-propagated/build v8 propagated
+```
+
+```bash
+node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin async-context -- .cache/bench/async-context --iterations 50000
+```
+
+It prints nanoseconds per operation, the median of five rounds:
+
+| Stage          | Operation                                                    |
+| -------------- | ------------------------------------------------------------ |
+| `run`          | `storage.run(value, callback)` around a synchronous callback |
+| `getStore`     | `storage.getStore()` inside a run                            |
+| `await`        | One `await` continuation inside a run                        |
+| `awaitOutside` | One `await` continuation outside any run                     |
+| `runAwait`     | A run around an async callback that awaits once and reads    |
+
 ## Startup and memory
 
 `startup` builds Apps from the artifacts `vp run bench` leaves in
