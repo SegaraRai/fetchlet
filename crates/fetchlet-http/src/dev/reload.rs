@@ -185,7 +185,9 @@ pub struct Reloads {
 }
 
 impl Reloads {
-    /// A stream that is already closed (never announces reloads).
+    /// A stream that is already closed (never announces reloads), for an axum
+    /// webview serving an embedded artifact.
+    #[cfg(all(feature = "axum", fetchlet_engine))]
     pub(crate) fn closed() -> Self {
         let (_sender, tokens) = watch::channel(String::new());
         Self { tokens }
