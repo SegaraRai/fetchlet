@@ -52,9 +52,9 @@ catalogs:
     remark-gfm: 4.0.1
     remark-parse: 11.0.0
     remark-rehype: 11.1.2
-    # @solidjs/start 2.2.3 requires solid-js 1 and @solidjs/router below 2, so the
-    # Solid packages follow their v1-latest tags until SolidStart supports Solid 2.
-    solid-js: 1.9.19
+    # SolidStart is Solid 1's framework: @solidjs/start 2.2.3 requires solid-js 1
+    # and @solidjs/router below 2, so the Solid packages follow their v1-latest tags.
+    solid-js: 1.9.20
     svelte: 5.58.0
     svelte-check: 4.7.8
     # TypeScript 7 waits for svelte-check and @astrojs/check, which accept 5 and 6.
@@ -105,11 +105,11 @@ catalogs:
   # Solid 1 for SolidStart.
   solid2:
     "@solidjs/meta": 2.0.0
-    "@solidjs/router": 2.0.0
+    "@solidjs/router": 2.0.1
     "@solidjs/vite-plugin": 3.0.1
-    "@solidjs/web": 2.0.1
+    "@solidjs/web": 2.0.4
     filesystem-routing: 0.5.0
-    solid-js: 2.0.1
+    solid-js: 2.0.4
 
 # One version covers every published npm package and crate; see docs/releasing.md.
 # tools/release/check.ts keeps the fixed group in step with packages/ and the
@@ -205,9 +205,6 @@ minimumReleaseAgeExclude:
   - oxlint@1.94.0
   - tsrs@7.1.0-beta.tsrs2
   - vite-plus@1.7.0
-  - "@solidjs/signals@2.0.1"
-  - "@solidjs/web@2.0.1"
-  - solid-js@2.0.1
   - "@astrojs/runtime@0.1.2"
   - "@formatjs/intl-datetimeformat@8.2.0"
   - "@react-router/dev@8.5.2"

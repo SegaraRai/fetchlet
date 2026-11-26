@@ -1,6 +1,7 @@
 import type { Plugin } from "vite";
 
 import { runtimeConditions } from "../../build/conditions.ts";
+import { devServerPlugin } from "../vite/dev-server.ts";
 import {
   importPath,
   serverEnvironmentPlugin,
@@ -17,9 +18,11 @@ export interface FetchletSolidOptions extends ViteArtifactOptions {}
  * artifact: server.js and fetchlet.json next to `client/`. Requests reach
  * Solid's `handleRequest` with the fetchlet request context on the request
  * event, where `getRequestContext()` from fetchlet/solid/context reads it.
+ * Under `vite dev`, a Rust host with fetchlet-http's `ViteDev` runs the same
+ * handler on its engine.
  */
-export default function fetchletSolid(options: FetchletSolidOptions = {}): Plugin {
-  return serverEnvironmentPlugin(
+export default function fetchletSolid(options: FetchletSolidOptions = {}): Plugin[] {
+  const build = serverEnvironmentPlugin(
     {
       name: "fetchlet/solid",
       framework: "solid",
@@ -55,4 +58,32 @@ export default function fetchletSolid(options: FetchletSolidOptions = {}): Plugi
     },
     options,
   );
+  return [
+    build,
+    devServerPlugin({
+      name: "fetchlet/solid:dev-server",
+      // Solid's request handler, which in development also carries the
+      // stylesheets of the rendered modules and the server functions.
+      entry: "virtual:solid-ssr-handler",
+      // Solid serves requests in Node while the ssr environment is runnable,
+      // and leaves them to the host that owns a non-runnable one.
+      runnable: false,
+      framework: "solid",
+      rendering: "streaming",
+      asyncContext: "serialized",
+      dispatch: `(module, request, env, ctx) =>
+        module.handleRequest(request, {
+          event: {
+            fetchlet: {
+              clientAddress: ctx.clientAddress,
+              env,
+              waitUntil: ctx.waitUntil,
+            },
+          },
+        })`,
+      ...(options.backend ? { backend: options.backend } : {}),
+      ...(options.intl ? { intl: options.intl } : {}),
+      ...(options.requirements ? { requirements: options.requirements } : {}),
+    }),
+  ];
 }

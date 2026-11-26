@@ -123,6 +123,11 @@ engine; Vite serves the browser modules with hot module replacement:
   styles come with the modules. The HMR WebSocket connects to Vite's own
   port, which the plugin fixes with `server.strictPort` and
   `server.ws.clientPort` unless the project sets `server.ws`.
+- `fetch` to the dev server's own origins, its resolved URLs and its port on
+  `localhost`, `127.0.0.1` and `[::1]`, goes through the binding as well,
+  so a framework's development endpoints, such as Solid's asset manifest,
+  answer without a fetch policy that admits them. Other fetches are the
+  host's.
 - The plugin sets `appType: "custom"`: the server module renders the pages.
 - `fetchlet/runtime` is a builtin of the runner: a server module that
   imports it, such as for `upgradeWebSocket`, gets the development

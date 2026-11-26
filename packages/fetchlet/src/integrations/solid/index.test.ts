@@ -33,7 +33,7 @@ const hook = (plugin: object, name: string) => (plugin as Record<string, Hook>)[
 
 describe("fetchlet/solid", () => {
   test("resolves Solid libraries from source and Web-standard builds", () => {
-    const plugin = fetchletSolid();
+    const [plugin] = fetchletSolid();
     const config = hook(plugin, "config").call({}) as { environments: Record<string, any> };
     expect(config.environments.ssr.resolve.conditions.slice(0, 3)).toStrictEqual([
       "solid",
@@ -44,7 +44,7 @@ describe("fetchlet/solid", () => {
 
   test("passes the request context to handleRequest on the request event", async () => {
     writeFileSync(join(directory, "server.js"), "");
-    const plugin = fetchletSolid();
+    const [plugin] = fetchletSolid();
     hook(plugin, "configResolved").call(
       {},
       {
@@ -79,6 +79,18 @@ describe("fetchlet/solid", () => {
     expect(source).toMatch(
       /event: \{\s*fetchlet: \{\s*clientAddress: context\.clientAddress,\s*env,\s*waitUntil,?\s*\},?\s*\}/,
     );
+  });
+});
+
+describe("fetchlet/solid under vite dev", () => {
+  test("owns a non-runnable ssr environment, so Solid leaves requests to the host", () => {
+    const [, dev] = fetchletSolid();
+    expect(dev).toMatchObject({ name: "fetchlet/solid:dev-server", apply: "serve" });
+    const config = hook(dev!, "configEnvironment").call({}, "ssr", { resolve: {} }) as {
+      dev?: { createEnvironment?: unknown };
+    };
+    expect(typeof config.dev?.createEnvironment).toBe("function");
+    expect(hook(dev!, "configEnvironment").call({}, "client", {})).toBeUndefined();
   });
 });
 

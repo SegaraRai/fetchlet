@@ -204,12 +204,16 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
       if (environment) {
         // Vite tells the environment's runners to start over, as after it
         // optimized dependencies again; the engine's runner learns it from
-        // the next update.
+        // the next update. A reload an edited file triggers is not one:
+        // `hotUpdate` has listed that file's modules with their importers,
+        // and evaluating only those again keeps the instance's heap from
+        // holding two copies of every dependency until it collects them.
         const hot = environment.hot;
         const send = hot.send.bind(hot);
         hot.send = ((...args: Parameters<typeof send>) => {
           const [payload] = args;
-          if ((payload as { type?: string } | undefined)?.type === "full-reload") {
+          const reload = payload as { type?: string; triggeredBy?: string } | undefined;
+          if (reload?.type === "full-reload" && reload.triggeredBy === undefined) {
             version += 1;
             changes.push({
               version,
@@ -379,6 +383,7 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
           `  builtins: { ${builtinTable} },`,
           `  globals: { ${globalTable} },`,
           ...(options.dispatch ? [`  dispatch: ${options.dispatch},`] : []),
+          `  viteOrigins: ${JSON.stringify(viteOrigins(devServer))},`,
           "});",
           "export const handle = dev.handle;",
           ...names.map(
@@ -401,6 +406,28 @@ export function devServerPlugin(options: DevServerOptions): Plugin {
       "server.js": readFileSync(join(outDir, "server.js"), "utf8"),
     };
   }
+}
+
+/**
+ * The origins the dev server answers on, as frameworks name it to runners
+ * outside the Vite process: its resolved URLs and its port on localhost.
+ */
+export function viteOrigins(devServer: ViteDevServer): string[] {
+  const origins = new Set<string>();
+  for (const url of [
+    ...(devServer.resolvedUrls?.local ?? []),
+    ...(devServer.resolvedUrls?.network ?? []),
+  ]) {
+    origins.add(new URL(url).origin);
+  }
+  const address = devServer.httpServer?.address();
+  if (address && typeof address === "object") {
+    const scheme = devServer.config.server.https ? "https" : "http";
+    for (const host of ["localhost", "127.0.0.1", "[::1]"]) {
+      origins.add(`${scheme}://${host}:${address.port}`);
+    }
+  }
+  return [...origins];
 }
 
 /** The Node built-ins fetchlet implements, by name without `node:`. */

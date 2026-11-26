@@ -210,7 +210,12 @@ in the engine. Start's development modules needed more than vanilla:
 - Evaluated modules see `process`, `Buffer`, `setImmediate` and
   `clearImmediate` from the artifact's Node profile as free variables.
 - When Vite re-optimizes dependencies, the runner clears its cache and loads
-  the entry again.
+  the entry again. Vite also sends a full reload after an edit to a server
+  module without a hot update boundary, naming the edited file; the runner
+  then evaluates only that file's modules and their importers, which the
+  edit's update lists. Clearing the cache on those too made each edit
+  evaluate every dependency again, and with Solid 2 on V8 the instance's
+  heap passed its 64 MiB default within one edit.
 
 `examples/tanstack-start-axum/tests/vite-dev.test.ts` checks it on QuickJS
 and V8: server rendering with a server function calling the Rust service,
@@ -232,6 +237,15 @@ first failed to hydrate: functions made by Boa's `Function` constructor have
 no source text, and seroval writes the resolvers of streamed data into the
 page by their source. The runner now evaluates each module through indirect
 `eval`, whose functions keep it.
+
+Solid 2's start mode (`@solidjs/vite-plugin`) serves pages and server
+functions from its own middlewares only while the `ssr` environment is
+runnable, and documents a non-runnable one as a provider's. `fetchlet/solid`
+replaces it with a plain `DevEnvironment`, as for React Router below, and
+passes `virtual:solid-ssr-handler`. In that mode Solid's generated handler
+adds the development styles of the rendered modules and imports the server
+function manifest itself. `examples/solid-axum/tests/vite-dev.test.ts` runs
+the same four checks and a WebSocket.
 
 React Router decides by `isRunnableDevEnvironment` rather than
 `dispatchFetch`, so `fetchletDevServer` replaces its `ssr` environment
@@ -429,18 +443,19 @@ server through `environment.runner` inside the Vite process, which option B
 cannot replace; "fetchable" means it hands requests to
 `environment.dispatchFetch`, which a custom environment can implement.
 
-| Framework (version)              | Server environment in development                                        | Option B                 |
-| -------------------------------- | ------------------------------------------------------------------------ | ------------------------ |
-| TanStack Start (1.169)           | Fetchable when the environment is not runnable                           | Runs                     |
-| SolidStart (2.2.3)               | Fetchable when the environment is not runnable                           | Runs                     |
-| React Router (8.5.2)             | Skips its middleware when not runnable, leaving requests to another one  | Runs                     |
-| Astro (7.4.13)                   | Renders through its non-runnable `ssr` facade when `ssr` is not runnable | Runs                     |
-| vinext (1.4.6)                   | `createServerModuleRunner`, `ssrLoadModule` and `runner.import`          | To investigate           |
-| SvelteKit (3.4.0)                | Requires a runnable `ssr` environment and errors otherwise               | Not without Kit changes  |
-| Waku (1.0.0-rc.5)                | Imports its entry through `environments.rsc.runner`                      | Not without Waku changes |
-| Nuxt 4.6.4 / Nitro 2.13.6        | Nitro's own Node dev server                                              | No                       |
-| Qwik City (1.20), HonoX (0.1.62) | `ssrLoadModule` in Node                                                  | No                       |
-| Vanilla (`fetchlet/vite`)        | fetchlet's own plugin decides                                            | Runs                     |
+| Framework (version)                    | Server environment in development                                        | Option B                 |
+| -------------------------------------- | ------------------------------------------------------------------------ | ------------------------ |
+| TanStack Start (1.169)                 | Fetchable when the environment is not runnable                           | Runs                     |
+| SolidStart (2.2.3)                     | Fetchable when the environment is not runnable                           | Runs                     |
+| Solid 2 (`@solidjs/vite-plugin` 3.0.1) | Stands its middlewares down when `ssr` is not runnable                   | Runs                     |
+| React Router (8.5.2)                   | Skips its middleware when not runnable, leaving requests to another one  | Runs                     |
+| Astro (7.4.13)                         | Renders through its non-runnable `ssr` facade when `ssr` is not runnable | Runs                     |
+| vinext (1.4.6)                         | `createServerModuleRunner`, `ssrLoadModule` and `runner.import`          | To investigate           |
+| SvelteKit (3.4.0)                      | Requires a runnable `ssr` environment and errors otherwise               | Not without Kit changes  |
+| Waku (1.0.0-rc.5)                      | Imports its entry through `environments.rsc.runner`                      | Not without Waku changes |
+| Nuxt 4.6.4 / Nitro 2.13.6              | Nitro's own Node dev server                                              | No                       |
+| Qwik City (1.20), HonoX (0.1.62)       | `ssrLoadModule` in Node                                                  | No                       |
+| Vanilla (`fetchlet/vite`)              | fetchlet's own plugin decides                                            | Runs                     |
 
 The checks were for `isRunnableDevEnvironment`, `isFetchableDevEnvironment`,
 `dispatchFetch`, `runner.import`, `createServerModuleRunner` and

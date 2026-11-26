@@ -55,6 +55,23 @@ builds of other dependencies.
 `assets: true` packs the client assets into `assets.flpk` and caches
 `assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
 
+## Development serving
+
+`vite dev` with this plugin serves a Rust host that uses fetchlet-http's
+`ViteDev`, as [fetchlet/vite](vite.md#development-serving) does: the host
+runs Solid's request handler (`virtual:solid-ssr-handler`) on its engine
+through Vite's module runner, with the same request context as the
+artifact, and Vite serves the browser modules with Solid's hot module
+replacement. The plugin makes the `ssr` environment non-runnable, so Solid
+leaves pages and server functions to the host instead of rendering them in
+Node; Solid's handler then adds the development styles of the rendered
+modules and registers the server functions itself, and reads the browser
+assets of each page from Solid's development manifest on the Vite server,
+which the runner reaches through the host's binding. The plugin returns an
+array of plugins.
+[examples/solid-axum](../../../examples/solid-axum/README.md#develop-from-vite)
+has a `dev:vite` task.
+
 ## Request context
 
 The entry puts the fetchlet request context on Solid's request event. Read

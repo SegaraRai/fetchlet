@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { createServer, isRunnableDevEnvironment, type ViteDevServer } from "vite";
 import { afterAll, beforeAll, describe, expect, test } from "vite-plus/test";
 
-import { devServerPlugin } from "./dev-server.ts";
+import { devServerPlugin, viteOrigins } from "./dev-server.ts";
 import fetchlet from "./index.ts";
 
 let directory: string;
@@ -60,6 +60,8 @@ describe("fetchlet/vite development serving", () => {
     const server = await (await fetch(`${origin}/@fetchlet/artifact/server.js`)).text();
     expect(server).toContain("fetchletExports");
     expect(server).toContain('"/src/server.ts"');
+    // Middleware mode has no server of its own whose origins to route.
+    expect(server).toContain("viteOrigins: []");
   }, 60_000);
 
   test("answers the module runner as the ssr environment's transport", async () => {
@@ -88,6 +90,24 @@ describe("fetchlet/vite development serving", () => {
       );
     const latest = await post("/@fetchlet/updates", { since: before.version + 1 });
     expect(latest.invalidated).toStrictEqual([]);
+  });
+
+  test("starts the runner over only on reloads no edited file triggered", async () => {
+    const hot = vite.environments.ssr!.hot;
+    const { version } = await post("/@fetchlet/updates", { since: null });
+    // Vite reloads after an edit without a boundary; the edit's own update
+    // lists the modules to evaluate again.
+    hot.send({ type: "full-reload", path: "*", triggeredBy: join(directory, "src/message.ts") });
+    expect(await post("/@fetchlet/updates", { since: version })).toMatchObject({
+      version,
+      reset: false,
+    });
+    // As after Vite optimized dependencies again.
+    hot.send({ type: "full-reload", path: "*" });
+    expect(await post("/@fetchlet/updates", { since: version })).toMatchObject({
+      version: version + 1,
+      reset: true,
+    });
   });
 
   test("serves a browser entry with Vite's HMR client", async () => {
@@ -141,5 +161,31 @@ describe("a non-runnable server environment", () => {
     } finally {
       await server.close();
     }
+  });
+});
+
+describe("viteOrigins", () => {
+  const server = (https: boolean, local: string[], port?: number) =>
+    ({
+      config: { server: { https: https ? {} : undefined } },
+      resolvedUrls: { local, network: [] },
+      httpServer: port === undefined ? null : { address: () => ({ port }) },
+    }) as unknown as ViteDevServer;
+
+  test("lists the resolved URLs and the port on the loopback names", () => {
+    expect(viteOrigins(server(false, ["http://localhost:5173/base/"], 5173))).toStrictEqual([
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://[::1]:5173",
+    ]);
+    expect(viteOrigins(server(true, [], 4443))).toStrictEqual([
+      "https://localhost:4443",
+      "https://127.0.0.1:4443",
+      "https://[::1]:4443",
+    ]);
+  });
+
+  test("lists nothing without a listening server", () => {
+    expect(viteOrigins(server(false, [], undefined))).toStrictEqual([]);
   });
 });

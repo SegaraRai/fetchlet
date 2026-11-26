@@ -23,7 +23,7 @@
   "backend": "v8",
   "browser": "159.0.8154.6",
   "summary": {
-    "passed": 4,
+    "passed": 5,
     "failed": 0
   },
   "results": [
@@ -45,6 +45,11 @@
     {
       "name": "a page edit renders on the next request and reloads the open page",
       "features": ["ssr", "hydration"],
+      "status": "pass"
+    },
+    {
+      "name": "a Astro WebSocket holds its instance while others serve requests",
+      "features": ["websocket"],
       "status": "pass"
     }
   ]

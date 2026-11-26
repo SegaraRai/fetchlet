@@ -31,20 +31,34 @@ then the server after each change to a module they import; the server's
 leaves the previous one serving. Changes to `public/`, `vite.config.ts` or
 the Rust sources need a restart.
 
+## Develop from Vite
+
+```bash
+vp run @fetchlet-internal/example-solid-axum#dev:vite
+```
+
+The task runs `fetchlet dev --vite`, which starts `vite dev` on a free port,
+then the server with the `vite-dev` feature, which runs Solid's request
+handler from Vite on QuickJS. Open `http://127.0.0.1:3610`. A component edit
+is replaced in the open page by Solid's hot module replacement, which
+remounts the component, and renders on the next request; server functions
+and API routes run on the engine.
+
 ## Layout
 
-| Path                   | Role                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| `src/App.tsx`          | The router shell and navigation                                                             |
-| `src/Document.tsx`     | The HTML document Solid renders around the app                                              |
-| `src/routes/`          | Pages, API routes (`src/routes/api/`) and the 404 route                                     |
-| `src/middleware.ts`    | Serves the API routes ahead of page rendering                                               |
-| `src/lib/completed.ts` | State shared between API route handlers                                                     |
-| `vite.config.ts`       | Solid, file routes and fetchlet Vite plugins, Vite+ tasks                                   |
-| `server/`              | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
-| `config.json`          | Listen address, body budgets, deadline, background budgets, message                         |
-| `tests/e2e.test.ts`    | Checks over real HTTP in a real browser                                                     |
-| `build/`               | `server.js`, `client/`, `assets.flpk`, `fetchlet.json`                                      |
+| Path                     | Role                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| `src/App.tsx`            | The router shell and navigation                                                             |
+| `src/Document.tsx`       | The HTML document Solid renders around the app                                              |
+| `src/routes/`            | Pages, API routes (`src/routes/api/`) and the 404 route                                     |
+| `src/middleware.ts`      | Serves the API routes ahead of page rendering                                               |
+| `src/lib/completed.ts`   | State shared between API route handlers                                                     |
+| `vite.config.ts`         | Solid, file routes and fetchlet Vite plugins, Vite+ tasks                                   |
+| `server/`                | `main.rs` starts `fetchlet_http::Server` with Rust routes; `services.rs` holds the bindings |
+| `config.json`            | Listen address, body budgets, deadline, background budgets, message                         |
+| `tests/e2e.test.ts`      | Checks over real HTTP in a real browser                                                     |
+| `tests/vite-dev.test.ts` | The `dev:vite` loop with in-place edits                                                     |
+| `build/`                 | `server.js`, `client/`, `assets.flpk`, `fetchlet.json`                                      |
 
 Server functions and API routes read the bindings, the client address and
 `waitUntil` with `getRequestContext()` from `fetchlet/solid/context`;
@@ -66,4 +80,9 @@ The shared checks (`tools/examples/common-checks.ts`) cover SSR and
 escaping, the Rust service binding, assets, JSON endpoints, client address
 and bindings, the axum route, body budgets, streaming uploads, `waitUntil`,
 concurrent requests, hydration, client navigation and streaming. Results go
-to `results/example-solid-axum.json`.
+to `results/example-solid-axum.json`. `tests/vite-dev.test.ts` runs the
+`dev:vite` loop (`tools/examples/vite-dev-suite.ts`): SSR with a server
+function calling Rust and Vite's development styles, API routes, hydration
+and navigation, a component edit replaced in the open page, and a
+WebSocket, recorded in `results/example-solid-axum-vite-dev.json` and its
+engine variants.

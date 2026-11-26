@@ -32,6 +32,11 @@ export default defineConfig({
         command: `fetchlet dev --build-watch "vp build --watch" -- node ../../tools/workspace/cargo.ts run --locked -p example-solid-axum --features dev`,
         cache: false,
       },
+      // Runs Solid's request handler from `vite dev` on the engine.
+      "dev:vite": {
+        command: `fetchlet dev --vite "vp dev" -- node ../../tools/workspace/cargo.ts run --locked -p example-solid-axum --features vite-dev`,
+        cache: false,
+      },
       "check:types": {
         command: "tsc --noEmit",
         dependsOn: ["build"],

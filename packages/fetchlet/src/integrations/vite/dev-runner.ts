@@ -179,6 +179,12 @@ export interface DevServerOptions {
    * fetchlet/build injects them.
    */
   globals?: Readonly<Record<string, unknown>>;
+  /**
+   * The Vite dev server's own origins. `fetch` to them goes through the
+   * binding, as frameworks fetch their development endpoints, such as
+   * Solid's asset manifest, from runners outside the Vite process.
+   */
+  viteOrigins?: readonly string[];
 }
 
 /** The Workers module shape: the default export's `fetch(request, env, ctx)`. */
@@ -205,8 +211,16 @@ const workersDispatch: DevDispatch = (module, request, env, ctx) => {
  */
 export function devServer(
   entry: string,
-  { dispatch = workersDispatch, builtins = {}, globals = {} }: DevServerOptions = {},
+  {
+    dispatch = workersDispatch,
+    builtins = {},
+    globals = {},
+    viteOrigins = [],
+  }: DevServerOptions = {},
 ) {
+  if (viteOrigins.length > 0) {
+    routeViteFetches(viteOrigins);
+  }
   let runner: ModuleRunner | undefined;
   let version: number | undefined;
 
@@ -266,6 +280,31 @@ export function devServer(
   return {
     handle,
     call,
+  };
+}
+
+/**
+ * Send `fetch` to the Vite dev server's origins through the binding, which
+ * the host's fetch policy leaves out; every other fetch is the host's.
+ */
+function routeViteFetches(origins: readonly string[]): void {
+  const hostFetch = globalThis.fetch;
+  globalThis.fetch = async function fetch(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const request = new Request(input, init);
+    const url = new URL(request.url);
+    if (!origins.includes(url.origin)) {
+      return hostFetch(input, init);
+    }
+    const bodyless = request.method === "GET" || request.method === "HEAD";
+    return vite().fetch(VITE_ORIGIN + url.pathname + url.search, {
+      method: request.method,
+      headers: request.headers,
+      ...(bodyless ? {} : { body: await request.arrayBuffer() }),
+      signal: request.signal,
+    });
   };
 }
 
