@@ -137,8 +137,13 @@ impl Check {
         if missing.is_empty() {
             return Ok(());
         }
+        let hint = if missing.iter().any(|item| item == "native WebAssembly") {
+            "enable the `v8` feature on `fetchlet` and run on `Backend::v8()` for WebAssembly, or remove the WebAssembly dependency"
+        } else {
+            "build the artifact for this engine, or change the host's engine or features"
+        };
         Err(Error::Configuration(format!(
-            "the module needs {}, which this host's {} engine does not provide; build the artifact for this engine, or change the host's engine or features",
+            "the module needs {}, which this host's {} engine does not provide; {hint}",
             list(&missing),
             self.engine
         )))
@@ -243,5 +248,18 @@ mod tests {
         let startup = Startup::unchecked(module.source());
         assert!(startup.check().probe().is_none());
         assert!(startup.check().admit(None).is_ok());
+    }
+
+    #[test]
+    fn missing_webassembly_mentions_v8_backend() {
+        let check = Check {
+            unmet: Vec::new(),
+            engine: "quickjs",
+            probe: None,
+        };
+        let error = check.admit(Some(r#"["WebAssembly"]"#)).unwrap_err();
+        let message = error.to_string();
+        assert!(message.contains("native WebAssembly"), "{message}");
+        assert!(message.contains("Backend::v8()"), "{message}");
     }
 }

@@ -4,7 +4,13 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, test } from "vite-plus/test";
 
-import { defaultWatchPaths, modifiedSince, parseDevArguments, WatchedFiles } from "./dev.ts";
+import {
+  defaultWatchPaths,
+  modifiedSince,
+  parseDevArguments,
+  WatchedFiles,
+  WatchedRustFiles,
+} from "./dev.ts";
 
 describe("parseDevArguments", () => {
   test("splits options from the server command at the first --", () => {
@@ -31,6 +37,7 @@ describe("parseDevArguments", () => {
         command: "vp run build",
         watch: ["app", "vite.config.ts"],
       },
+      watchRust: false,
       server: ["cargo", "run", "--", "serve"],
       cwd: "/project",
     });
@@ -43,14 +50,38 @@ describe("parseDevArguments", () => {
         command: "vite build",
         watch: [],
       },
+      watchRust: false,
       server: ["./server"],
       cwd: "/project",
+    });
+  });
+
+  test("accepts --watch-rust in every build mode", () => {
+    expect(parseDevArguments(["--watch-rust", "--", "cargo", "run"], "/p")).toMatchObject({
+      build: { mode: "rebuild" },
+      watchRust: true,
+    });
+    expect(
+      parseDevArguments(["--vite", "vite dev", "--watch-rust", "--", "cargo", "run"], "/p"),
+    ).toMatchObject({
+      build: { mode: "vite", command: "vite dev" },
+      watchRust: true,
+    });
+    expect(
+      parseDevArguments(
+        ["--build-watch", "vite build --watch", "--watch-rust", "--", "cargo", "run"],
+        "/p",
+      ),
+    ).toMatchObject({
+      build: { mode: "watch" },
+      watchRust: true,
     });
   });
 
   test("a Vite dev server replaces the build", () => {
     expect(parseDevArguments(["--vite", "vite dev", "--", "./server"], "/p")).toStrictEqual({
       build: { mode: "vite", command: "vite dev", port: undefined },
+      watchRust: false,
       server: ["./server"],
       cwd: "/p",
     });
@@ -77,6 +108,7 @@ describe("parseDevArguments", () => {
         command: "vite build --watch",
         out: "build",
       },
+      watchRust: false,
       server: ["./server"],
       cwd: "/p",
     });
@@ -184,6 +216,45 @@ describe("WatchedFiles", () => {
     writeFileSync(join(root, "src/routes/index.ts"), "rewritten by a build");
     files.snapshot();
     expect(files.changed(join(root, "src/routes/index.ts"))).toBe(false);
+  });
+});
+
+describe("WatchedRustFiles", () => {
+  let directory: string | undefined;
+  afterEach(() => {
+    if (directory) {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  test("tracks .rs and Cargo files while ignoring target and JS files", () => {
+    directory = mkdtempSync(join(tmpdir(), "fetchlet-rust-watch-"));
+    mkdirSync(join(directory, "server"), { recursive: true });
+    mkdirSync(join(directory, "target/debug"), { recursive: true });
+    mkdirSync(join(directory, "src"), { recursive: true });
+    const mainRs = join(directory, "server/main.rs");
+    const cargoToml = join(directory, "Cargo.toml");
+    const targetRs = join(directory, "target/debug/gen.rs");
+    const appTs = join(directory, "src/app.ts");
+    writeFileSync(mainRs, "fn main() {}");
+    writeFileSync(cargoToml, "[package]\nname = 'app'\n");
+    writeFileSync(targetRs, "// generated");
+    writeFileSync(appTs, "export const x = 1;");
+
+    const files = new WatchedRustFiles(directory);
+    expect(files.changed(mainRs)).toBe(false);
+    writeFileSync(mainRs, "fn main() { println!(\"hi\"); }");
+    expect(files.changed(mainRs)).toBe(true);
+    expect(files.changed(mainRs)).toBe(false);
+
+    writeFileSync(cargoToml, "[package]\nname = 'app2'\n");
+    expect(files.changed(cargoToml)).toBe(true);
+
+    writeFileSync(targetRs, "// generated 2");
+    expect(files.changed(targetRs)).toBe(false);
+
+    writeFileSync(appTs, "export const x = 2;");
+    expect(files.changed(appTs)).toBe(false);
   });
 });
 

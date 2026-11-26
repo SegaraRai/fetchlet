@@ -1,13 +1,60 @@
 use std::borrow::Cow;
 use std::io;
+#[cfg(fetchlet_engine)]
+use std::num::NonZeroUsize;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
+#[cfg(fetchlet_engine)]
+use std::time::Duration;
 
 use bytes::Bytes;
+#[cfg(fetchlet_engine)]
+use fetchlet::{App, AppBuilder, Backend, Limits, Module, WorkerOptions};
 use fetchlet::Requirements;
 use serde::Deserialize;
 
 use crate::assets::{AssetArchive, AssetArchiveError};
+
+/// Commands a server's application queues behind the running call by default.
+#[cfg(fetchlet_engine)]
+pub(crate) const DEFAULT_QUEUE_CAPACITY: NonZeroUsize = NonZeroUsize::new(8).unwrap();
+
+/// The worker thread's native stack by default (64 MiB). Framework server
+/// renderers recurse deeply, and Boa evaluates and serializes JSON on this
+/// stack without a native guard; the OS commits stack pages only as used.
+#[cfg(fetchlet_engine)]
+pub(crate) const DEFAULT_WORKER_STACK_BYTES: NonZeroUsize =
+    NonZeroUsize::new(64 * 1024 * 1024).unwrap();
+
+/// The minimum worker stack required before applying the default QuickJS/Boa
+/// stack limits.
+#[cfg(fetchlet_engine)]
+pub(crate) const MINIMUM_STACK_FOR_DEFAULT_LIMITS: NonZeroUsize =
+    NonZeroUsize::new(8 * 1024 * 1024).unwrap();
+
+/// QuickJS's stack limit by default (4 MiB), within the worker stack above.
+#[cfg(fetchlet_engine)]
+pub(crate) const DEFAULT_QUICKJS_STACK_BYTES: usize = 4 * 1024 * 1024;
+
+/// `Limits::heap_bytes` by default on engines that enforce a heap limit (64 MiB).
+#[cfg(fetchlet_engine)]
+pub(crate) const DEFAULT_HEAP_BYTES: usize = 64 * 1024 * 1024;
+
+/// `Limits::busy_timeout` by default (10 s).
+#[cfg(fetchlet_engine)]
+pub(crate) const DEFAULT_BUSY_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// `Limits::startup_timeout` by default (60 s).
+#[cfg(fetchlet_engine)]
+pub(crate) const DEFAULT_STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Boa's value stack limit by default (131,072 slots), for RSC rendering.
+#[cfg(fetchlet_engine)]
+pub(crate) const DEFAULT_BOA_STACK_SLOTS: usize = 128 * 1024;
+
+/// Boa's recursion limit by default (10,000 calls).
+#[cfg(fetchlet_engine)]
+pub(crate) const DEFAULT_BOA_RECURSION: usize = 10_000;
 
 /// The build output format this crate reads.
 const FORMAT: &str = "fetchlet-iife";
@@ -89,6 +136,9 @@ pub enum ArtifactError {
         path: PathBuf,
         source: AssetArchiveError,
     },
+    #[cfg(fetchlet_engine)]
+    #[error("could not configure backend: {0}")]
+    Backend(#[from] fetchlet::Error),
 }
 
 /// The path errors name for an embedded artifact.
@@ -254,6 +304,78 @@ impl Artifact {
     /// manifest names an archive.
     pub fn asset_archive(&self) -> Option<&Arc<AssetArchive>> {
         self.assets.as_ref()
+    }
+
+    /// Default [`WorkerOptions`] suitable for SSR frameworks: a queue of 8
+    /// commands, one instance, and a 64 MiB native worker stack.
+    #[cfg(fetchlet_engine)]
+    pub fn default_worker_options() -> WorkerOptions {
+        let mut worker = WorkerOptions::new(DEFAULT_QUEUE_CAPACITY);
+        worker.stack_size_bytes = Some(DEFAULT_WORKER_STACK_BYTES);
+        worker
+    }
+
+    /// Default [`Limits`] for serving an artifact: a 10 s `busy_timeout` and
+    /// a 60 s `startup_timeout`.
+    #[cfg(fetchlet_engine)]
+    pub fn default_limits() -> Limits {
+        Limits {
+            busy_timeout: Some(DEFAULT_BUSY_TIMEOUT),
+            startup_timeout: Some(DEFAULT_STARTUP_TIMEOUT),
+            ..Limits::default()
+        }
+    }
+
+    /// The engine this artifact targets (`Backend::for_target`), with safe
+    /// default QuickJS (4 MiB) and Boa (131,072 value stack slots, 10,000
+    /// recursion calls) stack limits for use with [`Self::default_worker_options`].
+    #[cfg(fetchlet_engine)]
+    pub fn default_backend(&self) -> fetchlet::Result<Backend> {
+        let backend = Backend::for_target(self.backend().unwrap_or("portable"))?;
+        Ok(backend
+            .with_default_quickjs_stack(DEFAULT_QUICKJS_STACK_BYTES)
+            .with_default_boa_stack(DEFAULT_BOA_STACK_SLOTS, DEFAULT_BOA_RECURSION))
+    }
+
+    /// An [`AppBuilder`] preconfigured for this artifact: its target backend
+    /// with safe stack defaults, `Module` with `artifact.requirements()`,
+    /// `fetch_handler(artifact.handler())`, [`Self::default_limits`] (plus a
+    /// 64 MiB heap limit on engines that enforce it), and the current
+    /// multi-thread Tokio runtime as `host_runtime` when available.
+    ///
+    /// Pair with [`Self::default_worker_options`] when integrating into a
+    /// custom Tower, hyper, axum, or actix-web server.
+    #[cfg(fetchlet_engine)]
+    pub fn app_builder(&self) -> Result<AppBuilder, ArtifactError> {
+        let backend = self.default_backend()?;
+        self.app_builder_with(backend)
+    }
+
+    /// Like [`Self::app_builder`], using an explicit [`Backend`] while still
+    /// wiring up `server_source`, `requirements`, `handler`, safe default
+    /// limits, and `host_runtime`.
+    #[cfg(fetchlet_engine)]
+    pub fn app_builder_with(&self, backend: Backend) -> Result<AppBuilder, ArtifactError> {
+        let mut limits = Self::default_limits();
+        if backend.bounds_heap() {
+            limits.heap_bytes = Some(DEFAULT_HEAP_BYTES);
+        }
+        let mut builder = App::builder(backend)
+            .module(Module::new(self.server_source()?).requires(self.requirements()))
+            .fetch_handler(self.handler())
+            .limits(limits);
+        #[cfg(any(
+            feature = "axum",
+            feature = "actix",
+            feature = "dev-reload",
+            feature = "vite-dev"
+        ))]
+        if let Ok(runtime) = tokio::runtime::Handle::try_current()
+            && runtime.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread
+        {
+            builder = builder.host_runtime(runtime);
+        }
+        Ok(builder)
     }
 }
 

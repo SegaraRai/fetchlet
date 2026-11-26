@@ -192,6 +192,8 @@ declare var __fetchletChannelViews:
  */
 declare var __fetchletStreamsBody: ((request: unknown) => boolean | undefined) | undefined;
 declare var __fetchletPumpHost: (() => number) | undefined;
+/** String bindings explicitly opted into `process.env` via `HostServices::process_env`. */
+declare var __fetchletProcessEnv: Record<string, string> | undefined;
 
 // Installed by the guest runtime.
 declare var __fetchletAsyncContext: AsyncContextSlot | undefined;

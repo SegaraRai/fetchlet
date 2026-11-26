@@ -4,6 +4,7 @@
 export interface Bindings {
   console: boolean;
   env: Record<string, unknown>;
+  processEnv?: Record<string, string>;
   services: string[];
   channels: string[];
   functions: Record<string, FunctionMethods>;

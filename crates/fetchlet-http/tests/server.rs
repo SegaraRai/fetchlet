@@ -11,7 +11,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::oneshot;
 
 use fetchlet::HostServices;
-use fetchlet_http::{Server, ServerError};
+use fetchlet_http::{Artifact, Server, ServerError};
 
 /// A server module whose page shows the URL it was asked for.
 const SERVER: &str = r#"
@@ -216,4 +216,60 @@ async fn under_dev_each_new_build_serves() {
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();
     let _ = std::fs::remove_dir_all(build);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn from_artifact_serves_an_embedded_artifact_directly() {
+    let artifact = Artifact::embedded(manifest("quickjs").as_bytes(), SERVER, None).unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let (stop, stopped) = oneshot::channel::<()>();
+    let server = Server::from_artifact(artifact).public_origin("https://embedded.example");
+    let serving = tokio::spawn(server.serve_with_shutdown(listener, async {
+        let _ = stopped.await;
+    }));
+
+    let (status, page) = get_text(address, "/hello").await;
+    assert_eq!(status, 200);
+    assert!(
+        page.contains("<p>https://embedded.example/hello</p>"),
+        "{page}"
+    );
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn artifact_app_builder_starts_with_safe_defaults() {
+    let artifact = Artifact::embedded(manifest("quickjs").as_bytes(), SERVER, None).unwrap();
+    let app = artifact
+        .app_builder()
+        .unwrap()
+        .spawn(Artifact::default_worker_options())
+        .await
+        .unwrap();
+    let request = http::Request::builder()
+        .uri("https://preset.example/check")
+        .body(fetchlet::Body::empty())
+        .unwrap();
+    let response = app.fetch(request).await.unwrap();
+    assert_eq!(response.status(), 200);
+    let body = response.into_body().collect(4096).await.unwrap();
+    assert_eq!(body, "<p>https://preset.example/check</p>");
+    app.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn missing_relative_directory_error_includes_resolved_path() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let error = Server::new("definitely-missing-fetchlet-build")
+        .serve_with_shutdown(listener, async {})
+        .await
+        .unwrap_err();
+    let message = error.to_string();
+    assert!(
+        message.contains("resolved to "),
+        "expected resolved path in error: {message}"
+    );
 }

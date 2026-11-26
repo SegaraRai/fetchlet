@@ -998,6 +998,12 @@
 		writable: false,
 		configurable: false
 	});
+	if (bindings.processEnv && Object.keys(bindings.processEnv).length > 0) Object.defineProperty(globalThis, "__fetchletProcessEnv", {
+		value: Object.freeze(Object.assign(Object.create(null), bindings.processEnv)),
+		writable: false,
+		enumerable: false,
+		configurable: false
+	});
 	Object.defineProperty(globalThis, "__fetchletPumpHost", {
 		value: pumpHostOperations,
 		writable: false,

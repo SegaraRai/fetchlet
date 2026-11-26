@@ -59,7 +59,7 @@ describe("fetchlet/nitro writeArtifact", () => {
     expect(built()).not.toHaveProperty("assets");
   });
 
-  test("the entry imports the environment module, which keeps string bindings only", async () => {
+  test("the entry imports the environment module, which aliases globalThis.__env__ to process.env", async () => {
     await writeArtifact(nitro());
     const plugin = built().plugins![0] as unknown as {
       resolveId(id: string): string | undefined;
@@ -69,7 +69,7 @@ describe("fetchlet/nitro writeArtifact", () => {
     const id = JSON.parse(/import ("\\u0000fetchlet:[^"]+");/.exec(source)![1]!) as string;
     expect(plugin.resolveId(id)).toBe(id);
     expect(plugin.resolveId("other")).toBeUndefined();
-    expect(plugin.load(id)).toContain('typeof value === "string"');
+    expect(plugin.load(id)).toContain("globalThis.__env__ = process.env");
   });
 
   test("takes the framework name and the app's fetchlet options", async () => {

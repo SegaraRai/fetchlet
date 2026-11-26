@@ -17,6 +17,7 @@ const runtime = globalThis as unknown as {
     log(...data: unknown[]): void;
     error(...data: unknown[]): void;
   };
+  __fetchletProcessEnv?: Record<string, string>;
 };
 
 interface Output {
@@ -99,6 +100,7 @@ class ProcessImpl extends EventEmitter {
   };
   env: Record<string, string | undefined> = {
     NODE_ENV: "production",
+    ...runtime.__fetchletProcessEnv,
   };
   exitCode: number | undefined = undefined;
   readonly stdout = output(1, (text) => runtime.console?.log(text));

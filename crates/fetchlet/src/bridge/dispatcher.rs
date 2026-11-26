@@ -607,6 +607,7 @@ impl HostBridge {
 
         json!({
             "env": self.services.env,
+            "processEnv": self.services.process_env,
             "services": service_names,
             "channels": channel_names,
             "functions": functions,

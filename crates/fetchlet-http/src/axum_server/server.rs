@@ -1,9 +1,8 @@
 use std::future::Future;
 use std::net::SocketAddr;
 use std::num::NonZeroUsize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
 
 use axum::Router;
 use tokio::net::TcpListener;
@@ -13,57 +12,26 @@ use fetchlet::{
 };
 
 use super::{AxumService, artifact_router};
+use crate::artifact::{
+    DEFAULT_BOA_RECURSION, DEFAULT_BOA_STACK_SLOTS, DEFAULT_HEAP_BYTES,
+    DEFAULT_QUICKJS_STACK_BYTES, MINIMUM_STACK_FOR_DEFAULT_LIMITS,
+};
 use crate::{Artifact, ArtifactError, WebviewResponder, WebviewScheme};
 
-/// Commands a server's application queues behind the running call by
-/// default: a caller policy that bounds the requests waiting for one engine
-/// thread. Further requests wait for room in the queue; none are refused.
-const DEFAULT_QUEUE_CAPACITY: NonZeroUsize = NonZeroUsize::new(8).unwrap();
-
-/// The worker thread's native stack by default. Framework server renderers
-/// recurse deeply, and Boa evaluates and serializes JSON on this stack
-/// without a native guard, so an overflow aborts the process. 64 MiB lets
-/// Boa reach the recursion limit below first; the operating system commits
-/// stack pages only as they are used.
-const DEFAULT_WORKER_STACK_BYTES: NonZeroUsize = NonZeroUsize::new(64 * 1024 * 1024).unwrap();
-
-/// The worker stack that the QuickJS and Boa limits below need.
-const MINIMUM_STACK_FOR_DEFAULT_LIMITS: NonZeroUsize = NonZeroUsize::new(8 * 1024 * 1024).unwrap();
-
-/// QuickJS's stack limit by default, within the worker stack above. React's
-/// server renderer retries an element after a stack overflow and can leave a
-/// partial tag behind, so the limit leaves it room.
-const DEFAULT_QUICKJS_STACK_BYTES: usize = 4 * 1024 * 1024;
-
-/// `Limits::heap_bytes` by default on an engine that bounds its heap: a
-/// caller budget, so that `Instances::max` times it bounds a pool's
-/// JavaScript heap. The largest examples need 25 to 32 MiB on QuickJS
-/// (Astro with its Intl polyfills, docs/research/startup-and-memory.md) and
-/// 24 MiB on V8 (vinext and Waku,
-/// docs/research/interrupts-and-heap-limits.md) to serve their pages; 64 MiB
-/// leaves room for larger pages.
-const DEFAULT_HEAP_BYTES: usize = 64 * 1024 * 1024;
-
-/// `Limits::busy_timeout` by default, a caller budget and a backstop for
-/// JavaScript stuck in a loop, such as in a held connection's handler. A
-/// server-rendered page returns to the event loop within 100 ms on every
-/// engine in a release build, but debug builds run about ten times slower,
-/// and vinext's client navigation on a debug build of Boa ran past 2 s; 10 s
-/// keeps development builds working (docs/research/interrupts-and-heap-limits.md).
-const DEFAULT_BUSY_TIMEOUT: Duration = Duration::from_secs(10);
-
-/// `Limits::startup_timeout` by default, a caller budget. The slowest
-/// module evaluation measured, Astro's development modules on a debug build
-/// of Boa, takes about 40 s.
-const DEFAULT_STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
-
-/// Boa's value stack limit by default, in slots. React Server Components
-/// rendering on Boa, as in the vinext example, needs this depth.
-const DEFAULT_BOA_STACK_SLOTS: usize = 128 * 1024;
-
-/// Boa's recursion limit by default. Boa's own 512 stops ordinary recursive
-/// code with an error scripts cannot catch; 10,000 is near what Node allows.
-const DEFAULT_BOA_RECURSION: usize = 10_000;
+/// Format an artifact directory path for diagnostics, including the resolved
+/// path against the current working directory when `path` is relative.
+fn format_artifact_path(path: &Path) -> String {
+    if path.is_relative()
+        && let Ok(cwd) = std::env::current_dir()
+    {
+        return format!(
+            "{} (resolved to {})",
+            path.display(),
+            cwd.join(path).display()
+        );
+    }
+    path.display().to_string()
+}
 
 /// The environment variable that names a Vite dev server to run from, read
 /// when the `vite-dev` feature is enabled.
@@ -78,7 +46,8 @@ type RoutesFn = dyn Fn(&AppHandle) -> Router + Send + Sync;
 #[non_exhaustive]
 pub enum ServerError {
     #[error(
-        "could not open the build in {directory}: {source}; build the frontend before starting the server"
+        "could not open the build in {}: {source}; build the frontend before starting the server",
+        format_artifact_path(directory)
     )]
     Artifact {
         directory: PathBuf,
@@ -98,6 +67,14 @@ pub enum ServerError {
     Vite {
         url: String,
         source: crate::ViteDevError,
+    },
+}
+
+enum ArtifactSource {
+    Directory(PathBuf),
+    Embedded {
+        artifact: Artifact,
+        dev_directory: Option<PathBuf>,
     },
 }
 
@@ -128,7 +105,7 @@ pub enum ServerError {
 ///
 /// Keep `dev` and `vite-dev` out of release builds.
 pub struct Server {
-    directory: PathBuf,
+    source: ArtifactSource,
     backend: Option<Backend>,
     services: Arc<ServicesFn>,
     routes: Arc<RoutesFn>,
@@ -147,8 +124,36 @@ impl Server {
     /// `fetchlet/build`. A relative path is resolved against the working
     /// directory.
     pub fn new(directory: impl Into<PathBuf>) -> Self {
+        Self::with_source(ArtifactSource::Directory(directory.into()))
+    }
+
+    /// A server for an already-opened or embedded [`Artifact`], such as one
+    /// created with [`include_artifact!`](crate::include_artifact).
+    ///
+    /// Combine with [`dev_directory`](Self::dev_directory) to reload from a
+    /// build directory when `dev-reload` is enabled while serving the embedded
+    /// artifact in release builds without `#[cfg]` branches.
+    pub fn from_artifact(artifact: Artifact) -> Self {
+        Self::with_source(ArtifactSource::Embedded {
+            artifact,
+            dev_directory: None,
+        })
+    }
+
+    /// When built with `dev-reload` and started from an embedded artifact via
+    /// [`from_artifact`](Self::from_artifact), watch and reload builds from
+    /// `directory` instead of serving the embedded copy. Ignored when
+    /// `dev-reload` is disabled.
+    pub fn dev_directory(mut self, directory: impl Into<PathBuf>) -> Self {
+        if let ArtifactSource::Embedded { dev_directory, .. } = &mut self.source {
+            *dev_directory = Some(directory.into());
+        }
+        self
+    }
+
+    fn with_source(source: ArtifactSource) -> Self {
         Self {
-            directory: directory.into(),
+            source,
             backend: None,
             services: Arc::new(|| Ok(HostServices::new())),
             routes: Arc::new(|_| Router::new()),
@@ -208,11 +213,7 @@ impl Server {
     /// an instance whose JavaScript stops returning to the event loop or
     /// whose module never finishes evaluating; no others.
     pub fn default_limits() -> Limits {
-        Limits {
-            busy_timeout: Some(DEFAULT_BUSY_TIMEOUT),
-            startup_timeout: Some(DEFAULT_STARTUP_TIMEOUT),
-            ..Limits::default()
-        }
+        Artifact::default_limits()
     }
 
     /// The application's worker options. By default, a queue of 8 commands,
@@ -287,35 +288,43 @@ impl Server {
             .public_origin
             .clone()
             .unwrap_or_else(|| scheme.origin());
-        let (settings, services, directory) = self.into_settings(origin);
+        let (settings, services, source) = self.into_settings(origin);
 
-        #[cfg(feature = "dev-reload")]
-        let builds = {
-            use crate::{DevReload, Generation, ReloadError};
-
-            DevReload::watch(directory.clone())
-                .start(move |artifact| {
-                    let (settings, services) = (settings.clone(), services.clone());
-                    async move {
-                        let (router, app) = settings.application(&artifact, services()?).await?;
-                        let built = Built {
-                            router,
-                            app: app.clone(),
-                        };
-                        Ok::<_, ServerError>(Generation::new(built).with_app(app))
-                    }
-                })
-                .await
-                .map_err(|error| match error {
-                    ReloadError::Artifact(source) => ServerError::Artifact { directory, source },
-                    error => ServerError::Reload(error),
-                })?
-        };
-        #[cfg(not(feature = "dev-reload"))]
-        let builds = {
-            let artifact = open(&directory)?;
-            let (router, app) = settings.application(&artifact, services()?).await?;
-            Built { router, app }
+        let builds = match source {
+            ArtifactSource::Directory(directory) => {
+                #[cfg(feature = "dev-reload")]
+                {
+                    WebviewBuilds::Reloading(
+                        start_webview_reload(directory, settings, services).await?,
+                    )
+                }
+                #[cfg(not(feature = "dev-reload"))]
+                {
+                    let artifact = open(&directory)?;
+                    let (router, app) = settings.application(&artifact, services()?).await?;
+                    WebviewBuilds::Static(Built { router, app })
+                }
+            }
+            ArtifactSource::Embedded {
+                artifact,
+                dev_directory,
+            } => {
+                #[cfg(feature = "dev-reload")]
+                if let Some(directory) = dev_directory {
+                    WebviewBuilds::Reloading(
+                        start_webview_reload(directory, settings, services).await?,
+                    )
+                } else {
+                    let (router, app) = settings.application(&artifact, services()?).await?;
+                    WebviewBuilds::Static(Built { router, app })
+                }
+                #[cfg(not(feature = "dev-reload"))]
+                {
+                    let _ = dev_directory;
+                    let (router, app) = settings.application(&artifact, services()?).await?;
+                    WebviewBuilds::Static(Built { router, app })
+                }
+            }
         };
         Ok(Webview {
             inner: Arc::new(WebviewInner {
@@ -325,7 +334,7 @@ impl Server {
         })
     }
 
-    fn into_settings(self, origin: String) -> (Arc<Settings>, Arc<ServicesFn>, PathBuf) {
+    fn into_settings(self, origin: String) -> (Arc<Settings>, Arc<ServicesFn>, ArtifactSource) {
         let settings = Arc::new(Settings {
             backend: self.backend,
             routes: self.routes,
@@ -338,7 +347,7 @@ impl Server {
             #[cfg(feature = "process")]
             isolation: self.isolation,
         });
-        (settings, self.services, self.directory)
+        (settings, self.services, self.source)
     }
 
     /// Serve on `listener` until Ctrl-C, then shut the application down.
@@ -363,23 +372,35 @@ impl Server {
             Some(origin) => origin.clone(),
             None => format!("http://{}", listener.local_addr()?),
         };
-        let (settings, services, directory) = self.into_settings(origin);
+        let (settings, services, source) = self.into_settings(origin);
 
         #[cfg(feature = "vite-dev")]
         if let Ok(url) = std::env::var(VITE_URL_VARIABLE) {
             return serve_vite(listener, signal, &settings, &services, &url).await;
         }
 
-        #[cfg(feature = "dev-reload")]
-        return serve_reloading(listener, signal, settings, services, directory).await;
+        match source {
+            ArtifactSource::Directory(directory) => {
+                #[cfg(feature = "dev-reload")]
+                return serve_reloading(listener, signal, settings, services, directory).await;
 
-        #[cfg(not(feature = "dev-reload"))]
-        {
-            let artifact = open(&directory)?;
-            let (router, app) = settings.application(&artifact, services()?).await?;
-            let result = run(listener, router, signal).await;
-            app.shutdown().await?;
-            result
+                #[cfg(not(feature = "dev-reload"))]
+                {
+                    let artifact = open(&directory)?;
+                    serve_static(listener, signal, &settings, &services, &artifact).await
+                }
+            }
+            ArtifactSource::Embedded {
+                artifact,
+                dev_directory,
+            } => {
+                #[cfg(feature = "dev-reload")]
+                if let Some(directory) = dev_directory {
+                    return serve_reloading(listener, signal, settings, services, directory).await;
+                }
+                let _ = dev_directory;
+                serve_static(listener, signal, &settings, &services, &artifact).await
+            }
         }
     }
 }
@@ -403,11 +424,14 @@ pub struct Webview {
     inner: Arc<WebviewInner>,
 }
 
-struct WebviewInner {
+enum WebviewBuilds {
     #[cfg(feature = "dev-reload")]
-    builds: crate::DevReload<Built>,
-    #[cfg(not(feature = "dev-reload"))]
-    builds: Built,
+    Reloading(crate::DevReload<Built>),
+    Static(Built),
+}
+
+struct WebviewInner {
+    builds: WebviewBuilds,
     response_body_bytes: usize,
 }
 
@@ -440,25 +464,32 @@ impl Webview {
     }
 
     /// Each new build from now on, for the host to reload its window.
+    /// Ends immediately when started from an embedded artifact without
+    /// [`Server::dev_directory`].
     #[cfg(feature = "dev-reload")]
     pub fn reloads(&self) -> crate::Reloads {
-        self.inner.builds.reloads()
+        match &self.inner.builds {
+            WebviewBuilds::Reloading(reload) => reload.reloads(),
+            WebviewBuilds::Static(_) => crate::Reloads::closed(),
+        }
     }
 
     /// Shut the application down; requests after this fail.
     pub async fn shutdown(&self) -> Result<(), ServerError> {
-        #[cfg(feature = "dev-reload")]
-        self.inner.builds.shutdown().await?;
-        #[cfg(not(feature = "dev-reload"))]
-        self.inner.builds.app.shutdown().await?;
+        match &self.inner.builds {
+            #[cfg(feature = "dev-reload")]
+            WebviewBuilds::Reloading(reload) => reload.shutdown().await?,
+            WebviewBuilds::Static(built) => built.app.shutdown().await?,
+        }
         Ok(())
     }
 
     fn current(&self) -> Built {
-        #[cfg(feature = "dev-reload")]
-        return self.inner.builds.current();
-        #[cfg(not(feature = "dev-reload"))]
-        return self.inner.builds.clone();
+        match &self.inner.builds {
+            #[cfg(feature = "dev-reload")]
+            WebviewBuilds::Reloading(reload) => reload.current(),
+            WebviewBuilds::Static(built) => built.clone(),
+        }
     }
 }
 
@@ -494,11 +525,10 @@ impl Settings {
         services: HostServices,
         cancelled_calls: Option<CancelledCalls>,
     ) -> Result<(Router, AppHandle), ServerError> {
-        let mut worker = self.worker.clone().unwrap_or_else(|| {
-            let mut worker = WorkerOptions::new(DEFAULT_QUEUE_CAPACITY);
-            worker.stack_size_bytes = Some(DEFAULT_WORKER_STACK_BYTES);
-            worker
-        });
+        let mut worker = self
+            .worker
+            .clone()
+            .unwrap_or_else(Artifact::default_worker_options);
         if let Some(capacity) = self.queue_capacity {
             worker.queue_capacity = capacity;
         }
@@ -579,6 +609,46 @@ fn open(directory: &std::path::Path) -> Result<Artifact, ServerError> {
         directory: directory.to_path_buf(),
         source,
     })
+}
+
+async fn serve_static(
+    listener: TcpListener,
+    signal: impl Future<Output = ()> + Send + 'static,
+    settings: &Settings,
+    services: &Arc<ServicesFn>,
+    artifact: &Artifact,
+) -> Result<(), ServerError> {
+    let (router, app) = settings.application(artifact, services()?).await?;
+    let result = run(listener, router, signal).await;
+    app.shutdown().await?;
+    result
+}
+
+#[cfg(feature = "dev-reload")]
+async fn start_webview_reload(
+    directory: PathBuf,
+    settings: Arc<Settings>,
+    services: Arc<ServicesFn>,
+) -> Result<crate::DevReload<Built>, ServerError> {
+    use crate::{DevReload, Generation, ReloadError};
+
+    DevReload::watch(directory.clone())
+        .start(move |artifact| {
+            let (settings, services) = (settings.clone(), services.clone());
+            async move {
+                let (router, app) = settings.application(&artifact, services()?).await?;
+                let built = Built {
+                    router,
+                    app: app.clone(),
+                };
+                Ok::<_, ServerError>(Generation::new(built).with_app(app))
+            }
+        })
+        .await
+        .map_err(|error| match error {
+            ReloadError::Artifact(source) => ServerError::Artifact { directory, source },
+            error => ServerError::Reload(error),
+        })
 }
 
 async fn run(

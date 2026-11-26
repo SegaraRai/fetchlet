@@ -14,9 +14,10 @@ const modulePath = (file: string): string => file.replaceAll("\\", "/");
 const environmentId = "\0fetchlet:nitro-environment";
 
 /**
- * Nitro reads its runtime config from process.env, and unenv-based code from
- * globalThis.__env__, also while the runtime initializes, so this module
- * fills both with the string bindings before Nitro's server bundle runs.
+ * Nitro reads its runtime config from `process.env`, and unenv-based code from
+ * `globalThis.__env__`. Rust populates `process.env` only with keys explicitly
+ * opted in via `HostServices::process_env`, so this module aliases
+ * `globalThis.__env__` to `process.env` before Nitro's server bundle runs.
  */
 function nitroEnvironment(): Plugin {
   return {
@@ -30,12 +31,8 @@ function nitroEnvironment(): Plugin {
       if (id === environmentId) {
         return `
           import process from "node:process";
-          import { getBindings } from "fetchlet/runtime/adapter";
 
-          globalThis.__env__ = Object.fromEntries(
-            Object.entries(getBindings()).filter(([, value]) => typeof value === "string"),
-          );
-          Object.assign(process.env, globalThis.__env__);
+          globalThis.__env__ = process.env;
         `;
       }
     },

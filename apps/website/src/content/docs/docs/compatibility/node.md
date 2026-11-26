@@ -35,7 +35,7 @@ fetchlet's implementations for the modules below.
 | `node:events` | Full | `EventEmitter` (listener order, `once`, `error`/`errorMonitor`, max-listener warning), `on`, `getEventListeners`, `listenerCount`, `addAbortListener`. |
 | `node:http`, `node:https` | Client only | `request` and `get` implemented over `fetch` (`ClientRequest`, `IncomingMessage`, `Agent`, `STATUS_CODES`, `METHODS`). Buffers request body, no redirects, no `Agent` pooling. `createServer` throws. |
 | `node:path`, `node:path/posix` | POSIX only | Full POSIX implementation (`resolve` starts from `/`). No `win32` and no `matchesGlob`. |
-| `node:process` | Partial | `EventEmitter` with `env` (`{ NODE_ENV: "production" }`), `nextTick` (microtask), `hrtime`, `cwd` (`"/"`), `uptime`, `stdout`/`stderr` → console. Does **not** expose Rust host bindings (use `getBindings()`). `exit`/`abort`/`kill`/`chdir` throw. |
+| `node:process` | Partial | `EventEmitter` with `env` (`{ NODE_ENV: "production" }`), `nextTick` (microtask), `hrtime`, `cwd` (`"/"`), `uptime`, `stdout`/`stderr` → console. Ordinary `.env()` bindings stay out of `process.env`; use `HostServices::process_env(key, val)` in Rust to expose specific keys. `exit`/`abort`/`kill`/`chdir` throw. |
 | `node:querystring` | Full | `parse`, `stringify`, `escape`, `unescape`. |
 | `node:stream`, `node:stream/promises` | Full | Node's `readable-stream` with `Readable`/`Writable`/`Duplex` `fromWeb`/`toWeb` and `duplexPair`. |
 | `node:stream/web` | Full | Re-exports the profile's Web Streams, queuing strategies, and text/compression streams. |
@@ -63,8 +63,7 @@ calling any member throws `ERR_METHOD_NOT_IMPLEMENTED` (for example,
 Framework adapters may override specific modules when needed — for example,
 [vinext](/docs/frameworks/vinext#node-apis) provides its own `node:fs`,
 `node:path`, and `node:module`, and [Nitro](/docs/frameworks/nitro#output) uses
-`unenv` for modules fetchlet does not implement and copies string bindings into
-`process.env`.
+`unenv` for modules fetchlet does not implement.
 
 ## Globals
 

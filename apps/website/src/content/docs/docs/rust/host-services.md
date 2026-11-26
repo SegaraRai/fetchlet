@@ -50,6 +50,11 @@ Bindings are read-only and fixed before modules evaluate. Only expose values
 JavaScript needs to read — keep upstream API keys and tokens in Rust using
 `FetchService::credentials()`.
 
+Ordinary `.env(name, value)` bindings stay out of Node's `process.env`. If a
+third-party JavaScript library reads `process.env.KEY` directly, opt specific
+keys in with `.process_env(name, value)` — this binds the key on both
+`fetchlet.env` and `process.env` without leaking the rest of your environment.
+
 For real network requests over HTTP/1.1 and HTTP/2, pass `fetchlet_net::HttpClient`
 as the transport ([Outbound networking](/docs/rust/fetchlet-net)).
 

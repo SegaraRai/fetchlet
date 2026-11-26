@@ -31,15 +31,21 @@ Read the pages for the task before you change code:
 
 ## Rules
 
-- Server code runs on QuickJS, Boa or V8 with fetchlet's Web API profile, not
-  on Node.js. Do not assume a Node.js API exists because the framework's
-  Node adapter uses it.
-- JavaScript reaches the network, environment values and Rust services only
-  through the host services that Rust grants. Grant them in Rust instead of
-  working around them in JavaScript.
+- Server code runs on QuickJS, Boa, or V8 with fetchlet's Web API profile, not
+  on Node.js. Do not assume a Node.js API or `WebAssembly` exists (WebAssembly
+  requires `v8`).
+- JavaScript reaches the network, environment values, and Rust services only
+  through `HostServices`. Grant them in Rust instead of working around them in
+  JavaScript. If a third-party library reads `process.env.KEY`, expose only the
+  needed keys explicitly via `HostServices::process_env`.
+- Keep `dev-reload` and `vite-dev` behind non-default Cargo features so they
+  never ship in release builds.
+- When building an `App` manually without `fetchlet_http::Server`, start from
+  `artifact.app_builder()?` and `Artifact::default_worker_options()` so
+  requirements, stack/heap defaults, and `host_runtime` are not missed.
 - Keep limits and budgets in the Rust host's configuration.
 
 ## Verify
 
-Build the artifact, run the Rust program, and request the pages and
-endpoints that the change affects. Report what you checked.
+Build the artifact, run the Rust program, and request the pages and endpoints
+that the change affects. Report what you checked.

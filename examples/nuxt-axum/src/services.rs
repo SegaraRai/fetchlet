@@ -18,6 +18,6 @@ pub(crate) fn host_services(message: &str) -> Result<HostServices> {
     );
 
     HostServices::new()
-        .env("NUXT_MESSAGE", message)?
+        .process_env("NUXT_MESSAGE", message)?
         .service("RUST", service)
 }

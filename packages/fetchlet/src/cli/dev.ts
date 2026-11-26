@@ -9,7 +9,7 @@ import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, watch } from "node:fs";
 import { createServer, type AddressInfo } from "node:net";
-import { extname, join, resolve, sep } from "node:path";
+import { basename, extname, join, relative, resolve, sep } from "node:path";
 
 /** How the artifact is built while the server runs. */
 export type DevBuild =
@@ -46,15 +46,17 @@ export type DevBuild =
 
 export interface DevOptions {
   build: DevBuild;
+  /** Restart the server command when Rust sources (`*.rs`, `Cargo.toml`, `Cargo.lock`) change. */
+  watchRust: boolean;
   /** The program that serves each build, and its arguments. */
   server: string[];
   /** The directory the paths and commands are relative to. */
   cwd: string;
 }
 
-export const DEV_USAGE = `usage: fetchlet dev [--watch <path>]... [--build <command>] -- <server> [<argument>...]
-       fetchlet dev --build-watch <command> [--out <directory>] -- <server> [<argument>...]
-       fetchlet dev --vite <command> [--vite-port <port>] -- <server> [<argument>...]
+export const DEV_USAGE = `usage: fetchlet dev [--watch <path>]... [--build <command>] [--watch-rust] -- <server> [<argument>...]
+       fetchlet dev --build-watch <command> [--out <directory>] [--watch-rust] -- <server> [<argument>...]
+       fetchlet dev --vite <command> [--vite-port <port>] [--watch-rust] -- <server> [<argument>...]
 
 Builds with <command>, starts <server>, and builds again when a file under a
 watched path changes. With --build-watch, the command keeps running and
@@ -72,7 +74,9 @@ with FETCHLET_VITE_URL set to its URL.
   --out <directory>        The artifact directory of --build-watch. Default: build
   --vite <command>         A shell command that starts a Vite dev server, such
                            as vite dev or astro dev; --host and --port are appended
-  --vite-port <port>       The dev server's port. Default: a free port`;
+  --vite-port <port>       The dev server's port. Default: a free port
+  --watch-rust             Restart <server> automatically when .rs or Cargo files
+                           change, without rebuilding the JavaScript side`;
 
 const VALUED = new Set(["--watch", "--build", "--build-watch", "--out", "--vite", "--vite-port"]);
 
@@ -90,8 +94,13 @@ export function parseDevArguments(
   let out: string | undefined;
   let vite: string | undefined;
   let vitePort: string | undefined;
+  let watchRust = false;
   for (let index = 0; index < options.length; index++) {
     const option = options[index];
+    if (option === "--watch-rust") {
+      watchRust = true;
+      continue;
+    }
     const value = options[index + 1];
     if (!VALUED.has(option)) {
       return { error: `unknown option ${option}` };
@@ -137,6 +146,7 @@ export function parseDevArguments(
         command: vite,
         port: vitePort === undefined ? undefined : Number(vitePort),
       },
+      watchRust,
       server,
       cwd,
     };
@@ -156,6 +166,7 @@ export function parseDevArguments(
         command: buildWatch,
         out: out ?? "build",
       },
+      watchRust,
       server,
       cwd,
     };
@@ -171,6 +182,7 @@ export function parseDevArguments(
       command: build ?? "vite build",
       watch: watched,
     },
+    watchRust,
     server,
     cwd,
   };
@@ -227,6 +239,83 @@ export class WatchedFiles {
     this.#seen.set(file, hash);
     return true;
   }
+}
+
+/** Directories ignored when scanning for Rust source files. */
+const RUST_IGNORED_DIRS = new Set(["target", "node_modules", ".git", "dist", "build"]);
+
+/**
+ * Watches Rust sources (`*.rs`, `Cargo.toml`, `Cargo.lock`) under `cwd` so
+ * `--watch-rust` restarts the host server without rebuilding JavaScript.
+ */
+export class WatchedRustFiles {
+  readonly #cwd: string;
+  readonly #seen = new Map<string, string | undefined>();
+
+  constructor(cwd: string) {
+    this.#cwd = resolve(cwd);
+    this.snapshot();
+  }
+
+  includes(file: string): boolean {
+    const resolved = resolve(file);
+    const rel = relative(this.#cwd, resolved);
+    if (!rel || rel.startsWith("..") || rel.includes(`..${sep}`)) {
+      return false;
+    }
+    const parts = rel.split(sep);
+    if (parts.some((part) => RUST_IGNORED_DIRS.has(part))) {
+      return false;
+    }
+    const name = basename(resolved);
+    return extname(name) === ".rs" || name === "Cargo.toml" || name === "Cargo.lock";
+  }
+
+  snapshot(): void {
+    this.#seen.clear();
+    for (const file of rustFilesUnder(this.#cwd)) {
+      this.#seen.set(file, contentHash(file));
+    }
+  }
+
+  changed(file: string): boolean {
+    const resolved = resolve(file);
+    if (!this.includes(resolved)) {
+      return false;
+    }
+    const hash = contentHash(resolved);
+    if (hash === undefined && !this.#seen.has(resolved)) {
+      return false;
+    }
+    if (this.#seen.get(resolved) === hash) {
+      return false;
+    }
+    this.#seen.set(resolved, hash);
+    return true;
+  }
+}
+
+function rustFilesUnder(dir: string): string[] {
+  const results: string[] = [];
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return results;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (!RUST_IGNORED_DIRS.has(entry.name)) {
+        results.push(...rustFilesUnder(join(dir, entry.name)));
+      }
+    } else if (entry.isFile()) {
+      const name = entry.name;
+      if (extname(name) === ".rs" || name === "Cargo.toml" || name === "Cargo.lock") {
+        results.push(join(dir, name));
+      }
+    }
+  }
+  return results;
 }
 
 /** Source directories a framework or Vite project keeps its build inputs in. */
@@ -358,6 +447,9 @@ class Session {
   readonly #options: DevOptions;
   readonly #resolveExit: (code: number) => void;
   #server: ChildProcess | undefined;
+  #serverEnv: NodeJS.ProcessEnv = {};
+  #restartingServer = false;
+  #rustWatcherStarted = false;
   #builder: ChildProcess | undefined;
   readonly #cleanups: (() => void)[] = [];
   #exiting = false;
@@ -506,18 +598,72 @@ class Session {
     if (this.#exiting) {
       return;
     }
+    this.#serverEnv = environment;
+    if (this.#options.watchRust && !this.#rustWatcherStarted) {
+      this.#rustWatcherStarted = true;
+      this.#watchRustSources();
+    }
+    this.#spawnServer();
+  }
+
+  #spawnServer(): void {
+    if (this.#exiting) {
+      return;
+    }
     const [program, ...args] = this.#options.server;
     const cwd = this.#options.cwd;
-    const env = { ...process.env, ...environment };
+    const env = { ...process.env, ...this.#serverEnv };
     // A Windows shell starts `.cmd` shims such as npm's, which spawn cannot.
     const server = windows
       ? spawn([program, ...args].map(quote).join(" "), { cwd, env, stdio: "inherit", shell: true })
       : spawn(program, args, { cwd, env, stdio: "inherit" });
     this.#server = server;
-    server.on("exit", (code) => this.#stop(code ?? 1));
+    server.on("exit", (code) => {
+      if (this.#server === server) {
+        this.#server = undefined;
+      }
+      if (this.#restartingServer || this.#exiting) {
+        return;
+      }
+      if (this.#options.watchRust) {
+        console.error(
+          `[fetchlet dev] server exited with code ${code ?? 1}; waiting for Rust changes`,
+        );
+        return;
+      }
+      this.#stop(code ?? 1);
+    });
     server.on("error", (error) => {
       console.error(`[fetchlet dev] ${error.message}`);
       this.#stop(1);
+    });
+  }
+
+  #restartServer(): void {
+    if (this.#exiting) {
+      return;
+    }
+    console.log("[fetchlet dev] Rust source changed; restarting server");
+    this.#restartingServer = true;
+    kill(this.#server);
+    this.#server = undefined;
+    this.#restartingServer = false;
+    this.#spawnServer();
+  }
+
+  #watchRustSources(): void {
+    const cwd = this.#options.cwd;
+    const files = new WatchedRustFiles(cwd);
+    let timer: NodeJS.Timeout | undefined;
+    const watcher = watch(cwd, { recursive: true }, (_event, name) => {
+      if (name && files.changed(resolve(cwd, name))) {
+        clearTimeout(timer);
+        timer = setTimeout(() => this.#restartServer(), SETTLE_MS);
+      }
+    });
+    this.#cleanups.push(() => {
+      watcher.close();
+      clearTimeout(timer);
     });
   }
 

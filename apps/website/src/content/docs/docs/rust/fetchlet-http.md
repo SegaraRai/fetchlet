@@ -129,18 +129,20 @@ tauri::Builder::default()
 
 ## Serving a build artifact with axum
 
-When integrating into an existing axum server, open the artifact manually and
-merge `artifact_router`:
+When integrating into an existing axum (or Tower / hyper / actix) server, open
+the artifact and start from `artifact.app_builder()?` and
+`Artifact::default_worker_options()`. They automatically configure the target
+backend, safe stack and heap defaults (64 MiB worker stack, 4 MiB QuickJS stack,
+Boa value-stack and recursion limits), `artifact.requirements()`,
+`artifact.handler()`, and `host_runtime`:
 
 ```rust
-use fetchlet::{App, Backend, Module, WorkerOptions};
 use fetchlet_http::{Artifact, AxumService, artifact_router};
 
 let artifact = Artifact::open("build")?;
-let app = App::builder(Backend::quickjs())
-    .module(Module::new(artifact.server_source()?).requires(artifact.requirements()))
-    .fetch_handler(artifact.handler())
-    .spawn(WorkerOptions::new(queue_capacity))
+let app = artifact
+    .app_builder()?
+    .spawn(Artifact::default_worker_options())
     .await?;
 
 let rendering = AxumService::new(app.clone(), "https://example.test")?
@@ -152,6 +154,9 @@ let router = axum::Router::new()
 
 axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>()).await?;
 ```
+
+Use `artifact.app_builder_with(backend)?` if you want to pass a custom `Backend`
+while keeping the rest of those defaults.
 
 - `artifact.requirements()` verifies at startup that your engine and features
   provide everything the build expects (such as native `Intl` on V8).

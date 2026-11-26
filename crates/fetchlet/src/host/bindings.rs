@@ -18,6 +18,7 @@ pub struct HostServices {
     pub(crate) sockets: Option<SocketService>,
     pub(crate) websockets: Option<WebSocketService>,
     pub(crate) env: BTreeMap<String, String>,
+    pub(crate) process_env: BTreeMap<String, String>,
     pub(crate) functions: BTreeMap<String, Functions>,
     pub(crate) console: Option<ConsoleSink>,
 }
@@ -106,6 +107,22 @@ impl HostServices {
         let name = self.unbound(name.into())?;
         let value = value.into();
         self.env.insert(name, value);
+        Ok(self)
+    }
+
+    /// Bind a string value in `fetchlet.env` and also expose it on Node's
+    /// `process.env`. Use this opt-in method for third-party libraries that
+    /// read `process.env.KEY` directly; ordinary [`env`](Self::env) bindings
+    /// stay out of `process.env`.
+    pub fn process_env(
+        mut self,
+        name: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Result<Self> {
+        let name = self.unbound(name.into())?;
+        let value = value.into();
+        self.env.insert(name.clone(), value.clone());
+        self.process_env.insert(name, value);
         Ok(self)
     }
 }

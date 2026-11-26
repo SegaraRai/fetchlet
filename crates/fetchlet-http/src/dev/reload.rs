@@ -185,6 +185,12 @@ pub struct Reloads {
 }
 
 impl Reloads {
+    /// A stream that is already closed (never announces reloads).
+    pub(crate) fn closed() -> Self {
+        let (_sender, tokens) = watch::channel(String::new());
+        Self { tokens }
+    }
+
     /// Wait until a new generation serves. Generations that start while the
     /// caller is not waiting are reported once. `None` once the `DevReload`
     /// and its services are gone.

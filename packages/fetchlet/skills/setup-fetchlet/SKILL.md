@@ -15,43 +15,95 @@ Read these pages before you change code:
 
 - `docs/index.md`
 - `docs/frameworks/index.md`, then the page of the project's framework
+- `docs/javascript/dev.md`
 - `docs/rust/fetchlet-http.md` when you add or change the Rust host
+
+## Preflight checks
+
+Inspect the project before editing files:
+
+1. **Framework & version:** check `package.json` for the package manager,
+   framework, and version. Confirm it is listed in `docs/frameworks/index.md`.
+   If it is not, tell the user and offer `fetchlet/vite` (`docs/frameworks/vite.md`)
+   or `fetchlet build` (`docs/javascript/build.md`).
+2. **Engine choice (Wasm / Intl / Windows):** default to QuickJS (`quickjs`),
+   unless the user asks for another engine OR `package.json` depends on
+   WebAssembly-requiring packages (such as `shiki`, `satori`, `resvg`, `sql.js`,
+   or `@electric-sql/pglite`). If WebAssembly is needed, recommend `v8` and
+   explain why. When targeting `v8` on Windows MSVC, also add
+   `rustflags = ["-C", "target-feature=+crt-static"]` in `.cargo/config.toml`
+   (`docs/rust/fetchlet.md`).
+3. **Rust host location:** look for an existing `Cargo.toml` (including
+   workspace members in a monorepo). If none exists, ask the user whether to
+   create one in the project root or a sibling directory.
+   - **Avoid `src/` collisions:** if the JS app already uses `src/`, put the
+     Rust host in `server/main.rs` (or `cli/main.rs` for a CLI) and point
+     `Cargo.toml` at it with `[[bin]] name = "..." path = "server/main.rs"`.
 
 ## Steps
 
-1. Find the package manager, the framework, and its version. Check that
-   `docs/frameworks/index.md` lists the framework. If it does not, tell the
-   user, and offer the Vite plugin (`docs/frameworks/vite.md`) or the
-   `fetchlet build` command (`docs/javascript/build.md`) for a server module
-   without a framework adapter.
-2. Find the Rust program that will serve the application. In a monorepo it
-   may be another workspace member. When there is none, ask the user whether
-   to create one, and where.
-3. Install `fetchlet` as a development dependency with the project's package
-   manager.
-4. Configure the framework's adapter as its page shows. Keep the existing
-   options of the framework configuration. Note the output directory.
-5. Build the application, and confirm that the output directory contains
-   `server.js`, `fetchlet.json`, and `client/`.
-6. In the Rust program, add `fetchlet` and `fetchlet-http` with the features
-   that `docs/index.md` shows, and serve the output directory with
-   `fetchlet_http::Server`. Choose another engine than QuickJS only when the
-   user asks for one.
-7. When the framework passes values from Rust, such as the client address or
-   host services, follow the request context section of its page.
+1. **Install `fetchlet`** as a development dependency using the project's
+   package manager.
+2. **Configure the framework adapter** as its page in `docs/frameworks/` shows,
+   preserving existing framework options and noting the output directory
+   (usually `build`):
+   - **Astro** with Vite dev server: set `devServer: true` on `fetchletAdapter`.
+   - **React Router** with Vite dev server: add `fetchletDevServer` in
+     `vite.config.ts` alongside `reactRouter()`.
+   - **Qwik City**: build uses two steps (`vite build && vite build --ssr`).
+   - **vinext**: if the Rust host sets `Limits::background_tasks`, use at least
+     `64` so route module preloads on the first request succeed.
+3. **Build the artifact** and confirm the output directory contains
+   `server.js`, `fetchlet.json`, and `client/` (or `assets.flpk` if
+   `assets: true`).
+4. **Configure the Rust host:**
+   - Add `fetchlet` (default `quickjs`, or `--features boa` / `--features v8`)
+     and `fetchlet-http --features axum` (plus `tokio` and `anyhow`).
+   - **Keep dev features out of release builds:** define opt-in Cargo features
+     in `Cargo.toml` rather than enabling them by default:
+     ```toml
+     [features]
+     dev = ["fetchlet-http/dev-reload"]
+     vite-dev = ["fetchlet-http/vite-dev"]
+     ```
+   - Prefer `fetchlet_http::Server::new("build")` for new hosts. For single
+     binaries that embed the artifact in release builds while reloading from
+     disk during development, use `Server::from_artifact(include_artifact!("../build")?).dev_directory("build")`.
+   - **When integrating into an existing custom router (not `Server`):** use
+     `artifact.app_builder()?` and `Artifact::default_worker_options()` so
+     `artifact.requirements()`, safe stack/heap defaults (64 MiB worker stack,
+     4 MiB QuickJS stack, Boa recursion/value-stack limits), and `host_runtime`
+     are configured automatically. If using `ViteDev` manually, also set
+     `CancelledCalls::Finish`.
+   - If server code or dependencies read `process.env.KEY`, expose only the
+     required keys explicitly in Rust with `HostServices::process_env(key, val)`
+     instead of expecting host environment variables to leak automatically.
+5. **Wire up the development script** in `package.json` using `fetchlet dev`
+   (`docs/javascript/dev.md`):
+   - For frameworks that support `--vite` (Astro, React Router, TanStack Start,
+     Solid, SolidStart, Vite):
+     `fetchlet dev --vite "vite dev" --watch-rust -- cargo run --features vite-dev`
+     (use `"astro dev"` for Astro).
+   - For other frameworks (SvelteKit, Nuxt/Nitro, Hono/HonoX, Qwik City,
+     vinext, Waku):
+     `fetchlet dev --watch-rust -- cargo run --features dev`.
+6. **Connect request context & bindings** (`env`, `waitUntil`, `clientAddress`)
+   using the framework's page and `fetchlet/bindings` module augmentation
+   (`docs/javascript/runtime.md`).
 
 ## Verify
 
-- Run the Rust program, request a page, and confirm that it renders with its
-  client assets.
-- When the page uses a Web or Node.js API that fails, check
-  `docs/compatibility/web-api.md` and `docs/compatibility/node.md`.
+- Build the artifact, start the Rust host, and request a rendered page plus a
+  static client asset to confirm both succeed without errors.
+- If a Web or Node.js API fails at runtime, check
+  `docs/compatibility/web-api.md` and `docs/compatibility/node.md` before
+  adding polyfills or switching engines.
 
 ## Finish
 
 - Offer to add the contents of `node_modules/fetchlet/AGENTS_TEMPLATE.md` to
-  the project's instruction file, such as `AGENTS.md` or `CLAUDE.md`. Ask
-  before you create or change the file, and keep its other content.
-- Mention that `docs/agents.md` describes how to install the skills.
-- Report the installed packages and crates, the created and changed files,
-  and the verification results. Do not commit unless the user asks.
+  the project's instruction file (`AGENTS.md` or `CLAUDE.md`). Ask before
+  creating or editing it, and preserve existing content.
+- Mention that `docs/agents.md` explains how to install the bundled skills.
+- Report the installed packages and crates, created/changed files, and
+  verification results. Do not commit unless the user asks.

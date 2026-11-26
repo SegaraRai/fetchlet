@@ -14,9 +14,9 @@ framework files. Depending on your framework, it supports three workflows:
 | **Full rebuild** (default) | `--build <command>` | Re-runs the build command on file changes and reloads the artifact | SvelteKit, Nuxt/Nitro, Hono/HonoX, Qwik City, vinext, Waku, or custom builds |
 
 ```text
-fetchlet dev [--watch <path>]... [--build <command>] -- <server> [<argument>...]
-fetchlet dev --build-watch <command> [--out <directory>] -- <server> [<argument>...]
-fetchlet dev --vite <command> [--vite-port <port>] -- <server> [<argument>...]
+fetchlet dev [--watch <path>]... [--build <command>] [--watch-rust] -- <server> [<argument>...]
+fetchlet dev --build-watch <command> [--out <directory>] [--watch-rust] -- <server> [<argument>...]
+fetchlet dev --vite <command> [--vite-port <port>] [--watch-rust] -- <server> [<argument>...]
 ```
 
 | Option                    | Meaning                                                                                                         |
@@ -27,10 +27,14 @@ fetchlet dev --vite <command> [--vite-port <port>] -- <server> [<argument>...]
 | `--out <directory>`       | Artifact directory for `--build-watch` (default: `build`)                                                       |
 | `--vite <command>`        | Vite dev server command, such as `vite dev` or `astro dev`                                                      |
 | `--vite-port <port>`      | Port for the `--vite` dev server (default: an available port)                                                   |
+| `--watch-rust`            | Restart `<server>` automatically when `.rs`, `Cargo.toml`, or `Cargo.lock` files change (without rebuilding JS) |
 | `-- <server> ...`         | Rust host command and its arguments, passed through unchanged                                                   |
 
-Changes to your Rust source files (`.rs`) are not watched; restart `fetchlet dev`
-when you edit the Rust host.
+Without `--watch-rust`, Rust source files (`.rs`) are not watched. Add
+`--watch-rust` in any mode (`--vite`, `--build-watch`, or default rebuild) so
+editing your Rust host restarts only the server process while keeping Vite or
+your JS watcher running — even after a Rust compile error, `fetchlet dev` waits
+for your next save and retries automatically.
 
 ## Serving from Vite
 

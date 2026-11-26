@@ -59,8 +59,10 @@ preserving `maxAge` caching headers for entries such as `/_nuxt/`
   }
   ```
 
-- **Runtime config:** string bindings are copied into Nitro's `process.env`, so
-  bindings starting with `NUXT_` override Nuxt runtime config automatically.
+- **Runtime config:** Nitro reads runtime config overrides (keys starting with
+  `NUXT_`) from `process.env`. Expose those keys explicitly in Rust with
+  `HostServices::process_env("NUXT_...", value)` so they are available on both
+  `event.context.fetchlet.env` and `process.env`.
 - **Client IP & `waitUntil`:** `getRequestIP(event)` reads
   `event.context.clientAddress`, and `event.waitUntil(promise)` registers
   background work with Rust.

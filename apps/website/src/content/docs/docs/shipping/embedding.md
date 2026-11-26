@@ -22,18 +22,22 @@ First, enable `assets: true` in your framework adapter (or `--assets` in
 `fetchlet build`) so static files are packed into `build/assets.flpk`.
 
 Then embed the entire artifact directory at compile time with
-`fetchlet_http::include_artifact!`:
+`fetchlet_http::include_artifact!`, and optionally attach `.dev_directory(...)`
+so development builds with `dev-reload` still reload live from disk while
+release builds serve the embedded copy — with no `#[cfg]` branches needed:
 
 ```rust
 use fetchlet_http::{Artifact, Server};
 
-let artifact: Artifact = fetchlet_http::include_artifact!("../build");
-Server::from_artifact(artifact).serve(listener).await?;
+let artifact: Artifact = fetchlet_http::include_artifact!("../build")?;
+Server::from_artifact(artifact)
+    .dev_directory("build")
+    .serve(listener)
+    .await?;
 ```
 
-`Artifact::open("build")` loads the exact same layout from disk, making it easy
-to use an embedded copy by default while allowing an override directory during
-development or testing.
+For custom routers, `Artifact::open("build")` loads the exact same layout from
+disk.
 
 ## Connecting JavaScript and Rust
 

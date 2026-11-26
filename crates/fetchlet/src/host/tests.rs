@@ -629,3 +629,23 @@ async fn streamed_bodies_count_against_the_request_budget_as_they_are_read() {
         Err(Error::LimitExceeded("request body bytes"))
     ));
 }
+
+#[test]
+fn process_env_binds_both_env_and_process_env_without_duplicates() {
+    let hosts = HostServices::new()
+        .env("PRIVATE", "secret")
+        .unwrap()
+        .process_env("PUBLIC_KEY", "abc")
+        .unwrap();
+    assert_eq!(hosts.env.get("PRIVATE").map(String::as_str), Some("secret"));
+    assert_eq!(hosts.env.get("PUBLIC_KEY").map(String::as_str), Some("abc"));
+    assert!(!hosts.process_env.contains_key("PRIVATE"));
+    assert_eq!(
+        hosts.process_env.get("PUBLIC_KEY").map(String::as_str),
+        Some("abc")
+    );
+    assert!(matches!(
+        hosts.clone().process_env("PRIVATE", "dup"),
+        Err(Error::Configuration(_))
+    ));
+}
