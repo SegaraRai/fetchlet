@@ -92,6 +92,7 @@
   "dependencies": {
     "@fetchlet/node": "workspace:*",
     "@fetchlet/web": "workspace:*",
+    "crossws": "catalog:dep",
     "hono": "catalog:dep",
     "pathe": "catalog:dep",
     "rolldown": "catalog:dep"
@@ -108,7 +109,6 @@
     "@types/node": "catalog:",
     "astro": "catalog:",
     "buffer": "catalog:dep",
-    "crossws": "catalog:",
     "h3": "catalog:",
     "nitropack": "catalog:",
     "react": "catalog:",

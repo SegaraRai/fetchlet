@@ -239,9 +239,6 @@ catalogs:
     astro:
       specifier: 7.4.13
       version: 7.4.13
-    crossws:
-      specifier: 0.3.5
-      version: 0.3.5
     github-slugger:
       specifier: 2.0.0
       version: 2.0.0
@@ -378,6 +375,9 @@ catalogs:
     core-js-pure:
       specifier: ^3.51.0
       version: 3.51.0
+    crossws:
+      specifier: ^0.3.5
+      version: 0.3.5
     hono:
       specifier: ^4.13.19
       version: 4.13.19
@@ -1013,6 +1013,9 @@ importers:
       '@fetchlet/web':
         specifier: workspace:*
         version: link:../web
+      crossws:
+        specifier: catalog:dep
+        version: 0.3.5
       hono:
         specifier: catalog:dep
         version: 4.13.19
@@ -1056,9 +1059,6 @@ importers:
       buffer:
         specifier: catalog:dep
         version: 6.0.3
-      crossws:
-        specifier: 'catalog:'
-        version: 0.3.5
       h3:
         specifier: 'catalog:'
         version: 1.15.11
