@@ -5,8 +5,8 @@ fetchlet artifact. Solid 2 builds full-stack applications with
 `@solidjs/vite-plugin` in server mode (`start` with `ssr: true`), which
 replaces SolidStart for Solid 2; use [fetchlet/solid-start](solid-start.md)
 for SolidStart with Solid 1.
-[examples/solid-axum](../../../examples/solid-axum/README.md) checks it;
-[reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/solid-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/solid-axum/README.md) checks it;
+[reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts
@@ -53,7 +53,7 @@ Solid libraries from source for SSR, and `worker` selects Web-standard
 builds of other dependencies.
 
 `assets: true` packs the client assets into `assets.flpk` and caches
-`assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
+`assets/` for a year ([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Development serving
 
@@ -69,7 +69,7 @@ modules and registers the server functions itself, and reads the browser
 assets of each page from Solid's development manifest on the Vite server,
 which the runner reaches through the host's binding. The plugin returns an
 array of plugins.
-[examples/solid-axum](../../../examples/solid-axum/README.md#develop-from-vite)
+[examples/solid-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/solid-axum/README.md#develop-from-vite)
 has a `dev:vite` task.
 
 ## Request context
@@ -98,5 +98,5 @@ declare module "fetchlet/bindings" {
 
 Solid's server runtime keeps the request event in `AsyncLocalStorage`, so
 the plugin enables the builder's `asyncContext: "serialized"`. The same
-[concurrency limitation](../../../docs/TODO.md#framework-runtime-needs-beyond-wintertc)
+[concurrency limitation](https://github.com/SegaraRai/fetchlet/blob/main/docs/TODO.md#framework-runtime-needs-beyond-wintertc)
 as the other adapters applies.

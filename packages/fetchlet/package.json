@@ -13,7 +13,9 @@
   },
   "files": [
     "dist",
-    "docs"
+    "docs",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
   ],
   "type": "module",
   "exports": {

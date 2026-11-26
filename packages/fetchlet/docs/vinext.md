@@ -3,7 +3,7 @@
 A Vite plugin that bundles the App Router server of
 [vinext](https://github.com/cloudflare/vinext), an implementation of the
 Next.js API on Vite, into a fetchlet artifact. Supports vinext 1;
-[examples/vinext-axum](../../../examples/vinext-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/vinext-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/vinext-axum/README.md) checks it; [reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts
@@ -31,13 +31,13 @@ which selects the server builds of React's server packages, such as
 `react-dom/server.edge`.
 
 `assets: true` packs the client assets into `assets.flpk` and caches
-`_next/static/` for a year ([asset archive](../../../docs/asset-archive.md)).
+`_next/static/` for a year ([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Node APIs
 
 vinext's server uses Node APIs on the assumption of Cloudflare Workers'
 `nodejs_compat`. `node:buffer`, `node:crypto` and the other modules every
-artifact gets come from fetchlet/build ([Node.js compatibility](../../../docs/node-compat.md)).
+artifact gets come from fetchlet/build ([Node.js compatibility](https://github.com/SegaraRai/fetchlet/blob/main/docs/node-compat.md)).
 The plugin replaces the rest in the artifact bundle:
 
 | Module or value | Replacement                                                                         |
@@ -65,7 +65,7 @@ It works in server components, route handlers and server actions.
 ## Budgets
 
 On the first request vinext registers a `waitUntil` for each route module
-preload. [examples/vinext-axum](../../../examples/vinext-axum/README.md) sets
+preload. [examples/vinext-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/vinext-axum/README.md) sets
 `background_tasks` to 64; with 8, rendering the first page exceeded the
 budget.
 

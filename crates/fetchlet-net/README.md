@@ -14,10 +14,9 @@ crate.
 | `sockets` (default)   | `TcpTransport`, the TCP and TLS transport of JavaScript's `connect()` |
 | `websocket` (default) | `WebSocketClient`, the transport of JavaScript's global `WebSocket`   |
 
-```toml
-[dependencies]
-fetchlet = { version = "...", features = ["quickjs"] }
-fetchlet-net = "..."
+```sh
+cargo add fetchlet --features quickjs
+cargo add fetchlet-net
 ```
 
 `rustls` is re-exported for TLS configurations given to `with_tls_config`.

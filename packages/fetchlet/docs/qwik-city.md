@@ -2,7 +2,7 @@
 
 A Vite plugin and middleware that bundle a Qwik City 1 SSR build into a
 fetchlet artifact. Supports `@builder.io/qwik-city` 1;
-[examples/qwik-city-axum](../../../examples/qwik-city-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/qwik-city-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/qwik-city-axum/README.md) checks it; [reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts
@@ -47,7 +47,7 @@ names Qwik derives from module paths are renamed to names Rolldown accepts
 
 `assets: true` packs the client assets into `assets.flpk` and caches
 `build/` and `assets/` for a year
-([asset archive](../../../docs/asset-archive.md)).
+([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Request event
 

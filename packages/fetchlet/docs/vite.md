@@ -4,8 +4,8 @@ A Vite plugin for applications without a framework: a server module in the
 Workers module shape, and optional browser entries. `vite build` builds the
 browser entries into `build/client/`, then the server module into
 `build/server.js` and `build/fetchlet.json`.
-[examples/vanilla-axum](../../../examples/vanilla-axum/README.md) checks it;
-[reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/vanilla-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/vanilla-axum/README.md) checks it;
+[reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts
@@ -47,7 +47,7 @@ handler. The export name `handle` is reserved for the handler the plugin
 generates. A module without a default export builds an artifact of
 functions only, as described in
 [fetchlet/build](build.md#a-server-module-without-a-framework);
-[examples/vanilla-cli](../../../examples/vanilla-cli/README.md) calls one
+[examples/vanilla-cli](https://github.com/SegaraRai/fetchlet/blob/main/examples/vanilla-cli/README.md) calls one
 from a command line program.
 
 ```ts
@@ -101,12 +101,12 @@ the artifact has no client assets.
 
 `assets: true` packs the client assets into `assets.flpk` and caches the
 hashed files under Vite's `build.assetsDir` (`assets/` by default) for a
-year ([asset archive](../../../docs/asset-archive.md)).
+year ([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Development serving
 
 `vite dev` with this plugin serves a Rust host that uses fetchlet-http's
-`ViteDev` ([fetchlet-http](../../../crates/fetchlet-http/README.md#running-from-a-vite-dev-server)).
+`ViteDev` ([fetchlet-http](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-http/README.md#running-from-a-vite-dev-server)).
 The Rust program stays the front door and runs the server module on its own
 engine; Vite serves the browser modules with hot module replacement:
 
@@ -135,7 +135,7 @@ engine; Vite serves the browser modules with hot module replacement:
 
 The named exports the host can call are read when the development artifact
 is built; a function exported later needs a dev server restart.
-[examples/vanilla-axum](../../../examples/vanilla-axum/README.md#develop-from-vite)
+[examples/vanilla-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/vanilla-axum/README.md#develop-from-vite)
 has a `dev:vite` task that starts both.
 
 ## Without Vite

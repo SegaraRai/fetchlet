@@ -3,9 +3,9 @@
 A Vite plugin that bundles a Hono or HonoX app into a fetchlet artifact. It
 builds the app with `@hono/vite-build` and then runs [`fetchlet/build`](build.md).
 Supports `@hono/vite-build` 1;
-[examples/honox-axum](../../../examples/honox-axum/README.md) and
-[examples/honox-tauri](../../../examples/honox-tauri/README.md) check it, and
-[reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/honox-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/honox-axum/README.md) and
+[examples/honox-tauri](https://github.com/SegaraRai/fetchlet/blob/main/examples/honox-tauri/README.md) check it, and
+[reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts
@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
 `requirements` are the builder's settings, and `external` is passed to `@hono/vite-build`.
 The named exports of the modules listed in `functions` become functions that
 Rust calls with `App::call` or `AppHandle::call`, next to the Fetch handler
-(`handle` is reserved). [HonoX + Tauri](../../../examples/honox-tauri/README.md)
+(`handle` is reserved). [HonoX + Tauri](https://github.com/SegaraRai/fetchlet/blob/main/examples/honox-tauri/README.md)
 uses them.
 
 Libraries that need WebAssembly do not run on the `quickjs` and `boa`
@@ -35,7 +35,7 @@ to `build/client`.
 `assets` packs the client assets into `assets.flpk`. Hono's public files are
 not necessarily hashed, so there is no default caching rule; set it with
 `assets: { cache }` (examples/honox-axum caches `/static/` for a year). See
-[asset archive](../../../docs/asset-archive.md).
+[asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md).
 
 ## Values from Rust
 

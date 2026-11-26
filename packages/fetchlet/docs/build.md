@@ -229,7 +229,7 @@ line. [fetchlet dev](dev.md) runs it again on changes with
 | Setting                      | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asyncContext: "serialized"` | Replaces `node:async_hooks` with an `AsyncLocalStorage` that keeps its store for one invocation. `run` keeps the store until the callback's promise settles; `snapshot` and `bind` capture every storage's value. Each storage keeps its unsettled `run`s in start order and returns the value of the last started one; settled `run`s are removed regardless of order, so overlapping `run`s that settle out of order leave no settled store behind. The app runs invocations serially, so per-invocation context is correct. Within one invocation, concurrent `run`s see the store of the last started `run` (they are not isolated). Implemented in `@fetchlet/node/async-hooks/serialized`, tested by `vp run test:js` |
-| `asyncContext: "propagated"` | Replaces `node:async_hooks` with `AsyncLocalStorage` and `AsyncResource` over the engine's async context slot, which carries the context through promise reactions. Concurrent `run`s keep their own stores across `await`, timers and messages, with Node's semantics, including `enterWith` and `disable`. Requires V8 or Boa; the module throws when it loads on QuickJS. Implemented in `@fetchlet/node/async-hooks`, compared with Node's `AsyncLocalStorage` by `vp run test:js`; see the [async context design](../../../docs/research/async-context.md)                                                                                                                                                             |
+| `asyncContext: "propagated"` | Replaces `node:async_hooks` with `AsyncLocalStorage` and `AsyncResource` over the engine's async context slot, which carries the context through promise reactions. Concurrent `run`s keep their own stores across `await`, timers and messages, with Node's semantics, including `enterWith` and `disable`. Requires V8 or Boa; the module throws when it loads on QuickJS. Implemented in `@fetchlet/node/async-hooks`, compared with Node's `AsyncLocalStorage` by `vp run test:js`; see the [async context design](https://github.com/SegaraRai/fetchlet/blob/main/docs/research/async-context.md)                                                                                                                      |
 | `conditions`                 | Conditions added to [fetchlet's export conditions](#export-conditions) for the rebundle, for dependencies the framework left external, such as `workerd`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `plugins`                    | Extra Rolldown plugins for the rebundle; vinext uses them to replace Node APIs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `define`                     | Global expressions to replace, in addition to `process.env.NODE_ENV`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -241,7 +241,7 @@ written next to the sources. `entry` takes a module path or
 adapter passes the entry that connects its framework's server build this
 way. Node built-in modules resolve to fetchlet's implementations, and the
 `Buffer`, `process`, `setImmediate` and `clearImmediate` globals are imported
-into the modules that reference them ([Node.js compatibility](../../../docs/node-compat.md)).
+into the modules that reference them ([Node.js compatibility](https://github.com/SegaraRai/fetchlet/blob/main/docs/node-compat.md)).
 Adapter plugins run first and may replace any of them. Other built-ins resolve
 to an npm package of the same name when one is installed, and otherwise to a
 stub that loads and throws `ERR_METHOD_NOT_IMPLEMENTED` where it is called.
@@ -301,7 +301,7 @@ entries. Each framework adapter takes the same `assets` on top of the
 framework's defaults, such as `Cache-Control: immutable` for hashed files.
 Text is stored with Brotli at quality 11; Rust's `AssetService` sends it as
 it is to clients that accept `br` and decompressed to others. [Asset
-archive](../../../docs/asset-archive.md) describes the format and rules.
+archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md) describes the format and rules.
 
 ## Artifact
 
@@ -310,7 +310,7 @@ Each framework adapter produces the client assets. The manifest records the
 backend, required APIs, native assumptions, the polyfills and modules
 actually selected, and the locale and time zone settings. Rust's `Module`
 takes source only, so selecting by this metadata on the Rust side is open
-work ([capability negotiation](../../../docs/TODO.md#capability-negotiation)).
+work ([capability negotiation](https://github.com/SegaraRai/fetchlet/blob/main/docs/TODO.md#capability-negotiation)).
 
 `fetchlet.json` is written last, after `server.js` and `assets.flpk`,
 through a temporary file and a rename. A reader that sees a new manifest
@@ -329,7 +329,7 @@ vp run test:polyfills
 The tests cover API dependencies, locale selection, Japanese and Tokyo
 output, keeping native constructors, leaving FormatJS out of `v8` builds and
 capability mismatches. Module lists and bundle sizes are in
-[reference](../../../docs/reference/README.md#polyfills).
+[reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#polyfills).
 
 The loading order of dependencies and data follows FormatJS's requirements
 for [NumberFormat](https://formatjs.github.io/docs/polyfills/intl-numberformat/)

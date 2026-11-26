@@ -24,7 +24,7 @@ export function add(left: number, right: number) {
 before the application's modules evaluate, so `getBindings()` also works at
 module scope, like `import { env } from "cloudflare:workers"` on Workers.
 `process.env` does not carry them. JavaScript `fetch` goes to
-Rust's host services. [Web API profile](../../../docs/web-api.md) lists what
+Rust's host services. [Web API profile](https://github.com/SegaraRai/fetchlet/blob/main/docs/web-api.md) lists what
 the profile provides.
 
 ## Binding types
@@ -53,7 +53,7 @@ declare module "fetchlet/bindings" {
 ```
 
 `env.DB` calls Rust functions directly
-([function bindings](../../../docs/host-services.md#function-bindings)).
+([function bindings](https://github.com/SegaraRai/fetchlet/blob/main/docs/host-services.md#function-bindings)).
 A method Rust adds as async returns a Promise; a sync method returns its
 result. Arguments cross as `JSON.stringify` encodes them, except that an
 `ArrayBuffer` or view, such as a `Uint8Array`, crosses as its bytes;
@@ -73,7 +73,7 @@ const thumbnail: Uint8Array = await env.IMAGES.resize(await file.bytes(), 128);
 belongs to the current invocation. Take one view of it: `socket()`, a
 WebSocket of its messages, or `stream()`, a `readable` and `writable` of
 bytes. `opened` rejects when the service refuses, and `closed` settles with
-the close code and reason ([host services](../../../docs/host-services.md#channels)):
+the close code and reason ([host services](https://github.com/SegaraRai/fetchlet/blob/main/docs/host-services.md#channels)):
 
 ```ts
 const channel = env.PROGRESS.connect({ steps: 3, bytes: true });
@@ -81,7 +81,7 @@ return new Response(channel.stream().readable);
 ```
 
 Rust can also lend channels to a function call with `Call`
-([calls](../../../docs/host-services.md#calls-with-bytes-channels-and-context)).
+([calls](https://github.com/SegaraRai/fetchlet/blob/main/docs/host-services.md#calls-with-bytes-channels-and-context)).
 They arrive in the export's arguments as the same channel objects, typed
 `HostChannel` from `fetchlet/bindings`, and close when the call ends:
 
@@ -105,7 +105,7 @@ export's result reaches Rust as its bytes rather than as JSON.
 `connect`. Rust's socket service authorizes the address and opens the
 connection; without one, or for an address its policy refuses, the
 socket's `opened` and `closed` reject
-([host services](../../../docs/host-services.md#sockets)):
+([host services](https://github.com/SegaraRai/fetchlet/blob/main/docs/host-services.md#sockets)):
 
 ```ts
 import { connect } from "fetchlet/runtime";
@@ -138,7 +138,7 @@ await secure.opened;
 The global `WebSocket` connects to a server through Rust's WebSocket
 service, which authorizes the URL's origin with the same kind of policy as
 `fetch` and may add credentials to the handshake that JavaScript does not
-see ([host services](../../../docs/host-services.md#client-websockets)):
+see ([host services](https://github.com/SegaraRai/fetchlet/blob/main/docs/host-services.md#client-websockets)):
 
 ```ts
 const socket = new WebSocket("wss://chat.example.com/room", ["chat.v2"]);
@@ -189,7 +189,7 @@ connection.
 host holds connections: Rust sets `Instances::max_held_connections` and
 serves the upgrade, as fetchlet-http's `websocket` and `actix-websocket`
 features do for axum and actix-web
-([WebSocket upgrades](../../../crates/fetchlet-http/README.md#websocket-upgrades)).
+([WebSocket upgrades](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-http/README.md#websocket-upgrades)).
 A socket the handler accepts but does not return closes when the invocation
 ends. Outgoing connections use the global `WebSocket`
 ([client WebSockets](#client-websockets)).
@@ -249,5 +249,5 @@ response that is still bytes goes to the wire without a stream.
 `Blob.stream()` returns a byte stream where ArrayBuffer transfer is
 available, which is every engine with fetchlet's backends.
 
-[Conformance](../../../docs/conformance.md) lists the tests that cover the
+[Conformance](https://github.com/SegaraRai/fetchlet/blob/main/docs/conformance.md) lists the tests that cover the
 profile and its known differences.

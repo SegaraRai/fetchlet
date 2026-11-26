@@ -2,8 +2,8 @@
 // agree on the release version and carry the metadata a release needs:
 // `vp run check:release`.
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join, posix } from "node:path";
 
 import { root } from "@fetchlet-internal/tools-workspace/paths";
 
@@ -93,6 +93,61 @@ for (const member of packages.filter((each) => each.publish === null)) {
         `crate ${member.name} requires ${dependency.name} ${dependency.req}; ` +
           `published crates require each other at =${version}`,
       );
+    }
+  }
+}
+
+// The MIT and Apache licenses ask that copies carry the license text, so each
+// released package and crate holds a copy of the repository's license files.
+const licenseFiles = ["LICENSE-APACHE", "LICENSE-MIT"];
+const licenseDirectories = [
+  ...releasedPackageDirectories(),
+  ...publishedCrates.map((crate) => `crates/${crate}`),
+];
+for (const file of licenseFiles) {
+  const text = readFileSync(join(root, file), "utf8");
+  for (const directory of licenseDirectories) {
+    const path = join(root, directory, file);
+    if (!existsSync(path) || readFileSync(path, "utf8") !== text) {
+      problems.push(`${directory}/${file} must be a copy of ${file}`);
+    }
+  }
+}
+for (const directory of releasedPackageDirectories()) {
+  const files = (readPackage(directory) as { files?: string[] }).files ?? [];
+  for (const file of licenseFiles.filter((name) => !files.includes(name))) {
+    problems.push(`${directory}/package.json must list ${file} in "files"`);
+  }
+}
+
+// npm shows a package's README without the repository around it, so its
+// relative links, and those of the documents it ships that leave the package,
+// point nowhere. They link to the repository instead.
+const markdownLink = /\]\(([^)\s#]+)/g;
+for (const directory of releasedPackageDirectories()) {
+  const shipped = [
+    "README.md",
+    ...((readPackage(directory) as { files?: string[] }).files ?? [])
+      .filter((entry) => existsSync(join(root, directory, entry)))
+      .flatMap((entry) =>
+        statSync(join(root, directory, entry)).isDirectory()
+          ? readdirSync(join(root, directory, entry), { recursive: true, encoding: "utf8" }).map(
+              (file) => `${entry}/${file.replaceAll("\\", "/")}`,
+            )
+          : [entry],
+      )
+      .filter((file) => file.endsWith(".md")),
+  ];
+  for (const file of shipped) {
+    const text = readFileSync(join(root, directory, file), "utf8");
+    for (const [, target = ""] of text.matchAll(markdownLink)) {
+      if (/^[a-z]+:/i.test(target)) {
+        continue;
+      }
+      const resolved = posix.normalize(posix.join(directory, posix.dirname(file), target));
+      if (file === "README.md" || !resolved.startsWith(`${directory}/`)) {
+        problems.push(`${directory}/${file} links to ${target}; link to the repository instead`);
+      }
     }
   }
 }

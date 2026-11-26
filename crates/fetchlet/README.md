@@ -3,6 +3,10 @@
 Calls JavaScript functions and Fetch handlers from Rust. Requests,
 responses and named functions share one runtime on QuickJS, Boa or V8.
 
+```sh
+cargo add fetchlet
+```
+
 | Feature             | Adds                                                     |
 | ------------------- | -------------------------------------------------------- |
 | `quickjs` (default) | `Backend::quickjs()`, `Backend::QuickJs(QuickJsOptions)` |
@@ -28,11 +32,12 @@ parser instead of the `url` crate.
 
 | Feature              | Adds                                                    |
 | -------------------- | ------------------------------------------------------- |
-| `web-apis` (default) | All four below                                          |
+| `web-apis` (default) | All five below                                          |
 | `url`                | `URL` parsing and setters in Rust                       |
 | `url-pattern`        | `URLPattern`                                            |
 | `compression`        | `CompressionStream`, `DecompressionStream`              |
 | `web-crypto`         | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` |
+| `node-crypto`        | `node:crypto` hashes, HMAC, PBKDF2, HKDF and scrypt     |
 
 On Windows with MSVC, `v8` links V8's prebuilt library, which is compiled
 against the static C runtime. Build the binary with the static runtime as

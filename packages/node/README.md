@@ -1,13 +1,13 @@
 # @fetchlet/node
 
 Node.js built-in modules for code that runs inside a fetchlet engine. They
-build on the [Web API profile](../../docs/web-api.md) and, for cryptography
+build on the [Web API profile](https://github.com/SegaraRai/fetchlet/blob/main/docs/web-api.md) and, for cryptography
 and compression, on the `nodeCrypto.*`, `crypto.*` and `compression.*` host
-operations of [fetchlet-web](../../crates/fetchlet-web/README.md).
+operations of [fetchlet-web](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-web/README.md).
 `node:stream` is [readable-stream](https://github.com/nodejs/readable-stream),
 the port of Node's own streams.
-[`fetchlet/build`](../../docs/build.md) resolves `node:*` imports to these
-modules; see [Node.js compatibility](../../docs/node-compat.md) for what each
+[`fetchlet/build`](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/build.md) resolves `node:*` imports to these
+modules; see [Node.js compatibility](https://github.com/SegaraRai/fetchlet/blob/main/docs/node-compat.md) for what each
 one covers.
 
 | Subpath                                 | Module                                                                  |
@@ -46,7 +46,7 @@ and assembles its default export. The implementations live in
 `stream`, `url`, `util`, `zlib` and so on), and import each other there
 rather than through the subpaths.
 
-[fetchlet](../fetchlet/README.md) depends on the package, and
+[fetchlet](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/README.md) depends on the package, and
 `fetchlet/build` resolves `node:*` imports to its subpaths from there, so
 applications get it through `fetchlet` and do not install it themselves. In
 the workspace the subpaths point at the TypeScript sources;
@@ -69,5 +69,5 @@ Node's does.
 The tests compare each module with Node's own. For `node:crypto` and
 `node:zlib` they install a stand-in host whose operations Node computes; the
 crate checks the real operations against published test vectors, and the
-[runtime matrix](../../docs/verification.md) runs the modules on QuickJS, Boa
+[runtime matrix](https://github.com/SegaraRai/fetchlet/blob/main/docs/verification.md) runs the modules on QuickJS, Boa
 and V8 against Node.

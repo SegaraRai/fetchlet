@@ -2,7 +2,7 @@
 
 A Vite plugin that bundles TanStack Start's server environment into a
 fetchlet artifact. Supports `@tanstack/react-start` 1;
-[examples/tanstack-start-axum](../../../examples/tanstack-start-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/tanstack-start-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/tanstack-start-axum/README.md) checks it; [reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 // vite.config.ts
@@ -41,7 +41,7 @@ uses `MessageChannel`). `process.env.TSS_PRERENDERING` and `TSS_SHELL`,
 which Start reads while evaluating modules, are replaced with `"false"`.
 
 `assets: true` packs the client assets into `assets.flpk` and caches
-`assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
+`assets/` for a year ([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Request context
 
@@ -86,11 +86,11 @@ modules with React Fast Refresh.
   a few seconds, and the runner loads the modules again after Vite reloads
   the environment.
 
-[examples/tanstack-start-axum](../../../examples/tanstack-start-axum/README.md#develop-from-vite)
+[examples/tanstack-start-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/tanstack-start-axum/README.md#develop-from-vite)
 has a `dev:vite` task.
 
 ## Tests and next work
 
-[examples/tanstack-start-axum](../../../examples/tanstack-start-axum/README.md)
+[examples/tanstack-start-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/tanstack-start-axum/README.md)
 runs the shared example checks. Prerendering, SPA mode and TanStack Start
 for Solid need their own tests.

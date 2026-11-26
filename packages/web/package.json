@@ -9,7 +9,9 @@
     "directory": "packages/web"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
   ],
   "type": "module",
   "exports": {

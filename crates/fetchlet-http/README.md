@@ -17,10 +17,9 @@ Serves a shared fetchlet application (`fetchlet::AppHandle`) over HTTP. The Towe
 The transports of JavaScript's outbound sockets and WebSockets are in
 [fetchlet-net](../fetchlet-net/README.md).
 
-```toml
-[dependencies]
-fetchlet = { version = "...", features = ["quickjs"] }
-fetchlet-http = { version = "...", features = ["axum"] }
+```sh
+cargo add fetchlet --features quickjs
+cargo add fetchlet-http --features axum
 ```
 
 ## Serving a build with `Server`

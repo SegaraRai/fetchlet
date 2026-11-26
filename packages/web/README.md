@@ -3,8 +3,8 @@
 The Web API implementations that run inside a fetchlet engine: Fetch,
 Headers, Body, Blob, FormData, Encoding, Events, Abort, Streams, timers,
 Compression, URLPattern and Web Crypto. They call the host operations of the
-[fetchlet-web](../../crates/fetchlet-web/README.md) crate and install each API
-only when the host reports it ([Web API profile](../../docs/web-api.md)).
+[fetchlet-web](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-web/README.md) crate and install each API
+only when the host reports it ([Web API profile](https://github.com/SegaraRai/fetchlet/blob/main/docs/web-api.md)).
 
 | Subpath                       | Contents                                                      |
 | ----------------------------- | ------------------------------------------------------------- |
@@ -23,7 +23,7 @@ host APIs a global needs, and how a missing API is polyfilled or why it
 cannot be. The polyfill packages they name, the pinned FormatJS releases,
 are dependencies of this package and resolve from it.
 
-[fetchlet](../fetchlet/README.md) depends on the package and initializes it in
+[fetchlet](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/README.md) depends on the package and initializes it in
 `fetchlet/runtime`, so applications get it through `fetchlet` and do not
 install it themselves. In the workspace the subpaths point at the TypeScript
 sources; `vp run @fetchlet/web#build` compiles them and their declarations
@@ -32,6 +32,6 @@ into `dist/`, which the published manifest (`publishConfig.exports`) names.
 `@fetchlet/web/capabilities` exports `PROTOCOL_VERSION` and
 `hostOperations`, the operations of each fetchlet-web API. Both are written,
 with the host's copy, from
-[crates/fetchlet-web/protocol.json](../../crates/fetchlet-web/protocol.json)
+[crates/fetchlet-web/protocol.json](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-web/protocol.json)
 by `vp run build:protocol`; the package's tests check that the profile calls
 only listed operations.

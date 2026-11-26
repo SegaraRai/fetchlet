@@ -36,11 +36,70 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-`vp run build:fixtures` builds the bundle this example loads; `vp run
-example:embed` runs it. The 1 MiB collection limit and the queue of eight
+In this repository, `vp run build:fixtures` builds the bundle this example
+loads and `vp run example:embed` runs it. The 1 MiB collection limit and the queue of eight
 are budgets the caller chooses. `app.call("transform", &input)` calls a
 function with a Serde value and `app.call_json("add", &[...])` with several
 JSON arguments.
+
+## Getting started
+
+A fetchlet application has two halves: the `fetchlet` npm package builds the
+framework's server output into an artifact directory, and a Rust program
+serves that directory with the `fetchlet` and `fetchlet-http` crates. The
+build needs Node 20.19, 22.12, 24 or later, and the crates Rust 1.100 or
+later.
+
+In the JavaScript project, install the package next to the framework and
+use its adapter. For SvelteKit:
+
+```sh
+npm install --save-dev fetchlet
+```
+
+```ts
+// vite.config.ts
+import { sveltekit } from "@sveltejs/kit/vite";
+import fetchletAdapter from "fetchlet/sveltekit";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [sveltekit({ adapter: fetchletAdapter({ out: "build" }) })],
+});
+```
+
+`vite build` then writes `build/` with `server.js`, `fetchlet.json` and the
+client assets. The [fetchlet package](packages/fetchlet/README.md) lists the
+adapters for the other frameworks, and the `fetchlet build` command builds a
+server module into an artifact without Vite.
+
+In the Rust program, add the crates. `fetchlet` runs QuickJS by default;
+the `boa` and `v8` features add the other engines.
+
+```sh
+cargo add fetchlet
+cargo add fetchlet-http --features axum
+cargo add tokio --features macros,rt-multi-thread,net
+cargo add anyhow
+```
+
+```rust,ignore
+use fetchlet_http::Server;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+    println!("Listening on http://127.0.0.1:3000");
+    Server::new("build").serve(listener).await?;
+    Ok(())
+}
+```
+
+`Server` serves the client assets and passes every other request to the
+application; it also takes Rust routes, host services and limits
+([fetchlet-http](crates/fetchlet-http/README.md#serving-a-build-with-server)).
+To ship one binary, `include_artifact!` embeds the build
+([embedding and distribution](docs/embedding.md)).
 
 ## Features
 

@@ -1,6 +1,6 @@
 # fetchlet dev
 
-`fetchlet dev` runs a development loop for a Rust host that reloads its artifact: it builds the artifact, starts the host, and builds again whenever a watched source changes. The host keeps running across builds and serves each new one, as fetchlet-http's `DevReload` does ([reloading during development](../../../crates/fetchlet-http/README.md#reloading-during-development)).
+`fetchlet dev` runs a development loop for a Rust host that reloads its artifact: it builds the artifact, starts the host, and builds again whenever a watched source changes. The host keeps running across builds and serves each new one, as fetchlet-http's `DevReload` does ([reloading during development](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-http/README.md#reloading-during-development)).
 
 ```text
 fetchlet dev [--watch <path>]... [--build <command>] -- <server> [<argument>...]
@@ -48,7 +48,7 @@ A watching build only suits an integration whose artifact stays consistent acros
 }
 ```
 
-The other integrations use full builds; [the development loop research](../../../docs/research/dev-loop.md#a-watch-build-and-artifact-reload) records how each behaved under `vite build --watch`.
+The other integrations use full builds; [the development loop research](https://github.com/SegaraRai/fetchlet/blob/main/docs/research/dev-loop.md#a-watch-build-and-artifact-reload) records how each behaved under `vite build --watch`.
 
 ## Serving from Vite
 

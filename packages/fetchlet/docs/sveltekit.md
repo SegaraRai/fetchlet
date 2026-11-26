@@ -3,9 +3,9 @@
 A SvelteKit adapter. It bundles the SvelteKit server into a fetchlet
 artifact and writes the client assets and manifest. Supports SvelteKit 3 in
 both the synchronous (default) and asynchronous rendering profiles;
-[examples/sveltekit-axum](../../../examples/sveltekit-axum/README.md) and
-[examples/sveltekit-axum-tauri](../../../examples/sveltekit-axum-tauri/README.md)
-check them, and [reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/sveltekit-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/sveltekit-axum/README.md) and
+[examples/sveltekit-axum-tauri](https://github.com/SegaraRai/fetchlet/blob/main/examples/sveltekit-axum-tauri/README.md)
+check them, and [reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 import { sveltekit } from "@sveltejs/kit/vite";
@@ -45,7 +45,7 @@ or a trailing slash, matching SvelteKit's default `trailingSlash: "never"`.
 and extra entries; a function returns the entries itself (`respond` runs
 after the immutable rule). Rust reads the archive with `Artifact::open` or
 `include_artifact!` and serves it with `artifact_router`
-([asset archive](../../../docs/asset-archive.md)).
+([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Rendering profiles
 

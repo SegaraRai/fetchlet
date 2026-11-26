@@ -29,6 +29,18 @@ actix = ["dep:actix-web", "dep:futures-core", "dep:tokio"]
 actix-websocket = ["actix", "dep:actix-ws", "dep:actix-http"]
 hyper = ["dep:hyper"]
 
+# Every integration, and an engine on fetchlet so that `Server` is documented.
+[package.metadata.docs.rs]
+features = [
+  "fetchlet/quickjs",
+  "process",
+  "dev-reload",
+  "vite-dev",
+  "axum-websocket",
+  "actix-websocket",
+  "hyper",
+]
+
 [dependencies]
 fetchlet.workspace = true
 actix-web = { workspace = true, optional = true }

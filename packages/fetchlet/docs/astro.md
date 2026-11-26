@@ -3,7 +3,7 @@
 An Astro adapter. It connects Request and Response through Astro's official
 server entrypoint API and builds the artifact with
 [`fetchlet/build`](build.md). Supports Astro 7 server output;
-[examples/astro-axum](../../../examples/astro-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/astro-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/astro-axum/README.md) checks it; [reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```js
 import { defineConfig } from "astro/config";
@@ -43,7 +43,7 @@ backends ([engine limits](build.md#engine-limits)).
 `assets: true` packs the client assets into `assets.flpk`, caches
 `build.assets` (`_astro` by default) for a year, and maps page paths
 according to `trailingSlash` and `build.format`
-([asset archive](../../../docs/asset-archive.md)).
+([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Development serving
 
@@ -68,7 +68,7 @@ Astro renders in Node whenever its `ssr` environment is runnable, so the
 adapter replaces it with a plain `DevEnvironment` that the engine's runner
 fetches from. Astro reloads open pages after an edit to a page or a server
 module.
-[examples/astro-axum](../../../examples/astro-axum/README.md#develop-from-vite)
+[examples/astro-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/astro-axum/README.md#develop-from-vite)
 has a `dev:vite` task.
 
 A request the client cancels, as Astro's client router does when it

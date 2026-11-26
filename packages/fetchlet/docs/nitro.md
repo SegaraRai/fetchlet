@@ -3,7 +3,7 @@
 A Nitro preset that bundles a Nitro server into a fetchlet artifact.
 Frameworks built on Nitro, such as Nuxt, produce the same artifact with
 `nitro.preset`. Supports nitropack 2 with h3 1;
-[examples/nuxt-axum](../../../examples/nuxt-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/nuxt-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/nuxt-axum/README.md) checks it; [reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 /// <reference types="fetchlet/nitro/types" />
@@ -36,13 +36,13 @@ Nitro's worker presets polyfill Node's built-in modules with unenv. The
 preset keeps the modules fetchlet implements, and the `Buffer`, `process`,
 `setImmediate` and `clearImmediate` globals, as imports for `fetchlet/build`,
 so Nitro code gets the same `node:crypto`, `node:async_hooks` and other
-modules as every artifact ([Node.js compatibility](../../../docs/node-compat.md)).
+modules as every artifact ([Node.js compatibility](https://github.com/SegaraRai/fetchlet/blob/main/docs/node-compat.md)).
 unenv still provides the rest. The artifact builds with
 `asyncContext: "serialized"`.
 
 `nitro.fetchlet.assets: true` packs the public assets into `assets.flpk`
 and caches each `publicAssets` entry that has a `maxAge` (Nuxt's `/_nuxt/`,
-for example) for that age ([asset archive](../../../docs/asset-archive.md)).
+for example) for that age ([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Requests and context
 
@@ -74,11 +74,11 @@ for example) for that age ([asset archive](../../../docs/asset-archive.md)).
   `event.context.fetchlet` and the client address. Global `$fetch` with a
   path also stays inside Nitro, but its event has no
   `event.context.fetchlet`. An absolute URL through `fetch` is a host fetch
-  ([framework fetches](../../../docs/in-process-fetch.md#framework-fetches)).
+  ([framework fetches](https://github.com/SegaraRai/fetchlet/blob/main/docs/in-process-fetch.md#framework-fetches)).
 
 ## Tests and next work
 
-[examples/nuxt-axum](../../../examples/nuxt-axum/README.md) checks SSR,
+[examples/nuxt-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/nuxt-axum/README.md) checks SSR,
 assets, server routes, cookies, runtime config, the Rust service binding,
 streaming uploads, `event.waitUntil`, hydration and client navigation on
 QuickJS, and a `defineWebSocketHandler` route held on one of two
@@ -89,4 +89,4 @@ crossws's Deno adapter, whose `Deno.upgradeWebSocket` it replaces in that
 module with `upgradeWebSocket` from `fetchlet/runtime/handler`. Rust bounds
 the connections with `Instances::max_held_connections`.
 
-Nitro 3 with h3 2, streaming response bodies and scheduled tasks are next ([open work](../../../docs/TODO.md#nitro-3-and-h3-2)).
+Nitro 3 with h3 2, streaming response bodies and scheduled tasks are next ([open work](https://github.com/SegaraRai/fetchlet/blob/main/docs/TODO.md#nitro-3-and-h3-2)).

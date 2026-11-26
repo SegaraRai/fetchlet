@@ -2,7 +2,7 @@
 
 A Waku server entry adapter that bundles Waku's RSC server into a fetchlet
 artifact. Supports Waku 1 from 1.0.0-rc.5;
-[examples/waku-axum](../../../examples/waku-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/waku-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/waku-axum/README.md) checks it; [reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```tsx
 // src/waku.server.tsx
@@ -34,7 +34,7 @@ connected to `dist/server/index.js`, and `build/fetchlet.json`, and moves
 writes the client build and generated pages there.
 
 `assets: true` packs the client assets into `assets.flpk` and caches
-`assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
+`assets/` for a year ([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Request context
 

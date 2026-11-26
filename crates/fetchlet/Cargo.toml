@@ -35,6 +35,11 @@ url = ["fetchlet-web?/url"]
 url-pattern = ["fetchlet-web?/url-pattern"]
 web-crypto = ["fetchlet-web?/web-crypto"]
 
+# docs.rs builds without network access, and the v8 feature downloads V8's
+# prebuilt library, so the documentation covers the other engines.
+[package.metadata.docs.rs]
+features = ["quickjs", "boa", "process", "web-apis"]
+
 [dependencies]
 anyhow.workspace = true
 serde.workspace = true

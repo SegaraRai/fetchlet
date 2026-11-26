@@ -71,6 +71,11 @@ the crates whose manifest sets `publish = true`.
   description;
 - each npm package under `packages/` declares the license and its repository
   directory;
+- each npm package and published crate holds copies of the license texts,
+  and each npm package lists them in `files`;
+- the Markdown an npm package ships links to the repository rather than by
+  a relative path, except between documents inside the package, since npm
+  shows them without the repository around them;
 
 and runs `pnpm change check` over the pending intents.
 
@@ -95,5 +100,7 @@ approval is the gate before an irreversible upload.
 
 Every package and crate is available under `MIT OR Apache-2.0`
 ([LICENSE-MIT](../LICENSE-MIT), [LICENSE-APACHE](../LICENSE-APACHE)). The
-manifests declare the license; the license texts live at the repository
-root and are not yet copied into the npm and crate packages.
+manifests declare the license, and each package and crate directory holds a
+copy of both license texts, which its npm package or crate ships. After a
+change to a license text at the root, copy it to every package and crate;
+`check:release` fails while a copy differs.

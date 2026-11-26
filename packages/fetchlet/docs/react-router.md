@@ -2,7 +2,7 @@
 
 A React Router preset that bundles a framework-mode server build into a
 fetchlet artifact. Supports React Router 8;
-[examples/react-router-axum](../../../examples/react-router-axum/README.md) checks it; [reference](../../../docs/reference/README.md#examples) records the versions.
+[examples/react-router-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/react-router-axum/README.md) checks it; [reference](https://github.com/SegaraRai/fetchlet/blob/main/docs/reference/README.md#examples) records the versions.
 
 ```ts
 // react-router.config.ts
@@ -30,7 +30,7 @@ In React Router's `buildEnd`, the preset connects the server build in
 `buildEnd` in the app's config replaces the preset's artifact step.
 
 `assets: true` packs the client assets into `assets.flpk` and caches
-`assets/` for a year ([asset archive](../../../docs/asset-archive.md)).
+`assets/` for a year ([asset archive](https://github.com/SegaraRai/fetchlet/blob/main/docs/asset-archive.md)).
 
 ## Load context
 
@@ -100,12 +100,12 @@ artifact, and Vite serves the browser modules with React Fast Refresh and
 `/@react-router/critical.css`. React Router renders in Node whenever its
 `ssr` environment is runnable, so the plugin replaces it with a plain
 `DevEnvironment` that the engine's runner fetches from.
-[examples/react-router-axum](../../../examples/react-router-axum/README.md#develop-from-vite)
+[examples/react-router-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/react-router-axum/README.md#develop-from-vite)
 has a `dev:vite` task.
 
 ## Tests and next work
 
-[examples/react-router-axum](../../../examples/react-router-axum/README.md)
+[examples/react-router-axum](https://github.com/SegaraRai/fetchlet/blob/main/examples/react-router-axum/README.md)
 checks SSR, assets, a prerendered page, streaming of deferred data,
 resource routes, document and client actions, cookies, the load context,
 streaming uploads, `waitUntil`, hydration and client navigation.
@@ -114,4 +114,4 @@ With `assets`, pages listed in `prerender` are served from the asset
 archive at their path with and without a trailing slash, as React Router
 matches them; other paths render per request. Split server bundles and RSC
 mode are not supported
-([research](../../../docs/research/react-router-modes.md)).
+([research](https://github.com/SegaraRai/fetchlet/blob/main/docs/research/react-router-modes.md)).
