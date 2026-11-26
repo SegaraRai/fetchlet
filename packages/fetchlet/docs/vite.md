@@ -136,5 +136,6 @@ has a `dev:vite` task that starts both.
 ## Without Vite
 
 `exportedHandler` from [fetchlet/build](build.md#a-server-module-without-a-framework)
-builds the same server module shape without Vite and without browser
-entries.
+and the [`fetchlet build`](build.md#the-fetchlet-build-command) command
+build the same server module shape without Vite and without browser
+entries; the command copies a static directory as the client assets.

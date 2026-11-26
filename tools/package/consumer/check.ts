@@ -94,3 +94,28 @@ const command = spawnSync(
 );
 assert.equal(command.status, 0, command.stdout + command.stderr);
 assert.match(command.stdout, /server started after the build: built/);
+
+// `fetchlet build` builds a TypeScript server module without Vite and copies
+// the static directory into the artifact's client assets.
+const built = spawnSync(
+  process.execPath,
+  [
+    join(fetchletDirectory, bin),
+    "build",
+    "server.ts",
+    "--backend",
+    "quickjs",
+    "--out",
+    "cli-artifact",
+    "--public",
+    "public",
+    "--assets",
+  ],
+  { encoding: "utf8" },
+);
+assert.equal(built.status, 0, built.stdout + built.stderr);
+assert.deepEqual(JSON.parse(readFileSync("cli-artifact/fetchlet.json", "utf8")).functions, [
+  "greet",
+]);
+assert.equal(readFileSync("cli-artifact/client/hello.txt", "utf8"), "static file\n");
+assert.ok(existsSync("cli-artifact/assets.flpk"));

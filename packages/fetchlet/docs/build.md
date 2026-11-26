@@ -161,7 +161,9 @@ await buildArtifact({
 ```
 
 `framework` is optional. [fetchlet/vite](vite.md) builds the same module
-shape with Vite, together with browser entries. The types `ExportedHandler`
+shape with Vite, together with browser entries, and
+[`fetchlet build`](#the-fetchlet-build-command) builds it from the command
+line. The types `ExportedHandler`
 and `ExecutionContext` come from `fetchlet/runtime`.
 
 A module without a default export builds an artifact of functions only:
@@ -182,6 +184,45 @@ export function greet(name: string): string {
 Every artifact's manifest lists the exports Rust can call as `functions`,
 which `Artifact::functions()` returns. A server module that itself exports
 `handle` fails the build, since that name is reserved for the handler.
+
+## The fetchlet build command
+
+`fetchlet build` builds a server module in that shape from the command
+line, for projects without Vite:
+
+```text
+fetchlet build [<entry>] [--out <directory>] [--backend <backend>]
+               [--public <directory>] [--assets] [<option>...]
+```
+
+| Option                    | Meaning                                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| `<entry>`                 | The server module, TypeScript or JavaScript. Default: `src/server.ts`                        |
+| `--out <directory>`       | The artifact directory. Default: `build`                                                     |
+| `--backend <backend>`     | `quickjs`, `boa`, `v8` or `portable`. Default: `portable`                                    |
+| `--public <directory>`    | Static files, copied to `<out>/client`                                                       |
+| `--assets`                | Pack `<out>/client` into `assets.flpk` ([asset archives](#asset-archives)); needs `--public` |
+| `--require <api>`         | An API beyond the Web API profile, as `requirements`; repeatable                             |
+| `--locale <tag>`          | A locale whose Intl data is bundled, as `intl.locales`; repeatable. Default: `en`            |
+| `--time-zones <data>`     | Time zone data, as `intl.timeZoneData`: `utc`, `golden` or `all`. Default: `utc`             |
+| `--async-context <mode>`  | Provide `node:async_hooks`, as `asyncContext`: `serialized` or `propagated`                  |
+| `--condition <name>`      | An export condition for dependencies, as `conditions`; repeatable                            |
+| `--define <name>=<value>` | Replace a global expression with a JavaScript expression, as `define`; repeatable            |
+
+```json
+{
+  "scripts": {
+    "build": "fetchlet build src/server.ts --backend quickjs --public public --assets"
+  }
+}
+```
+
+Each build replaces `<out>/client` and `assets.flpk`, so files removed from
+the static directory do not remain; other files in the artifact directory
+are overwritten. The command exits with 1 when the entry or the static
+directory is missing or the build fails, and with 2 for an invalid command
+line. [fetchlet dev](dev.md) runs it again on changes with
+`--build "fetchlet build ..."`.
 
 ## Framework settings
 

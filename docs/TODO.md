@@ -7,20 +7,6 @@ resolve it.
 
 ## Future framework support
 
-### Vanilla JavaScript
-
-[fetchlet/vite](../packages/fetchlet/docs/vite.md) and `exportedHandler` in
-[fetchlet/build](../packages/fetchlet/docs/build.md#a-server-module-without-a-framework)
-build a server module in the Workers module shape, which
-`examples/vanilla-axum` checks; a module of functions only builds an
-artifact without a Fetch handler, which `examples/vanilla-cli` checks.
-`vite dev` serves the same module through fetchlet-http's `ViteDev`
-([development loop](research/dev-loop.md)). One part remains:
-
-- A command line entry, `fetchlet build src/server.ts --backend quickjs
-  --out build`, for projects without Vite. It needs a `bin` in the package
-  and a check in `test:package` that runs the packed command.
-
 ### Nitro 3 and h3 2
 
 `fetchlet/nitro` is a Nitro 2 preset. Its runtime imports `toWebHandler` from

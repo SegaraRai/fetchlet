@@ -32,8 +32,8 @@
 
 - [fetchlet npm package](../packages/fetchlet/README.md): subpaths and
   framework adapters.
-- [fetchlet/build](../packages/fetchlet/docs/build.md): artifacts and
-  polyfill selection.
+- [fetchlet/build](../packages/fetchlet/docs/build.md): artifacts,
+  polyfill selection and the `fetchlet build` command.
 - [fetchlet/runtime](../packages/fetchlet/docs/runtime.md): the Fetch entry
   and bindings.
 - [fetchlet dev](../packages/fetchlet/docs/dev.md): the command that
