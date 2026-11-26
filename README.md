@@ -1,61 +1,60 @@
-# fetchlet
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark) and (not (prefers-reduced-motion: reduce))" srcset="assets/brand/logo-horizontal-dark-animated.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/logo-horizontal-dark.svg" />
+    <source media="(prefers-color-scheme: light) and (not (prefers-reduced-motion: reduce))" srcset="assets/brand/logo-horizontal-light-animated.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/logo-horizontal-light.svg" />
+    <img alt="fetchlet" src="assets/brand/logo-horizontal-light.svg" width="320" />
+  </picture>
+</p>
 
-fetchlet embeds JavaScript functions and Fetch handlers in Rust
-applications. Choose QuickJS, Boa or V8; fetchlet supplies the Web APIs and
-polyfills that engine needs and connects the JavaScript side to Rust.
+<p align="center">
+  <strong>Embed the server side of JavaScript web frameworks inside a Rust binary.</strong>
+</p>
 
-The main use is to run the server side of web frameworks — SvelteKit,
-Astro, Nuxt, React Router, HonoX and more — inside a Rust program, so a CLI,
-local tool, self-hosted service or desktop app ships one binary with a rich
-web UI. Rust passes a `Request` and receives the `Response` the JavaScript
-produced. Named synchronous and asynchronous functions run on the same
-runtime.
+<p align="center">
+  <a href="https://fetchlet.roundtrip.dev">Website</a> ·
+  <a href="https://fetchlet.roundtrip.dev/docs">Getting started</a> ·
+  <a href="https://fetchlet.roundtrip.dev/docs/frameworks">Frameworks</a> ·
+  <a href="https://fetchlet.roundtrip.dev/docs/agents">Coding agents</a> ·
+  <a href="examples/README.md">Examples</a>
+</p>
 
-```rust
-use std::num::NonZeroUsize;
-use fetchlet::{App, Backend, Body, Module, WorkerOptions, http};
+---
 
-#[tokio::main(flavor = "current_thread")]
-async fn main() -> anyhow::Result<()> {
-    let source = std::fs::read_to_string("artifacts/functions-hono.js")?;
-    let app = App::builder(Backend::quickjs())
-        .module(Module::new(source))
-        .spawn(WorkerOptions::new(NonZeroUsize::new(8).unwrap()))
-        .await?;
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark) and (not (prefers-reduced-motion: reduce))" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/fetchlet-overview-dark-%7Blang%7D.svg?langs=en%2Cja">
+    <source media="(not (prefers-reduced-motion: reduce))" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/fetchlet-overview-light-%7Blang%7D.svg?langs=en%2Cja">
+    <source media="(prefers-color-scheme: dark)" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/fetchlet-overview-dark-%7Blang%7D.still.svg?langs=en%2Cja">
+    <img src="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/fetchlet-overview-light-%7Blang%7D.still.svg?langs=en%2Cja" alt="fetchlet overview" width="100%">
+  </picture>
+</p>
 
-    let request = http::Request::builder()
-        .uri("https://fetchlet.invalid/hello/Rust")
-        .body(Body::empty())?;
+fetchlet runs the server side of SvelteKit, Astro, TanStack Start, React Router,
+Nuxt, Solid, HonoX, and more inside a Rust process — on **QuickJS**, **Boa**, or
+**V8**. Ship a CLI, local tool, self-hosted service, or Tauri desktop app as a
+single binary with a rich web UI, without bundling Node.js or running a reverse
+proxy.
 
-    let response = app.fetch(request).await?;
-    let body = response.into_body().collect(1024 * 1024).await?;
-    println!("{}", std::str::from_utf8(&body)?);
-    app.shutdown().await?;
+Rust passes a standard `Request` and receives a `Response`, and can also call
+exported JavaScript functions directly through the same runtime.
 
-    Ok(())
-}
-```
+## Quick start
 
-In this repository, `vp run build:fixtures` builds the bundle this example
-loads and `vp run example:embed` runs it. The 1 MiB collection limit and the queue of eight
-are budgets the caller chooses. `app.call("transform", &input)` calls a
-function with a Serde value and `app.call_json("add", &[...])` with several
-JSON arguments.
+A fetchlet application has two halves: the `fetchlet` npm package bundles your
+framework into a portable artifact directory (`build/`), and a Rust host serves
+it with `fetchlet` and `fetchlet-http`.
 
-## Getting started
+**Prerequisites:** Node.js 20.19, 22.12, 24+ (build time) and Rust 1.100+.
 
-A fetchlet application has two halves: the `fetchlet` npm package builds the
-framework's server output into an artifact directory, and a Rust program
-serves that directory with the `fetchlet` and `fetchlet-http` crates. The
-build needs Node 20.19, 22.12, 24 or later, and the crates Rust 1.100 or
-later.
-
-In the JavaScript project, install the package next to the framework and
-use its adapter. For SvelteKit:
+### 1. Build the JavaScript artifact
 
 ```sh
 npm install --save-dev fetchlet
 ```
+
+Configure your framework adapter (for example, SvelteKit):
 
 ```ts
 // vite.config.ts
@@ -64,17 +63,23 @@ import fetchletAdapter from "fetchlet/sveltekit";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [sveltekit({ adapter: fetchletAdapter({ out: "build" }) })],
+  plugins: [
+    sveltekit({
+      adapter: fetchletAdapter({
+        out: "build",
+        assets: true,
+      }),
+    }),
+  ],
 });
 ```
 
-`vite build` then writes `build/` with `server.js`, `fetchlet.json` and the
-client assets. The [fetchlet package](packages/fetchlet/README.md) lists the
-adapters for the other frameworks, and the `fetchlet build` command builds a
-server module into an artifact without Vite.
+Running `vite build` writes `build/` with `server.js`, `fetchlet.json`, and
+client assets (packed into `assets.flpk` when `assets: true`). See
+[Frameworks](https://fetchlet.roundtrip.dev/docs/frameworks) for all 12
+adapters, or use `fetchlet build` without Vite.
 
-In the Rust program, add the crates. `fetchlet` runs QuickJS by default;
-the `boa` and `v8` features add the other engines.
+### 2. Serve it from Rust
 
 ```sh
 cargo add fetchlet
@@ -83,109 +88,113 @@ cargo add tokio --features macros,rt-multi-thread,net
 cargo add anyhow
 ```
 
-```rust,ignore
+```rust
+// server/main.rs
+use fetchlet::HostServices;
 use fetchlet_http::Server;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
     println!("Listening on http://127.0.0.1:3000");
-    Server::new("build").serve(listener).await?;
+    Server::new("build")
+        .host_services(|| HostServices::new().env("APP_NAME", "fetchlet"))
+        .serve(listener)
+        .await?;
     Ok(())
 }
 ```
 
-`Server` serves the client assets and passes every other request to the
-application; it also takes Rust routes, host services and limits
-([fetchlet-http](crates/fetchlet-http/README.md#serving-a-build-with-server)).
-To ship one binary, `include_artifact!` embeds the build
-([embedding and distribution](https://fetchlet.roundtrip.dev/docs/shipping/embedding)).
+To embed the build directory into a single executable at compile time, use
+`fetchlet_http::include_artifact!("../build")`
+([Embedding and distribution](https://fetchlet.roundtrip.dev/docs/shipping/embedding)).
 
-## Features
+### Calling JavaScript without HTTP
 
-- **One runtime, three engines.** The `quickjs` (default), `boa` and `v8`
-  Cargo features can be enabled together. The same Web API profile runs on
-  each, verified against WPT, Test262 and real framework builds.
-- **Shared handles.** `AppHandle` is `Clone + Send + Sync`, owns the
-  JavaScript thread and queue, cancels a call when its future is dropped,
-  rebuilds an instance after cancellation and drains on shutdown.
-- **HTTP integration.** `fetchlet-http` serves an app through Tower and
-  `http` 1, with thin layers for hyper, axum and actix-web behind features.
-  Request and response bodies stream in both directions. `fetchlet-net`
-  provides the HTTP, TCP, TLS and WebSocket transports of JavaScript's
-  outbound fetch, sockets and WebSockets.
-- **Explicit authority.** `HostServices` grants environment values, named
-  Rust services and outbound fetch. `FetchPolicy` allows origins; Rust
-  rewrites requests and attaches credentials. JavaScript can call Rust
-  routers in-process, with a trusted `Context` it cannot read or forge.
-- **Caller budgets.** Every `Limits` field is optional and owned by the
-  caller; limits that come from specifications are documented as such.
-- **Framework adapters.** The `fetchlet` npm package builds a framework's
-  server output into an artifact — `server.js`, `fetchlet.json` and a
-  Brotli asset archive — that Rust reads from disk or embeds with
-  `include_artifact!`.
+Use `fetchlet::App` / `AppHandle` directly to invoke a Fetch handler or call
+named JavaScript exports with Serde values (`app.call("transform", &input)` or
+`app.call_json("add", &[...])`). See
+[Running JavaScript](https://fetchlet.roundtrip.dev/docs/rust/fetchlet).
+
+## Highlights
+
+- **Three engines, one Web API profile.** Choose `quickjs` (default, fast
+  startup), `boa` (pure Rust), or `v8` (JIT, native Intl & WebAssembly) via
+  Cargo features — all running the same WinterTC Web API layer and Node.js
+  compatibility subset.
+- **In-process Rust integration.** Expose Rust functions directly on `env`
+  (`Functions`), or route internal origins (`https://fetchlet.internal`) to your
+  axum router with zero TCP overhead and a trusted `Context` JavaScript cannot
+  read or forge.
+- **Deny-by-default permissions.** JavaScript has no network, filesystem, or
+  host env access unless granted through `HostServices`. Outbound HTTP, TCP, and
+  WebSocket clients enforce exact allowlists and block private IPs by default.
+- **Resource limits & process isolation.** Configure timeouts, CPU busy limits,
+  heap caps, body sizes, and subrequest budgets in Rust. Enable the `process`
+  feature to isolate each engine instance in a child process.
+- **Single-binary & Tauri ready.** Pack static assets into a Brotli
+  `assets.flpk` archive, embed everything with `include_artifact!`, or serve
+  over a Tauri custom URI scheme with `Server::webview`.
+- **Coding agent friendly.** Installing the `fetchlet` npm package bundles
+  version-matched Markdown docs and agent skills in `node_modules/fetchlet/`
+  ([Coding agents](https://fetchlet.roundtrip.dev/docs/agents)).
 
 ## Examples
 
-```bash
+Run any example from this repository:
+
+```sh
 vp install --frozen-lockfile
 vp run @fetchlet-internal/example-sveltekit-axum#serve
 ```
 
-Open `http://127.0.0.1:3000`. Rust runs the HTTP server, and a dedicated
-thread runs the SvelteKit server code on QuickJS.
+| Example                                                         | Host        | Port |
+| --------------------------------------------------------------- | ----------- | ---- |
+| [TanStack Start + axum](examples/tanstack-start-axum/README.md) | axum        | 3500 |
+| [React Router + axum](examples/react-router-axum/README.md)     | axum        | 3300 |
+| [vinext + axum](examples/vinext-axum/README.md)                 | axum        | 3900 |
+| [Astro + axum](examples/astro-axum/README.md)                   | axum        | 3100 |
+| [SvelteKit + axum](examples/sveltekit-axum/README.md)           | axum        | 3000 |
+| [Nuxt + axum](examples/nuxt-axum/README.md)                     | axum        | 3200 |
+| [SolidStart + axum](examples/solidstart-axum/README.md)         | axum        | 3600 |
+| [Solid 2 + axum](examples/solid-axum/README.md)                 | axum        | —    |
+| [Waku + axum](examples/waku-axum/README.md)                     | axum        | 3800 |
+| [Qwik City + axum](examples/qwik-city-axum/README.md)           | axum        | 3700 |
+| [HonoX + axum](examples/honox-axum/README.md)                   | axum        | 3400 |
+| [Vanilla Vite + axum](examples/vanilla-axum/README.md)          | axum        | —    |
+| [Vanilla CLI](examples/vanilla-cli/README.md)                   | CLI         | —    |
+| [HonoX + Tauri](examples/honox-tauri/README.md)                 | Tauri       | —    |
+| [Markdown Workspace](examples/sveltekit-axum-tauri/README.md)   | CLI / Tauri | —    |
 
-| Example                                                         | Port |
-| --------------------------------------------------------------- | ---- |
-| [SvelteKit + axum](examples/sveltekit-axum/README.md)           | 3000 |
-| [Astro + axum](examples/astro-axum/README.md)                   | 3100 |
-| [Nuxt + axum](examples/nuxt-axum/README.md)                     | 3200 |
-| [React Router + axum](examples/react-router-axum/README.md)     | 3300 |
-| [HonoX + axum](examples/honox-axum/README.md)                   | 3400 |
-| [TanStack Start + axum](examples/tanstack-start-axum/README.md) | 3500 |
-| [SolidStart + axum](examples/solidstart-axum/README.md)         | 3600 |
-| [Qwik City + axum](examples/qwik-city-axum/README.md)           | 3700 |
-| [Waku + axum](examples/waku-axum/README.md)                     | 3800 |
-| [vinext + axum](examples/vinext-axum/README.md)                 | 3900 |
-
-Each starts with `vp run @fetchlet-internal/example-<name>#serve`. Two more
-examples run in Tauri: [HonoX + Tauri](examples/honox-tauri/README.md), and
-[Markdown Workspace](examples/sveltekit-axum-tauri/README.md), a note app
-whose single binary `mdw` is both a CLI web server and a desktop app, and
-whose SvelteKit server code calls the Rust API in-process through types
-generated from its OpenAPI document.
-
-## Workspace
-
-```text
-crates/fetchlet/       Functions and Fetch, shared handles, host services
-crates/fetchlet-http/  Tower, hyper, axum and actix integration; artifacts and asset archives
-crates/fetchlet-net/   Outbound HTTP, TCP, TLS and WebSocket transports
-packages/fetchlet/     The fetchlet npm package: runtime, artifact builder, framework integrations
-packages/web/          @fetchlet/web: the Web API implementations that run in the engine
-examples/              Runnable applications per framework and Rust server
-fixtures/              Pinned framework builds and probes for the engine matrix
-tests/conformance/     Pinned WPT and Test262 sources and expectations
-tools/                 Repository tooling, including the fetchlet-lab host
-fuzz/                  Fuzzing of the Rust host boundary
-apps/website/          The documentation website
-docs/                  Documentation for maintainers
-results/               Recorded test results
-```
+See [examples/README.md](examples/README.md) for dev loops (`dev`, `dev:vite`)
+and switching engines.
 
 ## Documentation
 
-The documentation is at <https://fetchlet.roundtrip.dev/docs>; start with the
-[getting started guide](https://fetchlet.roundtrip.dev/docs) and the
-[overview](https://fetchlet.roundtrip.dev/docs/overview). An application that
-installs the `fetchlet` npm package also has it as Markdown in
-`node_modules/fetchlet/docs/`, for coding agents. The website's sources are in
-[apps/website](apps/website/README.md), and [docs/](docs/README.md) holds the
-documentation for maintainers.
+- **User docs:** <https://fetchlet.roundtrip.dev/docs>
+- **Rust API reference:** [docs.rs/fetchlet](https://docs.rs/fetchlet) ·
+  [fetchlet-http](https://docs.rs/fetchlet-http) ·
+  [fetchlet-net](https://docs.rs/fetchlet-net)
+- **Maintainer docs:** [docs/README.md](docs/README.md)
 
-## Development
+## Repository layout
 
-```bash
+```text
+crates/fetchlet/       Core runtime: engines, AppHandle pools, HostServices, process isolation
+crates/fetchlet-http/  HTTP integrations (Tower, hyper, axum, actix), Server, artifacts, webviews
+crates/fetchlet-net/   Outbound HTTP, TCP/TLS, and WebSocket transports
+crates/fetchlet-web/   Engine-independent Rust implementations of Web APIs
+packages/fetchlet/     User-facing npm package: framework adapters, CLI, runtime
+packages/node/         @fetchlet/node: guest Node.js built-in modules
+packages/web/          @fetchlet/web: guest Web API implementations
+examples/              Runnable applications per framework and Rust host
+apps/website/          Documentation website (fetchlet.roundtrip.dev)
+docs/                  Maintainer documentation, research, and TODOs
+```
+
+## Contributing & development
+
+```sh
 vp install --frozen-lockfile
 vp run check
 vp run test:rust
@@ -193,6 +202,10 @@ vp run test:matrix
 vp run test:host
 ```
 
-`vp run verify` runs every regular suite. [Verification](docs/verification.md)
-describes each one, and [security testing](docs/security-testing.md#fuzzing) covers fuzzing.
-Dependencies are pinned by `Cargo.lock` and `pnpm-lock.yaml`.
+`vp run verify` runs the full regular test suite. See
+[docs/verification.md](docs/verification.md) and
+[docs/security-testing.md](docs/security-testing.md) for details.
+
+## License
+
+Dual-licensed under MIT or Apache-2.0.

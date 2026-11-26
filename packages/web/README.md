@@ -1,37 +1,26 @@
 # @fetchlet/web
 
-The Web API implementations that run inside a fetchlet engine: Fetch,
-Headers, Body, Blob, FormData, Encoding, Events, Abort, Streams, timers,
-Compression, URLPattern and Web Crypto. They call the host operations of the
-[fetchlet-web](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-web/README.md) crate and install each API
-only when the host reports it ([Web API profile](https://fetchlet.roundtrip.dev/docs/compatibility/web-api)).
+Guest-side Web API implementations (`fetch`, `Headers`, `Request`, `Response`,
+`Blob`, `File`, `FormData`, Streams, Encoding, Events, `AbortSignal`, timers,
+`URL`, `URLPattern`, Compression Streams, and Web Crypto) for code running
+inside a fetchlet JavaScript engine.
 
-| Subpath                       | Contents                                                      |
-| ----------------------------- | ------------------------------------------------------------- |
-| `@fetchlet/web`               | Installs the Web APIs on the global object                    |
-| `@fetchlet/web/async-context` | `Variable` and `Snapshot` over the engine's async context     |
-| `@fetchlet/web/capabilities`  | The host Web APIs each global needs, and the protocol version |
-| `@fetchlet/web/gaps`          | The polyfills and engine-only APIs that fill an engine's gaps |
-| `@fetchlet/web/wire`          | Converts `Request` and `Response` to and from the wire format |
+> **Note:** Applications do not need to install `@fetchlet/web` directly. The
+> [`fetchlet`](https://www.npmjs.com/package/fetchlet) package depends on it and
+> bundles it automatically through `fetchlet/runtime`.
 
-Each subpath that runs in the engine is a file in `src/` that only imports
-or re-exports. The implementations live in `src/internal/<area>/`, one
-directory per concern (`fetch`, `dom`, `html`, `url`, `crypto`, `webidl` and
-so on), with their unit tests beside them. `capabilities` and `gaps` are
-declarations that `fetchlet/build` reads in Node to plan a bundle: which
-host APIs a global needs, and how a missing API is polyfilled or why it
-cannot be. The polyfill packages they name, the pinned FormatJS releases,
-are dependencies of this package and resolve from it.
+## Subpaths
 
-[fetchlet](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/README.md) depends on the package and initializes it in
-`fetchlet/runtime`, so applications get it through `fetchlet` and do not
-install it themselves. In the workspace the subpaths point at the TypeScript
-sources; `vp run @fetchlet/web#build` compiles them and their declarations
-into `dist/`, which the published manifest (`publishConfig.exports`) names.
+| Subpath                       | Contents                                                       |
+| ----------------------------- | -------------------------------------------------------------- |
+| `@fetchlet/web`               | Installs the Web API profile on `globalThis`                   |
+| `@fetchlet/web/async-context` | `Variable` and `Snapshot` over the engine's async context slot |
+| `@fetchlet/web/capabilities`  | Host Web API capability declarations and protocol version      |
+| `@fetchlet/web/gaps`          | Polyfill and engine-only API declarations used by the builder  |
+| `@fetchlet/web/wire`          | Wire conversion between Web `Request`/`Response` and Rust      |
 
-`@fetchlet/web/capabilities` exports `PROTOCOL_VERSION` and
-`hostOperations`, the operations of each fetchlet-web API. Both are written,
-with the host's copy, from
-[crates/fetchlet-web/protocol.json](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-web/protocol.json)
-by `vp run build:protocol`; the package's tests check that the profile calls
-only listed operations.
+## Documentation
+
+See the [Web API profile](https://fetchlet.roundtrip.dev/docs/compatibility/web-api)
+and [fetchlet-web](https://fetchlet.roundtrip.dev/docs/rust/fetchlet-web) guides
+at <https://fetchlet.roundtrip.dev/docs>.
