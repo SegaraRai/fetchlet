@@ -1,7 +1,9 @@
 name: Test
 
 on:
+  # `stable` and the version branch only take commits that `main` or their pull request tested.
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
   # The Release workflow runs the same gates before it publishes.
