@@ -23,8 +23,15 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [
     sveltekit({
-      compilerOptions: { experimental: { async: false } },
-      adapter: fetchletAdapter({ out: "build", backend: "quickjs" }),
+      compilerOptions: {
+        experimental: {
+          async: false,
+        },
+      },
+      adapter: fetchletAdapter({
+        out: "build",
+        backend: "quickjs",
+      }),
     }),
   ],
 });
@@ -37,11 +44,11 @@ rebuild mode).
 
 ## Request context and bindings
 
-| From Rust               | In SvelteKit                 |
-| ----------------------- | ---------------------------- |
-| Context `clientAddress` | `getClientAddress()`         |
-| Host bindings           | `platform.env`               |
-| `waitUntil`             | `platform.context.waitUntil` |
+| From Rust               | In SvelteKit                  |
+| ----------------------- | ----------------------------- |
+| Context `clientAddress` | `getClientAddress()`          |
+| Host bindings           | `platform.env`                |
+| `waitUntil`             | `platform.context.waitUntil`  |
 | String env bindings     | `env` passed to `server.init` |
 
 Type `platform.env` by declaring your keys on

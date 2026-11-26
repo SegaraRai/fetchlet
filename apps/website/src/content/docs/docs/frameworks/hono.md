@@ -15,12 +15,18 @@ for complete setups.
 
 ```ts
 // vite.config.ts
-import honox from "honox/vite";
 import fetchletBuild from "fetchlet/hono/vite";
+import honox from "honox/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [honox(), fetchletBuild({ entry: "./app/server.ts", backend: "quickjs" })],
+  plugins: [
+    honox(),
+    fetchletBuild({
+      entry: "./app/server.ts",
+      backend: "quickjs",
+    }),
+  ],
 });
 ```
 
@@ -34,12 +40,12 @@ export default defineConfig({
 
 ## Request context and bindings
 
-| Value                      | Content                                                                  |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `c.env`                    | Rust's fixed bindings                                                    |
-| `c.executionCtx.waitUntil` | Registers work after the response, within Rust's background budget       |
-| `getConnInfo(c)`           | From `fetchlet/hono/conninfo`: client IP from the Rust request context   |
-| `getRequestContext(c)`     | From `fetchlet/hono/conninfo`: the full Rust request context             |
+| Value                      | Content                                                                |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `c.env`                    | Rust's fixed bindings                                                  |
+| `c.executionCtx.waitUntil` | Registers work after the response, within Rust's background budget     |
+| `getConnInfo(c)`           | From `fetchlet/hono/conninfo`: client IP from the Rust request context |
+| `getRequestContext(c)`     | From `fetchlet/hono/conninfo`: the full Rust request context           |
 
 HonoX uses `AsyncLocalStorage` internally; the plugin enables
 `asyncContext: "serialized"` automatically.

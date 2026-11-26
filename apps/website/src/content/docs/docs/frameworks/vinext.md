@@ -18,7 +18,12 @@ import vinext from "vinext";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [vinext(), fetchletVinext({ backend: "quickjs" })],
+  plugins: [
+    vinext(),
+    fetchletVinext({
+      backend: "quickjs",
+    }),
+  ],
 });
 ```
 
@@ -51,12 +56,12 @@ Standard Node built-ins (`node:buffer`, `node:crypto`, etc.) come from
 [Node.js compatibility](/docs/compatibility/node). For vinext's additional
 expectations, the plugin provides:
 
-| Module or value | Behavior in fetchlet                                                                |
-| --------------- | ----------------------------------------------------------------------------------- |
-| `node:path`     | `pathe` (POSIX and win32)                                                           |
-| `node:fs`       | Empty virtual filesystem (vinext uses its in-memory cache)                          |
-| `node:module`   | `createRequire` for React SSR entries                                               |
-| `process.env`   | Empty object; `process.platform` is `"linux"`                                       |
+| Module or value | Behavior in fetchlet                                       |
+| --------------- | ---------------------------------------------------------- |
+| `node:path`     | `pathe` (POSIX and win32)                                  |
+| `node:fs`       | Empty virtual filesystem (vinext uses its in-memory cache) |
+| `node:module`   | `createRequire` for React SSR entries                      |
+| `process.env`   | Empty object; `process.platform` is `"linux"`              |
 
 Next.js's fetch cache wraps `globalThis.fetch`; underlying requests still pass
 through Rust's `FetchPolicy`.

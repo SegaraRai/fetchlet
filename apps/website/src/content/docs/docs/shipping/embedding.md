@@ -9,12 +9,12 @@ runtime and no external asset directory required at runtime.
 
 ## What goes into the binary
 
-| Part          | Source                                                               | How it is loaded                                        |
-| ------------- | -------------------------------------------------------------------- | ------------------------------------------------------- |
-| JS engine     | `fetchlet` crate feature (`quickjs`, `boa`, or `v8`)                 | Linked into the executable                              |
-| Server bundle | `server.js` from your adapter or `fetchlet build`                    | `Module::new(source).requires(artifact.requirements())` |
-| Manifest      | `fetchlet.json` (handler, exports, backend, requirements, assets)    | `Artifact::handler()`, `Artifact::requirements()`       |
-| Client assets | `assets.flpk`, a Brotli [asset archive](/docs/reference/asset-archive) | `AssetArchive`, served by `AssetService`              |
+| Part          | Source                                                                 | How it is loaded                                        |
+| ------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| JS engine     | `fetchlet` crate feature (`quickjs`, `boa`, or `v8`)                   | Linked into the executable                              |
+| Server bundle | `server.js` from your adapter or `fetchlet build`                      | `Module::new(source).requires(artifact.requirements())` |
+| Manifest      | `fetchlet.json` (handler, exports, backend, requirements, assets)      | `Artifact::handler()`, `Artifact::requirements()`       |
+| Client assets | `assets.flpk`, a Brotli [asset archive](/docs/reference/asset-archive) | `AssetArchive`, served by `AssetService`                |
 
 ## Embedding an artifact
 

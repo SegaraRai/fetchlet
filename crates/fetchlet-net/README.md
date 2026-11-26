@@ -24,11 +24,11 @@ let hosts = HostServices::new()
 
 ## Cargo features
 
-| Feature               | Adds                                                          |
-| --------------------- | ------------------------------------------------------------- |
-| `http` (default)      | `HttpClient` — HTTP/1.1 & HTTP/2 transport for `fetch()`      |
-| `sockets` (default)   | `TcpTransport` — TCP, TLS, and STARTTLS for `connect()`       |
-| `websocket` (default) | `WebSocketClient` — client transport for global `WebSocket`   |
+| Feature               | Adds                                                        |
+| --------------------- | ----------------------------------------------------------- |
+| `http` (default)      | `HttpClient` — HTTP/1.1 & HTTP/2 transport for `fetch()`    |
+| `sockets` (default)   | `TcpTransport` — TCP, TLS, and STARTTLS for `connect()`     |
+| `websocket` (default) | `WebSocketClient` — client transport for global `WebSocket` |
 
 `rustls` is re-exported for custom TLS configs passed to `with_tls_config()`.
 

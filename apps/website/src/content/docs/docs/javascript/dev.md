@@ -7,11 +7,11 @@ description: "Run a live-reloading development loop with fetchlet dev while your
 `fetchlet dev` keeps your Rust host running while you edit JavaScript and
 framework files. Depending on your framework, it supports three workflows:
 
-| Mode | Flag | How it works | Best for |
-| ---- | ---- | ------------ | -------- |
-| **Vite dev server** | `--vite <command>` | No build step; Rust runs server modules directly from Vite with browser HMR | `fetchlet/vite`, Astro, React Router, TanStack Start, Solid, SolidStart |
-| **Watch build** | `--build-watch <command>` | Keeps `vite build --watch` running and reloads the artifact on each rebuild | `fetchlet/vite`, TanStack Start, Solid, SolidStart (sub-second rebuilds) |
-| **Full rebuild** (default) | `--build <command>` | Re-runs the build command on file changes and reloads the artifact | SvelteKit, Nuxt/Nitro, Hono/HonoX, Qwik City, vinext, Waku, or custom builds |
+| Mode                       | Flag                      | How it works                                                                | Best for                                                                     |
+| -------------------------- | ------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Vite dev server**        | `--vite <command>`        | No build step; Rust runs server modules directly from Vite with browser HMR | `fetchlet/vite`, Astro, React Router, TanStack Start, Solid, SolidStart      |
+| **Watch build**            | `--build-watch <command>` | Keeps `vite build --watch` running and reloads the artifact on each rebuild | `fetchlet/vite`, TanStack Start, Solid, SolidStart (sub-second rebuilds)     |
+| **Full rebuild** (default) | `--build <command>`       | Re-runs the build command on file changes and reloads the artifact          | SvelteKit, Nuxt/Nitro, Hono/HonoX, Qwik City, vinext, Waku, or custom builds |
 
 ```text
 fetchlet dev [--watch <path>]... [--build <command>] [--watch-rust] -- <server> [<argument>...]

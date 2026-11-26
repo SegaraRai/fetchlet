@@ -84,9 +84,9 @@ frameworks.
 
 Some limits come from standards or underlying types rather than caller policy:
 
-| Limit                                 | Source                                                                     |
-| ------------------------------------- | -------------------------------------------------------------------------- |
-| `getRandomValues`: 65,536 bytes       | [Web Crypto API quota](https://www.w3.org/TR/webcrypto-2/#Crypto-method-getRandomValues) |
-| Maximum 20 redirects                  | [Fetch Standard](https://fetch.spec.whatwg.org/#http-redirect-fetch) (callers may set fewer) |
-| `node:crypto` key length: `2^31 - 1`  | Node.js `pbkdf2Sync` / `scryptSync` `keylen` bound                         |
-| `usize`, `u64`, and clock ranges      | Checked arithmetic and timeout validation                                  |
+| Limit                                | Source                                                                                       |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `getRandomValues`: 65,536 bytes      | [Web Crypto API quota](https://www.w3.org/TR/webcrypto-2/#Crypto-method-getRandomValues)     |
+| Maximum 20 redirects                 | [Fetch Standard](https://fetch.spec.whatwg.org/#http-redirect-fetch) (callers may set fewer) |
+| `node:crypto` key length: `2^31 - 1` | Node.js `pbkdf2Sync` / `scryptSync` `keylen` bound                                           |
+| `usize`, `u64`, and clock ranges     | Checked arithmetic and timeout validation                                                    |

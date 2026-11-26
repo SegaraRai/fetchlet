@@ -37,19 +37,19 @@ fetchlet build [<entry>] [--out <directory>] [--backend <backend>]
 }
 ```
 
-| Option                    | Meaning                                                                                      |
-| ------------------------- | -------------------------------------------------------------------------------------------- |
-| `<entry>`                 | Server module, TypeScript or JavaScript (default: `src/server.ts`)                           |
-| `--out <directory>`       | Output artifact directory (default: `build`)                                                 |
-| `--backend <backend>`     | Target engine: `quickjs`, `boa`, `v8`, or `portable` (default: `portable`)                   |
-| `--public <directory>`    | Static files copied to `<out>/client`                                                        |
+| Option                    | Meaning                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------- |
+| `<entry>`                 | Server module, TypeScript or JavaScript (default: `src/server.ts`)                              |
+| `--out <directory>`       | Output artifact directory (default: `build`)                                                    |
+| `--backend <backend>`     | Target engine: `quickjs`, `boa`, `v8`, or `portable` (default: `portable`)                      |
+| `--public <directory>`    | Static files copied to `<out>/client`                                                           |
 | `--assets`                | Pack `<out>/client` into `assets.flpk` ([Asset archives](#asset-archives)); requires `--public` |
-| `--require <api>`         | Extra API beyond the Web API profile; repeatable                                             |
-| `--locale <tag>`          | Locale whose `Intl` data is bundled; repeatable (default: `en`)                              |
-| `--time-zones <data>`     | Time zone data: `utc` (default), `golden`, or `all`                                          |
-| `--async-context <mode>`  | Provide `node:async_hooks`: `serialized` or `propagated`                                     |
-| `--condition <name>`      | Extra package export condition; repeatable                                                   |
-| `--define <name>=<value>` | Replace a global expression at build time; repeatable                                        |
+| `--require <api>`         | Extra API beyond the Web API profile; repeatable                                                |
+| `--locale <tag>`          | Locale whose `Intl` data is bundled; repeatable (default: `en`)                                 |
+| `--time-zones <data>`     | Time zone data: `utc` (default), `golden`, or `all`                                             |
+| `--async-context <mode>`  | Provide `node:async_hooks`: `serialized` or `propagated`                                        |
+| `--condition <name>`      | Extra package export condition; repeatable                                                      |
+| `--define <name>=<value>` | Replace a global expression at build time; repeatable                                           |
 
 Each build replaces `<out>/client` and `assets.flpk` so deleted static files do
 not linger. To rebuild automatically during development, run
@@ -74,11 +74,11 @@ and `requirements` options:
 
 Choose `backend` to match the engine you enable in Rust:
 
-| `backend`        | `Intl` handling                                           | Engine-only APIs                                      |
-| ---------------- | --------------------------------------------------------- | ----------------------------------------------------- |
-| `portable` (default) | Bundles conditional FormatJS polyfills where needed   | Checked by the Rust host at startup                   |
-| `quickjs`, `boa` | Bundles FormatJS polyfills for required `Intl` APIs       | Fails the build if an unsupported API is required     |
-| `v8`             | Uses native ICU `Intl`; FormatJS is omitted from bundle   | All supported; verified at startup                    |
+| `backend`            | `Intl` handling                                         | Engine-only APIs                                  |
+| -------------------- | ------------------------------------------------------- | ------------------------------------------------- |
+| `portable` (default) | Bundles conditional FormatJS polyfills where needed     | Checked by the Rust host at startup               |
+| `quickjs`, `boa`     | Bundles FormatJS polyfills for required `Intl` APIs     | Fails the build if an unsupported API is required |
+| `v8`                 | Uses native ICU `Intl`; FormatJS is omitted from bundle | All supported; verified at startup                |
 
 Matching `backend` to your Rust engine keeps bundles smaller (especially for
 `v8`, where FormatJS is omitted) and catches unsupported APIs at build time.
@@ -189,19 +189,18 @@ called.
 
 - **`"serialized"`** — works on all engines (QuickJS, Boa, V8). Keeps
   per-request context accurate because each instance runs one invocation at a
-  time; concurrent `run()` calls *within* a single invocation share the most
+  time; concurrent `run()` calls _within_ a single invocation share the most
   recently started store. Most framework adapters enable this automatically.
 - **`"propagated"`** — full Node.js `AsyncLocalStorage` isolation across
   concurrent `await`s, timers, and messages. Requires **V8 or Boa** (throws on
   QuickJS).
 
 <Aside type="note" title="QuickJS limitation and planned removal of serialized mode">
-QuickJS (quickjs-ng) does not yet propagate async context across promise
-reactions ([quickjs-ng/quickjs#1919](https://github.com/quickjs-ng/quickjs/issues/1919)).
-Because of this limitation, each fetchlet engine instance currently serves only
-one request at a time. Once QuickJS supports async context propagation,
-`asyncContext: "serialized"` will be removed and `"propagated"` will become the
-only mode across all engines.
+  QuickJS (quickjs-ng) does not yet propagate async context across promise reactions
+  ([quickjs-ng/quickjs#1919](https://github.com/quickjs-ng/quickjs/issues/1919)). Because of this
+  limitation, each fetchlet engine instance currently serves only one request at a time. Once
+  QuickJS supports async context propagation, `asyncContext: "serialized"` will be removed and
+  `"propagated"` will become the only mode across all engines.
 </Aside>
 
 Node.js built-in modules resolve to fetchlet's implementations (and `Buffer`,

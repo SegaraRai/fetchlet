@@ -8,9 +8,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use bytes::Bytes;
+use fetchlet::Requirements;
 #[cfg(fetchlet_engine)]
 use fetchlet::{App, AppBuilder, Backend, Limits, Module, WorkerOptions};
-use fetchlet::Requirements;
 use serde::Deserialize;
 
 use crate::assets::{AssetArchive, AssetArchiveError};

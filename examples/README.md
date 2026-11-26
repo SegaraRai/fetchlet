@@ -22,23 +22,23 @@ vp run @fetchlet-internal/example-tanstack-start-axum#dev:vite
 
 ## Available examples
 
-| Example                                                    | Host        | Highlights                                                                                                              |
-| ---------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| [TanStack Start + axum](tanstack-start-axum/README.md)     | axum        | Streaming SSR, server functions, server routes, `dev:vite`, WebSocket, Rust service                                     |
-| [React Router + axum](react-router-axum/README.md)         | axum        | Streaming SSR, actions, resource routes, prerendered pages, `dev:vite`, WebSocket                                       |
-| [vinext + axum](vinext-axum/README.md)                     | axum        | Next.js App Router on Vite, RSC, SSR, route handlers, WebSocket                                                         |
-| [Astro + axum](astro-axum/README.md)                       | axum        | SSR, Svelte island, FormatJS Intl, streaming uploads, `dev:vite`, WebSocket                                             |
-| [SvelteKit + axum](sveltekit-axum/README.md)               | axum        | SSR, actions, endpoints, in-process Rust API (`OriginRouter`), WebSocket                                                |
-| [Nuxt + axum](nuxt-axum/README.md)                         | axum        | SSR, server routes, runtime config, `defineWebSocketHandler`, Rust service                                              |
-| [SolidStart + axum](solidstart-axum/README.md)             | axum        | Streaming SSR, server functions, API routes, `dev:vite`, WebSocket                                                      |
-| [Solid 2 + axum](solid-axum/README.md)                     | axum        | Solid 2 without SolidStart, streaming SSR, server functions, `dev:vite`, WebSocket                                      |
-| [Waku + axum](waku-axum/README.md)                         | axum        | RSC, SSR, API routes, WebSocket, Rust service                                                                           |
-| [Qwik City + axum](qwik-city-axum/README.md)               | axum        | Resumability, `routeLoader$`, endpoints, WebSocket, Rust service                                                        |
-| [HonoX + axum](honox-axum/README.md)                       | axum        | Islands, API routes, `fetchlet/hono/websocket`, Rust service                                                            |
-| [Vanilla Vite + axum](vanilla-axum/README.md)              | axum        | Framework-free Vite server module, streaming HTML, named exports, `dev:vite`, channels                                  |
-| [Vanilla CLI](vanilla-cli/README.md)                       | CLI         | Functions-only artifact without HTTP, called from Rust with bindings and Web Crypto                                     |
-| [HonoX + Tauri](honox-tauri/README.md)                     | Tauri       | Custom URI scheme without an HTTP server, calling JS exports from Tauri commands                                        |
-| [SvelteKit + axum / Tauri](sveltekit-axum-tauri/README.md) | CLI / Tauri | Single-binary Markdown workspace (`mdw`), CLI HTTP + Tauri desktop, OpenAPI-typed Rust API, async SSR, file watching    |
+| Example                                                    | Host        | Highlights                                                                                                           |
+| ---------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| [TanStack Start + axum](tanstack-start-axum/README.md)     | axum        | Streaming SSR, server functions, server routes, `dev:vite`, WebSocket, Rust service                                  |
+| [React Router + axum](react-router-axum/README.md)         | axum        | Streaming SSR, actions, resource routes, prerendered pages, `dev:vite`, WebSocket                                    |
+| [vinext + axum](vinext-axum/README.md)                     | axum        | Next.js App Router on Vite, RSC, SSR, route handlers, WebSocket                                                      |
+| [Astro + axum](astro-axum/README.md)                       | axum        | SSR, Svelte island, FormatJS Intl, streaming uploads, `dev:vite`, WebSocket                                          |
+| [SvelteKit + axum](sveltekit-axum/README.md)               | axum        | SSR, actions, endpoints, in-process Rust API (`OriginRouter`), WebSocket                                             |
+| [Nuxt + axum](nuxt-axum/README.md)                         | axum        | SSR, server routes, runtime config, `defineWebSocketHandler`, Rust service                                           |
+| [SolidStart + axum](solidstart-axum/README.md)             | axum        | Streaming SSR, server functions, API routes, `dev:vite`, WebSocket                                                   |
+| [Solid 2 + axum](solid-axum/README.md)                     | axum        | Solid 2 without SolidStart, streaming SSR, server functions, `dev:vite`, WebSocket                                   |
+| [Waku + axum](waku-axum/README.md)                         | axum        | RSC, SSR, API routes, WebSocket, Rust service                                                                        |
+| [Qwik City + axum](qwik-city-axum/README.md)               | axum        | Resumability, `routeLoader$`, endpoints, WebSocket, Rust service                                                     |
+| [HonoX + axum](honox-axum/README.md)                       | axum        | Islands, API routes, `fetchlet/hono/websocket`, Rust service                                                         |
+| [Vanilla Vite + axum](vanilla-axum/README.md)              | axum        | Framework-free Vite server module, streaming HTML, named exports, `dev:vite`, channels                               |
+| [Vanilla CLI](vanilla-cli/README.md)                       | CLI         | Functions-only artifact without HTTP, called from Rust with bindings and Web Crypto                                  |
+| [HonoX + Tauri](honox-tauri/README.md)                     | Tauri       | Custom URI scheme without an HTTP server, calling JS exports from Tauri commands                                     |
+| [SvelteKit + axum / Tauri](sveltekit-axum-tauri/README.md) | CLI / Tauri | Single-binary Markdown workspace (`mdw`), CLI HTTP + Tauri desktop, OpenAPI-typed Rust API, async SSR, file watching |
 
 ## Switching engines
 

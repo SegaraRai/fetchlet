@@ -15,13 +15,13 @@ The primary use case is embedding the server side of a modern JavaScript web
 framework — SvelteKit, Astro, Nuxt, React Router, TanStack Start, HonoX, and
 others — inside a Rust program that ships as a single executable:
 
-| Use case                  | What JavaScript handles                                                        |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| CLI with a web UI         | Interactive pages and forms over the local project, results, or settings       |
-| Local developer tools     | Search, logs, diffs, reports, and dashboards over a local database or index    |
-| Self-hosted applications  | Framework SSR pages paired with Rust APIs, installed and run as one binary     |
-| Desktop apps with Tauri   | The same server-rendered pages as your web app, backed directly by Rust state  |
-| Extensible rendering      | Dynamic pages or HTML fragments with explicit permissions and resource limits  |
+| Use case                 | What JavaScript handles                                                       |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| CLI with a web UI        | Interactive pages and forms over the local project, results, or settings      |
+| Local developer tools    | Search, logs, diffs, reports, and dashboards over a local database or index   |
+| Self-hosted applications | Framework SSR pages paired with Rust APIs, installed and run as one binary    |
+| Desktop apps with Tauri  | The same server-rendered pages as your web app, backed directly by Rust state |
+| Extensible rendering     | Dynamic pages or HTML fragments with explicit permissions and resource limits |
 
 Static SPA or SSG builds can already be embedded in a Rust binary, but fetchlet
 brings the framework's server side — data loaders, form actions, streaming SSR,
@@ -38,14 +38,14 @@ fetchlet supports three JavaScript engines behind one API. All three share the
 same [Web API profile](/docs/compatibility/web-api), so you can switch engines
 without rewriting application code.
 
-| Criterion             | QuickJS (`quickjs`, default) | Boa (`boa`)               | V8 (`v8`)                          |
-| --------------------- | ---------------------------- | ------------------------- | ---------------------------------- |
-| Startup time          | Fast (tens of ms)            | Slower                    | Moderate                           |
-| Throughput under load | Moderate (interpreter)       | Lower (interpreter)       | Highest (JIT)                      |
-| Build toolchain       | Requires a C compiler        | Pure Rust (no C/C++)      | Prebuilt V8 binary (MSVC static CRT on Windows) |
-| WebAssembly           | Not available                | Not available             | Native                             |
-| Native `Intl`         | Polyfilled via FormatJS      | Polyfilled via FormatJS   | Native ICU                         |
-| Heap limit            | Enforced (`heap_bytes`)      | Not supported in-process  | Enforced (`heap_bytes`)            |
+| Criterion             | QuickJS (`quickjs`, default)           | Boa (`boa`)                                              | V8 (`v8`)                                                |
+| --------------------- | -------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| Startup time          | Fast (tens of ms)                      | Slower                                                   | Moderate                                                 |
+| Throughput under load | Moderate (interpreter)                 | Lower (interpreter)                                      | Highest (JIT)                                            |
+| Build toolchain       | Requires a C compiler                  | Pure Rust (no C/C++)                                     | Prebuilt V8 binary (MSVC static CRT on Windows)          |
+| WebAssembly           | Not available                          | Not available                                            | Native                                                   |
+| Native `Intl`         | Polyfilled via FormatJS                | Polyfilled via FormatJS                                  | Native ICU                                               |
+| Heap limit            | Enforced (`heap_bytes`)                | Not supported in-process                                 | Enforced (`heap_bytes`)                                  |
 | Interrupting loops    | Preemptive (`timeout`, `busy_timeout`) | At promise jobs / host calls, or via `process` isolation | Preemptive (`reliable_termination` for allocating loops) |
 
 **Rule of thumb:**

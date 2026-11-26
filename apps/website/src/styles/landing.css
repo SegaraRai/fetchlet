@@ -12,7 +12,10 @@ Landing page utilities and interactive workbench styles.
 
 @utility action-link {
   @apply inline-flex items-center justify-center gap-2.5 px-5 py-3 text-(length:--text-small) font-medium rounded-control;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
 
   @variant focus-visible {
     @apply outline-2 outline-accent outline-offset-4;
@@ -21,7 +24,10 @@ Landing page utilities and interactive workbench styles.
 
 @utility scenario-tab {
   @apply inline-flex items-center gap-2 px-3.5 py-2 text-ui font-medium text-muted bg-transparent rounded-control border border-transparent cursor-pointer whitespace-nowrap hover:text-foreground;
-  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease;
 
   @variant aria-selected {
     @apply text-foreground bg-background border-border;
@@ -30,7 +36,9 @@ Landing page utilities and interactive workbench styles.
 
 @utility framework-tile {
   @apply flex items-center gap-3.5 px-4 py-3.5 bg-surface rounded-panel border border-border hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-4;
-  transition: border-color 140ms ease, background-color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 @utility landing-code {

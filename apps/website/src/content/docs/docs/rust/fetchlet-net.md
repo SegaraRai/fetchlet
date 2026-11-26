@@ -16,11 +16,11 @@ link-local IP addresses by default** (to prevent SSRF), and use `rustls` with
 cargo add fetchlet-net
 ```
 
-| Feature               | Adds                                                                 |
-| --------------------- | -------------------------------------------------------------------- |
-| `http` (default)      | `HttpClient` for JavaScript's `fetch()`                              |
-| `sockets` (default)   | `TcpTransport` for JavaScript's `connect()`                          |
-| `websocket` (default) | `WebSocketClient` for JavaScript's global `WebSocket`                |
+| Feature               | Adds                                                  |
+| --------------------- | ----------------------------------------------------- |
+| `http` (default)      | `HttpClient` for JavaScript's `fetch()`               |
+| `sockets` (default)   | `TcpTransport` for JavaScript's `connect()`           |
+| `websocket` (default) | `WebSocketClient` for JavaScript's global `WebSocket` |
 
 `rustls` is re-exported from `fetchlet_net` for passing a custom
 `rustls::ClientConfig` to `with_tls_config()`.

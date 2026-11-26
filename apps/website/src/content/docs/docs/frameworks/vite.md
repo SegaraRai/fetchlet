@@ -31,15 +31,15 @@ export default defineConfig({
 });
 ```
 
-| Option         | Default           | Meaning                                                                                   |
-| -------------- | ----------------- | ----------------------------------------------------------------------------------------- |
-| `server`       | `"src/server.ts"` | Server module path                                                                        |
-| `client`       | none              | Browser entry points (falls back to `index.html` if present)                              |
-| `outDir`       | `"build"`         | Output artifact directory                                                                 |
-| `backend`      | `"portable"`      | Target engine (`quickjs`, `boa`, `v8`, or `portable`)                                     |
-| `intl`         | `{}`              | `Intl` locales and time zone data ([build options](/docs/javascript/build))               |
-| `requirements` | `[]`              | Extra APIs beyond the Web API profile ([build options](/docs/javascript/build))           |
-| `assets`       | `false`           | Pack `client/` into `assets.flpk` with 1-year immutable caching on `build.assetsDir`      |
+| Option         | Default           | Meaning                                                                              |
+| -------------- | ----------------- | ------------------------------------------------------------------------------------ |
+| `server`       | `"src/server.ts"` | Server module path                                                                   |
+| `client`       | none              | Browser entry points (falls back to `index.html` if present)                         |
+| `outDir`       | `"build"`         | Output artifact directory                                                            |
+| `backend`      | `"portable"`      | Target engine (`quickjs`, `boa`, `v8`, or `portable`)                                |
+| `intl`         | `{}`              | `Intl` locales and time zone data ([build options](/docs/javascript/build))          |
+| `requirements` | `[]`              | Extra APIs beyond the Web API profile ([build options](/docs/javascript/build))      |
+| `assets`       | `false`           | Pack `client/` into `assets.flpk` with 1-year immutable caching on `build.assetsDir` |
 
 ## Writing the server module
 

@@ -9,18 +9,18 @@ clear ownership of every host resource across the JavaScript–Rust boundary.
 
 ## Execution boundary
 
-| Area                | Guarantee                                                                                                                                                                  |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Outbound fetch      | Denied by default; allowed only to configured services and exact normalized origins. Replacing `globalThis.fetch` still goes through Rust's `FetchPolicy`                  |
-| Rewrites & redirects | Every redirect hop is re-authorized against the final origin; credentials attach to a single send, and cross-origin redirects strip guest `Authorization` and `Cookie`     |
-| Env & bindings      | Fixed read-only object defined by Rust before module evaluation; `process.env` does not expose host environment variables                                                  |
-| Engine globals      | Only fetchlet's Web API profile and host operations are exposed; V8 builds strip `deno_core`'s `Deno` and `__bootstrap` globals                                            |
-| Host functions      | Claimed once by the bundle's runtime at initialization and removed from `globalThis`; application code reaches Rust only through the public APIs                           |
-| JavaScript state    | Isolated per `App` (and per instance inside a pool); use a separate `App` per tenant or permission profile                                                                 |
-| Async resources     | Every outbound fetch, socket, channel, and body source is owned by its invocation and dropped when the invocation ends                                                     |
-| Cancellation        | Cancelled or timed-out invocations retire and rebuild their engine instance (unless `CancelledCalls::Finish` is explicitly enabled for dev)                                |
-| Host errors         | JavaScript receives stable error codes and generic messages; internal Rust error details never leak to the guest                                                           |
-| Resource limits     | Enforced per call and per instance via `Limits` and engine options ([Resource limits](/docs/rust/resource-policy))                                                         |
+| Area                 | Guarantee                                                                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Outbound fetch       | Denied by default; allowed only to configured services and exact normalized origins. Replacing `globalThis.fetch` still goes through Rust's `FetchPolicy`              |
+| Rewrites & redirects | Every redirect hop is re-authorized against the final origin; credentials attach to a single send, and cross-origin redirects strip guest `Authorization` and `Cookie` |
+| Env & bindings       | Fixed read-only object defined by Rust before module evaluation; `process.env` does not expose host environment variables                                              |
+| Engine globals       | Only fetchlet's Web API profile and host operations are exposed; V8 builds strip `deno_core`'s `Deno` and `__bootstrap` globals                                        |
+| Host functions       | Claimed once by the bundle's runtime at initialization and removed from `globalThis`; application code reaches Rust only through the public APIs                       |
+| JavaScript state     | Isolated per `App` (and per instance inside a pool); use a separate `App` per tenant or permission profile                                                             |
+| Async resources      | Every outbound fetch, socket, channel, and body source is owned by its invocation and dropped when the invocation ends                                                 |
+| Cancellation         | Cancelled or timed-out invocations retire and rebuild their engine instance (unless `CancelledCalls::Finish` is explicitly enabled for dev)                            |
+| Host errors          | JavaScript receives stable error codes and generic messages; internal Rust error details never leak to the guest                                                       |
+| Resource limits      | Enforced per call and per instance via `Limits` and engine options ([Resource limits](/docs/rust/resource-policy))                                                     |
 
 Outbound transports are part of this boundary: `fetchlet-net` resolves DNS in
 Rust, blocks private/loopback/link-local IP addresses by default, enforces body

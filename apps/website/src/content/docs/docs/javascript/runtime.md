@@ -192,12 +192,12 @@ export default {
 
 ## Subpaths
 
-| Subpath                    | Purpose                                                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `fetchlet/runtime`         | Installs the Web API profile and exports runtime helpers (`connect`, `upgradeWebSocket`, etc.)                     |
+| Subpath                    | Purpose                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `fetchlet/runtime`         | Installs the Web API profile and exports runtime helpers (`connect`, `upgradeWebSocket`, etc.)                           |
 | `fetchlet/runtime/adapter` | Installs the profile and exports `createFetchHandler`, `getBindings`, `waitUntil`, `upgradeWebSocket`, `upgradeResponse` |
-| `fetchlet/runtime/handler` | Same exports as `fetchlet/runtime/adapter` without installing the profile (for use inside framework server code)   |
-| `fetchlet/bindings`        | TypeScript types only (`ServiceBinding`, `ChannelBinding`, `FunctionBinding`, `FetchletBindings`, `HostChannel`)   |
+| `fetchlet/runtime/handler` | Same exports as `fetchlet/runtime/adapter` without installing the profile (for use inside framework server code)         |
+| `fetchlet/bindings`        | TypeScript types only (`ServiceBinding`, `ChannelBinding`, `FunctionBinding`, `FetchletBindings`, `HostChannel`)         |
 
 ## Runtime notes
 

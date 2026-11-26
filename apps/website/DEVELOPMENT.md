@@ -51,16 +51,16 @@ Each page sets `title`, `slug` and `description` in its frontmatter.
 `astro.config.ts` lists the sidebar explicitly; add each new page to the group
 that answers the reader's question:
 
-| Group                    | Reader question                                                       |
-| ------------------------ | --------------------------------------------------------------------- |
-| Getting started          | How do I build an application and serve it from Rust?                 |
-| Overview                 | What is fetchlet for, which engine should I pick, and how use agents? |
-| Frameworks               | How do I connect my framework?                                        |
-| Development & building   | How do I develop, build artifacts, and use runtime bindings?          |
-| Rust host                | How do I serve HTTP, run JS, grant host services, and set limits?     |
+| Group                    | Reader question                                                         |
+| ------------------------ | ----------------------------------------------------------------------- |
+| Getting started          | How do I build an application and serve it from Rust?                   |
+| Overview                 | What is fetchlet for, which engine should I pick, and how use agents?   |
+| Frameworks               | How do I connect my framework?                                          |
+| Development & building   | How do I develop, build artifacts, and use runtime bindings?            |
+| Rust host                | How do I serve HTTP, run JS, grant host services, and set limits?       |
 | Shipping & security      | How do I ship one binary or Tauri app, and what does the boundary hold? |
-| Compatibility            | Which Web and Node.js APIs work on each engine?                       |
-| Architecture & reference | How do the internals work, and what are the low-level formats/crates? |
+| Compatibility            | Which Web and Node.js APIs work on each engine?                         |
+| Architecture & reference | How do the internals work, and what are the low-level formats/crates?   |
 
 Use MDX for pages with components. `src/components.ts` registers the local
 Aside component, which supports `note`, `tip`, `caution`, and `danger`.

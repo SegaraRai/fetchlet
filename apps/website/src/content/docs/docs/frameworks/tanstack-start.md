@@ -22,7 +22,9 @@ export default defineConfig({
   plugins: [
     tanstackStart(),
     react(),
-    fetchletStart({ backend: "quickjs" }),
+    fetchletStart({
+      backend: "quickjs",
+    }),
   ],
 });
 ```

@@ -31,17 +31,17 @@ crate; `fetchlet-http` has no engine features of its own.
 
 ## Cargo features
 
-| Feature           | Adds                                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------------------------ |
-| (none)            | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`, `AssetArchive`, `AssetService`   |
-| `hyper`           | `HyperService`, `HyperConnection`, `PeerAddr` for hyper 1                                              |
-| `axum`            | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router`                         |
-| `actix`           | `ActixService` for actix-web 4                                                                         |
-| `axum-websocket`  | Server WebSocket upgrades in `AxumService` and `Server` (enables `axum`)                               |
-| `actix-websocket` | Server WebSocket upgrades in `ActixService` (enables `actix`)                                          |
-| `dev-reload`      | `DevReload` for reloading rebuilt artifacts during development                                         |
-| `vite-dev`        | `ViteDev` for running server modules directly from a Vite dev server                                   |
-| `process`         | `Server::isolation` for child-process isolation                                                        |
+| Feature           | Adds                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| (none)            | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`, `AssetArchive`, `AssetService` |
+| `hyper`           | `HyperService`, `HyperConnection`, `PeerAddr` for hyper 1                                            |
+| `axum`            | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router`                       |
+| `actix`           | `ActixService` for actix-web 4                                                                       |
+| `axum-websocket`  | Server WebSocket upgrades in `AxumService` and `Server` (enables `axum`)                             |
+| `actix-websocket` | Server WebSocket upgrades in `ActixService` (enables `actix`)                                        |
+| `dev-reload`      | `DevReload` for reloading rebuilt artifacts during development                                       |
+| `vite-dev`        | `ViteDev` for running server modules directly from a Vite dev server                                 |
+| `process`         | `Server::isolation` for child-process isolation                                                      |
 
 For outbound HTTP, TCP, and WebSocket clients from JavaScript, see
 [`fetchlet-net`](https://crates.io/crates/fetchlet-net).

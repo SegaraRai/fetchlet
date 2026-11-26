@@ -243,7 +243,7 @@ describe("WatchedRustFiles", () => {
 
     const files = new WatchedRustFiles(directory);
     expect(files.changed(mainRs)).toBe(false);
-    writeFileSync(mainRs, "fn main() { println!(\"hi\"); }");
+    writeFileSync(mainRs, 'fn main() { println!("hi"); }');
     expect(files.changed(mainRs)).toBe(true);
     expect(files.changed(mainRs)).toBe(false);
 

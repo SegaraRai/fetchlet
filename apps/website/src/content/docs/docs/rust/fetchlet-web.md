@@ -16,13 +16,13 @@ runtime into your own JavaScript host.
 
 ## Cargo features
 
-| Feature                 | API                                                     | Backing crates                 |
-| ----------------------- | ------------------------------------------------------- | ------------------------------ |
-| `compression` (default) | `CompressionStream`, `DecompressionStream`              | `flate2`, `brotli`             |
-| `node-crypto` (default) | `node:crypto` hashes, HMAC, PBKDF2, HKDF, and scrypt    | RustCrypto                     |
-| `url` (default)         | `URL` parsing and setters                               | `url`                          |
-| `url-pattern` (default) | `URLPattern`                                            | `urlpattern`                   |
-| `web-crypto` (default)  | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` | RustCrypto, `getrandom`        |
+| Feature                 | API                                                     | Backing crates          |
+| ----------------------- | ------------------------------------------------------- | ----------------------- |
+| `compression` (default) | `CompressionStream`, `DecompressionStream`              | `flate2`, `brotli`      |
+| `node-crypto` (default) | `node:crypto` hashes, HMAC, PBKDF2, HKDF, and scrypt    | RustCrypto              |
+| `url` (default)         | `URL` parsing and setters                               | `url`                   |
+| `url-pattern` (default) | `URLPattern`                                            | `urlpattern`            |
+| `web-crypto` (default)  | `crypto.getRandomValues`, `randomUUID`, `crypto.subtle` | RustCrypto, `getrandom` |
 
 ## Dispatching operations in a custom host
 

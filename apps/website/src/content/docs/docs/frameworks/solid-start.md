@@ -21,7 +21,9 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [
     solidStart(),
-    fetchletSolidStart({ backend: "quickjs" }),
+    fetchletSolidStart({
+      backend: "quickjs",
+    }),
   ],
 });
 ```

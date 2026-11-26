@@ -35,16 +35,16 @@ let hosts = HostServices::new()
     .service("API", service)?;
 ```
 
-| API                                 | Role                                                                          |
-| ----------------------------------- | ----------------------------------------------------------------------------- |
-| `OriginRouter::internal(origin, t)` | Registers a trusted transport for an origin; receives the invocation `Context`|
-| `OriginRouter::external(origin, t)` | Registers an untrusted transport for an origin; `Context` is stripped         |
-| `OriginRouter::into_service()`      | Builds a `FetchService` allowing only the registered origins                  |
-| `FetchTransport` / `transport_fn`   | Connects any async Rust function as a single-hop transport                    |
-| `fetchlet_http::router_transport`   | Wraps an axum `Router` as a transport (`axum` feature)                        |
-| `fetchlet_http::service_transport`  | Wraps any Tower service as a transport                                        |
-| `trusted_context`                   | Builds a `Context` from incoming HTTP requests on `fetchlet-http` services    |
-| `FetchService::forward_context()`   | Forwards `Context` on a single-transport `FetchService` without `OriginRouter`|
+| API                                 | Role                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| `OriginRouter::internal(origin, t)` | Registers a trusted transport for an origin; receives the invocation `Context` |
+| `OriginRouter::external(origin, t)` | Registers an untrusted transport for an origin; `Context` is stripped          |
+| `OriginRouter::into_service()`      | Builds a `FetchService` allowing only the registered origins                   |
+| `FetchTransport` / `transport_fn`   | Connects any async Rust function as a single-hop transport                     |
+| `fetchlet_http::router_transport`   | Wraps an axum `Router` as a transport (`axum` feature)                         |
+| `fetchlet_http::service_transport`  | Wraps any Tower service as a transport                                         |
+| `trusted_context`                   | Builds a `Context` from incoming HTTP requests on `fetchlet-http` services     |
+| `FetchService::forward_context()`   | Forwards `Context` on a single-transport `FetchService` without `OriginRouter` |
 
 ## Exact origin routing
 
@@ -106,7 +106,7 @@ Because each engine instance processes one invocation at a time, calling the
 same `AppHandle` from inside one of its own host fetches would deadlock.
 fetchlet detects direct reentrant calls on the worker thread and fails them
 immediately with `Error::Reentrant` (`REENTRANT` in JavaScript). Calls to a
-*different* `AppHandle` work normally.
+_different_ `AppHandle` work normally.
 
 Avoid spawning a separate `tokio::spawn` task inside a transport that calls back
 into the same `AppHandle` and awaits it — that cannot be detected as reentrant
@@ -117,12 +117,12 @@ and will wait until `Limits::timeout`.
 Some frameworks intercept relative or same-origin fetches inside JavaScript
 before they reach global `fetch()`:
 
-| Framework                                                  | Stays inside JavaScript (no host fetch)                                                                              |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| SvelteKit                                                  | `event.fetch` with a relative or same-origin URL                                                                     |
-| Nuxt and Nitro                                             | `event.$fetch` and `event.fetch` with a path (keeps `event.context.fetchlet`); global `$fetch` with a path (no context) |
-| SolidStart                                                 | `fetchWithEvent(event, path)` from `@solidjs/start/http`                                                             |
-| TanStack Start, Astro, React Router, Qwik City, Waku, vinext, HonoX, Solid | None — call loaders/functions directly, or use `fetch` to an allowed internal origin                      |
+| Framework                                                                  | Stays inside JavaScript (no host fetch)                                                                                 |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| SvelteKit                                                                  | `event.fetch` with a relative or same-origin URL                                                                        |
+| Nuxt and Nitro                                                             | `event.$fetch` and `event.fetch` with a path (keeps `event.context.fetchlet`); global `$fetch` with a path (no context) |
+| SolidStart                                                                 | `fetchWithEvent(event, path)` from `@solidjs/start/http`                                                                |
+| TanStack Start, Astro, React Router, Qwik City, Waku, vinext, HonoX, Solid | None — call loaders/functions directly, or use `fetch` to an allowed internal origin                                    |
 
 An absolute URL passed to global `fetch()` (even on the public origin) always
 goes through Rust's `FetchPolicy`. Named bindings such as `env.RUST.fetch(...)`

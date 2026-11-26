@@ -11,25 +11,25 @@ and more) for server-side JavaScript running inside a fetchlet engine.
 
 ## Subpaths
 
-| Subpath                                 | Node.js module                                                  |
-| --------------------------------------- | --------------------------------------------------------------- |
-| `@fetchlet/node/assert`, `/strict`      | `node:assert`, `node:assert/strict`                             |
-| `@fetchlet/node/async-hooks`            | `node:async_hooks` (`propagated` mode on V8 and Boa)            |
-| `@fetchlet/node/async-hooks/serialized` | `node:async_hooks` (`serialized` mode for all engines)          |
-| `@fetchlet/node/buffer`                 | `node:buffer`                                                   |
-| `@fetchlet/node/crypto`                 | `node:crypto` (backed by Rust `fetchlet-web`)                   |
-| `@fetchlet/node/diagnostics-channel`    | `node:diagnostics_channel`                                      |
-| `@fetchlet/node/events`                 | `node:events`                                                   |
-| `@fetchlet/node/http`, `/https`         | `node:http`, `node:https` (client requests over `fetch`)        |
-| `@fetchlet/node/path`                   | `node:path` (POSIX)                                             |
-| `@fetchlet/node/process`                | `node:process`                                                  |
-| `@fetchlet/node/querystring`            | `node:querystring`                                              |
-| `@fetchlet/node/stream`, `/promises`, `/web` | `node:stream`, `node:stream/promises`, `node:stream/web`   |
-| `@fetchlet/node/string-decoder`         | `node:string_decoder`                                           |
-| `@fetchlet/node/timers`, `/promises`    | `node:timers`, `node:timers/promises`                           |
-| `@fetchlet/node/url`                    | `node:url`                                                      |
-| `@fetchlet/node/util`, `/types`         | `node:util`, `node:util/types`                                  |
-| `@fetchlet/node/zlib`                   | `node:zlib` (backed by Rust `fetchlet-web`)                     |
+| Subpath                                      | Node.js module                                           |
+| -------------------------------------------- | -------------------------------------------------------- |
+| `@fetchlet/node/assert`, `/strict`           | `node:assert`, `node:assert/strict`                      |
+| `@fetchlet/node/async-hooks`                 | `node:async_hooks` (`propagated` mode on V8 and Boa)     |
+| `@fetchlet/node/async-hooks/serialized`      | `node:async_hooks` (`serialized` mode for all engines)   |
+| `@fetchlet/node/buffer`                      | `node:buffer`                                            |
+| `@fetchlet/node/crypto`                      | `node:crypto` (backed by Rust `fetchlet-web`)            |
+| `@fetchlet/node/diagnostics-channel`         | `node:diagnostics_channel`                               |
+| `@fetchlet/node/events`                      | `node:events`                                            |
+| `@fetchlet/node/http`, `/https`              | `node:http`, `node:https` (client requests over `fetch`) |
+| `@fetchlet/node/path`                        | `node:path` (POSIX)                                      |
+| `@fetchlet/node/process`                     | `node:process`                                           |
+| `@fetchlet/node/querystring`                 | `node:querystring`                                       |
+| `@fetchlet/node/stream`, `/promises`, `/web` | `node:stream`, `node:stream/promises`, `node:stream/web` |
+| `@fetchlet/node/string-decoder`              | `node:string_decoder`                                    |
+| `@fetchlet/node/timers`, `/promises`         | `node:timers`, `node:timers/promises`                    |
+| `@fetchlet/node/url`                         | `node:url`                                               |
+| `@fetchlet/node/util`, `/types`              | `node:util`, `node:util/types`                           |
+| `@fetchlet/node/zlib`                        | `node:zlib` (backed by Rust `fetchlet-web`)              |
 
 ## Documentation
 

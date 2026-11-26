@@ -7,11 +7,11 @@ description: "Serve fetchlet artifacts over HTTP with axum, hyper, actix, or Tow
 `fetchlet-http` connects a fetchlet application to an HTTP server or a desktop
 webview. Choose the integration level that fits your application:
 
-| API | Feature | When to use |
-| --- | ------- | ----------- |
-| `Server` | `axum` | Fastest way to serve a build artifact with static assets, Rust routes, dev reload, or a Tauri webview |
-| `Artifact` + `AxumService` + `artifact_router` | `axum` | When you already own an axum `Router` and want full control over `AppBuilder`, middleware, and lifecycle |
-| `FetchletService` / `HyperService` / `ActixService` | (default) / `hyper` / `actix` | Serving from Tower, hyper 1, or actix-web 4 |
+| API                                                 | Feature                       | When to use                                                                                              |
+| --------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `Server`                                            | `axum`                        | Fastest way to serve a build artifact with static assets, Rust routes, dev reload, or a Tauri webview    |
+| `Artifact` + `AxumService` + `artifact_router`      | `axum`                        | When you already own an axum `Router` and want full control over `AppBuilder`, middleware, and lifecycle |
+| `FetchletService` / `HyperService` / `ActixService` | (default) / `hyper` / `actix` | Serving from Tower, hyper 1, or actix-web 4                                                              |
 
 ```sh
 cargo add fetchlet
@@ -21,17 +21,17 @@ cargo add fetchlet-http --features axum
 Select your JavaScript engine (`quickjs`, `boa`, or `v8`) on the `fetchlet`
 crate; `fetchlet-http` has no engine features of its own.
 
-| Feature           | Adds                                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------------------------ |
-| (none)            | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`, `AssetArchive`, `AssetService`   |
-| `hyper`           | `HyperService` and `HyperConnection` for hyper 1, `PeerAddr`                                           |
-| `axum`            | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router`                         |
-| `actix`           | `ActixService` for actix-web 4                                                                         |
-| `axum-websocket`  | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)                                      |
-| `actix-websocket` | WebSocket upgrades in `ActixService` (enables `actix`)                                                 |
-| `dev-reload`      | `DevReload`, which reloads rebuilt artifacts during development                                        |
-| `vite-dev`        | `ViteDev`, which runs server modules from a Vite dev server                                            |
-| `process`         | `Server::isolation` for child-process isolation (`main` calls `fetchlet::serve_if_child()` first)      |
+| Feature           | Adds                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| (none)            | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`, `AssetArchive`, `AssetService` |
+| `hyper`           | `HyperService` and `HyperConnection` for hyper 1, `PeerAddr`                                         |
+| `axum`            | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router`                       |
+| `actix`           | `ActixService` for actix-web 4                                                                       |
+| `axum-websocket`  | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)                                    |
+| `actix-websocket` | WebSocket upgrades in `ActixService` (enables `actix`)                                               |
+| `dev-reload`      | `DevReload`, which reloads rebuilt artifacts during development                                      |
+| `vite-dev`        | `ViteDev`, which runs server modules from a Vite dev server                                          |
+| `process`         | `Server::isolation` for child-process isolation (`main` calls `fetchlet::serve_if_child()` first)    |
 
 For outbound HTTP, TCP, and WebSocket clients from JavaScript, see
 [Outbound networking](/docs/rust/fetchlet-net).
@@ -57,18 +57,18 @@ Server::new("build")
     .await?;
 ```
 
-| Method                  | Default                                                                                                              |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `host_services(f)`      | No bindings. `f` runs each time the server starts an application                                                     |
-| `routes(f)`             | No Rust routes. `f` receives `AppHandle` so routes can call named JS exports or inspect `pool_state()`               |
-| `rendering(f)`          | `AxumService` logging errors to stderr; customize to add request context or enable `stream_request_bodies()`         |
-| `limits(limits)`        | `Server::default_limits()`: 10 s `busy_timeout` and 60 s `startup_timeout` (setting `limits` replaces these defaults)|
-| `public_origin(origin)` | `http://<listener address>`                                                                                          |
-| `backend(backend)`      | Matches the artifact's `backend` (`Backend::for_target`) with safe stack and 64 MiB QuickJS/V8 heap defaults        |
-| `worker(options)`       | Queue capacity of 8 and a 64 MiB native worker stack                                                                 |
-| `queue_capacity(n)`     | 8; overrides only the queue size                                                                                     |
-| `instances(i)`          | 1 instance; set higher with `Instances` for concurrent SSR                                                           |
-| `isolation(isolation)`  | In-process. With the `process` feature, `Isolation::Process` runs each instance in a child process                   |
+| Method                  | Default                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `host_services(f)`      | No bindings. `f` runs each time the server starts an application                                                      |
+| `routes(f)`             | No Rust routes. `f` receives `AppHandle` so routes can call named JS exports or inspect `pool_state()`                |
+| `rendering(f)`          | `AxumService` logging errors to stderr; customize to add request context or enable `stream_request_bodies()`          |
+| `limits(limits)`        | `Server::default_limits()`: 10 s `busy_timeout` and 60 s `startup_timeout` (setting `limits` replaces these defaults) |
+| `public_origin(origin)` | `http://<listener address>`                                                                                           |
+| `backend(backend)`      | Matches the artifact's `backend` (`Backend::for_target`) with safe stack and 64 MiB QuickJS/V8 heap defaults          |
+| `worker(options)`       | Queue capacity of 8 and a 64 MiB native worker stack                                                                  |
+| `queue_capacity(n)`     | 8; overrides only the queue size                                                                                      |
+| `instances(i)`          | 1 instance; set higher with `Instances` for concurrent SSR                                                            |
+| `isolation(isolation)`  | In-process. With the `process` feature, `Isolation::Process` runs each instance in a child process                    |
 
 ### Default stack, heap, and concurrency settings
 
@@ -309,13 +309,13 @@ service for in-process APIs alongside actix-web.
 When called as an HTTP service, detailed `fetchlet::Error` values are passed to
 `on_error` while the client receives a generic HTTP status:
 
-| Condition                                     | Status |
-| --------------------------------------------- | ------ |
-| Invalid request target or body                | 400    |
-| Permission denied                             | 403    |
-| Request body over budget                      | 413    |
-| URL over budget                               | 414    |
+| Condition                                      | Status |
+| ---------------------------------------------- | ------ |
+| Invalid request target or body                 | 400    |
+| Permission denied                              | 403    |
+| Request body over budget                       | 413    |
+| URL over budget                                | 414    |
 | Worker closed, failed, or instance unavailable | 503    |
-| WebSocket upgrade with all slots taken        | 503    |
-| Deadline exceeded                             | 504    |
-| Anything else                                 | 500    |
+| WebSocket upgrade with all slots taken         | 503    |
+| Deadline exceeded                              | 504    |
+| Anything else                                  | 500    |

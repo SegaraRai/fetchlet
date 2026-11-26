@@ -276,9 +276,7 @@ const workflow = [
   <!-- Hero -->
   <section aria-labelledby="tagline" {...style("pbs-14 pbe-12 sidebar:pbs-22 sidebar:pbe-16")}>
     <div
-      {...style(
-        "grid items-start gap-10 sidebar:grid-cols-[minmax(0,45rem)_1fr] sidebar:gap-8",
-      )}
+      {...style("grid items-start gap-10 sidebar:grid-cols-[minmax(0,45rem)_1fr] sidebar:gap-8")}
     >
       <div {...style("max-inline-180")}>
         <h1 id="tagline" {...style("hero-title")}>
@@ -335,7 +333,9 @@ const workflow = [
     <!-- Interactive JS + Rust Workbench -->
     <div
       data-workbench
-      {...style("overflow-hidden mbs-12 bg-surface rounded-panel border border-border sidebar:mbs-14")}
+      {...style(
+        "overflow-hidden mbs-12 bg-surface rounded-panel border border-border sidebar:mbs-14",
+      )}
     >
       <div
         role="tablist"
@@ -426,7 +426,9 @@ const workflow = [
 
     <nav
       aria-label="Framework guides"
-      {...style("grid grid-cols-1 gap-3 inline:grid-cols-2 sidebar:grid-cols-3 outline:grid-cols-4")}
+      {...style(
+        "grid grid-cols-1 gap-3 inline:grid-cols-2 sidebar:grid-cols-3 outline:grid-cols-4",
+      )}
     >
       {frameworks.map((framework) => (
         <a href={`/docs/frameworks/${framework.slug}`} {...style(frameworkTile, "framework-tile")}>
@@ -442,9 +444,7 @@ const workflow = [
             )}
           ></span>
           <span {...style("min-inline-0 grow")}>
-            <span {...style("block text-foreground text-small font-medium")}>
-              {framework.name}
-            </span>
+            <span {...style("block text-foreground text-small font-medium")}>{framework.name}</span>
             <span translate="no" {...style("block truncate font-mono text-label text-muted")}>
               fetchlet/{"subpath" in framework ? framework.subpath : framework.slug}
             </span>
@@ -467,7 +467,9 @@ const workflow = [
     >
       <div>
         <h2 id="capabilities" {...style("mbe-5 section-title")}>
-          JavaScript renders.<br />Rust owns the rest.
+          JavaScript renders.
+          <br />
+          Rust owns the rest.
         </h2>
         <p {...style("mbe-6 text-muted text-small/relaxed")}>
           Route internal origins straight to your axum router with zero TCP overhead, inject
@@ -527,9 +529,7 @@ const workflow = [
         <li {...style("flex items-baseline gap-4")}>
           <span {...style("shrink-0 font-mono text-accent text-small")}>{item.step}</span>
           <div {...style("min-inline-0 grow")}>
-            <h3 {...style("mbe-3 text-foreground text-heading-small font-medium")}>
-              {item.title}
-            </h3>
+            <h3 {...style("mbe-3 text-foreground text-heading-small font-medium")}>{item.title}</h3>
             <div
               {...style(
                 "grid items-start gap-5 sidebar:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sidebar:gap-10",
