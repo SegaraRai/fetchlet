@@ -1,0 +1,33 @@
+# Changes to these paths run with repository secrets or write permissions after the merge,
+# change the published packages and crates, or change the instructions that coding agents follow.
+# The Protected paths workflow rejects changes to `.github/`, the ledger, and changelogs from
+# forks. Keep its `paths` list in sync with those entries.
+
+# Workflows, pinned actions, and this file.
+/.github/ @SegaraRai
+
+# The Version PR workflow generates these files.
+/.changeset/ledger.yaml @SegaraRai
+CHANGELOG.md @SegaraRai
+
+# Dependencies and package and crate metadata.
+package.json @SegaraRai
+Cargo.toml @SegaraRai
+/Cargo.lock @SegaraRai
+/pnpm-lock.yaml @SegaraRai
+/pnpm-workspace.yaml @SegaraRai
+
+# Scripts and configuration that privileged workflows run on `main` and `stable`: versioning,
+# publication, the release draft, and the website deployment.
+/tools/release/ @SegaraRai
+/tools/workspace/ @SegaraRai
+/apps/website/astro.config.ts @SegaraRai
+/apps/website/cloudflare.config.ts @SegaraRai
+/apps/website/vite.config.ts @SegaraRai
+
+# License files that the packages and crates publish.
+LICENSE-MIT @SegaraRai
+LICENSE-APACHE @SegaraRai
+
+# Instructions for coding agents.
+/AGENTS.md @SegaraRai

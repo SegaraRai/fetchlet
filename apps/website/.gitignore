@@ -1,4 +1,5 @@
 .astro/
+.cloudflare/
 .nimbus/
 dist/
 node_modules/

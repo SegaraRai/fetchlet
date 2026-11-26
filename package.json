@@ -18,5 +18,12 @@
     "vite-plus": "catalog:",
     "web-streams-polyfill": "catalog:dep"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "26.13.1",
+      "onFail": "download"
+    }
+  },
   "packageManager": "pnpm@12.21.0"
 }

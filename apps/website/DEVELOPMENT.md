@@ -118,3 +118,19 @@ JetBrains Mono are bundled for local delivery, with their licenses under
 `https://fetchlet.roundtrip.dev`. Previews use subdomains of
 `fetchlet-preview.roundtrip.dev`: a Preview name becomes the first subdomain,
 such as `https://main.fetchlet-preview.roundtrip.dev/`.
+
+The Deploy workflow (`.github/workflows/deploy.yml`) builds the site with
+`PUBLIC_WEBSITE_URL` set to the target origin and deploys `dist/` with the `cf`
+CLI, which writes the Build Output to `.cloudflare/output/`:
+
+- a push to `main` deploys the Preview `main` through the `website-preview`
+  environment;
+- a push to `stable` deploys production through the `website-production`
+  environment.
+
+Each environment holds the `CLOUDFLARE_API_TOKEN` secret and the
+`CLOUDFLARE_ACCOUNT_ID` variable. A Preview uses the domains of the last
+production deployment, so deploy `stable` once before the first Preview.
+Restrict `website-production` to `stable`, with required reviewers, and
+`website-preview` to `main`. To publish the documentation of a release,
+fast-forward `stable` to the release commit.

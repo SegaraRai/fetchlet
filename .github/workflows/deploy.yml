@@ -1,0 +1,62 @@
+name: Deploy
+
+# Deploys the website (apps/website), an assets-only Cloudflare Worker, with the `cf` CLI.
+#
+# - `main` → Preview at https://main.fetchlet-preview.roundtrip.dev (environment `website-preview`).
+# - `stable` → https://fetchlet.roundtrip.dev (environment `website-production`).
+#
+# A Preview uses the domains of the last production deployment, so deploy `stable` once before the
+# first Preview.
+#
+# Each environment holds the CLOUDFLARE_API_TOKEN secret and the CLOUDFLARE_ACCOUNT_ID variable.
+# Restrict `website-production` to the `stable` branch and `website-preview` to `main`.
+
+on:
+  push:
+    branches: [main, stable]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CF_SEND_TELEMETRY: "false"
+
+jobs:
+  website:
+    name: Deploy website
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/stable'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref == 'refs/heads/stable' && 'website-production' || 'website-preview' }}
+      url: ${{ github.ref == 'refs/heads/stable' && 'https://fetchlet.roundtrip.dev' || format('https://{0}.fetchlet-preview.roundtrip.dev', github.ref_name) }}
+    # A deployment must finish once it starts uploading; a later push deploys after it.
+    concurrency:
+      group: deploy-website-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          run-install: false
+      - run: vp install --frozen-lockfile
+      # The site's canonical URLs, sitemap and social images use this origin.
+      - name: Build
+        env:
+          PUBLIC_WEBSITE_URL: ${{ github.ref == 'refs/heads/stable' && 'https://fetchlet.roundtrip.dev' || format('https://{0}.fetchlet-preview.roundtrip.dev', github.ref_name) }}
+        run: vp run @fetchlet-internal/apps-website#build
+      # `cf` writes the Build Output for an assets-only Worker from dist/ and cloudflare.config.ts.
+      - name: Deploy
+        working-directory: apps/website
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ "$GITHUB_REF_NAME" = stable ]; then
+            vp exec cf deploy dist
+          else
+            vp exec cf previews deploy dist --preview-name "$GITHUB_REF_NAME"
+          fi

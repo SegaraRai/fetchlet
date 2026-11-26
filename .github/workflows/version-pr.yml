@@ -33,8 +33,6 @@ jobs:
           persist-credentials: false
       - uses: voidzero-dev/setup-vp@v1.22.0
         with:
-          node-version: "26"
-          version: "1.7.0"
           run-install: false
       - run: vp install --frozen-lockfile --ignore-scripts --filter @fetchlet-internal/workspace --filter @fetchlet-internal/tools-release...
       # sync-version.ts runs `cargo update --workspace` for the lock entries of the members.

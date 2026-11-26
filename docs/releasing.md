@@ -96,6 +96,22 @@ needs a package to exist first:
 The `crates-release` environment needs required reviewers, because its
 approval is the gate before an irreversible upload.
 
+## Repository protection
+
+`.github/CODEOWNERS` requests a maintainer review for the workflows, the
+generated ledger and changelogs, the manifests and lockfiles, the scripts the
+privileged workflows run, the license texts and `AGENTS.md`. The Protected
+paths workflow fails a pull request from a fork that changes `.github/`,
+`.changeset/ledger.yaml` or a `CHANGELOG.md`; keep its `paths` in sync with
+the matching CODEOWNERS entries.
+
+The Version PR workflow pushes its branch with `GITHUB_TOKEN`, so GitHub asks
+a maintainer to approve the Test and Release runs of the version pull request
+before they start. Merge it only after both pass.
+
+The website deploys from `stable` (see
+[the website's development notes](../apps/website/DEVELOPMENT.md#deployment)).
+
 ## License
 
 Every package and crate is available under `MIT OR Apache-2.0`

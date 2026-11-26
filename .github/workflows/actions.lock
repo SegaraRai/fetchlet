@@ -3,6 +3,10 @@
 # Docs: https://gh.io/actions-lockfile
 version: 'v0.0.3'
 workflows:
+    '.github/workflows/deploy.yml':
+        - 'actions/checkout@v7.0.1'
+        - 'voidzero-dev/setup-vp@v1.22.0'
+    '.github/workflows/protected-paths.yml': []
     '.github/workflows/release.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/download-artifact@v8.0.2'
