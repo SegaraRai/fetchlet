@@ -1,11 +1,8 @@
 use bytes::Bytes;
 use serde_json::{Value, json};
 
+use crate::protocol::PROTOCOL_VERSION;
 use crate::{Error, WebLimits, WebState};
-
-/// The version of the operation names and messages. The guest runtime uses
-/// host implementations only when it was built for the same version.
-pub const PROTOCOL_VERSION: u32 = 3;
 
 /// The embedder's byte store for the current invocation, which carries
 /// binary data between the guest and the host by handle.
@@ -129,6 +126,55 @@ mod tests {
         let reply = run("web.capabilities", "null", None);
         assert_eq!(reply["protocol"], PROTOCOL_VERSION);
         assert!(dispatch::<Store>("fetch.start", "{}", &WebLimits::default(), None).is_none());
+    }
+
+    /// The operations protocol.json lists are served exactly when their API
+    /// is reported, so the guest, built from the same file, finds them.
+    #[test]
+    fn serves_the_listed_operations_of_each_reported_api() {
+        let reported = capabilities()["apis"].clone();
+        for (api, operations) in crate::protocol::OPERATIONS {
+            let served = *api == "web" || reported.as_array().unwrap().contains(&json!(api));
+            for operation in *operations {
+                let reply = dispatch::<Store>(operation, "null", &WebLimits::default(), None);
+                assert_eq!(reply.is_some(), served, "{operation}");
+            }
+        }
+        for api in reported.as_array().unwrap() {
+            assert!(
+                crate::protocol::OPERATIONS
+                    .iter()
+                    .any(|(listed, _)| api == listed),
+                "{api} is reported but not listed in protocol.json"
+            );
+        }
+    }
+
+    /// Every operation name `dispatch` matches is listed in protocol.json,
+    /// so that renaming one without the file, and its version, fails here.
+    #[test]
+    fn dispatches_only_listed_operations() {
+        let source = include_str!("dispatch.rs");
+        let body =
+            &source[source.find("pub fn dispatch").unwrap()..source.find("#[cfg(test)]").unwrap()];
+        let listed: Vec<&str> = crate::protocol::OPERATIONS
+            .iter()
+            .flat_map(|(_, operations)| operations.iter().copied())
+            .collect();
+        let names = body
+            .split('"')
+            .skip(1)
+            .step_by(2)
+            .filter(|literal| literal.contains('.'));
+        let mut count = 0;
+        for name in names {
+            assert!(
+                listed.contains(&name),
+                "{name} is not listed in protocol.json"
+            );
+            count += 1;
+        }
+        assert_eq!(count, listed.len());
     }
 
     #[cfg(not(any(

@@ -59,7 +59,12 @@ decompressed bytes in all count toward the limit it is given.
 
 `web.capabilities` reports `PROTOCOL_VERSION` and the APIs of the build.
 The guest runtime installs only those globals, and none when the protocol
-version differs from its own.
+version differs from its own. The version and the operations of each API
+are defined once in [protocol.json](protocol.json); `vp run build:protocol`
+writes them to `src/protocol.rs` and to `@fetchlet/web`, refuses a change
+to the operations that keeps the version, and `vp run check:generated` fails
+when either copy is stale. The crate's tests check that `dispatch` serves
+exactly the listed operations of each reported API.
 
 `WebLimits` carries the caller budgets these operations enforce
 (`digest_bytes`, `rsa_modulus_bits`, `pbkdf2_iterations`,

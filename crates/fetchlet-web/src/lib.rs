@@ -7,6 +7,7 @@
 mod dispatch;
 mod error;
 mod limits;
+mod protocol;
 mod state;
 
 #[cfg(feature = "compression")]
@@ -20,9 +21,10 @@ mod url;
 #[cfg(feature = "url-pattern")]
 mod url_pattern;
 
-pub use dispatch::{ByteHandles, Invocation, PROTOCOL_VERSION, capabilities, dispatch};
+pub use dispatch::{ByteHandles, Invocation, capabilities, dispatch};
 pub use error::{Error, Result};
 pub use limits::WebLimits;
+pub use protocol::PROTOCOL_VERSION;
 pub use state::WebState;
 
 #[cfg(feature = "compression")]

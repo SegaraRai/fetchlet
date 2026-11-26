@@ -1,0 +1,11 @@
+{
+  "name": "@fetchlet-internal/tools-protocol",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The fetchlet-web protocol definition and the Rust and TypeScript constants written from it",
+  "type": "module",
+  "devDependencies": {
+    "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@types/node": "catalog:"
+  }
+}

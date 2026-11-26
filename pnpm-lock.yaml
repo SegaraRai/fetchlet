@@ -1263,6 +1263,15 @@ importers:
         specifier: 'catalog:'
         version: 26.6.6
 
+  tools/protocol:
+    devDependencies:
+      '@fetchlet-internal/tools-workspace':
+        specifier: workspace:*
+        version: link:../workspace
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+
   tools/release:
     devDependencies:
       '@fetchlet-internal/tools-workspace':

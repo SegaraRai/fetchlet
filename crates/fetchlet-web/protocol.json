@@ -1,0 +1,35 @@
+{
+  "$comment": "The fetchlet-web protocol: its version and the operations of each Web API, by the API names web.capabilities reports. `vp run build:protocol` writes src/protocol.rs and packages/web/src/internal/protocol.ts from it, and refuses a change to the operations that keeps the version.",
+  "version": 3,
+  "operations": {
+    "web": ["web.capabilities"],
+    "url": ["url.parse", "url.set"],
+    "url-pattern": ["urlpattern.parse", "urlpattern.match"],
+    "compression": [
+      "compression.open",
+      "compression.write",
+      "compression.finish",
+      "compression.read",
+      "compression.close"
+    ],
+    "crypto": [
+      "crypto.random",
+      "crypto.digest",
+      "crypto.generateKey",
+      "crypto.importKey",
+      "crypto.exportKey",
+      "crypto.sign",
+      "crypto.verify",
+      "crypto.encrypt",
+      "crypto.decrypt",
+      "crypto.deriveBits"
+    ],
+    "node-crypto": [
+      "nodeCrypto.hash",
+      "nodeCrypto.hmac",
+      "nodeCrypto.pbkdf2",
+      "nodeCrypto.hkdf",
+      "nodeCrypto.scrypt"
+    ]
+  }
+}

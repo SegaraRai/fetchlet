@@ -29,5 +29,9 @@ install it themselves. In the workspace the subpaths point at the TypeScript
 sources; `vp run @fetchlet/web#build` compiles them and their declarations
 into `dist/`, which the published manifest (`publishConfig.exports`) names.
 
-`PROTOCOL_VERSION` in `src/capabilities.ts` matches the one in fetchlet-web's
-dispatcher; bump both when an operation's name or message changes.
+`@fetchlet/web/capabilities` exports `PROTOCOL_VERSION` and
+`hostOperations`, the operations of each fetchlet-web API. Both are written,
+with the host's copy, from
+[crates/fetchlet-web/protocol.json](../../crates/fetchlet-web/protocol.json)
+by `vp run build:protocol`; the package's tests check that the profile calls
+only listed operations.

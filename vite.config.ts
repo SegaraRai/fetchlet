@@ -92,6 +92,12 @@ export default defineConfig({
         command: "node tools/matrix/engine-capabilities.ts",
         cache: false,
       },
+      // The fetchlet-web protocol constants of the host and the guest,
+      // written from crates/fetchlet-web/protocol.json.
+      "build:protocol": {
+        command: "node tools/protocol/protocol.ts",
+        cache: false,
+      },
 
       // check
       "check:types": {
@@ -113,7 +119,7 @@ export default defineConfig({
       },
       "check:generated": {
         command:
-          "node tools/docs/reference.ts --check && node tools/matrix/engine-capabilities.ts --check && node tools/rust/scripts.ts",
+          "node tools/docs/reference.ts --check && node tools/matrix/engine-capabilities.ts --check && node tools/protocol/protocol.ts --check && node tools/rust/scripts.ts",
         cache: false,
       },
       // Runs cargo metadata, whose inputs Vite+ cannot track.
