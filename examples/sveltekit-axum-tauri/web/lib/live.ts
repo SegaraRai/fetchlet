@@ -9,8 +9,15 @@ export function isDesktop(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
-/** Calls `onChange` for every change until the returned function is called. */
-export function subscribeToChanges(onChange: (change: Change) => void): () => void {
+/**
+ * Calls `onChange` for every change until the returned function is called.
+ * Changes before the subscription starts are not reported, so `onConnect`
+ * runs each time it does, for a caller that must not miss one.
+ */
+export function subscribeToChanges(
+  onChange: (change: Change) => void,
+  onConnect?: () => void,
+): () => void {
   if (isDesktop()) {
     let stopped = false;
     let unlisten: (() => void) | undefined;
@@ -20,6 +27,7 @@ export function subscribeToChanges(onChange: (change: Change) => void): () => vo
         stop();
       } else {
         unlisten = stop;
+        onConnect?.();
       }
     });
     return () => {
@@ -29,5 +37,10 @@ export function subscribeToChanges(onChange: (change: Change) => void): () => vo
   }
   const source = new EventSource("/api/v1/events");
   source.addEventListener("change", (event) => onChange(JSON.parse(event.data) as Change));
+  // The server subscribes before it answers, and EventSource reconnects on
+  // its own, so each open covers the changes since the last.
+  if (onConnect) {
+    source.addEventListener("open", onConnect);
+  }
   return () => source.close();
 }

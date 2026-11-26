@@ -127,6 +127,10 @@ async fn relay(mut socket: WebSocket, mut end: ChannelEnd) {
                     Some(Ok(ws::Message::Ping(_) | ws::Message::Pong(_))) => continue,
                     Some(Ok(ws::Message::Close(frame))) => {
                         end.close(close_from_peer(frame));
+                        // tungstenite has queued the answer, which reading
+                        // flushes, and refuses any later send, so a close
+                        // from JavaScript must not end the relay first.
+                        channel_open = false;
                         continue;
                     }
                     Some(Err(_)) | None => return,

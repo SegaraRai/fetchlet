@@ -10,8 +10,14 @@
 
   let { children } = $props();
 
-  // Files edited elsewhere, by another editor or `git pull`, appear without a reload.
-  $effect(() => subscribeToChanges(() => void refreshAll()));
+  // Files edited elsewhere, by another editor or `git pull`, appear without a
+  // reload, including those saved between rendering the page and subscribing.
+  $effect(() =>
+    subscribeToChanges(
+      () => void refreshAll(),
+      () => void refreshAll(),
+    ),
+  );
 
   // Cross-fade between pages where the browser supports view transitions.
   onNavigate((navigation) => {
