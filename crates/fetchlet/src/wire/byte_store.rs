@@ -79,6 +79,15 @@ impl BridgeBytes for InlineBytes {
     }
 }
 
+/// The first handle of the range an isolated instance's child picks its
+/// buffers' handles from, so that it need not wait for the parent to assign
+/// one (`ByteStore::put_guest_at`). The store's own handles stay below it,
+/// and every handle stays below 2^53, exact in a JavaScript number.
+pub(crate) const GUEST_HANDLES_START: u64 = 1 << 52;
+
+/// The end of the guest handle range, exclusive.
+pub(crate) const GUEST_HANDLES_END: u64 = 1 << 53;
+
 /// Byte buffers in transit between Rust and JavaScript within one invocation.
 ///
 /// Each buffer is taken once by the other side. The store belongs to the
@@ -120,6 +129,7 @@ impl ByteStore {
         self.next = self
             .next
             .checked_add(1)
+            .filter(|next| *next < GUEST_HANDLES_START)
             .ok_or(Error::LimitExceeded("byte handles"))?;
         self.buffers.insert(self.next, bytes);
         Ok(self.next)
@@ -133,6 +143,24 @@ impl ByteStore {
         let handle = self.put(bytes)?;
         self.guest = Some(handle);
         Ok(handle)
+    }
+
+    /// Store a buffer from JavaScript under the handle an isolated
+    /// instance's child picked from the guest range, replacing its untaken
+    /// predecessor as `put_guest` does.
+    #[cfg_attr(not(fetchlet_process), allow(dead_code))]
+    pub fn put_guest_at(&mut self, handle: u64, bytes: Bytes) -> Result<()> {
+        if !(GUEST_HANDLES_START..GUEST_HANDLES_END).contains(&handle)
+            || self.buffers.contains_key(&handle)
+        {
+            return Err(Error::InvalidRequest("invalid byte handle".into()));
+        }
+        if let Some(previous) = self.guest.take() {
+            self.buffers.remove(&previous);
+        }
+        self.buffers.insert(handle, bytes);
+        self.guest = Some(handle);
+        Ok(())
     }
 
     pub fn take(&mut self, handle: u64) -> Result<Bytes> {
@@ -161,11 +189,12 @@ mod tests {
 
     #[test]
     fn handles_are_never_reused_once_exhausted() {
+        let last = GUEST_HANDLES_START - 1;
         let mut store = ByteStore {
-            next: u64::MAX - 1,
+            next: last - 1,
             ..ByteStore::default()
         };
-        assert_eq!(store.put(Bytes::new()).unwrap(), u64::MAX);
+        assert_eq!(store.put(Bytes::new()).unwrap(), last);
         assert!(matches!(
             store.put(Bytes::new()),
             Err(Error::LimitExceeded("byte handles"))
@@ -174,6 +203,26 @@ mod tests {
             store.put_guest(Bytes::new()),
             Err(Error::LimitExceeded("byte handles"))
         ));
-        assert!(store.take(u64::MAX).is_ok());
+        assert!(store.take(last).is_ok());
+    }
+
+    #[test]
+    fn a_child_picks_guest_handles_within_the_guest_range_once() {
+        let mut store = ByteStore::default();
+        let first = GUEST_HANDLES_START;
+        store.put_guest_at(first, Bytes::from_static(b"a")).unwrap();
+        // The same handle again, or one outside the range, is refused.
+        for handle in [first, 0, 1, GUEST_HANDLES_START - 1, GUEST_HANDLES_END] {
+            assert!(matches!(
+                store.put_guest_at(handle, Bytes::new()),
+                Err(Error::InvalidRequest(_))
+            ));
+        }
+        // A later buffer replaces the untaken one, as `put_guest` does.
+        store
+            .put_guest_at(first + 1, Bytes::from_static(b"b"))
+            .unwrap();
+        assert!(store.take(first).is_err());
+        assert_eq!(store.take(first + 1).unwrap(), Bytes::from_static(b"b"));
     }
 }

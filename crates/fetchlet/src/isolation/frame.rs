@@ -22,6 +22,12 @@ pub(crate) struct Init {
     pub source: String,
     pub requirements: Requirements,
     pub limits: Limits,
+    /// The native stack of the child's engine thread; None for Rust's
+    /// default.
+    pub stack_bytes: Option<usize>,
+    /// The memory budget the child applies to itself where the parent
+    /// cannot (Linux); None otherwise.
+    pub memory_bytes: Option<usize>,
 }
 
 pub(crate) enum Frame {
@@ -40,11 +46,12 @@ pub(crate) enum Frame {
     /// The JSON reply of a host operation.
     Reply(String),
     /// The handle of bytes the child put into the byte store.
-    Handle(Result<u64, Failure>),
     /// Bytes the child took from the byte store.
     Bytes(Result<Vec<u8>, Failure>),
     /// A host future the engine may wait on is ready.
     Wake,
+    /// The client of the current invocation went away.
+    Disconnected,
 
     // Child to parent.
     Ready,
@@ -57,7 +64,13 @@ pub(crate) enum Frame {
         operation: String,
         input: String,
     },
-    PutBytes(Vec<u8>),
+    /// A buffer the engine stored, under the handle the child picked from
+    /// the guest range. The parent stores it without a reply, before the
+    /// frame that carries its handle.
+    PutBytes {
+        handle: u64,
+        bytes: Vec<u8>,
+    },
     TakeBytes(f64),
 }
 
@@ -128,6 +141,9 @@ pub(crate) enum Outcome {
     Value(Value),
     Interrupted(StopReason),
     JavaScript(String),
+    /// The engine reported an allocation that failed at the child's memory
+    /// budget; the parent retires the instance.
+    ProcessMemory,
 }
 
 impl Outcome {
@@ -146,6 +162,7 @@ impl Outcome {
             Self::Value(value) => Ok(value),
             Self::Interrupted(reason) => Err(Interrupted(reason).into()),
             Self::JavaScript(message) => Err(anyhow::Error::msg(message)),
+            Self::ProcessMemory => Err(Error::LimitExceeded("process memory").into()),
         }
     }
 }
@@ -154,7 +171,7 @@ const INIT: u8 = 1;
 const EVALUATE: u8 = 2;
 const CALL: u8 = 3;
 const REPLY: u8 = 4;
-const HANDLE: u8 = 5;
+const DISCONNECTED: u8 = 5;
 const BYTES: u8 = 6;
 const BYTES_FAILED: u8 = 7;
 const WAKE: u8 = 8;
@@ -220,7 +237,7 @@ impl Frame {
                 }),
             ),
             Self::Reply(reply) => (REPLY, reply.as_bytes().to_vec()),
-            Self::Handle(handle) => (HANDLE, json(handle)),
+            Self::Disconnected => (DISCONNECTED, Vec::new()),
             Self::Bytes(Ok(bytes)) => (BYTES, bytes.clone()),
             Self::Bytes(Err(failure)) => (BYTES_FAILED, json(failure)),
             Self::Wake => (WAKE, Vec::new()),
@@ -240,7 +257,12 @@ impl Frame {
                     input: input.clone(),
                 }),
             ),
-            Self::PutBytes(bytes) => (PUT_BYTES, bytes.clone()),
+            Self::PutBytes { handle, bytes } => {
+                let mut payload = Vec::with_capacity(8 + bytes.len());
+                payload.extend_from_slice(&handle.to_le_bytes());
+                payload.extend_from_slice(bytes);
+                (PUT_BYTES, payload)
+            }
             Self::TakeBytes(handle) => (TAKE_BYTES, handle.to_le_bytes().to_vec()),
         }
     }
@@ -266,7 +288,7 @@ impl Frame {
                 String::from_utf8(payload)
                     .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?,
             ),
-            HANDLE => Self::Handle(parse(&payload)?),
+            DISCONNECTED => Self::Disconnected,
             BYTES => Self::Bytes(Ok(payload)),
             BYTES_FAILED => Self::Bytes(Err(parse(&payload)?)),
             WAKE => Self::Wake,
@@ -280,7 +302,19 @@ impl Frame {
                 let DispatchPayload { operation, input } = parse(&payload)?;
                 Self::Dispatch { operation, input }
             }
-            PUT_BYTES => Self::PutBytes(payload),
+            PUT_BYTES => {
+                if payload.len() < 8 {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "bad byte handle",
+                    ));
+                }
+                let handle = u64::from_le_bytes(payload[..8].try_into().expect("eight bytes"));
+                Self::PutBytes {
+                    handle,
+                    bytes: payload[8..].to_vec(),
+                }
+            }
             TAKE_BYTES => {
                 let bytes: [u8; 8] = payload
                     .try_into()
@@ -370,6 +404,14 @@ mod tests {
                 input: "[\"https://a.test\"]".into(),
             }),
             Frame::Dispatch { operation, .. } if operation == "url.parse"
+        ));
+        assert!(matches!(
+            round_trip(Frame::Disconnected),
+            Frame::Disconnected
+        ));
+        assert!(matches!(
+            round_trip(Frame::PutBytes { handle: 1 << 52, bytes: vec![0, 255] }),
+            Frame::PutBytes { handle, bytes } if handle == 1 << 52 && bytes == [0, 255]
         ));
         assert!(matches!(
             round_trip(Frame::TakeBytes(42.0)),

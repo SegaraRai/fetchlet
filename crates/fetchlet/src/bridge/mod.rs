@@ -26,7 +26,7 @@ pub(crate) use dispatcher::Disconnect;
 ))]
 pub(crate) use dispatcher::InvocationScope;
 #[cfg(fetchlet_process)]
-pub(crate) use dispatcher::encode_reply;
+pub(crate) use dispatcher::{encode_reply, fetch_limits_reply};
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) use guest_link::GuestLink;
 

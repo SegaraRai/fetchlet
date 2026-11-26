@@ -450,6 +450,29 @@ impl HostBridge {
         invocation.bytes.put_guest(Bytes::copy_from_slice(bytes))
     }
 
+    /// Store bytes from an isolated instance's child under the handle it
+    /// picked, with the checks of `put_guest_bytes`.
+    #[cfg(fetchlet_process)]
+    pub fn put_guest_bytes_at(&self, handle: u64, bytes: Bytes) -> Result<()> {
+        #[cfg(feature = "operation-counts")]
+        crate::diagnostics::record("bytes.put", bytes.len(), 0);
+        let mut state = self.lock_state()?;
+        let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
+        check_limit(
+            invocation.limits.bridge_message_bytes,
+            bytes.len(),
+            "bridge message bytes",
+        )?;
+        invocation.bytes.put_guest_at(handle, bytes)
+    }
+
+    /// Whether the client of the current invocation went away, which an
+    /// isolated instance's parent tells its child.
+    #[cfg(fetchlet_process)]
+    pub fn is_disconnected(&self) -> bool {
+        matches!(self.invocation_disconnected(), Ok(Value::Bool(true)))
+    }
+
     /// Take bytes by a handle that a JavaScript number carried.
     pub fn take_guest_bytes(&self, handle: f64) -> Result<Bytes> {
         // Handles are positive integers below 2^53, exact in a JS number.
@@ -616,10 +639,7 @@ impl HostBridge {
     fn fetch_limits(&self) -> Result<Value> {
         let state = self.lock_state()?;
         let invocation = state.invocation.as_ref().ok_or(Error::InvocationClosed)?;
-        Ok(json!({
-            "requestBodyBytes": invocation.limits.request_body_bytes.map(|value| value.to_string()),
-            "requestBodyChunks": invocation.limits.request_body_chunks.map(|value| value.to_string()),
-        }))
+        Ok(fetch_limits_reply(&invocation.limits))
     }
 
     /// Whether the client of the current invocation went away. Outside a
@@ -1254,6 +1274,15 @@ fn encode_response(
 ) -> Result<Value> {
     let response = WireResponse::from_http(response, limits, bytes)?;
     serde_json::to_value(response).map_err(|_| Error::Transport("invalid response encoding".into()))
+}
+
+/// The reply to `fetch.limits` under `limits`, which an isolated instance's
+/// child gives from the limits its parent sent.
+pub(crate) fn fetch_limits_reply(limits: &Limits) -> Value {
+    json!({
+        "requestBodyBytes": limits.request_body_bytes.map(|value| value.to_string()),
+        "requestBodyChunks": limits.request_body_chunks.map(|value| value.to_string()),
+    })
 }
 
 pub(crate) fn encode_reply(result: Result<Value>) -> Value {

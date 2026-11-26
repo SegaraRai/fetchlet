@@ -15,6 +15,8 @@ description = "Serve fetchlet applications through Tower, hyper, axum and actix-
 # add server integrations over the always-available Tower service.
 [features]
 default = []
+# Run the server's instances in child processes (`Server::isolation`).
+process = ["fetchlet/process"]
 # Serve an artifact while a build tool rewrites it, for development.
 dev-reload = ["dep:tokio"]
 # Serve a Vite dev server's modules through the module runner, for development.
@@ -105,3 +107,10 @@ required-features = ["axum"]
 [[test]]
 name = "artifact"
 required-features = ["axum"]
+
+# The server starts this executable as each instance's child, so it has its
+# own main.
+[[test]]
+name = "server_isolation"
+harness = false
+required-features = ["axum", "process"]

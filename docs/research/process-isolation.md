@@ -18,9 +18,9 @@ engine. Optionally, an OS sandbox removes the child's authority beyond its
 connection to the parent.
 
 Status: process isolation is implemented behind the `process` feature
-([Implementation phases](#implementation-phases)), with the OS memory
-budget on Windows. Next are the measurements and the memory budget on
-Linux, the sandbox profiles and the cost reductions.
+([Implementation phases](#implementation-phases)), with the memory budget
+on Windows and Linux, and tested on both. Next are the measurements on
+Linux, the sandbox profiles and the remaining cost reductions.
 
 ## Goals
 
@@ -121,7 +121,8 @@ App::builder(Backend::boa())
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Isolation::InProcess`         | The default; today's behavior                                                                                                                                                                                         |
 | `ProcessOptions::program`      | The caller: `CurrentExe` re-runs the embedder's binary in child mode; `Path` names a separate executable built with the same engine features                                                                          |
-| `ProcessOptions::memory_bytes` | Caller budget for the whole child (engine heap, code, stacks), enforced by the OS: a Job Object on Windows. Unix (cgroup v2 `memory.max` or `RLIMIT_AS`) is next; until then it is refused there                      |
+| `ProcessOptions::memory_bytes` | Caller budget for the whole child (engine heap, code, stacks), enforced by the OS: a Job Object on Windows, `RLIMIT_DATA` on Linux. Refused on other platforms                                                        |
+| `ProcessOptions::stack_bytes`  | Caller budget: the native stack of the child's engine thread, which engine stack limits must fit. Rust's default for spawned threads unless set; fetchlet-http's `Server` passes its worker stack                     |
 | `ProcessOptions::kill_grace`   | Caller policy: how long past `busy_timeout` and `startup_timeout` the parent waits for the engine's own interrupt before it kills the child. The engine's interrupt keeps the error precise; the kill is the backstop |
 | `ProcessOptions::sandbox`      | Phase 4. Caller policy: `None`, or an OS profile ([Sandboxing](#sandboxing))                                                                                                                                          |
 
@@ -209,20 +210,30 @@ that each frame read writes back to bytes that read to the same frame.
 - **Cancellation.** Under `CancelledCalls::Retire`, dropping the call kills
   the child at once. Under `Finish`, the parent waits within the deadline,
   as today.
-- **Memory.** The OS limit ends the child at `memory_bytes`. The parent
-  reads why the child ended:
-  - Windows: the Job Object's `JOB_OBJECT_MSG_PROCESS_MEMORY_LIMIT`;
-  - Linux: the cgroup's `memory.events` `oom_kill`, or the allocation
-    failure that `RLIMIT_AS` causes;
-  - It reports `LimitExceeded("process memory")`.
+- **Memory.** The OS limit fails allocations past `memory_bytes`, and the
+  parent reports `LimitExceeded("process memory")` and retires the
+  instance:
+  - Windows: a Job Object limits the committed memory; the parent reads
+    its `JOB_OBJECT_MSG_PROCESS_MEMORY_LIMIT`.
+  - Linux: the child sets `RLIMIT_DATA` on itself before it builds the
+    engine. It bounds the heap, anonymous writable mappings and thread
+    stacks, but not the address space an engine only reserves, which
+    `RLIMIT_AS` would count and V8 could not start under. V8 on x64 still
+    reserves its code range writable, so it starts under 768 MiB but not
+    under 512 MiB. Rust's allocator and V8 report a failed allocation on
+    standard error before they abort, which the parent reads; QuickJS
+    throws "out of memory", which the child reports. A cgroup v2
+    `memory.max` would also bound file-backed memory, but needs a
+    delegated cgroup, which a process cannot count on.
 
   The engine's own `heap_bytes` still stops the instance earlier with
   `LimitExceeded("engine heap")` where it applies.
 
 - **Crashes.** Any other end of the child reports a new
-  `Error::InstanceLost` with the exit status, and retires the instance.
-  The child's standard error goes to the parent's. The pool builds a replacement as it does
-  for any retirement.
+  `Error::InstanceLost` with the exit status and the child's last line of
+  standard error that is not part of a backtrace, and retires the
+  instance. The parent passes the child's standard error on to its own.
+  The pool builds a replacement as it does for any retirement.
 
 Every stop retires the instance, as in-process stops do. A child is never
 reused after a kill, so its state never needs repair.
@@ -332,18 +343,22 @@ This leads to three decisions for the implementation:
   fetchlet-web's stateless operations (URL parsing, URL patterns,
   `crypto.random`, digests and other crypto) with the same crate and
   `WebLimits`, and keeps its own clock. Compression, which keeps
-  per-invocation state, stays in the parent. Phase 3 implements this.
-  Sending `fetch.limits` with the evaluation and telling the child about a
-  disconnect instead of being asked remain for phase 5.
+  per-invocation state, stays in the parent. The child also answers
+  `fetch.limits` from the limits in `Init`, and `invocation.disconnected`
+  from a `Disconnected` frame the parent sends once when the client of the
+  invocation goes away.
 - **The parent's end of each child blocks on a thread of its own.** It
   answers the child's host calls from that thread. It talks to the async
   worker only for evaluations and wakes, which halves the round trip
   against tokio's pipes.
-- **Bytes go in the frames.** Phase 3 sends the byte store's bytes as raw
-  frame payloads, each `put` and `take` still a round trip. Next, an
-  evaluation's result can carry the bytes the engine put, and a reply the
-  bytes it takes. This saves the two byte-store round trips per page. Shared memory is not needed at these
-  sizes: a 64 KiB frame takes 36 µs.
+- **Bytes go in the frames.** The byte store's bytes travel as raw frame
+  payloads. A `bytes.put` needs no reply: the child picks the handle from
+  a range above 2^52 that the parent's own handles never reach, and the
+  parent stores the buffer before it reads the frame that carries the
+  handle, with the same budget check and the same rule that one guest
+  buffer waits at a time. A `bytes.take` remains a round trip; a reply
+  that names bytes could carry them, which is next. Shared memory is not
+  needed at these sizes: a 64 KiB frame takes 36 µs.
 
 These measures reduce the cost further:
 
@@ -370,29 +385,35 @@ work, so this design does not offer it.
 3. **Process isolation.** Done (`crates/fetchlet/src/isolation/`): the
    `process` feature, `AppBuilder::isolation`, `Isolation`,
    `ProcessOptions`, the frame codec, `serve_if_child`, the remote
-   `Engine`, the kill timer, the Windows memory limit and
-   `Error::InstanceLost`. The child serves the operations that carry no
-   authority, and frames carry bytes. `crates/fetchlet/tests/isolation.rs`
-   covers on each engine:
+   `Engine`, the kill timer, the memory limits on Windows and Linux,
+   `ProcessOptions::stack_bytes` and `Error::InstanceLost`. The child
+   serves the operations that carry no authority, `fetch.limits` and
+   `invocation.disconnected`, and sends stored bytes without waiting.
+   fetchlet-http's `Server::isolation` runs a server's instances this way.
+   `crates/fetchlet/tests/isolation.rs` covers on each engine, on Windows
+   and Linux:
    - calls, host functions that resolve later and Fetch bodies across the
      boundary;
    - a loop that never yields stops at the deadline and at the busy
      timeout, Boa included;
    - `Requirements::preemption` is met on Boa;
-   - a memory bomb ends with `LimitExceeded("process memory")` on Windows,
-     where QuickJS and V8 abort;
+   - a memory bomb ends with `LimitExceeded("process memory")`, whether
+     the engine aborts or throws;
    - a dropped call retires the instance, and a child that ends at startup
      reports `InstanceLost`;
-   - a pool streams bodies and replaces a stopped instance.
+   - channels carry text and bytes both ways;
+   - a pool streams bodies and replaces a stopped instance;
+   - a client that goes away aborts the handler's request signal.
 
-   The `isolation_frames` fuzz target reads frames. Remaining: the memory
-   budget on Unix, a test that channels work across the boundary, and the
-   isolation setting on fetchlet-http's `Server`.
+   `crates/fetchlet-http/tests/server_isolation.rs` serves an artifact on
+   each engine and replaces an instance stopped in a loop. The
+   `isolation_frames` fuzz target reads frames.
 
 4. **Sandbox profiles.** Linux and Windows first, each with tests that file
    and socket access fail in the child, then macOS.
-5. **Cost reductions.** Returning V8's code cache to the parent, and
-   whatever a profile of the isolated examples shows.
+5. **Cost reductions.** Carrying taken bytes in the reply that names
+   them, returning V8's code cache to the parent, and whatever a profile
+   of the isolated examples shows.
 
 The phases change the published crates as follows, each with a changeset:
 

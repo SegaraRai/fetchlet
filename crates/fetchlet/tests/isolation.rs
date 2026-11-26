@@ -13,14 +13,20 @@ use std::time::{Duration, Instant};
 use serde_json::json;
 
 use fetchlet::{
-    App, Backend, Body, Error, Functions, HostServices, Isolation, Limits, Module, ProcessOptions,
-    Requirements, WorkerOptions, http,
+    App, Backend, Body, ChannelEnd, ChannelEvent, CloseFrame, Error, Functions, HostServices,
+    Isolation, Limits, Message, Module, ProcessOptions, Requirements, WorkerOptions, http,
 };
 
 const SOURCE: &str = include_str!("fixtures/isolation.js");
 
 /// Handlers that stream their response bodies from timers.
 const STREAMING: &str = include_str!("fixtures/streaming.js");
+
+/// Guests that open channels of env bindings.
+const CHANNELS: &str = include_str!("fixtures/channels.js");
+
+/// Messages the FLOOD channel service sends.
+const FLOOD: usize = 100;
 
 /// Makes the child exit before it reads its configuration, as a crash
 /// would.
@@ -66,8 +72,16 @@ const TESTS: &[(&str, Test)] = &[
         the_busy_timeout_stops_javascript_without_a_deadline,
     ),
     (
+        "channels_cross_the_process_boundary",
+        channels_cross_the_process_boundary,
+    ),
+    (
         "a_pool_streams_bodies_from_isolated_instances",
         a_pool_streams_bodies_from_isolated_instances,
+    ),
+    (
+        "a_client_that_goes_away_aborts_the_request_signal",
+        a_client_that_goes_away_aborts_the_request_signal,
     ),
     (
         "a_pool_replaces_a_stopped_isolated_instance",
@@ -313,6 +327,91 @@ fn the_busy_timeout_stops_javascript_without_a_deadline() -> TestResult {
     })
 }
 
+/// Echo every message, after a greeting with the open's options.
+async fn echo(mut end: ChannelEnd, options: serde_json::Value) {
+    if end.send(format!("hello:{options}")).await.is_err() {
+        return;
+    }
+    while let Some(event) = end.recv().await {
+        let sent = match event {
+            ChannelEvent::Message(Message::Text(text)) => end.send(format!("echo:{text}")).await,
+            ChannelEvent::Message(message) => end.send(message).await,
+            ChannelEvent::Close(frame) => {
+                end.close(frame);
+                return;
+            }
+            _ => Ok(()),
+        };
+        if sent.is_err() {
+            return;
+        }
+    }
+}
+
+fn channel_services() -> HostServices {
+    HostServices::new()
+        .channel(
+            "ECHO",
+            fetchlet::channel_fn(|request| async move {
+                tokio::spawn(echo(request.end, request.options));
+                Ok(())
+            }),
+        )
+        .unwrap()
+        .channel(
+            "FLOOD",
+            fetchlet::channel_fn(|request| async move {
+                let mut end = request.end;
+                tokio::spawn(async move {
+                    for index in 0..FLOOD {
+                        if end.send(format!("{index:010}")).await.is_err() {
+                            return;
+                        }
+                    }
+                    end.close(CloseFrame::new(CloseFrame::NORMAL, "done"));
+                });
+                Ok(())
+            }),
+        )
+        .unwrap()
+}
+
+fn channels_cross_the_process_boundary() -> TestResult {
+    block_on(async {
+        for backend in backends() {
+            let mut app = App::builder(backend)
+                .module(Module::new(CHANNELS))
+                .host_services(channel_services())
+                .limits(Limits {
+                    timeout: Some(Duration::from_secs(10)),
+                    ..Limits::default()
+                })
+                .isolation(Isolation::Process(ProcessOptions::new()))
+                .build()?;
+            // Text and bytes both ways, then a closing handshake.
+            let result = app.call_json("echo", &[json!(["a", "b"])]).await?;
+            assert_eq!(
+                result,
+                json!({
+                    "messages": [r#"hello:{"greeting":"hi"}"#, "echo:a", "echo:b", [1, 2, 3]],
+                    "close": { "code": 1000, "reason": "done" },
+                }),
+                "{backend:?}"
+            );
+            // Messages the service sends faster than the guest reads, each
+            // delivered after a wake that crosses to the child.
+            let result = app.call_json("drain", &[json!("FLOOD")]).await?;
+            assert_eq!(
+                result,
+                json!({ "received": FLOOD, "close": { "code": 1000, "reason": "done" } }),
+                "{backend:?}"
+            );
+            assert!(app.is_reusable(), "{backend:?}");
+        }
+        Ok(())
+    })
+}
+
 fn a_pool_streams_bodies_from_isolated_instances() -> TestResult {
     block_on(async {
         for backend in backends() {
@@ -337,6 +436,50 @@ fn a_pool_streams_bodies_from_isolated_instances() -> TestResult {
             );
             // The invocation ended with its body, and its timers with it.
             assert_eq!(handle.call_json("pendingTimers", &[]).await?, json!(0));
+            handle.shutdown().await?;
+        }
+        Ok(())
+    })
+}
+
+fn a_client_that_goes_away_aborts_the_request_signal() -> TestResult {
+    block_on(async {
+        for backend in backends() {
+            let mut worker = WorkerOptions::new(NonZeroUsize::new(4).unwrap());
+            worker.cancelled_calls = fetchlet::CancelledCalls::Finish;
+            let handle = App::builder(backend)
+                .module(Module::new(STREAMING))
+                .limits(Limits {
+                    timeout: Some(Duration::from_secs(5)),
+                    ..Limits::default()
+                })
+                .isolation(Isolation::Process(ProcessOptions::new()))
+                .spawn(worker)
+                .await?;
+            let request = http::Request::builder()
+                .uri("https://stream.test/until-abort-head")
+                .body(Body::empty())?;
+            let started = Instant::now();
+            let cancelled =
+                tokio::time::timeout(Duration::from_millis(50), handle.fetch(request)).await;
+            assert!(cancelled.is_err(), "{backend:?}");
+            // The parent told the child that the client went away, so the
+            // handler returned once its signal aborted, well before its own
+            // two-second fallback, in the same instance.
+            assert_eq!(
+                handle.call_json("aborts", &[]).await?,
+                json!(1),
+                "{backend:?}"
+            );
+            assert!(
+                started.elapsed() < Duration::from_millis(1500),
+                "{backend:?}"
+            );
+            assert_eq!(
+                handle.call_json("sequence", &[]).await?,
+                json!(1),
+                "{backend:?}"
+            );
             handle.shutdown().await?;
         }
         Ok(())
@@ -408,11 +551,23 @@ fn a_child_that_ends_at_startup_reports_instance_lost() -> TestResult {
     }
 }
 
-#[cfg(windows)]
+/// A memory budget that the instance starts within. On Linux the budget
+/// bounds the data segment, where V8 on x64 also reserves its code range,
+/// which needs more than 512 MiB.
+#[cfg(any(windows, target_os = "linux"))]
+fn budget(backend: &Backend) -> usize {
+    if cfg!(target_os = "linux") && format!("{backend:?}").starts_with("V8") {
+        1 << 30
+    } else {
+        128 << 20
+    }
+}
+
+#[cfg(any(windows, target_os = "linux"))]
 fn the_memory_budget_retires_the_instance() -> TestResult {
     block_on(async {
         for backend in backends() {
-            let options = ProcessOptions::new().memory_bytes(128 << 20);
+            let options = ProcessOptions::new().memory_bytes(budget(&backend));
             let mut app = build_with(backend, Module::new(SOURCE), Limits::default(), options)?;
             assert_eq!(
                 app.call_json("echo", &[json!(1)]).await?,
@@ -430,9 +585,9 @@ fn the_memory_budget_retires_the_instance() -> TestResult {
     })
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn the_memory_budget_retires_the_instance() -> TestResult {
-    // The budget is enforced on Windows only; elsewhere it is refused.
+    // The budget is enforced on Windows and Linux; elsewhere it is refused.
     let options = ProcessOptions::new().memory_bytes(256 << 20);
     let result = build_with(
         backends()[0],

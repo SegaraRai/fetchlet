@@ -146,11 +146,10 @@ off by default; report that gap to V8 with the loop as a reproduction
 [Process isolation](research/process-isolation.md) designs that boundary:
 each instance's engine in a child process behind the bridge, with host
 services kept in the parent, a kill timer and OS memory limits on every
-engine, and optional sandbox profiles. `AppBuilder::isolation` runs it
-behind the `process` feature, with the memory budget on Windows. Next are
-the measurements and the memory budget on Linux, a channel test across the
-boundary, the isolation setting on fetchlet-http's `Server`, then the
-sandbox profiles.
+engine, and optional sandbox profiles. `AppBuilder::isolation` and
+fetchlet-http's `Server::isolation` run it behind the `process` feature,
+with the memory budget on Windows and Linux. Next are the measurements on
+Linux, then the sandbox profiles and carrying taken bytes in replies.
 
 ### Instance pools
 

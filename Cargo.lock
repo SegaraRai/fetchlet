@@ -2235,6 +2235,7 @@ dependencies = [
  "futures-util",
  "http 1.5.0",
  "http-body",
+ "libc",
  "rquickjs",
  "serde",
  "serde_json",

@@ -169,12 +169,15 @@ its own, while host services, policies and the byte store stay in the
 parent (`AppBuilder::isolation`). The parent stops the child at the
 invocation deadline, past `Limits::busy_timeout` plus
 `ProcessOptions::kill_grace`, and when a call is dropped, on every engine,
-so `Requirements::preemption` is met on Boa too. On Windows,
-`ProcessOptions::memory_bytes` bounds the child's memory with a Job Object
-and reports `LimitExceeded("process memory")`; other platforms refuse it
-for now. A child that ends any other way fails the call with
-`Error::InstanceLost`. Every stop retires the instance, and a pool
-replaces it.
+so `Requirements::preemption` is met on Boa too.
+`ProcessOptions::memory_bytes` bounds the child's memory, with a Job Object
+on Windows and `RLIMIT_DATA` on Linux, and reaching it fails the call with
+`LimitExceeded("process memory")`; other platforms refuse it. On x64
+Linux, V8 reserves its code range within that limit and needs more than
+512 MiB to start. `ProcessOptions::stack_bytes` sets the native stack of
+the child's engine thread, which engine stack limits must fit. A child
+that ends any other way fails the call with `Error::InstanceLost`. Every
+stop retires the instance, and a pool replaces it.
 
 ```rust,ignore
 use fetchlet::{App, Backend, Isolation, Module, ProcessOptions};

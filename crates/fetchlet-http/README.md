@@ -2,16 +2,17 @@
 
 Serves a shared fetchlet application (`fetchlet::AppHandle`) over HTTP. The Tower service is always available; Cargo features add thin layers for specific servers. The JavaScript engine is selected on the `fetchlet` crate, so this crate has no engine features.
 
-| Feature           | Adds                                                                           |
-| ----------------- | ------------------------------------------------------------------------------ |
-| (none)            | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`           |
-| `hyper`           | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`       |
-| `axum`            | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router` |
-| `actix`           | `ActixService` for actix-web 4                                                 |
-| `axum-websocket`  | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)              |
-| `actix-websocket` | WebSocket upgrades in `ActixService` (enables `actix`)                         |
-| `dev-reload`      | `DevReload`, which serves each new build of an artifact during development     |
-| `vite-dev`        | `ViteDev`, which runs the server module from a Vite dev server                 |
+| Feature           | Adds                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| (none)            | `FetchletService` (Tower, `http` 1), `service_transport`, `Artifact`                                    |
+| `hyper`           | `HyperService` and `HyperConnection` for hyper 1 connections, `PeerAddr`                                |
+| `axum`            | `Server`, `AxumService`, `connect_info`, `router_transport`, `artifact_router`                          |
+| `actix`           | `ActixService` for actix-web 4                                                                          |
+| `axum-websocket`  | WebSocket upgrades in `AxumService` and `Server` (enables `axum`)                                       |
+| `actix-websocket` | WebSocket upgrades in `ActixService` (enables `actix`)                                                  |
+| `dev-reload`      | `DevReload`, which serves each new build of an artifact during development                              |
+| `vite-dev`        | `ViteDev`, which runs the server module from a Vite dev server                                          |
+| `process`         | `Server::isolation`, with fetchlet's process isolation; `main` calls `fetchlet::serve_if_child()` first |
 
 The transports of JavaScript's outbound sockets and WebSockets are in
 [fetchlet-net](../fetchlet-net/README.md).
@@ -58,6 +59,7 @@ Server::new("build")
 | `worker(options)`       | A queue of 8 commands and a 64 MiB native stack                                                                                                                                                     |
 | `queue_capacity(n)`     | 8; changes only the queue of the worker options                                                                                                                                                     |
 | `instances(i)`          | One instance; changes only the instances of the worker options                                                                                                                                      |
+| `isolation(isolation)`  | In process. With the `process` feature, `Isolation::Process` runs each instance in a child process; the child's engine thread gets the worker's stack unless `ProcessOptions::stack_bytes` is set   |
 
 The stack defaults are the depth the repository's framework examples need:
 React's server renderer retries an element after a QuickJS stack overflow

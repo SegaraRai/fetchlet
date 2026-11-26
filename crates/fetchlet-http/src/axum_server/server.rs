@@ -138,6 +138,8 @@ pub struct Server {
     instances: Option<Instances>,
     public_origin: Option<String>,
     rendering: Arc<RenderingFn>,
+    #[cfg(feature = "process")]
+    isolation: fetchlet::Isolation,
 }
 
 impl Server {
@@ -156,6 +158,8 @@ impl Server {
             instances: None,
             public_origin: None,
             rendering: Arc::new(|service| service),
+            #[cfg(feature = "process")]
+            isolation: fetchlet::Isolation::default(),
         }
     }
 
@@ -230,6 +234,18 @@ impl Server {
     /// own engine heap and module state; see [`Instances`].
     pub fn instances(mut self, instances: Instances) -> Self {
         self.instances = Some(instances);
+        self
+    }
+
+    /// Where each instance's engine runs. In this process by default. Under
+    /// [`Isolation::Process`](fetchlet::Isolation::Process), each instance
+    /// runs in a child process, which the server's executable serves when
+    /// `main` calls [`fetchlet::serve_if_child`] first. Unless the options
+    /// set `ProcessOptions::stack_bytes`, the child's engine thread gets the
+    /// worker's native stack, which the default engine stack limits need.
+    #[cfg(feature = "process")]
+    pub fn isolation(mut self, isolation: fetchlet::Isolation) -> Self {
+        self.isolation = isolation;
         self
     }
 
@@ -319,6 +335,8 @@ impl Server {
             instances: self.instances,
             origin,
             rendering: self.rendering,
+            #[cfg(feature = "process")]
+            isolation: self.isolation,
         });
         (settings, self.services, self.directory)
     }
@@ -454,6 +472,8 @@ struct Settings {
     instances: Option<Instances>,
     origin: String,
     rendering: Arc<RenderingFn>,
+    #[cfg(feature = "process")]
+    isolation: fetchlet::Isolation,
 }
 
 impl Settings {
@@ -513,6 +533,16 @@ impl Settings {
                 .fetch_handler(artifact.handler())
                 .host_services(services)
                 .limits(limits);
+        #[cfg(feature = "process")]
+        {
+            let mut isolation = self.isolation.clone();
+            if let fetchlet::Isolation::Process(options) = &mut isolation
+                && options.stack_bytes.is_none()
+            {
+                options.stack_bytes = worker.stack_size_bytes.map(NonZeroUsize::get);
+            }
+            builder = builder.isolation(isolation);
+        }
         // Host transport tasks, such as pooled connections, run on the
         // server's runtime, so no instance's JavaScript holds them up. A
         // current-thread runtime progresses only while its own thread waits,

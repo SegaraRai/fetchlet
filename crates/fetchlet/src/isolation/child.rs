@@ -4,8 +4,8 @@
 
 use std::ffi::OsStr;
 use std::io::Stdout;
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -16,9 +16,10 @@ use fetchlet_web::ByteHandles;
 
 use super::frame::{self, Failure, Frame, Outcome};
 use crate::backend::Engine;
-use crate::bridge::{Clock, GuestLink, encode_reply};
+use crate::bridge::{Clock, GuestLink, encode_reply, fetch_limits_reply};
 use crate::config::check_limit;
 use crate::execution::WakeSignal;
+use crate::wire::{GUEST_HANDLES_END, GUEST_HANDLES_START};
 use crate::{Error, Instance, Limits, Module, Result};
 
 /// The first argument that starts an executable as an isolated instance.
@@ -33,19 +34,7 @@ pub fn serve_if_child() {
     if std::env::args_os().nth(1).as_deref() != Some(OsStr::new(CHILD_ARGUMENT)) {
         return;
     }
-    // The engine runs on a thread of the size Rust gives spawned threads,
-    // as an in-process engine does, rather than on the main thread, whose
-    // size the platform sets (1 MiB on Windows).
-    let served = thread::Builder::new()
-        .name("fetchlet-isolated-engine".into())
-        .spawn(serve)
-        .map_err(anyhow::Error::from)
-        .and_then(|engine| {
-            engine
-                .join()
-                .unwrap_or_else(|_| Err(anyhow::anyhow!("the engine thread panicked")))
-        });
-    let code = match served {
+    let code = match start() {
         Ok(()) => 0,
         Err(error) => {
             eprintln!("fetchlet isolated instance: {error:#}");
@@ -55,17 +44,61 @@ pub fn serve_if_child() {
     std::process::exit(code);
 }
 
-fn serve() -> anyhow::Result<()> {
-    let mut input = std::io::stdin();
-    let init = match frame::read(&mut input)? {
+/// Read the configuration, apply the memory budget, and serve on the
+/// engine thread.
+fn start() -> anyhow::Result<()> {
+    let init = match frame::read(&mut std::io::stdin())? {
         Some(Frame::Init(init)) => init,
         _ => bail!("the parent sent no configuration"),
     };
+    if let Some(bytes) = init.memory_bytes {
+        limit_memory(bytes)?;
+    }
+    // The engine runs on a thread of the size the parent asked for, or the
+    // size Rust gives spawned threads, as an in-process engine does, rather
+    // than on the main thread, whose size the platform sets (1 MiB on
+    // Windows).
+    let mut engine = thread::Builder::new().name("fetchlet-isolated-engine".into());
+    if let Some(bytes) = init.stack_bytes {
+        engine = engine.stack_size(bytes);
+    }
+    engine
+        .spawn(move || serve(*init))
+        .context("start the engine thread")?
+        .join()
+        .unwrap_or_else(|_| Err(anyhow::anyhow!("the engine thread panicked")))
+}
+
+/// Bound this process's data segment, which holds the engines' heaps, so
+/// that an allocation past `bytes` fails.
+#[cfg(target_os = "linux")]
+fn limit_memory(bytes: usize) -> anyhow::Result<()> {
+    let bytes = libc::rlim_t::try_from(bytes).unwrap_or(libc::RLIM_INFINITY);
+    let limit = libc::rlimit {
+        rlim_cur: bytes,
+        rlim_max: bytes,
+    };
+    // SAFETY: setrlimit reads the struct, which lives across the call.
+    if unsafe { libc::setrlimit(libc::RLIMIT_DATA, &limit) } != 0 {
+        return Err(std::io::Error::last_os_error()).context("limit the process's memory");
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn limit_memory(_bytes: usize) -> anyhow::Result<()> {
+    bail!("the parent asked for a memory limit this platform does not apply")
+}
+
+fn serve(init: frame::Init) -> anyhow::Result<()> {
+    let memory_limited = init.memory_bytes.is_some();
 
     let (replies, received) = mpsc::channel();
     let (commands, next_command) = mpsc::channel();
     let wake = WakeSignal::default();
     let reader_wake = wake.clone();
+    let disconnected = Arc::new(AtomicBool::new(false));
+    let reader_disconnected = disconnected.clone();
     thread::Builder::new()
         .name("fetchlet-isolated-input".into())
         .spawn(move || {
@@ -78,7 +111,15 @@ fn serve() -> anyhow::Result<()> {
                         reader_wake.notify();
                         Ok(())
                     }
+                    Frame::Disconnected => {
+                        reader_disconnected.store(true, Ordering::Release);
+                        reader_wake.notify();
+                        Ok(())
+                    }
                     command @ (Frame::Evaluate { .. } | Frame::Call { .. }) => {
+                        // The parent tells each evaluation again whether its
+                        // client went away.
+                        reader_disconnected.store(false, Ordering::Release);
                         commands.send(command).map_err(drop)
                     }
                     reply => replies.send(reply).map_err(drop),
@@ -96,6 +137,8 @@ fn serve() -> anyhow::Result<()> {
         wake,
         limits: init.limits.clone(),
         clock: Clock::default(),
+        disconnected,
+        next_handle: AtomicU64::new(GUEST_HANDLES_START),
     });
     let module = Module::new(init.source).requires(init.requirements);
     let built = Engine::new(
@@ -132,8 +175,18 @@ fn serve() -> anyhow::Result<()> {
             Frame::Call { export, args } => runtime.block_on(engine.call_json(&export, &args)),
             _ => continue,
         };
+        let mut outcome = Outcome::from_result(result);
+        // Under the data segment limit, QuickJS reports a failed allocation
+        // as an exception; the budget is the process's, so it retires the
+        // instance as the other engines' aborts do.
+        if memory_limited
+            && let Outcome::JavaScript(message) = &outcome
+            && message.contains("out of memory")
+        {
+            outcome = Outcome::ProcessMemory;
+        }
         link.send(&Frame::Outcome {
-            outcome: Outcome::from_result(result),
+            outcome,
             reusable: engine.is_reusable(),
         })?;
     }
@@ -143,7 +196,9 @@ fn serve() -> anyhow::Result<()> {
 /// The child's end of the bridge: host operations and the byte store go to
 /// the parent, one request at a time, and wakes come from it. Operations
 /// that carry no authority, URL parsing, URL patterns, crypto and the
-/// clock, run here without a round trip
+/// clock, run here without a round trip, as do `fetch.limits` and
+/// `invocation.disconnected`, which the parent's limits and notices answer.
+/// Stored bytes go ahead without a reply
 /// (docs/research/process-isolation.md#what-it-adds-to-a-page).
 pub(crate) struct RemoteLink {
     output: Mutex<Stdout>,
@@ -152,6 +207,11 @@ pub(crate) struct RemoteLink {
     wake: WakeSignal,
     limits: Limits,
     clock: Clock,
+    /// Whether the client of the current invocation went away, as the
+    /// parent last told.
+    disconnected: Arc<AtomicBool>,
+    /// The next handle this child picks for a buffer the engine stores.
+    next_handle: AtomicU64,
 }
 
 impl RemoteLink {
@@ -187,8 +247,16 @@ impl RemoteLink {
 
     /// An operation this process can answer as the parent would, or None.
     fn local(&self, operation: &str, input: &str) -> Option<String> {
-        if operation == "clock" {
-            return Some(encode_reply(Ok(self.clock.read())).to_string());
+        match operation {
+            "clock" => return Some(encode_reply(Ok(self.clock.read())).to_string()),
+            "fetch.limits" => {
+                return Some(encode_reply(Ok(fetch_limits_reply(&self.limits))).to_string());
+            }
+            "invocation.disconnected" => {
+                let gone = self.disconnected.load(Ordering::Acquire);
+                return Some(encode_reply(Ok(gone.into())).to_string());
+            }
+            _ => {}
         }
         let namespace = operation.split('.').next()?;
         if !matches!(namespace, "url" | "urlpattern" | "crypto" | "nodeCrypto") {
@@ -206,12 +274,32 @@ impl RemoteLink {
         Some(encode_reply(result).to_string())
     }
 
+    /// Store bytes from a typed array under a handle this child picks, and
+    /// send them ahead without waiting: the engine sends the handle in a
+    /// later frame, which the parent reads after them. The parent checks
+    /// the invocation and the budget again as it stores them.
     pub fn put_guest_bytes(&self, bytes: &[u8]) -> Result<u64> {
-        match self.request(&Frame::PutBytes(bytes.to_vec()))? {
-            Frame::Handle(Ok(handle)) => Ok(handle),
-            Frame::Handle(Err(failure)) => Err(failure.into_error()),
-            _ => Err(Error::InstanceUnavailable),
+        check_limit(
+            self.limits.bridge_message_bytes,
+            bytes.len(),
+            "bridge message bytes",
+        )?;
+        let handle = self.next_handle.fetch_add(1, Ordering::Relaxed);
+        if handle >= GUEST_HANDLES_END {
+            return Err(Error::LimitExceeded("byte handles"));
         }
+        let frame = Frame::PutBytes {
+            handle,
+            bytes: bytes.to_vec(),
+        };
+        // The lock on the replies keeps the frame out of another thread's
+        // request and its reply.
+        let _replies = self
+            .replies
+            .lock()
+            .map_err(|_| Error::InstanceUnavailable)?;
+        self.send(&frame).map_err(|_| Error::InstanceUnavailable)?;
+        Ok(handle)
     }
 
     pub fn take_guest_bytes(&self, handle: f64) -> Result<Bytes> {

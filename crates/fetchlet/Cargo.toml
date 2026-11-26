@@ -25,7 +25,7 @@ fuzzing = ["dep:fetchlet-web"]
 operation-counts = []
 # Runs each instance's engine in a child process (`AppBuilder::isolation`),
 # with the engine features this build includes.
-process = []
+process = ["dep:libc"]
 # Host implementations of Web APIs (fetchlet-web), which every engine and
 # the fuzzing harness include. The features below select its APIs.
 web-apis = ["url", "url-pattern", "compression", "web-crypto", "node-crypto"]
@@ -56,6 +56,10 @@ boa_gc = { version = "0.22", optional = true }
 # exactly this version; the pair also fixes the V8 build. Upgrade them together.
 deno_core = { version = "=0.413.0", optional = true }
 deno_error = { version = "=0.7.1", optional = true }
+
+# The child of an isolated instance limits its own memory on Linux.
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = { version = "0.2", optional = true }
 
 [dev-dependencies]
 # Function arguments deserialize byte arrays into Bytes with its serde feature.

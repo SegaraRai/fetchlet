@@ -12,6 +12,8 @@ pub(crate) use codec::{WireRequest, WireResponse, normalize_fetch_method, valida
     test
 ))]
 pub(crate) use byte_store::{BodyTransfer, BridgeBytes, ByteStore, WireBytes};
+#[cfg(fetchlet_process)]
+pub(crate) use byte_store::{GUEST_HANDLES_END, GUEST_HANDLES_START};
 
 #[cfg(test)]
 mod tests;

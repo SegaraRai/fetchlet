@@ -29,9 +29,21 @@ pub struct ProcessOptions {
     /// code and stacks. The operating system enforces it, and reaching it
     /// fails the call with `LimitExceeded("process memory")` and retires the
     /// instance. None leaves the child unbounded beyond `Limits::heap_bytes`.
-    /// Supported on Windows, through a Job Object; elsewhere a value is
-    /// refused at build time until the Linux limit is in place.
+    ///
+    /// On Windows a Job Object bounds the committed memory. On Linux the
+    /// child limits its data segment (`RLIMIT_DATA`: heap, anonymous
+    /// writable mappings and thread stacks, not the address space engines
+    /// only reserve) before it builds the engine. V8 on x64 Linux reserves
+    /// its code range writable, so a V8 budget there must exceed it: V8
+    /// starts under 768 MiB but not under 512 MiB. Elsewhere a value is
+    /// refused at build time.
     pub memory_bytes: Option<usize>,
+    /// The native stack of the child's engine thread. None uses Rust's
+    /// default for spawned threads (2 MiB unless `RUST_MIN_STACK` says
+    /// otherwise). Engine stack limits, such as
+    /// `QuickJsOptions::stack_limit_bytes` and Boa's value stack, must fit
+    /// it, as they must fit the thread an in-process engine runs on.
+    pub stack_bytes: Option<usize>,
     /// Caller policy: how long past `Limits::busy_timeout` or
     /// `Limits::startup_timeout` the parent waits for the engine's own
     /// interrupt before it ends the child. The engine's interrupt gives the
@@ -45,6 +57,7 @@ impl Default for ProcessOptions {
         Self {
             program: Program::CurrentExe,
             memory_bytes: None,
+            stack_bytes: None,
             // Long enough for QuickJS's and V8's interrupts, which stop
             // JavaScript within milliseconds, to report first.
             kill_grace: Duration::from_millis(100),
@@ -67,6 +80,11 @@ impl ProcessOptions {
         self
     }
 
+    pub fn stack_bytes(mut self, bytes: usize) -> Self {
+        self.stack_bytes = Some(bytes);
+        self
+    }
+
     pub fn kill_grace(mut self, grace: Duration) -> Self {
         self.kill_grace = grace;
         self
@@ -78,9 +96,14 @@ impl ProcessOptions {
                 "ProcessOptions::memory_bytes must be positive".into(),
             ));
         }
-        if self.memory_bytes.is_some() && !cfg!(windows) {
+        if self.stack_bytes == Some(0) {
             return Err(crate::Error::Configuration(
-                "ProcessOptions::memory_bytes is enforced only on Windows so far".into(),
+                "ProcessOptions::stack_bytes must be positive".into(),
+            ));
+        }
+        if self.memory_bytes.is_some() && !cfg!(any(windows, target_os = "linux")) {
+            return Err(crate::Error::Configuration(
+                "ProcessOptions::memory_bytes is enforced only on Windows and Linux".into(),
             ));
         }
         Ok(())
