@@ -212,7 +212,8 @@ async fn echo_tls<S: AsyncRead + AsyncWrite + Unpin>(mut stream: S) {
             let _ = stream.write_all(b"tls:").await;
             first = false;
         }
-        if stream.write_all(&buffer[..read]).await.is_err() {
+        // TLS may hold accepted bytes until a flush.
+        if stream.write_all(&buffer[..read]).await.is_err() || stream.flush().await.is_err() {
             return;
         }
     }

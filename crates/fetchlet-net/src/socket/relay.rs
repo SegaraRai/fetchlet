@@ -118,9 +118,13 @@ where
                         Message::Text(text) => Bytes::from(text),
                     };
                     // A peer that stops reading must not keep the relay past
-                    // the invocation.
+                    // the invocation. TLS may hold accepted bytes until a
+                    // flush, so each message is flushed before the next read.
                     let written = tokio::select! {
-                        written = writer.write_all(&bytes) => written,
+                        written = async {
+                            writer.write_all(&bytes).await?;
+                            writer.flush().await
+                        } => written,
                         () = end.guest_gone() => return Outcome::Done,
                     };
                     if let Err(error) = written {
