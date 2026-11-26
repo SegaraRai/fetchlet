@@ -1013,39 +1013,6 @@ importers:
       '@fetchlet/web':
         specifier: workspace:*
         version: link:../web
-      '@formatjs/intl-datetimeformat':
-        specifier: catalog:dep
-        version: 8.2.0
-      '@formatjs/intl-displaynames':
-        specifier: catalog:dep
-        version: 8.0.3
-      '@formatjs/intl-durationformat':
-        specifier: catalog:dep
-        version: 0.13.0
-      '@formatjs/intl-getcanonicallocales':
-        specifier: catalog:dep
-        version: 3.4.0
-      '@formatjs/intl-listformat':
-        specifier: catalog:dep
-        version: 9.1.0
-      '@formatjs/intl-locale':
-        specifier: catalog:dep
-        version: 5.5.0
-      '@formatjs/intl-numberformat':
-        specifier: catalog:dep
-        version: 10.1.0
-      '@formatjs/intl-pluralrules':
-        specifier: catalog:dep
-        version: 7.1.0
-      '@formatjs/intl-relativetimeformat':
-        specifier: catalog:dep
-        version: 13.0.3
-      '@formatjs/intl-segmenter':
-        specifier: catalog:dep
-        version: 12.3.2
-      '@formatjs/intl-supportedvaluesof':
-        specifier: catalog:dep
-        version: 3.1.0
       hono:
         specifier: catalog:dep
         version: 4.13.19
@@ -1153,6 +1120,39 @@ importers:
       '@exodus/bytes':
         specifier: catalog:dep
         version: 1.16.0(@noble/hashes@2.4.0)
+      '@formatjs/intl-datetimeformat':
+        specifier: catalog:dep
+        version: 8.2.0
+      '@formatjs/intl-displaynames':
+        specifier: catalog:dep
+        version: 8.0.3
+      '@formatjs/intl-durationformat':
+        specifier: catalog:dep
+        version: 0.13.0
+      '@formatjs/intl-getcanonicallocales':
+        specifier: catalog:dep
+        version: 3.4.0
+      '@formatjs/intl-listformat':
+        specifier: catalog:dep
+        version: 9.1.0
+      '@formatjs/intl-locale':
+        specifier: catalog:dep
+        version: 5.5.0
+      '@formatjs/intl-numberformat':
+        specifier: catalog:dep
+        version: 10.1.0
+      '@formatjs/intl-pluralrules':
+        specifier: catalog:dep
+        version: 7.1.0
+      '@formatjs/intl-relativetimeformat':
+        specifier: catalog:dep
+        version: 13.0.3
+      '@formatjs/intl-segmenter':
+        specifier: catalog:dep
+        version: 12.3.2
+      '@formatjs/intl-supportedvaluesof':
+        specifier: catalog:dep
+        version: 3.1.0
       core-js-pure:
         specifier: catalog:dep
         version: 3.51.0
@@ -1241,6 +1241,9 @@ importers:
       '@fetchlet-internal/tools-workspace':
         specifier: workspace:*
         version: link:../workspace
+      '@fetchlet/web':
+        specifier: workspace:*
+        version: link:../../packages/web
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6

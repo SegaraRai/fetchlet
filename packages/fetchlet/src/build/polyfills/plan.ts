@@ -1,8 +1,12 @@
-import { createRequire } from "node:module";
-
 import { hostApiRequirements } from "@fetchlet/web/capabilities";
+import {
+  engineOnlyApis,
+  polyfills,
+  resolvePolyfillModule,
+  type Polyfill,
+} from "@fetchlet/web/gaps";
 
-import { backendCapabilities, engineOnlyApis, polyfills, type Polyfill } from "./catalog.ts";
+import { backendCapabilities } from "./engine-capabilities.ts";
 
 export type BuildBackend = "quickjs" | "boa" | "v8" | "portable";
 
@@ -46,8 +50,6 @@ export interface PolyfillPlan {
   imports: string[];
 }
 
-const require = createRequire(import.meta.url);
-
 function polyfillFor(api: string): Polyfill | undefined {
   return Object.hasOwn(polyfills, api) ? polyfills[api] : undefined;
 }
@@ -64,7 +66,7 @@ function localeModule(packageName: string, locale: string): string {
   while (candidate) {
     const specifier = packageName + "/locale-data/" + candidate + ".js";
     try {
-      require.resolve(specifier);
+      resolvePolyfillModule(specifier);
       return specifier;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "MODULE_NOT_FOUND") {
@@ -173,7 +175,7 @@ export function planPolyfills({
     if (implementation.timeZoneData && timeZoneData !== "utc") {
       modules.push(implementation.package + "/add-" + timeZoneData + "-tz.js");
     }
-    imports.push(...modules.map((specifier) => require.resolve(specifier)));
+    imports.push(...modules.map(resolvePolyfillModule));
     selectedPolyfills.push({ api, package: implementation.package, modules });
   }
   return {

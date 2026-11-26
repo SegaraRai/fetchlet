@@ -86,6 +86,12 @@ export default defineConfig({
         command: "node tools/docs/reference.ts",
         cache: false,
       },
+      // The native APIs per engine that fetchlet/build plans from, written
+      // from the results of test:polyfills.
+      "build:engine-capabilities": {
+        command: "node tools/matrix/engine-capabilities.ts",
+        cache: false,
+      },
 
       // check
       "check:types": {
@@ -106,7 +112,8 @@ export default defineConfig({
         cache: false,
       },
       "check:generated": {
-        command: "node tools/docs/reference.ts --check && node tools/rust/scripts.ts",
+        command:
+          "node tools/docs/reference.ts --check && node tools/matrix/engine-capabilities.ts --check && node tools/rust/scripts.ts",
         cache: false,
       },
       // Runs cargo metadata, whose inputs Vite+ cannot track.

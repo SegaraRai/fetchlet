@@ -115,9 +115,11 @@ QuickJS and Boa do not provide `Intl.Collator` and `Intl.supportedValuesOf`
 either, which FormatJS does not polyfill. They do provide
 `SharedArrayBuffer` and `Atomics`, without threads to share them with. The
 polyfill matrix (`vp run test:polyfills`) measures each engine's native
-APIs. Name the ones an application needs in `requirements`: a `quickjs` or
-`boa` build then fails at once, and a `portable` artifact is refused by a
-host whose engine lacks them.
+APIs, and `vp run build:engine-capabilities` writes the measurement into the
+table the build plans from. Which APIs a polyfill fills, and which only an
+engine provides, is declared by `@fetchlet/web/gaps`. Name the ones an
+application needs in `requirements`: a `quickjs` or `boa` build then fails at
+once, and a `portable` artifact is refused by a host whose engine lacks them.
 
 ## Locales and time zones
 

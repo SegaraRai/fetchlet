@@ -1,4 +1,8 @@
-import type { BuildBackend } from "./plan.ts";
+// What the profile fills where an engine lacks it, for fetchlet/build to plan
+// a bundle from. Like ./capabilities, build tools import it in Node; it runs
+// in no engine.
+
+import { createRequire } from "node:module";
 
 /** A polyfill that installs an API only where the engine lacks it. */
 export interface Polyfill {
@@ -11,34 +15,6 @@ export interface Polyfill {
   /** Whether `intl.timeZoneData` adds the package's `add-<data>-tz.js`. */
   timeZoneData?: boolean;
 }
-
-/**
- * Native APIs measured in fetchlet's default engine configurations, by their
- * path from `globalThis`. `test:polyfills` checks them against each engine.
- * `portable` assumes none.
- */
-export const backendCapabilities: Record<BuildBackend, string[]> = {
-  portable: [],
-  quickjs: ["SharedArrayBuffer", "Atomics"],
-  boa: ["SharedArrayBuffer", "Atomics"],
-  v8: [
-    "Intl.getCanonicalLocales",
-    "Intl.Locale",
-    "Intl.PluralRules",
-    "Intl.NumberFormat",
-    "Intl.DateTimeFormat",
-    "Intl.ListFormat",
-    "Intl.DisplayNames",
-    "Intl.RelativeTimeFormat",
-    "Intl.Segmenter",
-    "Intl.DurationFormat",
-    "Intl.Collator",
-    "Intl.supportedValuesOf",
-    "WebAssembly",
-    "SharedArrayBuffer",
-    "Atomics",
-  ],
-};
 
 /**
  * APIs that only an engine provides, because no polyfill implements them at
@@ -59,7 +35,7 @@ export const engineOnlyApis: readonly string[] = [
  * Polyfills by API. Dependencies follow the pinned FormatJS releases'
  * documented requirements and what each polyfill calls.
  */
-export const polyfills: Record<string, Polyfill> = {
+export const polyfills: Readonly<Record<string, Polyfill>> = {
   "Intl.getCanonicalLocales": {
     package: "@formatjs/intl-getcanonicallocales",
     dependencies: [],
@@ -125,3 +101,15 @@ export const polyfills: Record<string, Polyfill> = {
     localeData: false,
   },
 };
+
+const require = createRequire(import.meta.url);
+
+/**
+ * The file of a module in a polyfill package, such as
+ * `@formatjs/intl-locale/polyfill.js`. The packages are dependencies of this
+ * one, so they resolve from here. Throws `MODULE_NOT_FOUND` for a missing
+ * module.
+ */
+export function resolvePolyfillModule(specifier: string): string {
+  return require.resolve(specifier);
+}

@@ -30,6 +30,10 @@ export default defineConfig({
     dts: true,
     // The modules run in the guest engine, not in Node.
     platform: "neutral",
+    // Except ./gaps, which build tools import in Node to resolve polyfills.
+    deps: {
+      neverBundle: ["node:module"],
+    },
     // The language level of the final artifact bundle.
     target: "es2022",
     outExtensions: () => ({

@@ -92,17 +92,6 @@
   "dependencies": {
     "@fetchlet/node": "workspace:*",
     "@fetchlet/web": "workspace:*",
-    "@formatjs/intl-datetimeformat": "catalog:dep",
-    "@formatjs/intl-displaynames": "catalog:dep",
-    "@formatjs/intl-durationformat": "catalog:dep",
-    "@formatjs/intl-getcanonicallocales": "catalog:dep",
-    "@formatjs/intl-listformat": "catalog:dep",
-    "@formatjs/intl-locale": "catalog:dep",
-    "@formatjs/intl-numberformat": "catalog:dep",
-    "@formatjs/intl-pluralrules": "catalog:dep",
-    "@formatjs/intl-relativetimeformat": "catalog:dep",
-    "@formatjs/intl-segmenter": "catalog:dep",
-    "@formatjs/intl-supportedvaluesof": "catalog:dep",
     "hono": "catalog:dep",
     "pathe": "catalog:dep",
     "rolldown": "catalog:dep"

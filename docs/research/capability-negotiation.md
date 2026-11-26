@@ -70,18 +70,18 @@ application reads, and a missing one already fails at first use with a
 
 ### Build side
 
-| Input                                           | Decided by             | Place                                                                                    | Default     |
-| ----------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------- | ----------- |
-| Target engine (`backend`)                       | the application author | the adapter's options in the framework config (`vite.config.ts`, `nuxt.config.ts`, …)    | `portable`  |
-| Intl data (`intl.locales`, `intl.timeZoneData`) | the application author | the adapter's options                                                                    | `en`, `utc` |
-| The application's requirements                  | the application author | **the adapter's options, `requirements`**: one option shared by every adapter            | none        |
-| The framework's requirements                    | the adapter            | the adapter's code (Astro: `Intl.DateTimeFormat`)                                        | —           |
-| Async context mode                              | the adapter            | the adapter's code (`serialized` for most)                                               | —           |
-| Detected requirements                           | the build              | the bundle's imports: `node:crypto` needs `node-crypto`, `node:zlib` needs `compression` | —           |
-| What each target provides natively              | fetchlet               | `packages/fetchlet/src/build/polyfills/catalog.ts`                                       | —           |
-| Polyfills                                       | fetchlet               | `catalog.ts` and the pinned FormatJS packages                                            | —           |
-| Requirement name to host Web API                | `@fetchlet/web`        | a table in the package                                                                   | —           |
-| Host protocol the artifact speaks               | `@fetchlet/web`        | its `PROTOCOL_VERSION`                                                                   | —           |
+| Input                                           | Decided by             | Place                                                                                     | Default     |
+| ----------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------- | ----------- |
+| Target engine (`backend`)                       | the application author | the adapter's options in the framework config (`vite.config.ts`, `nuxt.config.ts`, …)     | `portable`  |
+| Intl data (`intl.locales`, `intl.timeZoneData`) | the application author | the adapter's options                                                                     | `en`, `utc` |
+| The application's requirements                  | the application author | **the adapter's options, `requirements`**: one option shared by every adapter             | none        |
+| The framework's requirements                    | the adapter            | the adapter's code (Astro: `Intl.DateTimeFormat`)                                         | —           |
+| Async context mode                              | the adapter            | the adapter's code (`serialized` for most)                                                | —           |
+| Detected requirements                           | the build              | the bundle's imports: `node:crypto` needs `node-crypto`, `node:zlib` needs `compression`  | —           |
+| What each target provides natively              | each engine, measured  | `results/polyfill-matrix.json`, written into `engine-capabilities.ts` in `fetchlet/build` | —           |
+| Polyfills and engine-only APIs                  | `@fetchlet/web`        | `@fetchlet/web/gaps` and the pinned FormatJS packages it depends on                       | —           |
+| Requirement name to host Web API                | `@fetchlet/web`        | a table in the package                                                                    | —           |
+| Host protocol the artifact speaks               | `@fetchlet/web`        | its `PROTOCOL_VERSION`                                                                    | —           |
 
 Today the third row is missing: no adapter accepts `requirements`, and
 `intl.apis` is a second spelling of the same thing for Intl. The design
@@ -204,13 +204,13 @@ build it for quickjs or portable, or run it on V8`.
 
 ## Ownership of the tables
 
-| Table                            | Owner                          | Kept true by                                      |
-| -------------------------------- | ------------------------------ | ------------------------------------------------- |
-| Native APIs per target           | `catalog.ts`                   | `test:polyfills` against the probe on each engine |
-| Polyfills and dependencies       | `catalog.ts`                   | pinned FormatJS releases and conformance tests    |
-| Requirement name to host Web API | `@fetchlet/web`                | a test against `web.capabilities`                 |
-| Web APIs a host serves           | `fetchlet_web::capabilities()` | Cargo features                                    |
-| Async context per engine         | `Backend`                      | `tests/async_context.rs` on each engine           |
+| Table                            | Owner                          | Kept true by                                                                                |
+| -------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
+| Native APIs per target           | the probe on each engine       | `test:polyfills` records it; `check:generated` fails when `engine-capabilities.ts` is stale |
+| Polyfills and dependencies       | `@fetchlet/web/gaps`           | pinned FormatJS releases and conformance tests                                              |
+| Requirement name to host Web API | `@fetchlet/web`                | a test against `web.capabilities`                                                           |
+| Web APIs a host serves           | `fetchlet_web::capabilities()` | Cargo features                                                                              |
+| Async context per engine         | `Backend`                      | `tests/async_context.rs` on each engine                                                     |
 
 ## Order of work
 

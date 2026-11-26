@@ -1,6 +1,7 @@
+import { engineOnlyApis, polyfills } from "@fetchlet/web/gaps";
 import { describe, expect, test } from "vite-plus/test";
 
-import { backendCapabilities, engineOnlyApis, polyfills } from "./catalog.ts";
+import { backendCapabilities } from "./engine-capabilities.ts";
 import { planPolyfills, type PlanOptions } from "./plan.ts";
 
 // Options from JavaScript callers, which the declared types would reject.

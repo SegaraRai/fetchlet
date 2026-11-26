@@ -6,6 +6,7 @@
   "type": "module",
   "devDependencies": {
     "@fetchlet-internal/tools-workspace": "workspace:*",
+    "@fetchlet/web": "workspace:*",
     "@types/node": "catalog:",
     "fetchlet": "workspace:*",
     "vite-plus": "catalog:"

@@ -123,7 +123,7 @@ and locales, async context, fetchlet-web APIs and protocol) against the
 engine before the module runs. Builds record them as `needs` in
 `fetchlet.json`, from the shared `requirements` option and `node:*`
 imports, and `Artifact::requirements` reads them back. The polyfill catalog
-covers every Intl API FormatJS implements, and names the engine-only APIs
+(`@fetchlet/web/gaps`) covers every Intl API FormatJS implements, and names the engine-only APIs
 (`Intl.Collator`, `Intl.supportedValuesOf`, `WebAssembly`,
 `SharedArrayBuffer`, `Atomics`). Next, following
 [capability negotiation](research/capability-negotiation.md): polyfills

@@ -1,6 +1,6 @@
 // Builds Intl artifacts for each backend with fetchlet/build and checks the
-// selected polyfills, their locale data and the native capability catalog,
-// which covers every polyfillable and engine-only API.
+// selected polyfills and their locale data, and measures which polyfillable
+// and engine-only APIs each engine provides natively.
 // Records results/polyfill-matrix.json: `vp run test:polyfills`.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -14,16 +14,11 @@ import {
   summarize,
   writeResult,
 } from "@fetchlet-internal/tools-workspace/results";
+import { engineOnlyApis, polyfills as polyfillCatalog } from "@fetchlet/web/gaps";
 import { buildArtifact, type BuildArtifactOptions } from "fetchlet/build";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 
-// The planner and catalog are internal to fetchlet/build; this suite checks
-// them directly.
-import {
-  backendCapabilities,
-  engineOnlyApis,
-  polyfills as polyfillCatalog,
-} from "../../packages/fetchlet/src/build/polyfills/catalog.ts";
+// The planner is internal to fetchlet/build; this suite checks it directly.
 import {
   planPolyfills,
   type PlanOptions,
@@ -157,7 +152,9 @@ afterAll(() => {
   });
 });
 
-check("each engine's native APIs match the build catalog", () => {
+// Records each engine's native APIs, from which `vp run
+// build:engine-capabilities` writes the table the planner uses.
+check("each engine's native APIs are measured", () => {
   const file = resolve(output, "native.js");
   writeFileSync(
     file,
@@ -181,13 +178,6 @@ check("each engine's native APIs match the build catalog", () => {
       expect.fail(reply.error);
     }
     nativeCapabilities[backend] = reply.value as Record<string, boolean>;
-  }
-  // Every engine is measured first, so a mismatch shows them all.
-  for (const backend of backends) {
-    const measured = Object.entries(nativeCapabilities[backend]!)
-      .filter(([, native]) => native)
-      .map(([api]) => api);
-    expect(new Set(measured), backend).toStrictEqual(new Set(backendCapabilities[backend]));
   }
 });
 
