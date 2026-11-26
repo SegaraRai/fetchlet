@@ -40,7 +40,7 @@ export interface AssetSettings extends DirectoryAssetOptions {
  * Pack the client assets into `assets.flpk` for fetchlet-http to serve or
  * embed. `true` archives the client directory with the framework's
  * defaults; settings adjust those defaults and add entries; a function
- * returns every entry itself. See docs/asset-archive.md.
+ * returns every entry itself. See https://fetchlet.roundtrip.dev/docs/reference/asset-archive.
  */
 export type AssetsOption = boolean | AssetSettings | AssetEntriesFunction;
 

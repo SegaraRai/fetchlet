@@ -48,13 +48,14 @@ Use Vite+ with pnpm. Define tasks in `vite.config.ts`. Use `vp i` for dependenci
 Describe the supported behavior, configuration and next work affirmatively. State material compatibility and security limitations precisely, with their scope and evidence. Keep implementation notes, user documentation and research results appropriate to their audience.
 
 - Write documentation, comments, user-facing strings and sample content in English. Non-ASCII text belongs only in tests and fixtures that exercise Unicode handling.
+- Write user documentation as pages of the website in `apps/website/src/content/docs/` ([apps/website/DEVELOPMENT.md](apps/website/DEVELOPMENT.md)); it is published at https://fetchlet.roundtrip.dev and shipped as Markdown in the `fetchlet` package's generated `docs/`. Keep documentation for maintainers in `docs/`.
 - Keep `docs/README.md` as the index. Track next work in `docs/TODO.md`, and put investigations under `docs/research/`.
 - `docs/reference/` is generated from `results/` by `vp run build:reference`; `check:generated` fails when it is stale. Do not edit it by hand.
 - Results record what they were produced with (`environment()` in `tools/workspace/results.ts`: toolchain, engine and package versions), never when, and nothing else that varies between identical runs, such as durations or iteration counts. A rerun with the same versions and outcomes leaves the files unchanged. Measurements such as benchmarks go to the untracked `.cache/`.
 
 ## Workspace layout
 
-- Put Rust libraries in `crates/<crate>/`, shared JS packages in `packages/<package>/`, and runnable applications in `examples/<framework>-<rust-server>/`.
+- Put Rust libraries in `crates/<crate>/`, shared JS packages in `packages/<package>/`, the project's own sites in `apps/<site>/`, and runnable applications in `examples/<framework>-<rust-server>/`.
 - Keep framework adapters independent from Rust HTTP integrations.
 - Give each example its own source, build output, run instructions and end-to-end checks.
 - Keep an example's Rust and JavaScript sources in separate directories. When the framework's convention puts its sources in `src/`, put the Rust host in a directory named for its role, such as `server/` for an HTTP server or `cli/` for a command line program, and point Cargo at it with `[[bin]] path`.

@@ -137,7 +137,7 @@ only `https://fetchlet.internal`.
 `experimental.remoteFunctions` enables remote functions. The adapter uses
 `rendering: "async"`, which replaces `node:async_hooks` with a
 per-invocation `AsyncLocalStorage` ([SvelteKit
-adapter](../../packages/fetchlet/docs/sveltekit.md)). Both features are
+adapter](https://fetchlet.roundtrip.dev/docs/frameworks/sveltekit)). Both features are
 experimental in SvelteKit and Svelte.
 
 ## Why Rust highlights code
@@ -215,7 +215,7 @@ every platform.
 
 `HostServices::console` forwards SvelteKit's `console.error` and other
 console output to stderr as `[js Error] …` ([host
-services](../../docs/host-services.md#console)).
+services](https://fetchlet.roundtrip.dev/docs/rust/host-services#console)).
 
 ## Checks
 

@@ -1,6 +1,6 @@
 # fetchlet
 
-Builds JavaScript web frameworks into artifacts that a Rust server runs through the [fetchlet](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet/README.md) crate. An artifact is a directory holding `server.js` (one IIFE bundle with a Fetch handler), `client/` (public assets) and `fetchlet.json` (the manifest that [fetchlet-http](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-http/README.md)'s `Artifact` reads).
+Builds JavaScript web frameworks into artifacts that a Rust server runs through the [fetchlet](https://fetchlet.roundtrip.dev/docs/rust/fetchlet) crate. An artifact is a directory holding `server.js` (one IIFE bundle with a Fetch handler), `client/` (public assets) and `fetchlet.json` (the manifest that [fetchlet-http](https://fetchlet.roundtrip.dev/docs/rust/fetchlet-http)'s `Artifact` reads).
 
 Install it as a development dependency next to your framework. Each framework has its own subpath, and the framework packages are optional peer dependencies. The build runs on Node 20.19, 22.12, 24 or later, the versions Vite 8 and Rolldown require; the repository tests it on Node 26.
 
@@ -8,24 +8,24 @@ Install it as a development dependency next to your framework. Each framework ha
 npm install --save-dev fetchlet
 ```
 
-| Subpath                                                    | Use                                                   | Guide                                                                                                      |
-| ---------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `fetchlet/sveltekit`                                       | SvelteKit adapter                                     | [sveltekit](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/sveltekit.md)           |
-| `fetchlet/astro`, `fetchlet/astro/server`                  | Astro adapter                                         | [astro](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/astro.md)                   |
-| `fetchlet/nitro`, `fetchlet/nitro/types`                   | Nitro preset, also for Nuxt                           | [nitro](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/nitro.md)                   |
-| `fetchlet/react-router`, `fetchlet/react-router/context`   | React Router preset                                   | [react-router](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/react-router.md)     |
-| `fetchlet/hono/vite`, `fetchlet/hono/conninfo`             | Hono and HonoX Vite plugin                            | [hono](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/hono.md)                     |
-| `fetchlet/tanstack-start`                                  | TanStack Start Vite plugin                            | [tanstack-start](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/tanstack-start.md) |
-| `fetchlet/solid`, `fetchlet/solid/context`                 | Solid 2 Vite plugin                                   | [solid](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/solid.md)                   |
-| `fetchlet/solid-start`, `fetchlet/solid-start/context`     | SolidStart (Solid 1) Vite plugin                      | [solid-start](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/solid-start.md)       |
-| `fetchlet/qwik-city/vite`, `fetchlet/qwik-city/middleware` | Qwik City Vite plugin and middleware                  | [qwik-city](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/qwik-city.md)           |
-| `fetchlet/waku`, `fetchlet/waku/context`                   | Waku server entry adapter                             | [waku](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/waku.md)                     |
-| `fetchlet/vinext`, `fetchlet/vinext/context`               | vinext Vite plugin                                    | [vinext](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/vinext.md)                 |
-| `fetchlet/vite`, `fetchlet/vite/client-assets`             | Vite plugin for a server module without a framework   | [vite](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/vite.md)                     |
-| `fetchlet/build`                                           | `buildArtifact`, for adapters of other frameworks     | [build](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/build.md)                   |
-| `fetchlet/runtime`, `/adapter`, `/handler`                 | The Web API profile and Fetch entry inside the bundle | [runtime](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/runtime.md)               |
+| Subpath                                                    | Use                                                   | Guide                                                                           |
+| ---------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `fetchlet/sveltekit`                                       | SvelteKit adapter                                     | [sveltekit](https://fetchlet.roundtrip.dev/docs/frameworks/sveltekit)           |
+| `fetchlet/astro`, `fetchlet/astro/server`                  | Astro adapter                                         | [astro](https://fetchlet.roundtrip.dev/docs/frameworks/astro)                   |
+| `fetchlet/nitro`, `fetchlet/nitro/types`                   | Nitro preset, also for Nuxt                           | [nitro](https://fetchlet.roundtrip.dev/docs/frameworks/nitro)                   |
+| `fetchlet/react-router`, `fetchlet/react-router/context`   | React Router preset                                   | [react-router](https://fetchlet.roundtrip.dev/docs/frameworks/react-router)     |
+| `fetchlet/hono/vite`, `fetchlet/hono/conninfo`             | Hono and HonoX Vite plugin                            | [hono](https://fetchlet.roundtrip.dev/docs/frameworks/hono)                     |
+| `fetchlet/tanstack-start`                                  | TanStack Start Vite plugin                            | [tanstack-start](https://fetchlet.roundtrip.dev/docs/frameworks/tanstack-start) |
+| `fetchlet/solid`, `fetchlet/solid/context`                 | Solid 2 Vite plugin                                   | [solid](https://fetchlet.roundtrip.dev/docs/frameworks/solid)                   |
+| `fetchlet/solid-start`, `fetchlet/solid-start/context`     | SolidStart (Solid 1) Vite plugin                      | [solid-start](https://fetchlet.roundtrip.dev/docs/frameworks/solid-start)       |
+| `fetchlet/qwik-city/vite`, `fetchlet/qwik-city/middleware` | Qwik City Vite plugin and middleware                  | [qwik-city](https://fetchlet.roundtrip.dev/docs/frameworks/qwik-city)           |
+| `fetchlet/waku`, `fetchlet/waku/context`                   | Waku server entry adapter                             | [waku](https://fetchlet.roundtrip.dev/docs/frameworks/waku)                     |
+| `fetchlet/vinext`, `fetchlet/vinext/context`               | vinext Vite plugin                                    | [vinext](https://fetchlet.roundtrip.dev/docs/frameworks/vinext)                 |
+| `fetchlet/vite`, `fetchlet/vite/client-assets`             | Vite plugin for a server module without a framework   | [vite](https://fetchlet.roundtrip.dev/docs/frameworks/vite)                     |
+| `fetchlet/build`                                           | `buildArtifact`, for adapters of other frameworks     | [build](https://fetchlet.roundtrip.dev/docs/javascript/build)                   |
+| `fetchlet/runtime`, `/adapter`, `/handler`                 | The Web API profile and Fetch entry inside the bundle | [runtime](https://fetchlet.roundtrip.dev/docs/javascript/runtime)               |
 
-The `fetchlet` command runs `fetchlet build`, which builds a server module into an artifact without Vite ([build](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/build.md#the-fetchlet-build-command)), and `fetchlet dev`, which rebuilds the artifact on source changes while a Rust host serves each build ([dev](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/dev.md)).
+The `fetchlet` command runs `fetchlet build`, which builds a server module into an artifact without Vite ([build](https://fetchlet.roundtrip.dev/docs/javascript/build#the-fetchlet-build-command)), and `fetchlet dev`, which rebuilds the artifact on source changes while a Rust host serves each build ([dev](https://fetchlet.roundtrip.dev/docs/javascript/dev)).
 
 ```ts
 import { sveltekit } from "@sveltejs/kit/vite";
@@ -45,6 +45,10 @@ export default defineConfig({
 ```
 
 Every adapter calls `fetchlet/build`, which initializes `fetchlet/runtime` and the polyfills the target engine needs before the framework's modules, and writes the artifact.
+
+## Documentation
+
+The documentation is at <https://fetchlet.roundtrip.dev/docs>. This package also ships it as Markdown in `node_modules/fetchlet/docs/`, with an index in `docs/llms.txt`, so that coding agents read the version the application installed. `skills/` holds skills for coding agents, and `AGENTS_TEMPLATE.md` a section for a project's instruction file; [Coding agents](https://fetchlet.roundtrip.dev/docs/agents) describes them.
 
 ## Development
 

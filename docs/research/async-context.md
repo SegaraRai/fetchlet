@@ -4,7 +4,7 @@ Framework servers keep the current request in `AsyncLocalStorage`. Next.js,
 SvelteKit's `getRequestEvent`, Nuxt through unctx, SolidStart and TanStack
 Start depend on it, and React's server renderer reads its request cache the
 same way. `asyncContext: "serialized"`
-([build options](../../packages/fetchlet/docs/build.md)) keeps a store until
+([build options](https://fetchlet.roundtrip.dev/docs/javascript/build)) keeps a store until
 the `run` callback's promise settles, so overlapping `run`s inside one
 invocation see the last started store. This document designs propagation
 that isolates concurrent runs, states what each engine needs, and records

@@ -15,7 +15,7 @@ fetchlet program:
   routes and the services it grants.
 - JavaScript runs on the engine the artifact targets, with the same Web API
   profile, `node:*` modules and authority boundary, including the trusted
-  `Context` of [in-process fetch](../in-process-fetch.md).
+  `Context` of [in-process fetch](https://fetchlet.roundtrip.dev/docs/rust/in-process-fetch).
 - Browser assets keep Vite's client HMR.
 
 When an app is deployed on Node and only wants Rust functions, napi-rs
@@ -41,7 +41,7 @@ links HTML responses to a long-poll reload script it serves under
 `/__fetchlet/`
 ([fetchlet-http](../../crates/fetchlet-http/README.md#reloading-during-development)).
 Every axum example has a `dev` task. The `fetchlet dev` command
-([dev](../../packages/fetchlet/docs/dev.md)) watches the example's source
+([dev](https://fetchlet.roundtrip.dev/docs/javascript/dev)) watches the example's source
 directories and framework configuration, which it infers from the example's
 layout, and runs its `build` task again when a file's
 content changes, so files a build rewrites unchanged, such as generated
@@ -170,7 +170,7 @@ This gives Vite's loop with production's engine and authority, but depends
 on how each framework evaluates its server in development (below).
 
 Option B is implemented for `fetchlet/vite`
-([development serving](../../packages/fetchlet/docs/vite.md#development-serving)),
+([development serving](https://fetchlet.roundtrip.dev/docs/frameworks/vite#development-serving)),
 with fetchlet-http's `ViteDev` (feature `vite-dev`) on the Rust side and a
 `dev:vite` task in examples/vanilla-axum. It differs from the outline above
 in three places:

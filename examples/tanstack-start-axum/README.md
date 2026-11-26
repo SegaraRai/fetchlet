@@ -2,7 +2,7 @@
 
 Serves TanStack Start (React) streaming SSR, server functions and server
 routes from axum.
-[fetchlet/tanstack-start](../../packages/fetchlet/docs/tanstack-start.md)
+[fetchlet/tanstack-start](https://fetchlet.roundtrip.dev/docs/frameworks/tanstack-start)
 builds the server into an artifact.
 
 ## Run

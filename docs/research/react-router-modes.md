@@ -24,7 +24,7 @@ host served:
 React Router links to `/about`, so every prerendered page costs a redirect
 and changes the URL the router sees. The preset's asset defaults use the
 archive's `trailingSlash: "always"` for `dir/index.html`; React Router
-needs `"ignore"` or `"never"` there ([asset archive](../asset-archive.md)).
+needs `"ignore"` or `"never"` there ([asset archive](https://fetchlet.roundtrip.dev/docs/reference/asset-archive)).
 A client directory without the archive (`ServeDir`) redirects the same way.
 
 The preset now archives with `trailingSlash: "ignore"`, so `/about` and

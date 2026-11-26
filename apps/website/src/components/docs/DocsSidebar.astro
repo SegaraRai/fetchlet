@@ -1,0 +1,70 @@
+---
+import type { SidebarItem } from "@cloudflare/nimbus-docs/types";
+import { style } from "stillwind/astro";
+
+import DocsSidebar from "./DocsSidebar.astro";
+
+interface Props {
+  items: readonly SidebarItem[];
+  /** Key of the enclosing group; nested group keys join the labels with "/". */
+  parent?: string;
+}
+
+const { items, parent } = Astro.props;
+
+const groupKey = (label: string) => (parent ? `${parent}/${label}` : label);
+const current = (item: SidebarItem): boolean =>
+  item.type === "group"
+    ? item.indexHref === Astro.url.pathname || item.children.some(current)
+    : item.type === "link" && Boolean(item.isCurrent);
+---
+
+<ul {...style("docs-navigation-list", parent && "ms-2 ps-2 border-border border-s")}>
+  {items.map((item) => (
+    <li>
+      {item.type === "group" ? (
+        <details
+          data-nb-nav-group={groupKey(item.label)}
+          open={current(item) || item.collapsed === false}
+        >
+          <summary
+            {...style(
+              "flex px-3 py-2 items-center gap-1.5 list-none text-foreground font-medium cursor-pointer [&::-webkit-details-marker]:hidden",
+            )}
+          >
+            <span
+              aria-hidden="true"
+              {...style("icon-lucide--chevron-right shrink-0 [details[open]>summary>&]:rotate-90")}
+            ></span>
+            {item.label}
+          </summary>
+          <DocsSidebar
+            items={
+              item.indexHref
+                ? [
+                    {
+                      type: "link",
+                      label: "Overview",
+                      href: item.indexHref,
+                      order: -1,
+                      isCurrent: item.indexHref === Astro.url.pathname,
+                    },
+                    ...item.children,
+                  ]
+                : item.children
+            }
+            parent={groupKey(item.label)}
+          />
+        </details>
+      ) : (
+        <a
+          href={item.href}
+          aria-current={item.type === "link" && item.isCurrent ? "page" : undefined}
+          {...style("docs-navigation-link")}
+        >
+          {item.label}
+        </a>
+      )}
+    </li>
+  ))}
+</ul>

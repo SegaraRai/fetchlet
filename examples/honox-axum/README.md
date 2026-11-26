@@ -1,7 +1,7 @@
 # HonoX + axum
 
 Serves HonoX's file-based routes and islands from axum.
-[fetchlet/hono](../../packages/fetchlet/docs/hono.md) builds the server into
+[fetchlet/hono](https://fetchlet.roundtrip.dev/docs/frameworks/hono) builds the server into
 an artifact.
 
 ## Run

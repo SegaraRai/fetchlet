@@ -47,7 +47,7 @@ refresh in place; endpoints run on the engine.
 `astro.config.ts` sets the backend to `quickjs` and can configure Intl
 locales and time zone data (default: `en` and UTC). A `backend: "v8"` build
 leaves FormatJS out of the bundle; the Rust side then uses `Backend::v8()`
-and the `v8` feature ([builder](../../packages/fetchlet/docs/build.md)).
+and the `v8` feature ([builder](https://fetchlet.roundtrip.dev/docs/javascript/build)).
 
 `astro.config.ts` holds the framework configuration and `vite.config.ts`
 the Vite+ tasks. `src/` only starts Rust, sets bindings and routes.

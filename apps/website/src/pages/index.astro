@@ -1,0 +1,620 @@
+---
+import { Code } from "astro:components";
+import { style } from "stillwind/astro";
+
+import HomeLayout from "../layouts/HomeLayout.astro";
+import { URL_DOCS, URL_REPOSITORY } from "../lib/config";
+
+const title = "fetchlet — Embed JavaScript web frameworks inside Rust";
+const description =
+  "Run the server side of SvelteKit, Astro, TanStack Start, React Router, Nuxt, and more inside a Rust binary on QuickJS, Boa, or V8.";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      name: "fetchlet",
+      description,
+      url: new URL("/", Astro.site).href,
+      inLanguage: "en",
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "fetchlet",
+      description,
+      url: new URL("/", Astro.site).href,
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Windows, macOS, Linux",
+      license: ["https://spdx.org/licenses/MIT.html", "https://spdx.org/licenses/Apache-2.0.html"],
+      sameAs: URL_REPOSITORY,
+      softwareHelp: new URL(URL_DOCS, Astro.site).href,
+    },
+  ],
+};
+
+const shikiThemes = { light: "github-light", dark: "github-dark" } as const;
+
+const scenarios = [
+  {
+    id: "http",
+    label: "HTTP server",
+    summary:
+      "Bundle your framework with a fetchlet adapter, then serve client assets, Rust routes, and SSR pages from one axum server.",
+    jsFile: "vite.config.ts",
+    jsCode: `import { sveltekit } from "@sveltejs/kit/vite";
+import fetchletAdapter from "fetchlet/sveltekit";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [
+    sveltekit({
+      adapter: fetchletAdapter({ out: "build" }),
+    }),
+  ],
+});`,
+    rustFile: "server/main.rs",
+    rustCode: `use axum::{Router, routing::get};
+use fetchlet_http::Server;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+    Server::new("build")
+        .routes(|_| Router::new().route("/api/health", get(|| async { "ok" })))
+        .serve(listener)
+        .await?;
+    Ok(())
+}`,
+  },
+  {
+    id: "functions",
+    label: "Rust functions",
+    summary:
+      "Expose Rust functions directly on env so server-side JS calls your database, file index, or native crates without HTTP serialization.",
+    jsFile: "src/routes/+page.server.ts",
+    jsCode: `export async function load({ platform }) {
+  const users = await platform.env.DB.query(
+    "SELECT id, name FROM users LIMIT 20",
+    [],
+  );
+  return { users };
+}`,
+    rustFile: "server/main.rs",
+    rustCode: `use fetchlet::{FunctionRequest, Functions, HostServices};
+use fetchlet_http::Server;
+use serde_json::{Value, json};
+
+let db = Functions::new().method("query", |req: FunctionRequest| async move {
+    let (sql, params): (String, Vec<Value>) = req.args()?;
+    let rows = run_query(&sql, &params).await?;
+    Ok(json!(rows))
+});
+
+Server::new("build")
+    .host_services(move || HostServices::new().functions("DB", db.clone()))
+    .serve(listener)
+    .await?;`,
+  },
+  {
+    id: "binary",
+    label: "Single binary",
+    summary:
+      "Pack static files into a Brotli archive (assets.flpk) and embed the entire artifact into your Rust executable at compile time.",
+    jsFile: "vite.config.ts",
+    jsCode: `import fetchletStart from "fetchlet/tanstack-start";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [
+    tanstackStart(),
+    react(),
+    fetchletStart({ backend: "quickjs", assets: true }),
+  ],
+});`,
+    rustFile: "server/main.rs",
+    rustCode: `use fetchlet_http::{Artifact, Server};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let artifact: Artifact = fetchlet_http::include_artifact!("../build");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+    Server::from_artifact(artifact).serve(listener).await?;
+    Ok(())
+}`,
+  },
+  {
+    id: "tauri",
+    label: "Tauri desktop",
+    summary:
+      "Serve SSR pages inside a Tauri webview over a custom URI scheme—no local TCP port, and Tauri commands can call JS exports directly.",
+    jsFile: "src/routes/+page.server.ts",
+    jsCode: `export async function load({ platform }) {
+  // Runs in-process inside the Tauri binary
+  const workspace = await platform.env.WORKSPACE.summary();
+  return { workspace };
+}`,
+    rustFile: "src-tauri/src/main.rs",
+    rustCode: `use fetchlet_http::{Server, WebviewScheme};
+
+const SCHEME: WebviewScheme = WebviewScheme::new("app");
+
+let webview = Server::new("build")
+    .host_services(build_host_services)
+    .webview(SCHEME, 16 * 1024 * 1024)
+    .await?;
+
+let protocol = webview.clone();
+tauri::Builder::default()
+    .register_asynchronous_uri_scheme_protocol(SCHEME.name(), move |_, req, res| {
+        let protocol = protocol.clone();
+        tauri::async_runtime::spawn(async move {
+            res.respond(protocol.respond(req).await);
+        });
+    });`,
+  },
+] as const;
+
+const hostBoundarySnippet = `let router = OriginRouter::new()
+    .internal("https://fetchlet.internal", router_transport(api))?
+    .external("https://api.example.com", HttpClient::new())?
+    .into_service()
+    .credentials(|url, headers| {
+        if url.host_str() == Some("api.example.com") {
+            headers.insert("authorization", token.parse()?);
+        }
+        Ok(())
+    });
+
+Server::new("build")
+    .host_services(move || HostServices::new().outbound(router.clone()))
+    .limits(Limits {
+        timeout: Some(Duration::from_secs(5)),
+        heap_bytes: Some(64 * 1024 * 1024),
+        ..Default::default()
+    })`;
+
+const frameworkTile = style.ref();
+const frameworks = [
+  {
+    name: "TanStack Start",
+    slug: "tanstack-start",
+    icon: style("icon-aside icon-simple-icons--react"),
+  },
+  {
+    name: "React Router",
+    slug: "react-router",
+    icon: style("icon-aside icon-simple-icons--reactrouter"),
+  },
+  { name: "vinext", slug: "vinext", icon: style("icon-aside icon-simple-icons--nextdotjs") },
+  { name: "Astro", slug: "astro", icon: style("icon-aside icon-simple-icons--astro") },
+  { name: "SvelteKit", slug: "sveltekit", icon: style("icon-aside icon-simple-icons--svelte") },
+  { name: "Nuxt / Nitro", slug: "nitro", icon: style("icon-aside icon-simple-icons--nuxt") },
+  {
+    name: "SolidStart",
+    slug: "solid-start",
+    icon: style("icon-aside icon-simple-icons--solid"),
+  },
+  { name: "Solid 2", slug: "solid", icon: style("icon-aside icon-simple-icons--solid") },
+  { name: "Waku", slug: "waku", icon: style("icon-aside icon-lucide--waves") },
+  {
+    name: "Qwik City",
+    slug: "qwik-city",
+    subpath: "qwik-city/vite",
+    icon: style("icon-aside icon-simple-icons--qwik"),
+  },
+  {
+    name: "Hono / HonoX",
+    slug: "hono",
+    subpath: "hono/vite",
+    icon: style("icon-aside icon-simple-icons--hono"),
+  },
+  { name: "Vite", slug: "vite", icon: style("icon-aside icon-simple-icons--vite") },
+];
+
+const hostPillars = [
+  {
+    title: "Three engines, one profile",
+    text: "Run the same WinterTC Web APIs and Node.js subset on QuickJS (fast startup), Boa (pure Rust), or V8 (JIT, native Intl, WebAssembly). Switch engines with one Cargo feature.",
+    links: [
+      { label: "Compare engines", href: "/docs/overview#choosing-an-engine" },
+      { label: "Web API matrix", href: "/docs/compatibility/web-api" },
+      { label: "Node.js", href: "/docs/compatibility/node" },
+    ],
+  },
+  {
+    title: "Deny-by-default permissions",
+    text: "JavaScript cannot touch the network, filesystem, or host env unless Rust grants it. Outbound HTTP, TCP, and WebSockets enforce exact allowlists and block private IPs to prevent SSRF.",
+    links: [
+      { label: "Host services", href: "/docs/rust/host-services" },
+      { label: "Outbound networking", href: "/docs/rust/fetchlet-net" },
+    ],
+  },
+  {
+    title: "Limits & process isolation",
+    text: "Bound timeouts, CPU busy time, engine heaps, body sizes, and subrequests in Rust. Enable the process feature to isolate each instance in a child process with OS memory limits.",
+    links: [
+      { label: "Resource limits", href: "/docs/rust/resource-policy" },
+      { label: "Security model", href: "/docs/shipping/security" },
+    ],
+  },
+];
+
+const workflow = [
+  {
+    step: "01",
+    title: "Develop with live reload",
+    command: 'fetchlet dev --vite "vite dev" -- cargo run --features vite-dev',
+    lang: "sh" as const,
+    text: "Keep your Rust host running while Vite serves browser HMR and your Rust engine evaluates updated server modules on the fly.",
+    href: "/docs/javascript/dev",
+    link: "Development server",
+  },
+  {
+    step: "02",
+    title: "Build a portable artifact",
+    command: "vite build",
+    lang: "sh" as const,
+    text: "Bundles your server entry with only the polyfills your target engine lacks, plus Brotli-compressed static assets in assets.flpk.",
+    href: "/docs/javascript/build",
+    link: "Building artifacts",
+  },
+  {
+    step: "03",
+    title: "Ship one executable",
+    command: 'let artifact = fetchlet_http::include_artifact!("../build");',
+    lang: "rust" as const,
+    text: "Embed the server bundle and asset archive into your Rust binary—ready for CLIs, Tauri desktop apps, or self-hosted deployments.",
+    href: "/docs/shipping/embedding",
+    link: "Embedding & distribution",
+  },
+];
+---
+
+<HomeLayout title={title} description={description} structuredData={structuredData}>
+  <!-- Hero -->
+  <section aria-labelledby="tagline" {...style("pbs-14 pbe-12 sidebar:pbs-22 sidebar:pbe-16")}>
+    <div
+      {...style(
+        "grid items-start gap-10 sidebar:grid-cols-[minmax(0,45rem)_1fr] sidebar:gap-8",
+      )}
+    >
+      <div {...style("max-inline-180")}>
+        <h1 id="tagline" {...style("hero-title")}>
+          Embed your web framework in Rust.
+        </h1>
+        <p {...style("mbs-6 max-inline-150 text-body/relaxed text-muted inline:text-lead/relaxed")}>
+          fetchlet runs the server side of SvelteKit, Astro, TanStack Start, React Router, Nuxt, and
+          more inside a Rust process—on QuickJS, Boa, or V8. Ship a rich web UI in a single binary,
+          with no Node.js runtime or reverse proxy.
+        </p>
+
+        <div {...style("flex mbs-8 flex-wrap items-center gap-3.5")}>
+          <a
+            href={URL_DOCS}
+            {...style("text-action-foreground bg-action action-link hover:bg-action-hover")}
+          >
+            Get started <span aria-hidden="true" {...style("icon-lucide--arrow-right")}></span>
+          </a>
+          <a
+            href="/docs/agents"
+            {...style(
+              "text-foreground bg-surface border border-border action-link hover:border-border-strong",
+            )}
+          >
+            Set up with a coding agent
+          </a>
+          <a
+            href={`${URL_REPOSITORY}/tree/main/examples`}
+            {...style("inline-flex px-2 py-2 items-center gap-1.5 text-muted text-small nav-link")}
+          >
+            Browse examples
+            <span aria-hidden="true" {...style("icon-lucide--arrow-up-right")}></span>
+          </a>
+        </div>
+      </div>
+
+      <div
+        aria-hidden="true"
+        {...style(
+          "relative hidden pbs-6 place-items-center justify-self-start pointer-events-none select-none sidebar:grid sidebar:ms-6 outline:ms-12",
+        )}
+      >
+        <div {...style("absolute size-64 rounded-full hero-mark-glow outline:size-76")}></div>
+        <img
+          src="/brand/fetchlet-mark.svg"
+          alt=""
+          width="208"
+          height="208"
+          {...style("relative size-44 hero-mark-image outline:size-52")}
+        />
+      </div>
+    </div>
+
+    <!-- Interactive JS + Rust Workbench -->
+    <div
+      data-workbench
+      {...style("overflow-hidden mbs-12 bg-surface rounded-panel border border-border sidebar:mbs-14")}
+    >
+      <div
+        role="tablist"
+        aria-label="Integration examples"
+        {...style("flex overflow-x-auto px-4 py-3 gap-1 bg-surface-muted border-border border-be")}
+      >
+        {scenarios.map((scenario, index) => (
+          <button
+            type="button"
+            role="tab"
+            id={`scenario-tab-${scenario.id}`}
+            aria-selected={index === 0 ? "true" : "false"}
+            aria-controls={`scenario-panel-${scenario.id}`}
+            data-scenario-tab={scenario.id}
+            {...style("scenario-tab")}
+          >
+            {scenario.label}
+          </button>
+        ))}
+      </div>
+
+      {scenarios.map((scenario, index) => (
+        <div
+          role="tabpanel"
+          id={`scenario-panel-${scenario.id}`}
+          aria-labelledby={`scenario-tab-${scenario.id}`}
+          data-scenario-panel={scenario.id}
+          hidden={index !== 0}
+        >
+          <p {...style("px-5 py-3.5 text-caption text-muted border-border border-be")}>
+            {scenario.summary}
+          </p>
+          <div {...style("grid items-stretch outline:grid-cols-2")}>
+            <div
+              {...style(
+                "flex min-inline-0 flex-col border-border max-outline:border-be outline:border-e",
+              )}
+            >
+              <Code
+                code={scenario.jsCode}
+                lang="ts"
+                themes={shikiThemes}
+                defaultColor={false}
+                {...style("landing-code")}
+              />
+              <div
+                {...style(
+                  "px-5 py-2.5 font-mono text-label text-muted bg-surface border-border border-bs",
+                )}
+              >
+                {scenario.jsFile}
+              </div>
+            </div>
+
+            <div {...style("flex min-inline-0 flex-col")}>
+              <Code
+                code={scenario.rustCode}
+                lang="rust"
+                themes={shikiThemes}
+                defaultColor={false}
+                {...style("landing-code")}
+              />
+              <div
+                {...style(
+                  "px-5 py-2.5 font-mono text-label text-muted bg-surface border-border border-bs",
+                )}
+              >
+                {scenario.rustFile}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- Frameworks -->
+  <section aria-labelledby="frameworks" {...style("py-14 border-border border-bs sidebar:py-20")}>
+    <div {...style("flex mbe-8 flex-col justify-between gap-4 sidebar:flex-row sidebar:items-end")}>
+      <h2 id="frameworks" {...style("section-title")}>
+        Keep the framework you already know.
+      </h2>
+      <a href="/docs/frameworks" {...style("inline-flex items-center gap-1.5 text-small nav-link")}>
+        All framework guides
+        <span aria-hidden="true" {...style("icon-lucide--arrow-right")}></span>
+      </a>
+    </div>
+
+    <nav
+      aria-label="Framework guides"
+      {...style("grid grid-cols-1 gap-3 inline:grid-cols-2 sidebar:grid-cols-3 outline:grid-cols-4")}
+    >
+      {frameworks.map((framework) => (
+        <a href={`/docs/frameworks/${framework.slug}`} {...style(frameworkTile, "framework-tile")}>
+          <span
+            aria-hidden="true"
+            {...style(
+              framework.icon,
+              "shrink-0 text-muted opacity-80 [transition:color_140ms_ease,opacity_140ms_ease]",
+              {
+                [frameworkTile("hover")]: "text-foreground opacity-100",
+                [frameworkTile("focus-visible")]: "text-foreground opacity-100",
+              },
+            )}
+          ></span>
+          <span {...style("min-inline-0 grow")}>
+            <span {...style("block text-foreground text-small font-medium")}>
+              {framework.name}
+            </span>
+            <span translate="no" {...style("block truncate font-mono text-label text-muted")}>
+              fetchlet/{"subpath" in framework ? framework.subpath : framework.slug}
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            {...style("icon-lucide--chevron-right shrink-0 text-muted")}
+          ></span>
+        </a>
+      ))}
+    </nav>
+  </section>
+
+  <!-- Host boundary -->
+  <section aria-labelledby="capabilities" {...style("py-14 border-border border-bs sidebar:py-20")}>
+    <div
+      {...style(
+        "grid mbe-12 items-start gap-8 sidebar:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sidebar:gap-12",
+      )}
+    >
+      <div>
+        <h2 id="capabilities" {...style("mbe-5 section-title")}>
+          JavaScript renders.<br />Rust owns the rest.
+        </h2>
+        <p {...style("mbe-6 text-muted text-small/relaxed")}>
+          Route internal origins straight to your axum router with zero TCP overhead, inject
+          upstream API tokens after authorization so JavaScript never sees them, and cap memory and
+          execution time per request—all from one Rust configuration.
+        </p>
+        <div {...style("flex flex-wrap gap-x-5 gap-y-2 text-small")}>
+          <a href="/docs/rust/in-process-fetch" {...style("nav-link")}>
+            In-process fetch →
+          </a>
+          <a href="/docs/rust/host-services#function-bindings" {...style("nav-link")}>
+            Function bindings →
+          </a>
+        </div>
+      </div>
+
+      <div {...style("overflow-hidden min-inline-0 rounded-panel border border-border")}>
+        <Code
+          code={hostBoundarySnippet}
+          lang="rust"
+          themes={shikiThemes}
+          defaultColor={false}
+          {...style("bg-surface landing-code")}
+        />
+      </div>
+    </div>
+
+    <div {...style("grid gap-8 sidebar:grid-cols-3 sidebar:gap-10")}>
+      {hostPillars.map((pillar) => (
+        <div {...style("flex flex-col justify-between")}>
+          <div>
+            <h3 {...style("mbe-2.5 text-foreground text-heading-small font-medium")}>
+              {pillar.title}
+            </h3>
+            <p {...style("mbe-4 text-caption/relaxed text-muted")}>{pillar.text}</p>
+          </div>
+          <div {...style("flex flex-wrap gap-x-4 gap-y-1.5 text-caption")}>
+            {pillar.links.map((link) => (
+              <a href={link.href} {...style("nav-link")}>
+                {link.label} →
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- Dev to Ship Workflow -->
+  <section aria-labelledby="workflow" {...style("py-14 border-border border-bs sidebar:py-20")}>
+    <h2 id="workflow" {...style("mbe-10 section-title")}>
+      From local HMR to a single binary.
+    </h2>
+
+    <ol {...style("grid p-0 gap-10 list-none")}>
+      {workflow.map((item) => (
+        <li {...style("flex items-baseline gap-4")}>
+          <span {...style("shrink-0 font-mono text-accent text-small")}>{item.step}</span>
+          <div {...style("min-inline-0 grow")}>
+            <h3 {...style("mbe-3 text-foreground text-heading-small font-medium")}>
+              {item.title}
+            </h3>
+            <div
+              {...style(
+                "grid items-start gap-5 sidebar:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sidebar:gap-10",
+              )}
+            >
+              <div>
+                <p {...style("mbe-3 text-muted text-small/relaxed")}>{item.text}</p>
+                <a
+                  href={item.href}
+                  {...style("inline-flex items-center gap-1.5 text-caption font-medium nav-link")}
+                >
+                  {item.link}
+                  <span aria-hidden="true" {...style("icon-lucide--arrow-right")}></span>
+                </a>
+              </div>
+              <div {...style("overflow-hidden min-inline-0 rounded-panel border border-border")}>
+                <Code
+                  code={item.command}
+                  lang={item.lang}
+                  themes={shikiThemes}
+                  defaultColor={false}
+                  {...style("p-4 bg-surface landing-code")}
+                />
+              </div>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <!-- Bottom CTA -->
+  <section aria-labelledby="cta" {...style("py-14 border-border border-bs sidebar:py-20")}>
+    <div
+      {...style(
+        "flex p-8 flex-col justify-between gap-6 bg-surface rounded-panel border border-border sidebar:p-10 sidebar:flex-row sidebar:items-center",
+      )}
+    >
+      <div>
+        <h2 id="cta" {...style("mbe-2 text-heading font-medium tracking-[-0.03em]")}>
+          Start building with fetchlet.
+        </h2>
+        <p {...style("text-muted text-small")}>
+          Add an adapter to your web app, serve it from Rust, and ship one binary.
+        </p>
+      </div>
+      <div {...style("flex shrink-0 flex-wrap gap-3")}>
+        <a
+          href={URL_DOCS}
+          {...style("text-action-foreground bg-action action-link hover:bg-action-hover")}
+        >
+          Read the docs <span aria-hidden="true" {...style("icon-lucide--arrow-right")}></span>
+        </a>
+        <a
+          href="/docs/agents"
+          {...style(
+            "text-foreground bg-background border border-border action-link hover:border-border-strong",
+          )}
+        >
+          Coding agents
+        </a>
+      </div>
+    </div>
+  </section>
+</HomeLayout>
+
+<script>
+  import { mount } from "@cloudflare/nimbus-docs/client";
+
+  mount("[data-workbench]", (root) => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>("[data-scenario-tab]")];
+    const panels = [...root.querySelectorAll<HTMLElement>("[data-scenario-panel]")];
+    const select = (id: string) => {
+      for (const tab of tabs) {
+        tab.setAttribute("aria-selected", String(tab.dataset.scenarioTab === id));
+      }
+      for (const panel of panels) {
+        panel.hidden = panel.dataset.scenarioPanel !== id;
+      }
+    };
+    const handlers = tabs.map((tab) => {
+      const onClick = () => select(tab.dataset.scenarioTab!);
+      tab.addEventListener("click", onClick);
+      return () => tab.removeEventListener("click", onClick);
+    });
+    return () => handlers.forEach((off) => off());
+  });
+</script>

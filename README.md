@@ -99,7 +99,7 @@ async fn main() -> anyhow::Result<()> {
 application; it also takes Rust routes, host services and limits
 ([fetchlet-http](crates/fetchlet-http/README.md#serving-a-build-with-server)).
 To ship one binary, `include_artifact!` embeds the build
-([embedding and distribution](docs/embedding.md)).
+([embedding and distribution](https://fetchlet.roundtrip.dev/docs/shipping/embedding)).
 
 ## Features
 
@@ -168,15 +168,20 @@ fixtures/              Pinned framework builds and probes for the engine matrix
 tests/conformance/     Pinned WPT and Test262 sources and expectations
 tools/                 Repository tooling, including the fetchlet-lab host
 fuzz/                  Fuzzing of the Rust host boundary
-docs/                  Documentation
+apps/website/          The documentation website
+docs/                  Documentation for maintainers
 results/               Recorded test results
 ```
 
 ## Documentation
 
-Start with the [overview](docs/overview.md), the [domain
-model](docs/domain-model.md) and the [data flow](docs/data-flow.md). The
-[documentation index](docs/README.md) lists every guide.
+The documentation is at <https://fetchlet.roundtrip.dev/docs>; start with the
+[getting started guide](https://fetchlet.roundtrip.dev/docs) and the
+[overview](https://fetchlet.roundtrip.dev/docs/overview). An application that
+installs the `fetchlet` npm package also has it as Markdown in
+`node_modules/fetchlet/docs/`, for coding agents. The website's sources are in
+[apps/website](apps/website/README.md), and [docs/](docs/README.md) holds the
+documentation for maintainers.
 
 ## Development
 
@@ -189,5 +194,5 @@ vp run test:host
 ```
 
 `vp run verify` runs every regular suite. [Verification](docs/verification.md)
-describes each one, and [security](docs/security.md#fuzzing) covers fuzzing.
+describes each one, and [security testing](docs/security-testing.md#fuzzing) covers fuzzing.
 Dependencies are pinned by `Cargo.lock` and `pnpm-lock.yaml`.

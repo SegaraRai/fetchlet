@@ -4,7 +4,7 @@ Serves a server module without a framework from axum. The module's default
 export handles requests with `fetch(request, env, ctx)`, as a Cloudflare
 Workers module does, and renders HTML that loads one browser entry. Its
 named export `greet` is called directly from a Rust route.
-[fetchlet/vite](../../packages/fetchlet/docs/vite.md) builds both into an
+[fetchlet/vite](https://fetchlet.roundtrip.dev/docs/frameworks/vite) builds both into an
 artifact.
 
 ## Run

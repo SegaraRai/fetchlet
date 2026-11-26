@@ -1,13 +1,13 @@
 # @fetchlet/node
 
 Node.js built-in modules for code that runs inside a fetchlet engine. They
-build on the [Web API profile](https://github.com/SegaraRai/fetchlet/blob/main/docs/web-api.md) and, for cryptography
+build on the [Web API profile](https://fetchlet.roundtrip.dev/docs/compatibility/web-api) and, for cryptography
 and compression, on the `nodeCrypto.*`, `crypto.*` and `compression.*` host
 operations of [fetchlet-web](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-web/README.md).
 `node:stream` is [readable-stream](https://github.com/nodejs/readable-stream),
 the port of Node's own streams.
-[`fetchlet/build`](https://github.com/SegaraRai/fetchlet/blob/main/packages/fetchlet/docs/build.md) resolves `node:*` imports to these
-modules; see [Node.js compatibility](https://github.com/SegaraRai/fetchlet/blob/main/docs/node-compat.md) for what each
+[`fetchlet/build`](https://fetchlet.roundtrip.dev/docs/javascript/build) resolves `node:*` imports to these
+modules; see [Node.js compatibility](https://fetchlet.roundtrip.dev/docs/compatibility/node) for what each
 one covers.
 
 | Subpath                                 | Module                                                                  |

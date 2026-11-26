@@ -1,7 +1,7 @@
 # Nuxt + axum
 
 Nuxt renders HTML and server routes, served by axum.
-[fetchlet/nitro](../../packages/fetchlet/docs/nitro.md) builds Nuxt's Nitro
+[fetchlet/nitro](https://fetchlet.roundtrip.dev/docs/frameworks/nitro) builds Nuxt's Nitro
 server. Try Vue component hydration, the form and client navigation.
 
 ## Run

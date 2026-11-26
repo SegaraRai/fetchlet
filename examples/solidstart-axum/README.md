@@ -1,7 +1,7 @@
 # SolidStart + axum
 
 Serves SolidStart 2's streaming SSR, `query` server functions and API routes
-from axum. [fetchlet/solid-start](../../packages/fetchlet/docs/solid-start.md)
+from axum. [fetchlet/solid-start](https://fetchlet.roundtrip.dev/docs/frameworks/solid-start)
 builds the server into an artifact.
 
 ## Run

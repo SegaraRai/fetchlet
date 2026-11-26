@@ -1,7 +1,7 @@
 # React Router + axum
 
 React Router in framework mode renders HTML and resource routes, served by
-axum. [fetchlet/react-router](../../packages/fetchlet/docs/react-router.md)
+axum. [fetchlet/react-router](https://fetchlet.roundtrip.dev/docs/frameworks/react-router)
 builds the server into an artifact. Try React component hydration, `Form`,
 deferred data and client navigation.
 
@@ -77,7 +77,7 @@ worker thread by default, which fits React's recursion depth. With QuickJS's def
 debug builds made React retry rendering after a stack overflow, leaving a
 `<link` fragment in the head (2 MiB is enough; release builds do not hit it
 at 1 MiB). The worker thread's stack must be larger than QuickJS's limit.
-The [preset](../../packages/fetchlet/docs/react-router.md#rendering-and-the-quickjs-stack)
+The [preset](https://fetchlet.roundtrip.dev/docs/frameworks/react-router#rendering-and-the-quickjs-stack)
 has the details.
 
 ## Checks

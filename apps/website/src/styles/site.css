@@ -1,0 +1,63 @@
+/*
+Astro's client router animates navigation between pages with view transitions.
+*/
+
+/* The client router starts view transitions regardless of the motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}
+
+@utility site-document {
+  @apply scheme-light-dark;
+
+  @variant data-[theme=light] {
+    @apply scheme-light;
+  }
+
+  @variant data-[theme=dark] {
+    @apply scheme-dark;
+  }
+
+  @variant max-inline {
+    --text-display: clamp(2.125rem, 10.5vw, 2.75rem);
+    --text-code-display: clamp(1rem, 4.7vw, 1.5rem);
+    --text-code-output: clamp(1.0625rem, 4.7vw, 1.375rem);
+    --text-code-feature: clamp(0.75rem, 3.3vw, 0.8125rem);
+  }
+
+  @variant selection {
+    @apply text-action-foreground bg-action;
+  }
+
+  :where(&) :focus-visible {
+    @apply outline-2 outline-accent outline-offset-4;
+  }
+
+  :where(&)[data-header-mounted] [id] {
+    @apply scroll-mbs-18;
+  }
+}
+
+@utility code-font {
+  font-variant-ligatures: none;
+  font-feature-settings:
+    "liga" 0,
+    "calt" 0,
+    "zero" 1;
+}
+
+@utility skip-link {
+  @apply absolute inset-bs-4 inset-s-6 z-50 p-4 text-background bg-foreground [transform:translateY(calc(-100%-2rem))];
+
+  @variant focus {
+    @apply transform-none;
+  }
+}
+
+@utility nav-link {
+  @apply underline-offset-5 hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-6;
+}

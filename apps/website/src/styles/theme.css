@@ -1,0 +1,88 @@
+/*
+Semantic tokens are shared by the landing page and the documentation. The warm action
+colors follow the fetchlet mark.
+*/
+
+@theme static {
+  --font-sans: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-display: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+
+  --color-background: light-dark(#fbf8f5, #1a1614);
+  --color-surface: light-dark(#fffdfb, #231e1b);
+  --color-surface-muted: light-dark(#f3ebe4, #2f2824);
+  --color-foreground: light-dark(#2a211c, #f3ebe5);
+  --color-muted: light-dark(#6d5f56, #b9aaa0);
+  --color-border: light-dark(#e3d6cc, #443a34);
+  --color-border-strong: light-dark(#a8968a, #7a6a60);
+  --color-action: light-dark(#b8481f, #f4a27f);
+  --color-action-foreground: light-dark(#fffaf6, #2a150b);
+  --color-action-hover: light-dark(#9a3a16, #f7b899);
+  --color-accent: light-dark(#c2532a, #ffb48f);
+  --color-danger: light-dark(#a04b40, #f1a297);
+  --color-warning: light-dark(#805a19, #e4c276);
+  --color-success: light-dark(#3d6844, #a4c991);
+
+  --icon-size-control: 1.125rem;
+  /* Filled brand marks fill their whole box, while outline control icons leave a margin inside it. */
+  --icon-size-control-mark: 1rem;
+  --icon-size-aside: 1.25rem;
+  --icon-size-framework: 2rem;
+
+  --spacing: 0.25rem;
+  --spacing-gutter: clamp(1.5rem, 5.4vw, 5rem);
+  --spacing-docs-gutter: clamp(1rem, 2.5vw, 2.5rem);
+  --spacing-columns: clamp(1.75rem, 4vw, 4rem);
+  --spacing-control: 0.75rem;
+  --spacing-panel: 1.5rem;
+  --spacing-stack: 2rem;
+  --spacing-section: 4rem;
+
+  --radius-inline: 0.1875rem;
+  --radius-control: 0.25rem;
+  --radius-panel: 0.5rem;
+
+  --breakpoint-demo: 20rem;
+  --breakpoint-inline: 40rem;
+  --breakpoint-sidebar: 52.5rem;
+  --breakpoint-outline: 70rem;
+  --breakpoint-docs-outline: 85rem;
+
+  --container-page: 85rem;
+  --container-docs: 96rem;
+  --container-navigation: 15rem;
+  --container-outline: 13rem;
+  --container-prose: 48rem;
+
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.5;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.6;
+  --text-ui: 0.8125rem;
+  --text-ui--line-height: 1.6;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.6;
+  --text-body: 1rem;
+  --text-body--line-height: 1.8;
+  --text-lead: 1.125rem;
+  --text-lead--line-height: 1.65;
+  --text-heading-small: 1.25rem;
+  --text-heading-small--line-height: 1.4;
+  --text-heading: 1.5rem;
+  --text-heading--line-height: 1.35;
+  --text-title: clamp(2rem, 4vw, 3rem);
+  --text-title--line-height: 1.12;
+  --text-section: clamp(1.75rem, 3.15vw, 2.625rem);
+  --text-section--line-height: 1.12;
+  --text-display: clamp(2.75rem, 7.4vw, 6.5rem);
+  --text-display--line-height: 1.02;
+  --text-code: 0.8125rem;
+  --text-code--line-height: 1.7;
+  --text-code-inline: 0.875em;
+  --text-code-display: clamp(1.5rem, 2.55vw, 2.25rem);
+  --text-code-output: clamp(1.25rem, 2.6vw, 1.75rem);
+  --text-code-feature: clamp(1.0625rem, 1.7vw, 1.4375rem);
+
+  --duration-420: 420ms;
+  --duration-300: 300ms;
+}

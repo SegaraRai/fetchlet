@@ -196,7 +196,7 @@ opened, such as a WebSocket the handler accepted.
 Every axum and Tauri example has a `dev` task that rebuilds on source
 changes while `DevReload` serves each build
 ([development loop](research/dev-loop.md)), through the `fetchlet dev`
-command ([dev](../packages/fetchlet/docs/dev.md)). vanilla-axum,
+command ([dev](https://fetchlet.roundtrip.dev/docs/javascript/dev)). vanilla-axum,
 tanstack-start-axum, solid-axum and solidstart-axum keep
 `vite build --watch` running instead. One part remains:
 
@@ -249,3 +249,13 @@ Test262 host features, negative and module tests, writable, transform and
 piping Streams, the no-cors header guard, legacy multi-byte encodings, and
 fuzzing of JavaScript multipart and Body parsing are next
 ([conformance](conformance.md#next)).
+
+## Website
+
+[apps/website](../apps/website/DEVELOPMENT.md) builds the site and declares its
+Worker, but no workflow deploys it yet. The next step is a workflow that builds
+and checks the site on pull requests and pushes, updates the `main` Preview on
+`*.fetchlet-preview.roundtrip.dev`, and deploys `fetchlet.roundtrip.dev`, as
+Stillwind's site workflows do. The landing page has no animated diagram of the
+request flow yet, and several guide pages still carry sections for maintainers,
+such as the test notes of the framework pages, that belong in `docs/`.

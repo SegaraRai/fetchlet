@@ -1,0 +1,14 @@
+/*
+Stillwind stylesheet entry of the website. theme.css defines the shared tokens, site.css
+contains rules for every page, and landing.css and docs.css contain rules for each part.
+*/
+
+@import "stillwind";
+@import "stillwind/logical/overflow.css";
+
+@import "./styles/theme.css";
+@import "./styles/site.css";
+@import "./styles/landing.css";
+@import "./styles/docs.css";
+
+@plugin "@stillwind/plugin-iconify";

@@ -1,0 +1,56 @@
+/*
+Landing page utilities and interactive workbench styles.
+*/
+
+@utility hero-title {
+  @apply font-display text-[clamp(2.35rem,5.2vw,4rem)]/[1.06] font-medium tracking-[-0.042em];
+}
+
+@utility section-title {
+  @apply font-display text-section font-medium tracking-[-0.04em];
+}
+
+@utility action-link {
+  @apply inline-flex items-center justify-center gap-2.5 px-5 py-3 text-(length:--text-small) font-medium rounded-control;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+
+  @variant focus-visible {
+    @apply outline-2 outline-accent outline-offset-4;
+  }
+}
+
+@utility scenario-tab {
+  @apply inline-flex items-center gap-2 px-3.5 py-2 text-ui font-medium text-muted bg-transparent rounded-control border border-transparent cursor-pointer whitespace-nowrap hover:text-foreground;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+
+  @variant aria-selected {
+    @apply text-foreground bg-background border-border;
+  }
+}
+
+@utility framework-tile {
+  @apply flex items-center gap-3.5 px-4 py-3.5 bg-surface rounded-panel border border-border hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-4;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+@utility landing-code {
+  @apply grow overflow-x-auto p-5 min-inline-0 font-mono text-code/[1.7] bg-background code-font;
+
+  & span {
+    @apply text-[light-dark(var(--shiki-light),var(--shiki-dark))];
+  }
+}
+
+@utility hero-mark-glow {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 34%, transparent) 0%,
+    color-mix(in srgb, var(--color-accent) 12%, transparent) 45%,
+    transparent 72%
+  );
+  filter: blur(28px);
+}
+
+@utility hero-mark-image {
+  filter: drop-shadow(0 14px 28px color-mix(in srgb, var(--color-accent) 22%, transparent));
+}

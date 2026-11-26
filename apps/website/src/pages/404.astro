@@ -1,0 +1,96 @@
+---
+import { style } from "stillwind/astro";
+
+import HomeLayout from "../layouts/HomeLayout.astro";
+import { URL_DOCS } from "../lib/config";
+
+const line = style("flex gap-4");
+const gutter = style("inline-panel shrink-0 text-end text-muted select-none");
+---
+
+<HomeLayout title="Page not found — fetchlet" noindex>
+  <div {...style("py-section sidebar:py-28")}>
+    <h1 {...style("hero-title")}>
+      No handler answered
+      <span {...style("block text-muted")}>this request.</span>
+    </h1>
+
+    <div
+      {...style(
+        "flex mbs-12 flex-col justify-between gap-10 sidebar:mbs-section sidebar:flex-row sidebar:items-end",
+      )}
+    >
+      <figure
+        aria-label="Diagnostic for the requested address"
+        {...style(
+          "overflow-x-auto p-panel max-inline-160 min-inline-0 font-mono text-code bg-surface rounded-panel border border-border code-font sidebar:grow",
+        )}
+      >
+        <div {...style(line)}>
+          <span>
+            <span {...style("text-danger")}>error</span>: 404 Not Found
+          </span>
+        </div>
+        <div {...style(line)}>
+          <span {...style(gutter)}>--&gt;</span>
+          <span
+            data-requested-path
+            {...style("break-all underline decoration-danger decoration-wavy underline-offset-4")}
+          >
+            this URL
+          </span>
+        </div>
+        <div {...style(line)}>
+          <span {...style(gutter)}>=</span>
+          <span {...style("text-muted")}>
+            help: the page may have moved, or the address may contain a typo
+          </span>
+        </div>
+      </figure>
+
+      <nav aria-label="Where to go next" {...style("flex shrink-0 flex-col items-start gap-5")}>
+        <button
+          type="button"
+          data-search-trigger
+          {...style(
+            "text-action-foreground bg-action cursor-pointer action-link hover:bg-action-hover",
+          )}
+        >
+          Search the docs <span aria-hidden="true" {...style("icon-lucide--search")}></span>
+        </button>
+        <div {...style("flex flex-col gap-y-control text-small")}>
+          <a href={URL_DOCS} {...style("nav-link")}>
+            Read the docs
+          </a>
+          <a href="/" {...style("nav-link")}>
+            Back to home
+          </a>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <script is:inline data-astro-rerun>
+    // Cloudflare serves this page for every unknown path, so the requested path exists only at runtime.
+    // The block keeps the bindings local, because ClientRouter reruns this script in the same window.
+    {
+      let path = location.pathname;
+      try {
+        path = decodeURI(path);
+      } catch {}
+      const target = document.querySelector("[data-requested-path]");
+      if (target) {
+        target.textContent = location.host + path;
+      }
+      // The last path segment usually names the missing page, such as `confg` in `/docs/confg.html`.
+      const query = (path.split("/").findLast(Boolean) ?? "")
+        .replace(/\.[a-z\d]+$/i, "")
+        .replace(/[-_]+/g, " ")
+        .trim();
+      const trigger = document.querySelector("main [data-search-trigger]");
+      if (trigger && query) {
+        trigger.dataset.searchQuery = query;
+      }
+    }
+  </script>
+</HomeLayout>

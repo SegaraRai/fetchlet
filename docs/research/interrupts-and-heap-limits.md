@@ -383,5 +383,5 @@ failed startup and the fuzz action.
 5. Done: V8's concurrent on-stack replacement traced and
    `reliable_termination` added. Next, report the gap upstream.
 
-Each step updates [Resource policy](../resource-policy.md) and
-[Security](../security.md).
+Each step updates [Resource policy](https://fetchlet.roundtrip.dev/docs/rust/resource-policy) and
+[Security](https://fetchlet.roundtrip.dev/docs/shipping/security).

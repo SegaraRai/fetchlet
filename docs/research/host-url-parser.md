@@ -1,7 +1,7 @@
 # Research: URL parsing in the host
 
 URL parsing moved from core-js in JavaScript to the host's `url` crate
-through host operations ([Web API profile](../web-api.md#providers)). This
+through host operations ([Web API profile](https://fetchlet.roundtrip.dev/docs/compatibility/web-api#providers)). This
 records the measurement that motivated the change; it is not repeated.
 
 The numbers come from [the benchmark tools](../../tools/bench/README.md):

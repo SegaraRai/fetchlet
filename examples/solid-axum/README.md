@@ -3,7 +3,7 @@
 Serves a Solid 2 application from axum: streaming SSR, a `query` server
 function, API routes and file routes, built with `@solidjs/vite-plugin` in
 server mode and without SolidStart.
-[fetchlet/solid](../../packages/fetchlet/docs/solid.md) builds the server
+[fetchlet/solid](https://fetchlet.roundtrip.dev/docs/frameworks/solid) builds the server
 into an artifact.
 
 ## Run

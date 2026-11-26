@@ -30,7 +30,7 @@ holds the socket on one while the other serves requests. Next.js itself (`next b
 and SolidStart builds through Nitro are not covered.
 
 Each axum example also has a `dev` task:
-[`fetchlet dev`](../packages/fetchlet/docs/dev.md) runs the example's `build`
+[`fetchlet dev`](https://fetchlet.roundtrip.dev/docs/javascript/dev) runs the example's `build`
 task once and again whenever one of its source files changes, and
 the server, built with the example's `dev` Cargo feature, serves each new
 build through fetchlet-http's `DevReload` and reloads open pages. A full

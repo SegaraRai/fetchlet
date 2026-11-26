@@ -14,7 +14,7 @@ export interface FetchletAstroOptions {
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` uses Astro's: hashed files under `build.assets` are
    * cached for a year, and pages follow `trailingSlash` and `build.format`;
-   * settings adjust those defaults and add entries, and a function returns every entry. See docs/asset-archive.md.
+   * settings adjust those defaults and add entries, and a function returns every entry. See https://fetchlet.roundtrip.dev/docs/reference/asset-archive.
    */
   assets?: AssetsOption;
   /** The artifact directory. Defaults to "build". */

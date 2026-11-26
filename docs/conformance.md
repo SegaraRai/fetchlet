@@ -14,7 +14,7 @@ describe that pinned selection, not a whole API or upstream suite.
 | Runner self-tests | The runner itself                                                                                                 | Assertion failures, async completion, modes, global code, expectations, timeouts |
 
 Framework end-to-end tests, Rust HTTP conversion, permissions, streaming
-backpressure and host fuzzing are separate suites ([security](security.md)).
+backpressure and host fuzzing are separate suites ([security](https://fetchlet.roundtrip.dev/docs/shipping/security)).
 
 ## Sources
 

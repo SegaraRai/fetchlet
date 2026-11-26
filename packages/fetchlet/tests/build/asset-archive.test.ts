@@ -1,6 +1,6 @@
 // writeAssetArchive's choices that the Rust tests do not see: what it refuses,
 // what it shares and how it merges Vary; and how directoryAssets and the
-// assets option build entries. docs/asset-archive.md has the format.
+// assets option build entries. https://fetchlet.roundtrip.dev/docs/reference/asset-archive has the format.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,7 +27,7 @@ interface Entry {
   body: Buffer;
 }
 
-/** Read an archive back, following docs/asset-archive.md. */
+/** Read an archive back, following https://fetchlet.roundtrip.dev/docs/reference/asset-archive. */
 function readArchive(archive: Buffer): Entry[] {
   expect(archive.subarray(0, 4).toString("latin1")).toBe("FLPK");
   expect(archive.readUInt16LE(4)).toBe(1);

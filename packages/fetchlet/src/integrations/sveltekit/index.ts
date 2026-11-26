@@ -35,7 +35,7 @@ export interface FetchletSvelteKitOptions {
    * without `.html` and without a trailing slash, the default `trailingSlash:
    * "never"`. Settings adjust those defaults and add entries; their
    * `routes` replace SvelteKit's. A function returns every entry. See
-   * docs/asset-archive.md.
+   * https://fetchlet.roundtrip.dev/docs/reference/asset-archive.
    */
   assets?: AssetsOption;
 }

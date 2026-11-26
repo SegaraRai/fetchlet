@@ -16,7 +16,7 @@ export interface FetchletPresetOptions {
    * serve or embed. `true` uses React Router's: hashed files under `assets/` are
    * cached for a year, and prerendered pages answer their path with and
    * without a trailing slash; settings adjust those defaults and add
-   * entries, and a function returns every entry. See docs/asset-archive.md.
+   * entries, and a function returns every entry. See https://fetchlet.roundtrip.dev/docs/reference/asset-archive.
    */
   assets?: AssetsOption;
   /** The engine the artifact targets. */

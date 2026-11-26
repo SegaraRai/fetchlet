@@ -4,7 +4,7 @@ A source survey, made in November 2026, of Web API implementations that an
 embedded engine could reuse instead of, or next to, fetchlet's portable
 profile. It records what the sources contain; it is not a conformance
 measurement. fetchlet's own profile is described in [Web API
-profile](../web-api.md).
+profile](https://fetchlet.roundtrip.dev/docs/compatibility/web-api).
 
 ## Options
 

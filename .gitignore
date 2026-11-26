@@ -21,6 +21,8 @@
 /examples/*/node_modules/
 /packages/*/node_modules/
 /packages/*/dist/
+# Generated from the website build by build:package-docs.
+/packages/fetchlet/docs/
 /tools/*/node_modules/
 
 /examples/*/.astro/

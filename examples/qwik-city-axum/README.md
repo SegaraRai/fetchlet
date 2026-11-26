@@ -1,7 +1,7 @@
 # Qwik City + axum
 
 Serves Qwik City's resumable SSR, `routeLoader$` and endpoints from axum.
-[fetchlet/qwik-city](../../packages/fetchlet/docs/qwik-city.md) builds the
+[fetchlet/qwik-city](https://fetchlet.roundtrip.dev/docs/frameworks/qwik-city) builds the
 server into an artifact.
 
 ## Run

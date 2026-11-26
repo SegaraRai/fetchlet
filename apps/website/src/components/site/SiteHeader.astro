@@ -1,0 +1,156 @@
+---
+import { style } from "stillwind/astro";
+
+import { URL_DOCS, URL_REPOSITORY } from "../../lib/config";
+import { documentRoot } from "./document";
+
+interface Props {
+  /** Container of the page, which sets the width of the floating header. */
+  container?: "page" | "docs";
+}
+
+const { container = "page" } = Astro.props;
+
+const headerTransition = style.viewTransition({
+  group: "duration-300 ease-out",
+});
+const link = style("inline-flex min-block-11 items-center whitespace-nowrap nav-link");
+const header = style.ref();
+---
+
+<div data-header-slot {...style("block-16")}>
+  <header
+    data-site-header
+    {...style(
+      headerTransition.for("container"),
+      header,
+      header.asContainer("inline-size"),
+      "flex block-16 items-center justify-between border-border border-be",
+      {
+        "data-floating:": [
+          "invisible fixed inset-x-0 inset-bs-0 z-40 mx-auto block-14 bg-background opacity-0",
+          container === "page"
+            ? "inline-[calc(min(100%,var(--container-page))-var(--spacing-gutter)*2)]"
+            : "inline-[calc(min(100%,var(--container-docs))-var(--spacing-docs-gutter)*2)]",
+          "-translate-y-full [transition:translate_180ms_ease,opacity_180ms_ease,visibility_180ms]",
+          {
+            "data-visible:": "visible opacity-100 translate-y-0",
+            "motion-reduce:": "transition-none",
+          },
+        ],
+      },
+    )}
+  >
+    <a
+      href="/"
+      aria-label="fetchlet home"
+      {...style(
+        link,
+        headerTransition.for("logo"),
+        "text-heading/[inherit] tracking-[-0.045em] max-inline:text-heading-small/[inherit]",
+        { [header("data-floating")]: "text-(length:--text-heading-small)" },
+      )}
+    >
+      <img
+        src="/brand/fetchlet-mark.svg"
+        alt=""
+        width="28"
+        height="28"
+        {...style("block-7 inline-7")}
+      />
+      <span {...style("ms-2.5 font-medium")}>fetchlet</span>
+    </a>
+    <nav
+      aria-label="Main navigation"
+      {...style("flex items-center gap-7 text-ui/[inherit] max-inline:text-caption/[inherit]", {
+        [header.at("width <= 40rem")]: "gap-4 max-inline:gap-2",
+      })}
+    >
+      <button
+        type="button"
+        data-search-trigger
+        aria-label="Search documentation"
+        aria-keyshortcuts="Control+K"
+        {...style(
+          headerTransition.for("search"),
+          "inline-flex px-2.5 block-9 items-center gap-2 text-muted bg-surface rounded-control border border-border cursor-pointer hover:text-foreground hover:bg-surface-muted max-inline:px-0 max-inline:inline-9 max-inline:justify-center",
+        )}
+      >
+        <span aria-hidden="true" {...style("icon-control icon-lucide--search")}></span>
+        <span aria-hidden="true" {...style("max-inline:hidden")}>
+          Search
+        </span>
+        <kbd
+          aria-hidden="true"
+          {...style(
+            "px-1.5 font-mono text-label rounded-inline border border-border max-inline:hidden",
+          )}
+        >
+          <span data-shortcut-key>Ctrl</span> K
+        </kbd>
+      </button>
+      <a href={URL_DOCS} {...style(link, headerTransition.for("docs"))}>
+        Docs
+      </a>
+      <a
+        href={URL_REPOSITORY}
+        {...style(link, headerTransition.for("github"), "gap-2", {
+          "max-inline:": "hidden",
+          [header.at("width <= 40rem")]: "inline-7 justify-center",
+        })}
+      >
+        <span
+          aria-hidden="true"
+          {...style("icon-simple-icons--github", {
+            [header.at("width <= 40rem")]: "icon-control-mark",
+          })}
+        ></span>
+        <span {...style({ [header.at("width <= 40rem")]: "sr-only" })}>GitHub</span>
+      </a>
+      <button
+        type="button"
+        data-theme-toggle
+        aria-label="Color theme"
+        {...style(
+          headerTransition.for("theme"),
+          "inline-flex block-9 inline-9 shrink-0 items-center justify-center text-muted rounded-control cursor-pointer hover:text-foreground hover:bg-surface-muted",
+          {
+            // The button keeps its size before the script mounts it, so the header does not move.
+            "not-data-mounted:": "invisible",
+          },
+        )}
+      >
+        <span
+          aria-hidden="true"
+          {...style("icon-control icon-lucide--monitor", {
+            [documentRoot("data-[theme=light]")]: "hidden",
+            [documentRoot("data-[theme=dark]")]: "hidden",
+          })}
+        ></span>
+        <span
+          aria-hidden="true"
+          {...style("icon-control icon-lucide--sun", {
+            [documentRoot("not-data-[theme=light]")]: "hidden",
+          })}
+        ></span>
+        <span
+          aria-hidden="true"
+          {...style("icon-control icon-lucide--moon", {
+            [documentRoot("not-data-[theme=dark]")]: "hidden",
+          })}
+        ></span>
+        <span data-theme-status {...style("sr-only")} aria-live="polite"></span>
+      </button>
+    </nav>
+  </header>
+</div>
+
+<script>
+  import { mount } from "@cloudflare/nimbus-docs/client";
+
+  import { mountSearchTrigger } from "../../lib/docs/search/dialog";
+  import { mountThemeControl } from "../../lib/site/theme";
+
+  mount("[data-search-trigger]", mountSearchTrigger);
+  mount("[data-theme-toggle]", (button) => mountThemeControl(button as HTMLButtonElement));
+</script>

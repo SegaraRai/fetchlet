@@ -18,7 +18,7 @@ export interface FetchletVinextOptions {
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` uses vinext's: hashed files under `_next/static/` are
    * cached for a year; settings adjust those defaults and add entries, and
-   * a function returns every entry. See docs/asset-archive.md.
+   * a function returns every entry. See https://fetchlet.roundtrip.dev/docs/reference/asset-archive.
    */
   assets?: AssetsOption;
   /** Where server.js, fetchlet.json and client/ are written. Defaults to "build". */

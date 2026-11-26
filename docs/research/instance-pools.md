@@ -19,7 +19,7 @@ A pool adds instances and keeps the invariants of a single instance:
   async context is needed to attribute them.
 - **One authority per pool.** Every instance of a pool is built from the same
   `AppBuilder`: the same module, `HostServices`, `Limits` and Fetch entry. The
-  security rule stays the one in [Security](../security.md): one app per
+  security rule stays the one in [Security](https://fetchlet.roundtrip.dev/docs/shipping/security): one app per
   application, tenant and authority configuration. A pool never mixes
   configurations, so reusing any of its instances for any of its calls is
   as safe as reusing one instance is today.
@@ -126,7 +126,7 @@ serve any of them.
 - Calls made while a worker polls host futures of the same pool keep
   failing with `Error::Reentrant`. The pool's identity is the key the bridge
   already uses for the instances a worker rebuilds, shared by all instances
-  of the pool ([in-process fetch](../in-process-fetch.md#reentrancy)).
+  of the pool ([in-process fetch](https://fetchlet.roundtrip.dev/docs/rust/in-process-fetch#reentrancy)).
 - A later relaxation may accept a reentrant call when an idle instance
   exists, without waiting, and fail with `Error::Reentrant` otherwise. That
   needs a test that saturates the pool with reentrant calls and shows each

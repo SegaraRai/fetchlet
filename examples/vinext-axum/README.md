@@ -2,7 +2,7 @@
 
 Serves the App Router, React Server Components and route handlers of vinext,
 an implementation of the Next.js API on Vite, from axum.
-[fetchlet/vinext](../../packages/fetchlet/docs/vinext.md) builds the server
+[fetchlet/vinext](https://fetchlet.roundtrip.dev/docs/frameworks/vinext) builds the server
 into an artifact.
 
 ## Run

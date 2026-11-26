@@ -357,7 +357,7 @@ The Sockets API of TC55 is `connect(address, options)`. It returns a
 - **Guest.** `@fetchlet/web` implements `connect` over the stream view of a
   request-scoped channel and exports it from a subpath that `fetchlet`
   adapters expose. postgres.js's Workers build imports `cloudflare:sockets`.
-  fetchlet's [runtime key](../../packages/fetchlet/docs/build.md#export-conditions)
+  fetchlet's [runtime key](https://fetchlet.roundtrip.dev/docs/javascript/build#export-conditions)
   does not imply `workerd`, so that build is chosen only where an adapter
   adds `workerd`, and aliasing the module belongs with that choice.
 - **Host.** A `SocketService` opens TCP in Rust, performs TLS when

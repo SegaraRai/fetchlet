@@ -1,0 +1,281 @@
+/*
+Typography and spacing for Markdown, slots, and Nimbus output.
+*/
+
+@utility compiled-example {
+  & > * + * {
+    @apply mbs-5;
+  }
+}
+
+@utility diagnostic-example {
+  & > * + * {
+    @apply mbs-3;
+  }
+
+  & .astro-code > code {
+    @apply grid;
+  }
+
+  & .astro-code .line {
+    @apply min-block-lh;
+  }
+}
+
+@utility aside-body {
+  & > * + * {
+    @apply mbs-3;
+  }
+}
+
+@utility docs-prose {
+  @apply text-body wrap-anywhere;
+
+  & .astro-code .diagnostic-annotation {
+    @apply relative block my-3 px-3 py-2 font-sans text-danger text-body whitespace-pre-wrap bg-danger/10 rounded-control border border-danger/30;
+  }
+
+  & .astro-code .line:last-child > .diagnostic-annotation:last-child {
+    @apply mbe-1;
+  }
+
+  & > :is(p, ul, ol, blockquote, h2, h3, h4) {
+    @apply max-inline-prose;
+  }
+
+  & > * + * {
+    @apply mbs-5;
+  }
+
+  & h2 {
+    @apply mbs-12 text-heading tracking-tight;
+  }
+
+  & h3 {
+    @apply mbs-8 text-heading-small font-medium;
+  }
+
+  & :is(h2, h3, h4) {
+    @apply scroll-mbs-8;
+  }
+
+  & a {
+    @apply underline underline-offset-4;
+  }
+
+  /*
+  headingAnchors() from Nimbus appends this link to each h2–h4 with an id. On wide layouts, the
+  link sits outside the heading's start edge, so the heading text keeps its position. Narrow
+  layouts have no room in the gutter, so the link follows the heading text there. The link stays
+  visible on touch screens because they cannot hover the heading.
+  */
+  & :is(h2, h3, h4):has(> .heading-anchor) {
+    @apply relative;
+  }
+
+  & .heading-anchor {
+    @apply absolute inset-bs-0 inset-e-full pe-2 text-muted no-underline opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 pointer-coarse:opacity-100 motion-reduce:transition-none;
+    @apply max-sidebar:static max-sidebar:pe-0 max-sidebar:ms-2;
+  }
+
+  & :is(h2, h3, h4):hover > .heading-anchor {
+    @apply opacity-100;
+  }
+
+  & :is(ul, ol) {
+    @apply ps-6;
+  }
+
+  & ul {
+    @apply list-disc;
+  }
+
+  & ol {
+    @apply list-decimal;
+  }
+
+  & li + li {
+    @apply mbs-2;
+  }
+
+  & code {
+    @apply font-mono text-code-inline;
+  }
+
+  & :not(pre) > code {
+    @apply px-1 py-0.5 bg-surface-muted rounded-inline border border-border;
+  }
+
+  & pre {
+    @apply overflow-x-auto py-panel ps-panel pe-12 max-inline-full leading-[1.7] wrap-normal rounded-panel border border-border max-sidebar:py-4 max-sidebar:ps-4 max-sidebar:pe-12;
+  }
+
+  & .nb-code-title {
+    @apply px-panel py-3 font-mono text-muted text-small bg-surface-muted rounded-t-panel border-x border-bs border-border max-sidebar:px-4;
+  }
+
+  & .nb-code-title-lang {
+    @apply hidden;
+  }
+
+  & .nb-code-figure-titled > pre {
+    @apply mbs-0 rounded-t-none;
+  }
+
+  & pre code {
+    @apply p-0 text-code;
+  }
+
+  /* codeCopy() from Nimbus appends this button to each code block and sets data-state="copied" after a copy. */
+  & .nb-code-copy {
+    @apply absolute inset-bs-2 inset-e-2 grid place-items-center size-8 p-1.5 text-muted bg-surface rounded-control border border-border cursor-pointer hover:text-inherit focus-visible:text-inherit data-[state=copied]:text-inherit;
+  }
+
+  /*
+  Package manager tabs from packageManagerPlugin. `data-package-manager` on the document root
+  selects the visible commands before and after the tab script starts, so a stored selection
+  does not flash the default npm commands. Without the attribute, the npm tab is selected.
+  */
+  & [data-package-managers] [role="tablist"] {
+    @apply flex px-3 gap-1 overflow-x-auto bg-surface-muted rounded-t-panel border-x border-bs border-border max-sidebar:px-2;
+  }
+
+  & [data-package-managers] [role="tab"] {
+    @apply px-2.5 py-2.5 font-mono text-muted text-small border-transparent border-be-2 cursor-pointer hover:text-foreground;
+  }
+
+  :where(:root:not([data-package-manager])) & [role="tab"][data-package-manager="npm"],
+  :where(:root[data-package-manager="npm"]) & [role="tab"][data-package-manager="npm"],
+  :where(:root[data-package-manager="pnpm"]) & [role="tab"][data-package-manager="pnpm"],
+  :where(:root[data-package-manager="yarn"]) & [role="tab"][data-package-manager="yarn"],
+  :where(:root[data-package-manager="bun"]) & [role="tab"][data-package-manager="bun"],
+  :where(:root[data-package-manager="vp"]) & [role="tab"][data-package-manager="vp"] {
+    @apply text-foreground border-accent;
+  }
+
+  :where(:root:not([data-package-manager])) & [role="tabpanel"]:not([data-package-manager="npm"]),
+  :where(:root[data-package-manager="npm"]) & [role="tabpanel"]:not([data-package-manager="npm"]),
+  :where(:root[data-package-manager="pnpm"]) & [role="tabpanel"]:not([data-package-manager="pnpm"]),
+  :where(:root[data-package-manager="yarn"]) & [role="tabpanel"]:not([data-package-manager="yarn"]),
+  :where(:root[data-package-manager="bun"]) & [role="tabpanel"]:not([data-package-manager="bun"]),
+  :where(:root[data-package-manager="vp"]) & [role="tabpanel"]:not([data-package-manager="vp"]) {
+    @apply hidden;
+  }
+
+  & [data-package-managers] [role="tabpanel"] pre {
+    @apply rounded-t-none;
+  }
+
+  & .astro-code,
+  & .astro-code span {
+    @apply text-[light-dark(var(--shiki-light),var(--shiki-dark))];
+  }
+
+  & .astro-code {
+    @apply bg-surface;
+  }
+
+  & .mermaid-diagram {
+    @apply overflow-x-auto p-panel bg-surface rounded-panel border border-border max-sidebar:p-4;
+  }
+
+  & .mermaid-diagram svg {
+    @apply mx-auto block max-inline-full block-auto;
+
+    font-family: var(--font-sans);
+    --bg: var(--color-surface);
+    --fg: var(--color-foreground);
+    --_text: var(--color-foreground);
+    --_text-sec: var(--color-muted);
+    --_text-muted: var(--color-muted);
+    --_text-faint: color-mix(in srgb, var(--color-foreground) 30%, var(--color-surface));
+    --_line: var(--color-border-strong);
+    --_arrow: var(--color-accent);
+    --_node-fill: var(--color-surface-muted);
+    --_node-stroke: var(--color-border-strong);
+    --_group-fill: var(--color-background);
+    --_group-hdr: var(--color-surface-muted);
+    --_inner-stroke: var(--color-border);
+    --_key-badge: var(--color-surface-muted);
+  }
+
+  & .mermaid-diagram svg text {
+    font-family: var(--font-sans);
+  }
+
+  & table {
+    @apply block border-collapse overflow-x-auto max-inline-full text-ui;
+  }
+
+  & :is(th, td) {
+    @apply p-3 text-start border-border border-be;
+  }
+
+  & th {
+    @apply font-medium;
+  }
+
+  & blockquote {
+    @apply px-5 py-3 text-muted border-muted border-s-2;
+  }
+
+  & strong {
+    @apply font-semibold;
+  }
+
+  & .diagnostic-range {
+    @apply text-inherit underline decoration-danger decoration-wavy underline-offset-[0.2em] bg-transparent;
+  }
+
+  & .diagnostic-annotation::before {
+    @apply content-[""];
+    @apply absolute inset-bs-0 size-2 font-mono text-code border-danger/30 border-s border-bs;
+    @apply inset-s-[max(0.75rem,calc(var(--diagnostic-column)*1ch))];
+
+    background-color: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  @variant [&_:is(pre,_code)] {
+    @apply code-font;
+  }
+
+  @variant [&_h2] {
+    @apply font-display;
+  }
+}
+
+@utility docs-navigation {
+  @apply sticky inset-bs-8 overflow-y-auto max-block-[calc(100dvh-64px)] text-ui;
+  @apply [transition:inset-block-start_180ms_ease,max-block-size_180ms_ease] motion-reduce:transition-none;
+}
+
+@utility docs-navigation-list {
+  @apply grid gap-1.5 list-none max-sidebar:grid-cols-[minmax(0,1fr)] max-sidebar:gap-1;
+}
+
+@utility docs-navigation-link {
+  @apply block px-3 py-2 text-muted wrap-anywhere border-transparent border-s-2;
+
+  @variant aria-[current=page] {
+    @apply text-foreground bg-surface-muted border-foreground;
+  }
+
+  @variant hover {
+    @apply text-foreground underline underline-offset-4;
+  }
+
+  @variant max-sidebar {
+    @apply px-0 py-2 border-transparent border-s-0 border-be-2;
+    @apply aria-[current=page]:bg-transparent aria-[current=page]:border-be-foreground;
+  }
+}
+
+/*
+Pagefind inserts the mark elements into the excerpt HTML, so utilities cannot be attached to them.
+*/
+@utility search-excerpt {
+  & mark {
+    @apply text-foreground font-medium bg-transparent;
+  }
+}

@@ -64,7 +64,7 @@ need a restart.
    the command runs `greet` from `app/functions.ts` through `Webview::app()`
    with `AppHandle::call("greet", ...)`.
 
-`functions` is a setting of [fetchlet/hono](../../packages/fetchlet/docs/hono.md)
+`functions` is a setting of [fetchlet/hono](https://fetchlet.roundtrip.dev/docs/frameworks/hono)
 that writes the named exports of the given modules into `server.js` next to
 the Fetch handler `handle`. The command names the export it calls, so the
 webview cannot call `handle` or other exports.

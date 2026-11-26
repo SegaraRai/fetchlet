@@ -1,0 +1,110 @@
+# Security testing
+
+The tests and fuzz targets that check the execution boundary described in
+[Security](https://fetchlet.roundtrip.dev/docs/shipping/security).
+
+## Regular tests
+
+```bash
+vp run test:rust
+vp run build:fixtures
+vp run test:matrix
+vp run test:host
+```
+
+`crates/fetchlet/tests/guest_isolation.rs` checks on every engine that no
+engine internals are guest globals, that the host functions are claimed
+once and are not globals afterwards, and that an impossible `ArrayBuffer`
+transfer throws instead of aborting. The Rust tests also cover exact origin
+matching, the authorization order of rewrites and redirects, credential
+lifetime, body and header budgets, invalid headers and statuses, future drop,
+ticket lifetime and app state transitions.
+
+The engine matrix uses real bundles: plain functions, Hono JSX, SvelteKit
+SSR and actions, the 23 Web API probes and host round trips, with a Node
+reference run on the same fixtures. Results apply to the recorded
+dependency versions, profile and fixtures.
+
+WPT and Test262 sources are stored with their licenses, pinned commits and
+hashes. CI detects new failures, timeouts, harness errors and improvements;
+known failures stay recorded as failures. The runner's self-tests cover
+assertion failures, async completion, global scripts, modes and process
+exit.
+
+## Fuzzing
+
+`fuzz/fuzz_targets/fetch_service.rs` mutates URLs, methods, headers,
+bodies, rewrite targets and redirect chains, and runs the real Rust
+`FetchService` with a mock transport. It checks the origin, method, framing
+headers and redirect count of every request that reaches the transport.
+
+`fuzz/fuzz_targets/bridge_bodies.rs` mutates sequences of operations a guest
+can perform through native callbacks: storing and claiming byte handles,
+`body.read`, `body.readAll`, `body.readText`, `body.cancel` and
+`host.poll` on body sources, accepting a WebSocket upgrade, opening
+channels from an accepting, a refusing and an unbound service, connecting
+sockets to allowed, refused and invalid addresses, ending their writes and
+starting TLS, opening client WebSockets to allowed, refused and invalid
+URLs with valid and invalid subprotocols,
+`channel.write`, `channel.buffered` and `channel.close`, arbitrary host
+operations, producer chunks, ends and failures, and invocation start and
+end. It compares the results with a model and checks that:
+
+- a guest buffer is claimed at most once, and only the latest unclaimed
+  buffer remains;
+- handles and body ids never cross invocations;
+- a body's handle never reaches a channel, nor a channel's a body, and a
+  released handle names nothing;
+- ending an invocation releases JavaScript's end of its channels;
+- an open from a service settles at the next poll, once, as an open or a
+  refusal, and a channel closed before then ends with 1006;
+- a socket opens only for an address the socket policy allows, after
+  normalization, and any other or invalid address is refused at once;
+- a socket's end of writes and `startTls` are accepted only for an open
+  socket with no write pending and its writes not ended, `startTls` once
+  and only for a socket opened with `"starttls"`, and never for a channel
+  of an env binding;
+- a client WebSocket opens only for a URL whose origin the policy allows,
+  with distinct valid subprotocols, its open reports the server's
+  selection, and any other URL is refused at once;
+- a write is queued at the next poll unless its channel closed, and
+  `channel.buffered` counts exactly the bytes queued;
+- body reads return the producer's chunks in order, within budget, and a
+  whole-body read returns all of them as one buffer or as their UTF-8
+  text;
+- completion, error, cancellation and invocation end release the producer,
+  and a body has at most one read in flight.
+
+The private bridge is reached through a hidden harness (`BridgeHarness`)
+behind the `fuzzing` feature. A mutation that deliberately stops releasing
+producers is caught by the model within seconds.
+
+Seed corpora are in `fuzz/corpus/fetch_service/*.json`; generated corpora
+and crash artifacts stay local. Failures are minimized and added as
+regression tests. The fuzz crate shares the workspace and `Cargo.lock`.
+
+```bash
+cargo install cargo-fuzz --version 0.13.2 --locked --root .cache/tools/cargo-fuzz
+vp run test:fuzz
+```
+
+Fuzzing uses nightly Rust. On Windows it needs the Visual Studio C++
+AddressSanitizer; `tools/rust/fuzz.ts` finds MSVC and puts the ASan runtime
+on `PATH` ([setup](https://rust-fuzz.github.io/book/cargo-fuzz/windows/setup.html)).
+The default smoke run executes each target with AddressSanitizer for up to
+one million runs or 30 seconds; arguments to the script change both. The
+last run is in [reference](reference/README.md#fuzzing).
+
+## Continuous checks
+
+`.github/workflows/test.yml` runs as parallel jobs: the Rust tests on
+Windows and Linux, rustfmt and clippy on Linux, conformance on both, the
+type and format checks, framework and host matrices, build, package and
+example tests on both, and AddressSanitizer fuzzing on Linux. Each job
+restores a Cargo dependency cache that only `main` saves.
+
+Shared-handle tests on all three engines cover cancelling started calls,
+queue backpressure, and refusing and draining work on shutdown. The HTTP
+contract tests cover origins, body budgets, client context, binary bodies,
+cookies and general error responses. Each framework example runs its HTTP
+and browser checks.

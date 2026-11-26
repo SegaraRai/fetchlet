@@ -18,7 +18,7 @@ from `results/`.
 | `vp run test:js`          | Vitest unit tests of `fetchlet`, `@fetchlet/web` and the conformance runner                                                                               | —                                       |
 | `vp run test:package`     | The packed `fetchlet` tarball installed in a separate project: exports, declarations, an artifact built and run                                           | —                                       |
 | `vp run test:examples`    | Each example's HTTP and browser checks; `-- --backends boa,v8,quickjs` repeats them per engine                                                            | `example-*.json`                        |
-| `vp run test:fuzz`        | AddressSanitizer fuzzing of the host fetch and bridge boundaries ([security](security.md#fuzzing))                                                        | `fuzz-smoke.json`                       |
+| `vp run test:fuzz`        | AddressSanitizer fuzzing of the host fetch and bridge boundaries ([security testing](security-testing.md#fuzzing))                                        | `fuzz-smoke.json`                       |
 | `vp run bench`            | Throughput of each example per engine, on demand ([benchmark](../tools/bench/README.md))                                                                  | `.cache/bench/`, not committed          |
 
 `vp run verify` runs `check` and every regular `test:*` suite except fuzzing.
@@ -75,7 +75,7 @@ Dependencies are pinned by `Cargo.lock` and `pnpm-lock.yaml`. The default pnpm
 catalog names the exact version of each package the workspace develops and
 records results with; the `dep` catalog holds the semver ranges `fetchlet`
 publishes for its runtime dependencies. CI runs the regular suites on Windows and Linux
-([security](security.md#continuous-checks)).
+([security testing](security-testing.md#continuous-checks)).
 
 `.github/workflows/actions.lock` records the commit of each action the
 workflows use, and GitHub Actions runs those commits. After adding a workflow

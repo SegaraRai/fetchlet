@@ -28,7 +28,7 @@ export interface FetchletNitroOptions {
    * Also pack the client assets into `assets.flpk` for fetchlet-http to
    * serve or embed. `true` caches each `publicAssets` directory for its
    * `maxAge`; settings adjust that and add entries, and a function returns
-   * every entry. See docs/asset-archive.md.
+   * every entry. See https://fetchlet.roundtrip.dev/docs/reference/asset-archive.
    */
   assets?: import("../../build/asset-option.ts").AssetsOption;
 }

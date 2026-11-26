@@ -4,7 +4,7 @@ A command line program that calls the functions of a JavaScript module. The
 module has no default export, so its artifact has no Fetch handler:
 `fetchlet.json` records `"handler": null` and lists the exports as
 `functions`, and the program calls them with `App::call_json` without an
-HTTP server. [fetchlet/vite](../../packages/fetchlet/docs/vite.md) builds
+HTTP server. [fetchlet/vite](https://fetchlet.roundtrip.dev/docs/frameworks/vite) builds
 the module.
 
 ## Run

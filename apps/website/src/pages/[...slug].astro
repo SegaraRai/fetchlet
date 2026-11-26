@@ -1,0 +1,50 @@
+---
+import {
+  getBreadcrumbs,
+  getDocsPage,
+  getDocsStaticPaths,
+  getEditUrl,
+  getPrevNext,
+  getSidebar,
+  getTOC,
+} from "@cloudflare/nimbus-docs/runtime";
+
+import { components } from "../components";
+import DocsLayout from "../layouts/DocsLayout.astro";
+
+export const getStaticPaths = getDocsStaticPaths;
+
+const page = await getDocsPage(Astro);
+if (page instanceof Response) {
+  return page;
+}
+
+const { entry, Content, headings, markdownUrl } = page;
+const sidebar = await getSidebar(Astro.url.pathname);
+const breadcrumbs = await getBreadcrumbs(Astro.url.pathname, {
+  collection: entry.collection,
+});
+const toc = getTOC(headings);
+const editUrl = await getEditUrl(entry);
+const prevNext = await getPrevNext(Astro.url.pathname, {
+  sidebarTree: sidebar,
+  overrides: {
+    prev: entry.data.prev,
+    next: entry.data.next,
+  },
+});
+---
+
+<DocsLayout
+  title={entry.data.title}
+  description={entry.data.description}
+  entryId={entry.id}
+  markdownUrl={markdownUrl}
+  sidebar={sidebar}
+  breadcrumbs={breadcrumbs}
+  headings={toc}
+  editUrl={editUrl}
+  prevNext={prevNext}
+>
+  <Content components={components} />
+</DocsLayout>

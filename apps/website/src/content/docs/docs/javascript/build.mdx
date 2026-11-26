@@ -1,0 +1,282 @@
+---
+title: "Building artifacts"
+slug: docs/javascript/build
+description: "How fetchlet builds server bundles, configures engine polyfills and Intl data, and packages static assets."
+---
+
+Every framework adapter — as well as the `fetchlet build` CLI and the
+`fetchlet/build` API — compiles your server code into a self-contained artifact
+directory:
+
+```text
+build/
+├── server.js       # Bundled IIFE with the Web API profile, polyfills, and your server entry
+├── fetchlet.json   # Manifest describing the handler, target engine, and host requirements
+└── client/         # Static client assets (or assets.flpk when archived)
+```
+
+At runtime, the bundle initializes in order: the Web API profile, any polyfills
+required by the target engine, capability checks, and your application.
+
+## The `fetchlet build` command
+
+For projects without Vite or a framework adapter, `fetchlet build` compiles a
+Workers-style server module (`export default { fetch(request, env, ctx) }` and
+optional named exports) directly from the command line:
+
+```text
+fetchlet build [<entry>] [--out <directory>] [--backend <backend>]
+               [--public <directory>] [--assets] [<option>...]
+```
+
+```json
+{
+  "scripts": {
+    "build": "fetchlet build src/server.ts --backend quickjs --public public --assets"
+  }
+}
+```
+
+| Option                    | Meaning                                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| `<entry>`                 | Server module, TypeScript or JavaScript (default: `src/server.ts`)                           |
+| `--out <directory>`       | Output artifact directory (default: `build`)                                                 |
+| `--backend <backend>`     | Target engine: `quickjs`, `boa`, `v8`, or `portable` (default: `portable`)                   |
+| `--public <directory>`    | Static files copied to `<out>/client`                                                        |
+| `--assets`                | Pack `<out>/client` into `assets.flpk` ([Asset archives](#asset-archives)); requires `--public` |
+| `--require <api>`         | Extra API beyond the Web API profile; repeatable                                             |
+| `--locale <tag>`          | Locale whose `Intl` data is bundled; repeatable (default: `en`)                              |
+| `--time-zones <data>`     | Time zone data: `utc` (default), `golden`, or `all`                                          |
+| `--async-context <mode>`  | Provide `node:async_hooks`: `serialized` or `propagated`                                     |
+| `--condition <name>`      | Extra package export condition; repeatable                                                   |
+| `--define <name>=<value>` | Replace a global expression at build time; repeatable                                        |
+
+Each build replaces `<out>/client` and `assets.flpk` so deleted static files do
+not linger. To rebuild automatically during development, run
+[`fetchlet dev`](/docs/javascript/dev) with `--build "fetchlet build ..."`.
+
+## Choosing a backend and polyfills
+
+Every framework adapter and `buildArtifact()` accept the same `backend`, `intl`,
+and `requirements` options:
+
+```ts
+// Example: inside a framework adapter or buildArtifact()
+{
+  backend: "quickjs",
+  requirements: ["Intl.DateTimeFormat"],
+  intl: {
+    locales: ["en", "ja"],
+    timeZoneData: "golden",
+  },
+}
+```
+
+Choose `backend` to match the engine you enable in Rust:
+
+| `backend`        | `Intl` handling                                           | Engine-only APIs                                      |
+| ---------------- | --------------------------------------------------------- | ----------------------------------------------------- |
+| `portable` (default) | Bundles conditional FormatJS polyfills where needed   | Checked by the Rust host at startup                   |
+| `quickjs`, `boa` | Bundles FormatJS polyfills for required `Intl` APIs       | Fails the build if an unsupported API is required     |
+| `v8`             | Uses native ICU `Intl`; FormatJS is omitted from bundle   | All supported; verified at startup                    |
+
+Matching `backend` to your Rust engine keeps bundles smaller (especially for
+`v8`, where FormatJS is omitted) and catches unsupported APIs at build time.
+
+### Declaring `requirements`
+
+`requirements` declares APIs your application needs beyond the base
+[Web API profile](/docs/compatibility/web-api). Unrecognized names fail the
+build.
+
+- **Polyfillable `Intl` APIs:** `Intl.getCanonicalLocales`, `Intl.Locale`,
+  `Intl.PluralRules`, `Intl.NumberFormat`, `Intl.DateTimeFormat`,
+  `Intl.ListFormat`, `Intl.DisplayNames`, `Intl.RelativeTimeFormat`,
+  `Intl.Segmenter`, `Intl.DurationFormat`. (`intl.apis` accepts the same names.)
+  - `Intl.DurationFormat` automatically pulls in `Intl.ListFormat` and
+    `Intl.NumberFormat` along with their locale data.
+- **Engine-only APIs:** `Intl.Collator`, `Intl.supportedValuesOf`,
+  `WebAssembly`, `SharedArrayBuffer`, `Atomics`. These have no polyfill.
+- **Host Web APIs:** `crypto`, `crypto.subtle`, `CompressionStream`,
+  `DecompressionStream`, `URLPattern`. The Rust host must enable the
+  corresponding feature (`web-crypto`, `compression`, or `url-pattern` — all
+  enabled by default via `web-apis`).
+
+Importing `node:crypto` or `node:zlib` automatically adds the corresponding host
+API requirements (`crypto` + `node-crypto`, or `compression`).
+
+### Locales and time zones
+
+When polyfilling `Intl` on QuickJS, Boa, or `portable`:
+
+- `intl.locales` defaults to `["en"]`. Only the listed locales are bundled;
+  regional tags fall back to their parent locale if FormatJS omits a redundant
+  file.
+- `intl.timeZoneData` controls IANA time zone data:
+  - `"utc"` (default) — UTC only
+  - `"golden"` — FormatJS's representative set of IANA time zones
+  - `"all"` — all IANA time zones
+- The polyfill's default time zone is UTC. Pass `timeZone` explicitly to
+  `Intl.DateTimeFormat` when formatting local times.
+
+On `v8`, native ICU data is used instead of bundled FormatJS data.
+
+## Engine limits
+
+QuickJS and Boa do not provide `WebAssembly`, `Intl.Collator`, or
+`Intl.supportedValuesOf`.
+
+Libraries that require WebAssembly — such as `satori`, `resvg`, `shiki` (with
+Oniguruma), `sql.js`, or `PGlite` — require the **`v8`** backend unless the
+library offers a pure-JavaScript fallback.
+
+List required engine-only APIs in `requirements` (for example,
+`requirements: ["WebAssembly"]`) so incompatible `quickjs` or `boa` builds fail
+immediately and `portable` builds are rejected cleanly if loaded on the wrong
+host engine.
+
+## A server module without a framework
+
+To build programmatically in Node.js, use `buildArtifact` and `exportedHandler`
+from `fetchlet/build`:
+
+```ts
+import { buildArtifact, exportedHandler } from "fetchlet/build";
+
+await buildArtifact({
+  entry: exportedHandler("./src/server.ts"),
+  outDir: "./build",
+  backend: "quickjs",
+});
+```
+
+- A module with `export default { fetch(request, env, ctx) }` becomes the
+  artifact's Fetch handler (`handle` is reserved).
+- Any named exports stay callable from Rust via `App::call` / `AppHandle::call`.
+- A module **without** a default export produces a functions-only artifact
+  (`"handler": null` in `fetchlet.json`). Calling `fetch` fails with a
+  configuration error, while `App::call` reaches every export. Read host
+  bindings with `getBindings()` and register background work with `waitUntil()`
+  from `fetchlet/runtime`:
+
+```ts
+import { getBindings } from "fetchlet/runtime";
+
+export function greet(name: string): string {
+  return `${getBindings<{ GREETING: string }>().GREETING}, ${name}`;
+}
+```
+
+If you also need Vite bundling for browser scripts and CSS, use
+[`fetchlet/vite`](/docs/frameworks/vite).
+
+## Advanced build options
+
+`buildArtifact()` accepts additional options used by custom setups and framework
+adapters:
+
+- **`conditions`**: extra package `exports` conditions added on top of
+  fetchlet's defaults.
+- **`plugins`**: extra Rolldown plugins for the final bundle.
+- **`define`**: global constant replacements in addition to
+  `process.env.NODE_ENV`.
+
+### Async context
+
+`asyncContext` controls `node:async_hooks` (`AsyncLocalStorage` /
+`AsyncResource`). Without it, `node:async_hooks` is a stub that throws when
+called.
+
+- **`"serialized"`** — works on all engines (QuickJS, Boa, V8). Keeps
+  per-request context accurate because each instance runs one invocation at a
+  time; concurrent `run()` calls *within* a single invocation share the most
+  recently started store. Most framework adapters enable this automatically.
+- **`"propagated"`** — full Node.js `AsyncLocalStorage` isolation across
+  concurrent `await`s, timers, and messages. Requires **V8 or Boa** (throws on
+  QuickJS).
+
+<Aside type="note" title="QuickJS limitation and planned removal of serialized mode">
+QuickJS (quickjs-ng) does not yet propagate async context across promise
+reactions ([quickjs-ng/quickjs#1919](https://github.com/quickjs-ng/quickjs/issues/1919)).
+Because of this limitation, each fetchlet engine instance currently serves only
+one request at a time. Once QuickJS supports async context propagation,
+`asyncContext: "serialized"` will be removed and `"propagated"` will become the
+only mode across all engines.
+</Aside>
+
+Node.js built-in modules resolve to fetchlet's implementations (and `Buffer`,
+`process`, `setImmediate`, `clearImmediate` are imported on demand; see
+[Node.js compatibility](/docs/compatibility/node)). Unimplemented built-ins
+resolve to an installed npm package of the same name if present, or to a stub
+that throws `ERR_METHOD_NOT_IMPLEMENTED` when called.
+
+## Export conditions
+
+fetchlet uses the `fetchlet` runtime key following
+[WinterTC Runtime Keys](https://runtime-keys.proposal.wintertc.org/). Dependencies
+resolve with:
+
+```text
+fetchlet, worker, module, import, production, default
+```
+
+During `vite dev`, `development` replaces `production`. `runtimeKey` and
+`runtimeConditions()` are exported from `fetchlet/build`.
+
+- `fetchlet` selects builds tailored for fetchlet (using `env` bindings or
+  `fetchlet/runtime`).
+- `worker` selects Web-standard builds with no DOM and no Node.js assumptions.
+- `workerd`, `edge-light`, `browser`, and `node` are not enabled by default.
+
+Library authors supporting fetchlet can add a `fetchlet` entry in `package.json`:
+
+```json
+{
+  "exports": {
+    ".": {
+      "fetchlet": "./dist/fetchlet.js",
+      "worker": "./dist/worker.js",
+      "default": "./dist/index.js"
+    }
+  }
+}
+```
+
+## Asset archives
+
+Every framework adapter and `buildArtifact()` accept an `assets` option to pack
+static files into `assets.flpk`, a single Brotli-compressed archive that Rust
+serves without per-request filesystem lookups:
+
+- `assets: true` — archives `client/` using the framework's default caching and
+  routing rules (for example, `Cache-Control: immutable` on hashed bundles).
+- `assets: { include, routes, cache, respond, entries }` — customizes archive
+  generation on top of the framework's defaults.
+- `assets: ({ directory, defaults }) => entries` — full control over every
+  entry.
+
+See [Asset archive](/docs/reference/asset-archive) for the configuration API and
+binary format.
+
+## The `fetchlet.json` manifest
+
+`fetchlet.json` is written atomically last (after `server.js` and `assets.flpk`)
+so development watchers always see a complete build. It records the handler name,
+exported `functions`, target `backend`, asset archive path, and a `needs` block
+describing what the artifact expects from the Rust host:
+
+```json
+{
+  "needs": {
+    "engineApis": ["Intl.DateTimeFormat"],
+    "locales": ["en", "ja"],
+    "asyncContext": false,
+    "hostApis": ["crypto"],
+    "hostProtocol": 3
+  }
+}
+```
+
+`fetchlet_http::Server` (and `Artifact::requirements()`) validates `needs`
+against your Rust engine and enabled features before evaluating `server.js`,
+reporting every missing capability in one error.

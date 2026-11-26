@@ -269,7 +269,7 @@ For server-rendering applications like these examples:
   wait for vinext on QuickJS with one instance, and 0.9 s on Boa.
 
 Budgets these pages do not exercise, such as body sizes, subrequests and
-channel limits, stay caller policy as [resource policy](../resource-policy.md)
+channel limits, stay caller policy as [resource policy](https://fetchlet.roundtrip.dev/docs/rust/resource-policy)
 describes.
 
 ## Next work

@@ -1,7 +1,7 @@
 # Waku + axum
 
 Serves Waku's React Server Components, SSR and API routes from axum.
-[fetchlet/waku](../../packages/fetchlet/docs/waku.md) builds the server into
+[fetchlet/waku](https://fetchlet.roundtrip.dev/docs/frameworks/waku) builds the server into
 an artifact.
 
 ## Run

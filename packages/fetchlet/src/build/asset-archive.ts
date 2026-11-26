@@ -1,5 +1,5 @@
 // Writes asset entries as one archive that Rust serves directly.
-// The format is described in docs/asset-archive.md.
+// The format is described in https://fetchlet.roundtrip.dev/docs/reference/asset-archive.
 
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";

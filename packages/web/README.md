@@ -4,7 +4,7 @@ The Web API implementations that run inside a fetchlet engine: Fetch,
 Headers, Body, Blob, FormData, Encoding, Events, Abort, Streams, timers,
 Compression, URLPattern and Web Crypto. They call the host operations of the
 [fetchlet-web](https://github.com/SegaraRai/fetchlet/blob/main/crates/fetchlet-web/README.md) crate and install each API
-only when the host reports it ([Web API profile](https://github.com/SegaraRai/fetchlet/blob/main/docs/web-api.md)).
+only when the host reports it ([Web API profile](https://fetchlet.roundtrip.dev/docs/compatibility/web-api)).
 
 | Subpath                       | Contents                                                      |
 | ----------------------------- | ------------------------------------------------------------- |
