@@ -15,6 +15,7 @@ use crate::Error;
 
 /// Why an engine stopped JavaScript.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(fetchlet_process, derive(serde::Serialize, serde::Deserialize))]
 pub(crate) enum StopReason {
     /// The invocation's deadline passed while JavaScript ran.
     Deadline,

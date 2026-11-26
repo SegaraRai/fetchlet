@@ -8,6 +8,7 @@ pub const MIN_V8_HEAP_LIMIT_BYTES: usize = 16 << 20;
 
 /// Native worker and memory settings for a V8 isolate.
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "process", derive(serde::Serialize, serde::Deserialize))]
 pub struct V8Options {
     /// None uses the platform's thread-stack setting.
     pub worker_stack_bytes: Option<usize>,

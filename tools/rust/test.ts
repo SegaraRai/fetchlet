@@ -17,7 +17,7 @@ cargoAll([
     "fetchlet",
     "--no-default-features",
     "--features",
-    `${engines},web-apis`,
+    `${engines},web-apis,process`,
   ],
   // fetchlet-http's integrations share tests/contract/ and run it on every engine.
   ["test", "--locked", "-p", "fetchlet-http", "--all-features"],

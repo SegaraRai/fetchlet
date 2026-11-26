@@ -20,6 +20,7 @@ use std::collections::BTreeSet;
 /// is missing. Requirements are names, so a name this host does not know
 /// counts as missing.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "process", derive(serde::Serialize, serde::Deserialize))]
 pub struct Requirements {
     engine_apis: BTreeSet<String>,
     locales: Vec<String>,
@@ -120,6 +121,14 @@ impl Requirements {
 
     pub(crate) fn needs_preemption(&self) -> bool {
         self.preemption
+    }
+
+    /// The same requirements without preemption, which a process boundary
+    /// meets on every engine, for the engine in the child to check.
+    #[cfg(fetchlet_process)]
+    pub(crate) fn without_preemption(mut self) -> Self {
+        self.preemption = false;
+        self
     }
 
     pub(crate) fn host_apis(&self) -> impl Iterator<Item = &str> {

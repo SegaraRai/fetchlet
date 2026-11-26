@@ -14,6 +14,8 @@ mod worker;
 
 #[cfg(feature = "operation-counts")]
 mod diagnostics;
+#[cfg(fetchlet_process)]
+mod isolation;
 
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 mod app;
@@ -45,6 +47,12 @@ pub use host::{
 pub use http;
 pub use requirements::Requirements;
 pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, PoolState, WorkerOptions};
+
+#[cfg(all(feature = "fuzzing", fetchlet_process))]
+#[doc(hidden)]
+pub use isolation::fuzz_frames;
+#[cfg(fetchlet_process)]
+pub use isolation::{Isolation, ProcessOptions, Program, serve_if_child};
 
 #[cfg(feature = "operation-counts")]
 #[doc(hidden)]

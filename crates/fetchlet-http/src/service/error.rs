@@ -44,7 +44,8 @@ impl Error {
                 fetchlet::Error::DeadlineExceeded => StatusCode::GATEWAY_TIMEOUT,
                 fetchlet::Error::WorkerClosed
                 | fetchlet::Error::WorkerFailed(_)
-                | fetchlet::Error::InstanceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+                | fetchlet::Error::InstanceUnavailable
+                | fetchlet::Error::InstanceLost(_) => StatusCode::SERVICE_UNAVAILABLE,
                 fetchlet::Error::InvalidRequest(_) => StatusCode::BAD_REQUEST,
                 fetchlet::Error::PermissionDenied => StatusCode::FORBIDDEN,
                 fetchlet::Error::LimitExceeded("request body bytes") => {

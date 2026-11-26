@@ -22,6 +22,10 @@
     {
       "target": "bridge_bodies",
       "status": "pass"
+    },
+    {
+      "target": "isolation_frames",
+      "status": "pass"
     }
   ]
 }

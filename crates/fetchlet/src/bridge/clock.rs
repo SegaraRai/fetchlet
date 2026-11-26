@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 
 /// A monotonic elapsed clock paired with an epoch origin for one instance.
 #[derive(Clone)]
-pub(super) struct Clock {
+pub(crate) struct Clock {
     started: Instant,
     time_origin_ms: f64,
 }

@@ -19,7 +19,7 @@ pub(crate) use timeout::with_timeout;
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) use timeout::{deadline_after, with_deadline};
 
-#[cfg(any(feature = "quickjs", feature = "v8"))]
+#[cfg(any(feature = "quickjs", feature = "v8", fetchlet_process))]
 pub(crate) use interrupt::StopReason;
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 pub(crate) use interrupt::{Interrupt, Interrupted};

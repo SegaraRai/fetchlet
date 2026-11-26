@@ -23,6 +23,9 @@ v8 = ["dep:deno_core", "dep:deno_error", "dep:fetchlet-web"]
 fuzzing = ["dep:fetchlet-web"]
 # Counts what crosses between engines and the host, for tools/bench; hidden.
 operation-counts = []
+# Runs each instance's engine in a child process (`AppBuilder::isolation`),
+# with the engine features this build includes.
+process = []
 # Host implementations of Web APIs (fetchlet-web), which every engine and
 # the fuzzing harness include. The features below select its APIs.
 web-apis = ["url", "url-pattern", "compression", "web-crypto", "node-crypto"]
@@ -63,3 +66,9 @@ futures-util = { version = "0.3", default-features = false, features = ["sink"] 
 [[example]]
 name = "embed"
 required-features = ["quickjs"]
+
+# The parent starts this executable as the child, so it has its own main.
+[[test]]
+name = "isolation"
+harness = false
+required-features = ["process", "quickjs"]

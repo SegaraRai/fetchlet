@@ -9,7 +9,7 @@ publish = false
 cargo-fuzz = true
 
 [dependencies]
-fetchlet = { workspace = true, features = ["fuzzing", "url"] }
+fetchlet = { workspace = true, features = ["fuzzing", "url", "quickjs", "process"] }
 fetchlet-http.workspace = true
 libfuzzer-sys = "0.4"
 serde = { version = "1", features = ["derive"] }
@@ -35,6 +35,13 @@ bench = false
 [[bin]]
 name = "asset_archive"
 path = "fuzz_targets/asset_archive.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "isolation_frames"
+path = "fuzz_targets/isolation_frames.rs"
 test = false
 doc = false
 bench = false

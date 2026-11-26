@@ -8,6 +8,7 @@ responses and named functions share one runtime on QuickJS, Boa or V8.
 | `quickjs` (default) | `Backend::quickjs()`, `Backend::QuickJs(QuickJsOptions)` |
 | `boa`               | `Backend::boa()`, `Backend::Boa(BoaOptions)`             |
 | `v8`                | `Backend::v8()`, `Backend::V8(V8Options)`                |
+| `process`           | [Process isolation](#process-isolation) of each instance |
 
 Several engine features can be enabled together. Without any, the host API
 (`HostServices`, `FetchService`, `Body`, `Limits`) remains available.
@@ -160,6 +161,41 @@ background thread. `V8Options::reliable_termination` compiles that code on
 the instance's thread instead, so the limits above stop every loop. It is
 off by default, applies to the whole process, and must be set on the first
 V8 instance the process starts.
+
+## Process isolation
+
+The `process` feature runs each instance's engine in a child process of
+its own, while host services, policies and the byte store stay in the
+parent (`AppBuilder::isolation`). The parent stops the child at the
+invocation deadline, past `Limits::busy_timeout` plus
+`ProcessOptions::kill_grace`, and when a call is dropped, on every engine,
+so `Requirements::preemption` is met on Boa too. On Windows,
+`ProcessOptions::memory_bytes` bounds the child's memory with a Job Object
+and reports `LimitExceeded("process memory")`; other platforms refuse it
+for now. A child that ends any other way fails the call with
+`Error::InstanceLost`. Every stop retires the instance, and a pool
+replaces it.
+
+```rust,ignore
+use fetchlet::{App, Backend, Isolation, Module, ProcessOptions};
+
+fn main() -> fetchlet::Result<()> {
+    // Serves as the child when the parent started this executable as one.
+    fetchlet::serve_if_child();
+    let app = App::builder(Backend::boa())
+        .module(Module::new(bundle))
+        .isolation(Isolation::Process(ProcessOptions::new()))
+        .build()?;
+    // ...
+    Ok(())
+}
+```
+
+`Program::CurrentExe`, the default, starts the embedder's own executable,
+which calls `serve_if_child` first thing in `main`; `Program::Path` names
+another executable built with the same engine features. See [process
+isolation](../../docs/research/process-isolation.md) for the design and
+its costs.
 
 `call` takes one Serde argument and `call_json` several JSON arguments.
 `fetch_with_context` passes a per-request Serde value as the entry's second

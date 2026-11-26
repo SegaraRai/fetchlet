@@ -14,6 +14,9 @@ pub(crate) enum Engine {
     Boa(Box<super::Boa>),
     #[cfg(feature = "v8")]
     V8(super::V8),
+    /// An engine in a child process (`AppBuilder::isolation`).
+    #[cfg(fetchlet_process)]
+    Process(Box<crate::isolation::ProcessEngine>),
 }
 
 impl Engine {
@@ -51,6 +54,20 @@ impl Engine {
         })
     }
 
+    /// The engine of `backend` in a child process, which reaches the host
+    /// through `host` in this one.
+    #[cfg(fetchlet_process)]
+    pub(crate) fn isolated(
+        options: &crate::ProcessOptions,
+        backend: Backend,
+        module: &Module,
+        host: crate::bridge::HostBridge,
+        limits: &Limits,
+    ) -> Result<Self> {
+        crate::isolation::ProcessEngine::new(options, backend, module, host, limits)
+            .map(|engine| Self::Process(Box::new(engine)))
+    }
+
     /// Evaluate a prepared invocation expression (see `execution::script`).
     /// JavaScript still running at `deadline` or past the busy timeout
     /// stops with [`Interrupted`](crate::execution::Interrupted): QuickJS
@@ -71,6 +88,8 @@ impl Engine {
             Self::Boa(engine) => engine.evaluate_until(expression, deadline).await,
             #[cfg(feature = "v8")]
             Self::V8(engine) => engine.evaluate_until(expression, deadline).await,
+            #[cfg(fetchlet_process)]
+            Self::Process(engine) => engine.evaluate(expression, deadline).await,
         }
     }
 }
@@ -86,6 +105,8 @@ impl Instance for Engine {
             Self::Boa(engine) => engine.call_json(export, args).await,
             #[cfg(feature = "v8")]
             Self::V8(engine) => engine.call_json(export, args).await,
+            #[cfg(fetchlet_process)]
+            Self::Process(engine) => engine.call_json(export, args).await,
         }
     }
 
@@ -97,6 +118,8 @@ impl Instance for Engine {
             Self::Boa(engine) => engine.is_reusable(),
             #[cfg(feature = "v8")]
             Self::V8(engine) => engine.is_reusable(),
+            #[cfg(fetchlet_process)]
+            Self::Process(engine) => engine.is_reusable(),
         }
     }
 }

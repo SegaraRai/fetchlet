@@ -28,7 +28,8 @@ const axumExamples = [
   "waku-axum",
 ];
 const engines = "quickjs,boa,v8";
-const enginesWithWebApis = `${engines},web-apis`;
+// Process isolation compiles with the engines it runs.
+const enginesWithWebApis = `${engines},web-apis,process`;
 
 function clippy(...args: string[]): string[] {
   return ["clippy", "--locked", ...args, "--", "-D", "warnings"];

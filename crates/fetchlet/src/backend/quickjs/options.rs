@@ -3,6 +3,7 @@
 /// shares.
 
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "process", derive(serde::Serialize, serde::Deserialize))]
 pub struct QuickJsOptions {
     pub stack_limit_bytes: Option<usize>,
 }

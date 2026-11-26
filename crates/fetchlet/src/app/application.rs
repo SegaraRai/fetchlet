@@ -72,6 +72,8 @@ impl App {
             key: None,
             host_runtime: None,
             code_cache: Default::default(),
+            #[cfg(fetchlet_process)]
+            isolation: crate::Isolation::default(),
         }
     }
 
@@ -370,9 +372,18 @@ impl App {
         self.reusable = false;
         let result = with_deadline(deadline, self.engine.evaluate(expression, deadline)).await;
         self.reusable = result.is_ok() && self.engine.is_reusable();
-        result?.map_err(|error| match error.downcast::<Interrupted>() {
-            Ok(interrupted) => interrupted.into(),
-            Err(error) => Error::JavaScript(error.to_string()),
+        result?.map_err(|error| {
+            let error = match error.downcast::<Interrupted>() {
+                Ok(interrupted) => return interrupted.into(),
+                Err(error) => error,
+            };
+            // An isolated instance's process that ended reports why.
+            #[cfg(fetchlet_process)]
+            let error = match error.downcast::<crate::isolation::ProcessEnded>() {
+                Ok(ended) => return ended.0,
+                Err(error) => error,
+            };
+            Error::JavaScript(error.to_string())
         })
     }
 

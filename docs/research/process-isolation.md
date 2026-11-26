@@ -17,9 +17,10 @@ budgets by killing the child or through OS limits, the same way on every
 engine. Optionally, an OS sandbox removes the child's authority beyond its
 connection to the parent.
 
-Status: design. The first phase, measurement, is done on Windows
-([Costs](#costs)), and the second, the `GuestLink` seam, is in place.
-Process isolation itself is not implemented.
+Status: process isolation is implemented behind the `process` feature
+([Implementation phases](#implementation-phases)), with the OS memory
+budget on Windows. Next are the measurements and the memory budget on
+Linux, the sandbox profiles and the cost reductions.
 
 ## Goals
 
@@ -106,37 +107,40 @@ parameters:
 ```rust
 App::builder(Backend::boa())
     .module(module)
-    .isolation(Isolation::Process(ProcessOptions {
-        program: Program::CurrentExe,
-        memory_bytes: Some(256 << 20),
-        kill_grace: Duration::from_millis(100),
-        sandbox: Sandbox::None,
-    }))
+    .isolation(Isolation::Process(
+        ProcessOptions::new()
+            .program(Program::CurrentExe)
+            .memory_bytes(256 << 20)
+            .kill_grace(Duration::from_millis(100)),
+    ))
     .spawn(workers)
     .await?;
 ```
 
-| Setting                        | Owner and rationale                                                                                                                                                                         |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Isolation::InProcess`         | The default; today's behavior                                                                                                                                                               |
-| `ProcessOptions::program`      | The caller: `CurrentExe` re-runs the embedder's binary in child mode; `Path` names a separate executable built with the same engine features                                                |
-| `ProcessOptions::memory_bytes` | Caller budget for the whole child (engine heap, code, stacks), enforced by the OS: a Job Object on Windows, cgroup v2 `memory.max` or `RLIMIT_AS` on Unix                                   |
-| `ProcessOptions::kill_grace`   | Caller policy: how long past a deadline the parent waits for the engine's own interrupt before it kills the child. The engine's interrupt keeps the error precise; the kill is the backstop |
-| `ProcessOptions::sandbox`      | Caller policy: `None`, or an OS profile ([Sandboxing](#sandboxing))                                                                                                                         |
+| Setting                        | Owner and rationale                                                                                                                                                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Isolation::InProcess`         | The default; today's behavior                                                                                                                                                                                         |
+| `ProcessOptions::program`      | The caller: `CurrentExe` re-runs the embedder's binary in child mode; `Path` names a separate executable built with the same engine features                                                                          |
+| `ProcessOptions::memory_bytes` | Caller budget for the whole child (engine heap, code, stacks), enforced by the OS: a Job Object on Windows. Unix (cgroup v2 `memory.max` or `RLIMIT_AS`) is next; until then it is refused there                      |
+| `ProcessOptions::kill_grace`   | Caller policy: how long past `busy_timeout` and `startup_timeout` the parent waits for the engine's own interrupt before it kills the child. The engine's interrupt keeps the error precise; the kill is the backstop |
+| `ProcessOptions::sandbox`      | Phase 4. Caller policy: `None`, or an OS profile ([Sandboxing](#sandboxing))                                                                                                                                          |
 
 `Limits` keeps its meaning: `heap_bytes` still maps to the engine's own
 limit where the engine has one, and remains refused on Boa. `memory_bytes`
 is the process budget that every engine can have. `Backend::preemption()`
-and `static_unmet` take the isolation into account. Under
+and `static_unmet` take the isolation into account: the parent asks the
+child to probe the module's requirements without preemption. Under
 `Isolation::Process` the preemption requirement is met on every engine,
 because the parent can always kill the child.
 
 ### Starting the child
 
 With `Program::CurrentExe` the embedder calls
-`fetchlet::process::serve_if_child()` first thing in `main`. When the
-process was started as a fetchlet child (an argument and an inherited
-handle mark it), the call serves the parent and never returns. Otherwise it
+`fetchlet::serve_if_child()` first thing in `main`. When the process was
+started as a fetchlet child (its first argument marks it), the call serves
+the parent and never returns. The engine runs on a thread with Rust's
+default stack size, as an in-process engine does, not on the main
+thread. Otherwise it
 returns at once. This keeps one binary to deploy, which a desktop app such
 as the Tauri example needs. `Program::Path` suits deployments that ship a
 dedicated, smaller engine executable. Test binaries use a `harness = false`
@@ -153,24 +157,27 @@ command line:
 
 It builds the engine with a remote `GuestLink` and reports the probe
 result, so `AppBuilder::build` fails the same way it does in-process.
+Each instance of a pool has a child of its own.
 
 ## The connection
 
 The connection uses the child's standard input and output, inherited
 anonymous pipes on every platform. Nothing is named or listening, so the
 sandbox can deny every other channel. Standard error carries the engine's
-own diagnostics, which the parent forwards to its log.
+own diagnostics; the child inherits the parent's.
 
-Frames carry a header and a payload: a kind, a request id, and a payload
-length bounded by the largest bridge message the limits allow. Payloads are
-JSON for operations and replies, and raw bytes for the byte store.
+Frames carry a header and a payload: a one-byte kind and a four-byte
+length. A reader never reserves more than the bytes that arrived. The
+child has at most one request outstanding, so frames need no request id.
+Payloads are JSON for operations and replies, and raw bytes for the byte
+store (`crates/fetchlet/src/isolation/frame.rs`).
 
 | Direction      | Frame                   | Meaning                                                                |
 | -------------- | ----------------------- | ---------------------------------------------------------------------- |
 | parent → child | `Init`                  | Backend options, module, requirements, engine limits                   |
 | child → parent | `Ready` / `Failed`      | The probe result, or the build error                                   |
-| parent → child | `Evaluate`, `CallJson`  | One evaluation, with its deadline for the engine's own interrupt       |
-| child → parent | `Result`                | The value, an interrupt, or a JavaScript error; `reusable` flag        |
+| parent → child | `Evaluate`, `Call`      | One evaluation, with its deadline for the engine's own interrupt       |
+| child → parent | `Outcome`               | The value, an interrupt, or a JavaScript error; `reusable` flag        |
 | child → parent | `Dispatch`              | A host operation; the engine thread blocks until the reply             |
 | parent → child | `Reply`                 | The dispatcher's JSON reply                                            |
 | child → parent | `PutBytes`, `TakeBytes` | The byte store, which lives in the parent's invocation                 |
@@ -184,21 +191,20 @@ synchronous for the engine; async work still goes through tickets and
 
 Everything the child sends is untrusted, as guest input is today. The
 parent decodes frames within the size bound and hands operations to the
-same `HostBridge` that the bridge fuzzer already covers. A new fuzz target
-mutates the frame stream against the parent's decoder and checks that:
-
-- no frame reaches the bridge outside an evaluation;
-- every request id is answered at most once;
-- a malformed or oversized frame ends the child, not the parent.
+same `HostBridge` that the bridge fuzzer already covers. A frame the parent
+does not expect, or cannot read, ends the child, not the parent. The
+`isolation_frames` fuzz target reads arbitrary bytes as frames and checks
+that each frame read writes back to bytes that read to the same frame.
 
 ## Enforcement
 
 - **Deadline and `busy_timeout`.** The parent arms the same timer it arms
   today. The child's engine gets the deadline too, so QuickJS and V8 stop
-  with a precise `Interrupted`. When the timer passes and `kill_grace`
-  passes with no `Result` frame, the parent kills the child and reports
-  `DeadlineExceeded`. On Boa the kill is the only stop for code that never
-  yields.
+  with a precise `Interrupted`. At the deadline `App` drops the call, which
+  kills the child at once, and reports `DeadlineExceeded`. When the child
+  sends no frame for `busy_timeout` plus `kill_grace`, the parent kills it
+  and reports `LimitExceeded("engine busy time")`. On Boa the kill is the
+  only stop for code that never yields.
 - **`startup_timeout`.** It works the same way around `Init` → `Ready`.
 - **Cancellation.** Under `CancelledCalls::Retire`, dropping the call kills
   the child at once. Under `Finish`, the parent waits within the deadline,
@@ -214,8 +220,8 @@ mutates the frame stream against the parent's decoder and checks that:
   `LimitExceeded("engine heap")` where it applies.
 
 - **Crashes.** Any other end of the child reports a new
-  `Error::InstanceLost`, with the exit status and the tail of standard
-  error, and retires the instance. The pool builds a replacement as it does
+  `Error::InstanceLost` with the exit status, and retires the instance.
+  The child's standard error goes to the parent's. The pool builds a replacement as it does
   for any retirement.
 
 Every stop retires the instance, as in-process stops do. A child is never
@@ -325,17 +331,18 @@ This leads to three decisions for the implementation:
 - **The child serves operations that carry no authority.** It runs
   fetchlet-web's stateless operations (URL parsing, URL patterns,
   `crypto.random`, digests and other crypto) with the same crate and
-  `WebLimits`. It also keeps its own clock, receives `fetch.limits` with
-  the evaluation, and is told about a disconnect instead of being asked.
-  Compression, which keeps per-invocation state, stays in the parent.
-  This is part of phase 3, not a later optimization.
+  `WebLimits`, and keeps its own clock. Compression, which keeps
+  per-invocation state, stays in the parent. Phase 3 implements this.
+  Sending `fetch.limits` with the evaluation and telling the child about a
+  disconnect instead of being asked remain for phase 5.
 - **The parent's end of each child blocks on a thread of its own.** It
   answers the child's host calls from that thread. It talks to the async
   worker only for evaluations and wakes, which halves the round trip
   against tokio's pipes.
-- **Bytes go in the frames.** An evaluation's result can carry the bytes
-  the engine put, and a reply the bytes it takes. This saves the two
-  byte-store round trips per page. Shared memory is not needed at these
+- **Bytes go in the frames.** Phase 3 sends the byte store's bytes as raw
+  frame payloads, each `put` and `take` still a round trip. Next, an
+  evaluation's result can carry the bytes the engine put, and a reply the
+  bytes it takes. This saves the two byte-store round trips per page. Shared memory is not needed at these
   sizes: a 64 KiB frame takes 36 µs.
 
 These measures reduce the cost further:
@@ -360,20 +367,28 @@ work, so this design does not offer it.
    host operations, the byte store and the wake signal, and nothing else
    of the bridge. Its only variant is `Local(HostBridge)`, so behavior is
    unchanged; phase 3 adds `Remote`.
-3. **Process isolation.** Add the `process` feature, `Isolation`,
-   `ProcessOptions`, the frame codec, `serve_if_child`, the remote `Engine`,
-   the kill timer, the OS memory limits and `Error::InstanceLost`. The
-   child also serves the operations that carry no authority, and frames
-   carry bytes ([Costs](#costs)). Tests on
-   each engine:
-   - Boa recursion that never yields stops at the deadline;
+3. **Process isolation.** Done (`crates/fetchlet/src/isolation/`): the
+   `process` feature, `AppBuilder::isolation`, `Isolation`,
+   `ProcessOptions`, the frame codec, `serve_if_child`, the remote
+   `Engine`, the kill timer, the Windows memory limit and
+   `Error::InstanceLost`. The child serves the operations that carry no
+   authority, and frames carry bytes. `crates/fetchlet/tests/isolation.rs`
+   covers on each engine:
+   - calls, host functions that resolve later and Fetch bodies across the
+     boundary;
+   - a loop that never yields stops at the deadline and at the busy
+     timeout, Boa included;
    - `Requirements::preemption` is met on Boa;
-   - a memory bomb ends with `LimitExceeded("process memory")`;
-   - an abort in the child leaves the parent serving;
-   - a dropped call kills the child;
-   - the pool replaces a lost instance;
-   - streaming bodies and channels work across the boundary;
-   - the frame fuzz target runs.
+   - a memory bomb ends with `LimitExceeded("process memory")` on Windows,
+     where QuickJS and V8 abort;
+   - a dropped call retires the instance, and a child that ends at startup
+     reports `InstanceLost`;
+   - a pool streams bodies and replaces a stopped instance.
+
+   The `isolation_frames` fuzz target reads frames. Remaining: the memory
+   budget on Unix, a test that channels work across the boundary, and the
+   isolation setting on fetchlet-http's `Server`.
+
 4. **Sandbox profiles.** Linux and Windows first, each with tests that file
    and socket access fail in the child, then macOS.
 5. **Cost reductions.** Returning V8's code cache to the parent, and

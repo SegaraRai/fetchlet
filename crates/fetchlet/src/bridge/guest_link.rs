@@ -13,9 +13,19 @@ use crate::execution::WakeSignal;
 /// bridge, in a child process
 /// (docs/research/process-isolation.md#where-the-boundary-goes).
 #[derive(Clone)]
+#[cfg_attr(
+    fetchlet_process,
+    expect(
+        clippy::large_enum_variant,
+        reason = "an engine holds one link for its lifetime, so the size costs nothing per call"
+    )
+)]
 pub(crate) enum GuestLink {
     /// The bridge in the engine's own process.
     Local(HostBridge),
+    /// The bridge in the parent of an isolated instance's process.
+    #[cfg(fetchlet_process)]
+    Remote(std::sync::Arc<crate::isolation::RemoteLink>),
 }
 
 impl Default for GuestLink {
@@ -36,6 +46,8 @@ impl GuestLink {
     pub fn dispatch(&self, operation: String, input: String) -> String {
         match self {
             Self::Local(bridge) => bridge.dispatch(operation, input),
+            #[cfg(fetchlet_process)]
+            Self::Remote(link) => link.dispatch(operation, input),
         }
     }
 
@@ -44,6 +56,8 @@ impl GuestLink {
     pub fn put_guest_bytes(&self, bytes: &[u8]) -> Result<u64> {
         match self {
             Self::Local(bridge) => bridge.put_guest_bytes(bytes),
+            #[cfg(fetchlet_process)]
+            Self::Remote(link) => link.put_guest_bytes(bytes),
         }
     }
 
@@ -52,6 +66,8 @@ impl GuestLink {
     pub fn take_guest_bytes(&self, handle: f64) -> Result<Bytes> {
         match self {
             Self::Local(bridge) => bridge.take_guest_bytes(handle),
+            #[cfg(fetchlet_process)]
+            Self::Remote(link) => link.take_guest_bytes(handle),
         }
     }
 
@@ -60,6 +76,8 @@ impl GuestLink {
     pub fn wake_signal(&self) -> WakeSignal {
         match self {
             Self::Local(bridge) => bridge.wake_signal(),
+            #[cfg(fetchlet_process)]
+            Self::Remote(link) => link.wake_signal(),
         }
     }
 }

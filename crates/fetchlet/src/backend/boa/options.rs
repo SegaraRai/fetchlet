@@ -5,6 +5,7 @@
 /// one, so these limits, not the worker's thread stack, bound how deeply a
 /// framework renderer may recurse.
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "process", derive(serde::Serialize, serde::Deserialize))]
 pub struct BoaOptions {
     /// The value stack size, in slots, before a call throws `RuntimeLimitError`.
     pub stack_size_limit: Option<usize>,

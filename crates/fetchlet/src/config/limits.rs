@@ -7,6 +7,7 @@ use crate::{Error, Result};
 /// Each Some value enables that budget. None delegates the resource budget to
 /// the surrounding host, such as an HTTP server or a process supervisor.
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "process", derive(serde::Serialize, serde::Deserialize))]
 pub struct Limits {
     /// Duration of one invocation, including host I/O and timers. QuickJS
     /// and V8 stop JavaScript still running when it passes; Boa stops it at

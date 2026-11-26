@@ -1,5 +1,6 @@
 /// Engine selection and its engine-specific configuration.
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "process", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum Backend {
     #[cfg(feature = "boa")]
@@ -159,7 +160,7 @@ impl Backend {
 
     /// Refuse budgets this engine cannot enforce, so that a budget the
     /// caller set never goes silently unenforced.
-    #[cfg_attr(not(any(feature = "boa", feature = "v8")), allow(unused_variables))]
+    #[cfg_attr(not(feature = "v8"), allow(unused_variables))]
     pub(crate) fn validate_limits(&self, limits: &crate::Limits) -> crate::Result<()> {
         let Some(heap) = limits.heap_bytes else {
             return Ok(());

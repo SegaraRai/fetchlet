@@ -139,7 +139,8 @@ Features each example's checks cover: ✓ passed, ✗ failed, — not checked, n
 
 `vp run test:fuzz`. Recorded with rustc 1.100.0 (0ef1bc386 2026-11-09), Node v26.13.1 on win32-x64; rquickjs 0.14.0, boa_engine 0.22.0, v8 150.4.0. AddressSanitizer, up to 1,000,000 runs or 60 s per target, rustc 1.102.0-nightly (65ce8611f 2026-11-18).
 
-| Target        | Status |
-| ------------- | ------ |
-| fetch_service | pass   |
-| bridge_bodies | pass   |
+| Target           | Status |
+| ---------------- | ------ |
+| fetch_service    | pass   |
+| bridge_bodies    | pass   |
+| isolation_frames | pass   |

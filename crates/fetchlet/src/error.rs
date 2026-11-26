@@ -26,6 +26,10 @@ pub enum Error {
     /// A call to an application from its own host fetch would wait for itself.
     #[error("an application cannot be called from its own host fetch")]
     Reentrant,
+    /// The child process of an isolated instance ended other than at a
+    /// limit: the engine crashed, aborted or was killed from outside.
+    #[error("the instance's process ended: {0}")]
+    InstanceLost(String),
 }
 
 impl Error {
@@ -51,6 +55,7 @@ impl Error {
             Self::WorkerClosed => "application worker is closed",
             Self::WorkerFailed(_) => "application worker failed",
             Self::Reentrant => "reentrant application call",
+            Self::InstanceLost(_) => "instance is unavailable",
         }
     }
 
@@ -75,6 +80,7 @@ impl Error {
             Self::WorkerClosed => "WORKER_CLOSED",
             Self::WorkerFailed(_) => "WORKER_FAILED",
             Self::Reentrant => "REENTRANT",
+            Self::InstanceLost(_) => "INSTANCE_LOST",
         }
     }
 }

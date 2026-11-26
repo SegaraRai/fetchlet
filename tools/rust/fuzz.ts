@@ -24,7 +24,8 @@ const seconds = boundedInteger("seconds", values.seconds, 3600);
 const maxInputBytes = 16384;
 // fetch_service: the Rust host fetch boundary. bridge_bodies: byte handles
 // and body sources as a guest drives them through the native protocol.
-const targets = ["fetch_service", "bridge_bodies"];
+// isolation_frames: the frames on an isolated instance's pipe.
+const targets = ["fetch_service", "bridge_bodies", "isolation_frames"];
 
 const env = fuzzEnv();
 const results = targets.map((target) => {

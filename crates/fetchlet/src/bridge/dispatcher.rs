@@ -1256,7 +1256,7 @@ fn encode_response(
     serde_json::to_value(response).map_err(|_| Error::Transport("invalid response encoding".into()))
 }
 
-fn encode_reply(result: Result<Value>) -> Value {
+pub(crate) fn encode_reply(result: Result<Value>) -> Value {
     match result {
         Ok(value) => json!({
             "ok": true,

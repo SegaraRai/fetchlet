@@ -18,9 +18,22 @@ pub struct AppBuilder {
     /// Compiled code shared by the instances built from this builder and
     /// its clones, for this module.
     pub(super) code_cache: Arc<CodeCache>,
+    /// Where the engine runs.
+    #[cfg(fetchlet_process)]
+    pub(super) isolation: crate::Isolation,
 }
 
 impl AppBuilder {
+    /// Run the engine in this process or in a child process of its own
+    /// (docs/research/process-isolation.md). Under
+    /// [`Isolation::Process`](crate::Isolation::Process), every engine meets
+    /// [`Requirements::preemption`](crate::Requirements::preemption).
+    #[cfg(fetchlet_process)]
+    pub fn isolation(mut self, isolation: crate::Isolation) -> Self {
+        self.isolation = isolation;
+        self
+    }
+
     pub fn module(mut self, module: Module) -> Self {
         self.module = Some(module);
         // Compiled code belongs to the source it came from.
@@ -91,13 +104,29 @@ impl AppBuilder {
         if let Some(runtime) = self.host_runtime {
             host = host.with_runtime(runtime);
         }
-        let engine = Engine::new(
-            self.backend,
-            &module,
-            host.clone().into(),
-            self.code_cache,
-            &self.limits,
-        )?;
+        #[cfg(fetchlet_process)]
+        let isolated = match &self.isolation {
+            crate::Isolation::Process(options) => Some(Engine::isolated(
+                options,
+                self.backend,
+                &module,
+                host.clone(),
+                &self.limits,
+            )),
+            crate::Isolation::InProcess => None,
+        };
+        #[cfg(not(fetchlet_process))]
+        let isolated: Option<Result<Engine>> = None;
+        let engine = match isolated {
+            Some(engine) => engine?,
+            None => Engine::new(
+                self.backend,
+                &module,
+                host.clone().into(),
+                self.code_cache,
+                &self.limits,
+            )?,
+        };
         Ok(App {
             engine,
             host,
