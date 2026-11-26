@@ -1,11 +1,13 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark) and (not (prefers-reduced-motion: reduce))" srcset="assets/brand/logo-horizontal-dark-animated.svg">
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/logo-horizontal-dark.svg" />
-    <source media="(prefers-color-scheme: light) and (not (prefers-reduced-motion: reduce))" srcset="assets/brand/logo-horizontal-light-animated.svg">
-    <source media="(prefers-color-scheme: light)" srcset="assets/brand/logo-horizontal-light.svg" />
-    <img alt="fetchlet" src="assets/brand/logo-horizontal-light.svg" width="320" />
-  </picture>
+  <a href="https://fetchlet.roundtrip.dev/">
+    <picture>
+      <source media="(prefers-color-scheme: dark) and (not (prefers-reduced-motion: reduce))" srcset="assets/brand/logo-horizontal-dark-animated.svg">
+      <source media="(prefers-color-scheme: dark)" srcset="assets/brand/logo-horizontal-dark.svg" />
+      <source media="(prefers-color-scheme: light) and (not (prefers-reduced-motion: reduce))" srcset="assets/brand/logo-horizontal-light-animated.svg">
+      <source media="(prefers-color-scheme: light)" srcset="assets/brand/logo-horizontal-light.svg" />
+      <img alt="fetchlet" src="assets/brand/logo-horizontal-light.svg" width="320" />
+    </picture>
+  </a>
 </p>
 
 <p align="center">
@@ -17,7 +19,7 @@
   <a href="https://fetchlet.roundtrip.dev/docs">Getting started</a> ·
   <a href="https://fetchlet.roundtrip.dev/docs/frameworks">Frameworks</a> ·
   <a href="https://fetchlet.roundtrip.dev/docs/agents">Coding agents</a> ·
-  <a href="examples/README.md">Examples</a>
+  <a href="examples">Examples</a>
 </p>
 
 ---
@@ -148,23 +150,23 @@ vp install --frozen-lockfile
 vp run @fetchlet-internal/example-sveltekit-axum#serve
 ```
 
-| Example                                                         | Host        | Port |
-| --------------------------------------------------------------- | ----------- | ---- |
-| [TanStack Start + axum](examples/tanstack-start-axum/README.md) | axum        | 3500 |
-| [React Router + axum](examples/react-router-axum/README.md)     | axum        | 3300 |
-| [vinext + axum](examples/vinext-axum/README.md)                 | axum        | 3900 |
-| [Astro + axum](examples/astro-axum/README.md)                   | axum        | 3100 |
-| [SvelteKit + axum](examples/sveltekit-axum/README.md)           | axum        | 3000 |
-| [Nuxt + axum](examples/nuxt-axum/README.md)                     | axum        | 3200 |
-| [SolidStart + axum](examples/solidstart-axum/README.md)         | axum        | 3600 |
-| [Solid 2 + axum](examples/solid-axum/README.md)                 | axum        | —    |
-| [Waku + axum](examples/waku-axum/README.md)                     | axum        | 3800 |
-| [Qwik City + axum](examples/qwik-city-axum/README.md)           | axum        | 3700 |
-| [HonoX + axum](examples/honox-axum/README.md)                   | axum        | 3400 |
-| [Vanilla Vite + axum](examples/vanilla-axum/README.md)          | axum        | —    |
-| [Vanilla CLI](examples/vanilla-cli/README.md)                   | CLI         | —    |
-| [HonoX + Tauri](examples/honox-tauri/README.md)                 | Tauri       | —    |
-| [Markdown Workspace](examples/sveltekit-axum-tauri/README.md)   | CLI / Tauri | —    |
+| Example                                               | Host        | Port |
+| ----------------------------------------------------- | ----------- | ---- |
+| [TanStack Start + axum](examples/tanstack-start-axum) | axum        | 3500 |
+| [React Router + axum](examples/react-router-axum)     | axum        | 3300 |
+| [vinext + axum](examples/vinext-axum)                 | axum        | 3900 |
+| [Astro + axum](examples/astro-axum)                   | axum        | 3100 |
+| [SvelteKit + axum](examples/sveltekit-axum)           | axum        | 3000 |
+| [Nuxt + axum](examples/nuxt-axum)                     | axum        | 3200 |
+| [SolidStart + axum](examples/solidstart-axum)         | axum        | 3600 |
+| [Solid 2 + axum](examples/solid-axum)                 | axum        | —    |
+| [Waku + axum](examples/waku-axum)                     | axum        | 3800 |
+| [Qwik City + axum](examples/qwik-city-axum)           | axum        | 3700 |
+| [HonoX + axum](examples/honox-axum)                   | axum        | 3400 |
+| [Vanilla Vite + axum](examples/vanilla-axum)          | axum        | —    |
+| [Vanilla CLI](examples/vanilla-cli)                   | CLI         | —    |
+| [HonoX + Tauri](examples/honox-tauri)                 | Tauri       | —    |
+| [Markdown Workspace](examples/sveltekit-axum-tauri)   | CLI / Tauri | —    |
 
 See [examples/README.md](examples/README.md) for dev loops (`dev`, `dev:vite`)
 and switching engines.
@@ -175,7 +177,7 @@ and switching engines.
 - **Rust API reference:** [docs.rs/fetchlet](https://docs.rs/fetchlet) ·
   [fetchlet-http](https://docs.rs/fetchlet-http) ·
   [fetchlet-net](https://docs.rs/fetchlet-net)
-- **Maintainer docs:** [docs/README.md](docs/README.md)
+- **Maintainer docs:** [docs](docs)
 
 ## Repository layout
 
