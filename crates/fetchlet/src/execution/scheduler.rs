@@ -12,6 +12,8 @@ pub(crate) struct WakeSignal {
 
 impl WakeSignal {
     pub fn notify(&self) {
+        #[cfg(feature = "operation-counts")]
+        crate::diagnostics::record("wake", 0, 0);
         self.notification.notify_one();
     }
 

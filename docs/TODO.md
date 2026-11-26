@@ -143,6 +143,11 @@ Third-party code still needs a process boundary. On V8, some hot loops that
 allocate are stopped only with `V8Options::reliable_termination`, which is
 off by default; report that gap to V8 with the loop as a reproduction
 ([the V8 termination gap](research/interrupts-and-heap-limits.md#the-v8-termination-gap)).
+[Process isolation](research/process-isolation.md) designs that boundary:
+each instance's engine in a child process behind the bridge, with host
+services kept in the parent, a kill timer and OS memory limits on every
+engine, and optional sandbox profiles. Next is its first phase, measuring
+host operations per request and pipe round trips.
 
 ### Instance pools
 

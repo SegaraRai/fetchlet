@@ -12,6 +12,9 @@ mod requirements;
 mod wire;
 mod worker;
 
+#[cfg(feature = "operation-counts")]
+mod diagnostics;
+
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
 mod app;
 #[cfg(any(feature = "boa", feature = "quickjs", feature = "v8"))]
@@ -42,6 +45,10 @@ pub use host::{
 pub use http;
 pub use requirements::Requirements;
 pub use worker::{AppHandle, CancelledCalls, HeldConnection, Instances, PoolState, WorkerOptions};
+
+#[cfg(feature = "operation-counts")]
+#[doc(hidden)]
+pub use diagnostics::{OperationCount, start_operation_counts, take_operation_counts};
 
 #[cfg(feature = "fuzzing")]
 #[doc(hidden)]

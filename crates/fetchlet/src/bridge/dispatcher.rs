@@ -427,7 +427,10 @@ impl HostBridge {
     }
 
     pub fn dispatch(&self, operation: String, input: String) -> String {
-        encode_reply(self.dispatch_operation(&operation, &input)).to_string()
+        let reply = encode_reply(self.dispatch_operation(&operation, &input)).to_string();
+        #[cfg(feature = "operation-counts")]
+        crate::diagnostics::record(&operation, input.len(), reply.len());
+        reply
     }
 
     /// Copy bytes from a JavaScript typed array into the current invocation.
@@ -435,6 +438,8 @@ impl HostBridge {
     /// Each buffer is one bridge message from the guest, so
     /// `bridge_message_bytes` applies to it, as to JSON messages.
     pub fn put_guest_bytes(&self, bytes: &[u8]) -> Result<u64> {
+        #[cfg(feature = "operation-counts")]
+        crate::diagnostics::record("bytes.put", bytes.len(), 0);
         let mut state = self.lock_state()?;
         let invocation = state.invocation.as_mut().ok_or(Error::InvocationClosed)?;
         check_limit(
@@ -451,7 +456,12 @@ impl HostBridge {
         if !((1.0..=9_007_199_254_740_991.0).contains(&handle) && handle.fract() == 0.0) {
             return Err(Error::InvalidRequest("invalid byte handle".into()));
         }
-        self.take_bytes(handle as u64)
+        let bytes = self.take_bytes(handle as u64);
+        #[cfg(feature = "operation-counts")]
+        if let Ok(bytes) = &bytes {
+            crate::diagnostics::record("bytes.take", 0, bytes.len());
+        }
+        bytes
     }
 
     /// Take bytes that the other side of the current invocation stored.

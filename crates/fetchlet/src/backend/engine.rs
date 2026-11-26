@@ -62,6 +62,8 @@ impl Engine {
         expression: String,
         deadline: Option<std::time::Instant>,
     ) -> anyhow::Result<Value> {
+        #[cfg(feature = "operation-counts")]
+        crate::diagnostics::record("engine.evaluate", expression.len(), 0);
         match self {
             #[cfg(feature = "quickjs")]
             Self::QuickJs(engine) => engine.evaluate_until(expression, deadline).await,
@@ -75,6 +77,8 @@ impl Engine {
 
 impl Instance for Engine {
     async fn call_json(&mut self, export: &str, args: &[Value]) -> anyhow::Result<Value> {
+        #[cfg(feature = "operation-counts")]
+        crate::diagnostics::record("engine.call", export.len(), 0);
         match self {
             #[cfg(feature = "quickjs")]
             Self::QuickJs(engine) => engine.call_json(export, args).await,

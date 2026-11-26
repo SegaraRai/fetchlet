@@ -176,3 +176,48 @@ A run that passes a limit reports the failure for that framework and
 backend instead of its row, so sweeping a value finds what each
 application needs ([measured needs](../../docs/research/interrupts-and-heap-limits.md#measured-needs-of-the-examples)).
 | `--output` | standard output | The JSON report |
+
+## Process isolation
+
+Two tools measure what a process boundary at the bridge would add
+([process isolation](../../docs/research/process-isolation.md#costs)).
+
+`host-operations` builds Apps from the artifacts `vp run bench` leaves in
+`.cache/bench`, as `startup` does, and counts what crosses between the
+engine and the host per request to the `ssr`, `context` and `echo`
+endpoints: each host operation, `bytes.put` and `bytes.take`, the
+evaluations the host starts and the wakes, with the bytes each carried.
+It uses fetchlet's hidden `operation-counts` feature, which counts only
+after `start_operation_counts`.
+
+```bash
+node tools/workspace/cargo.ts run --release -p fetchlet-bench --bin host-operations -- .cache/bench --output .cache/isolation/host-operations.json
+```
+
+| Argument       | Default                     | Meaning                                         |
+| -------------- | --------------------------- | ----------------------------------------------- |
+| `--frameworks` | `bare` and the ten examples | Directories under the bench directory           |
+| `--backends`   | `quickjs,boa,v8`            | Artifact builds and engines                     |
+| `--requests`   | 20                          | Counted requests per endpoint, after two others |
+| `--output`     | standard output             | The JSON report                                 |
+
+`ipc` times starting a child process to its first byte, for itself and for
+a binary that links all three engines, and round trips of length-prefixed
+frames over a child's standard input and output, for message sizes like
+the host operations', with the parent blocking on a thread and on tokio's
+pipes.
+
+```bash
+node tools/workspace/cargo.ts build --release -p fetchlet-bench --bin host-operations --bin ipc
+target/release/ipc --output .cache/isolation/ipc.json
+```
+
+| Argument          | Default                         | Meaning                                     |
+| ----------------- | ------------------------------- | ------------------------------------------- |
+| `--starts`        | 30                              | Child starts per binary                     |
+| `--round-trips`   | 20000                           | Round trips of the smallest frames          |
+| `--engine-binary` | `host-operations` next to `ipc` | The binary whose start includes the engines |
+| `--output`        | standard output                 | The JSON report                             |
+
+Both write to `.cache/isolation`; the numbers depend on the machine and are
+not committed.
