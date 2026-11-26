@@ -11,7 +11,7 @@ use super::QuickJsOptions;
 use super::heap::HeapLimit;
 use crate::Instance;
 use crate::backend::{CodeCache, Script, Startup};
-use crate::bridge::HostBridge;
+use crate::bridge::GuestLink;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, Interrupt, Interrupted, LOOP_STEP, LoopState, PRELUDE,
     SEAL_HOST, STACK_TRACE, WakeSignal, invocation, observed,
@@ -31,12 +31,12 @@ impl QuickJs {
     }
 
     pub fn with_options(source: &str, options: QuickJsOptions) -> Result<Self> {
-        Self::with_host(&Startup::unchecked(source), HostBridge::default(), options)
+        Self::with_host(&Startup::unchecked(source), GuestLink::default(), options)
     }
 
     pub(crate) fn with_host(
         startup: &Startup<'_>,
-        host: HostBridge,
+        host: GuestLink,
         options: QuickJsOptions,
     ) -> Result<Self> {
         options.validate()?;

@@ -9,7 +9,7 @@ use serde_json::Value;
 use super::{V8Options, heap};
 use crate::Instance;
 use crate::backend::{Check, CodeCache, Script};
-use crate::bridge::HostBridge;
+use crate::bridge::GuestLink;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, Interrupt, Interrupted, LOOP_STEP, LoopState, PRELUDE,
     SEAL_HOST, WakeSignal, invocation, observed,
@@ -109,7 +109,7 @@ pub(super) struct V8Runtime {
 #[deno_core::op2]
 #[string]
 fn op_fetchlet_host(state: &mut OpState, #[string] op: String, #[string] input: String) -> String {
-    state.borrow::<HostBridge>().dispatch(op, input)
+    state.borrow::<GuestLink>().dispatch(op, input)
 }
 
 /// A Uint8Array with bytes that Rust stored in the current invocation.
@@ -117,7 +117,7 @@ fn op_fetchlet_host(state: &mut OpState, #[string] op: String, #[string] input: 
 #[buffer]
 fn op_fetchlet_take_bytes(state: &mut OpState, handle: f64) -> Result<Vec<u8>, JsErrorBox> {
     state
-        .borrow::<HostBridge>()
+        .borrow::<GuestLink>()
         .take_guest_bytes(handle)
         .map(|bytes| bytes.to_vec())
         .map_err(|error| JsErrorBox::type_error(error.guest_message()))
@@ -127,7 +127,7 @@ fn op_fetchlet_take_bytes(state: &mut OpState, handle: f64) -> Result<Vec<u8>, J
 #[deno_core::op2(fast)]
 fn op_fetchlet_put_bytes(state: &mut OpState, #[buffer] bytes: &[u8]) -> Result<f64, JsErrorBox> {
     state
-        .borrow::<HostBridge>()
+        .borrow::<GuestLink>()
         .put_guest_bytes(bytes)
         .map(|handle| handle as f64)
         .map_err(|error| JsErrorBox::type_error(error.guest_message()))
@@ -159,7 +159,7 @@ impl V8Runtime {
         source: &str,
         check: &Check,
         cache: Option<&CodeCache>,
-        host: HostBridge,
+        host: GuestLink,
         options: &V8Options,
         heap: Option<usize>,
         interrupt: Interrupt,
@@ -192,7 +192,7 @@ impl V8Runtime {
         source: &str,
         check: &Check,
         cache: Option<&CodeCache>,
-        host: HostBridge,
+        host: GuestLink,
     ) -> Result<WakeSignal> {
         // fetchlet drives microtasks itself rather than through deno_core's
         // event loop, so the profile, not deno_core, tracks rejections.

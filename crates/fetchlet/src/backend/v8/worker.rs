@@ -13,7 +13,7 @@ use super::watchdog::{IsolateSlot, Watchdog};
 use super::{V8Options, flags};
 use crate::Instance;
 use crate::backend::Startup;
-use crate::bridge::HostBridge;
+use crate::bridge::GuestLink;
 use crate::execution::{Interrupt, Interrupted, WakeSignal, invocation};
 
 struct Call {
@@ -43,12 +43,12 @@ impl V8 {
     }
 
     pub fn with_options(source: &str, options: V8Options) -> Result<Self> {
-        Self::with_host(&Startup::unchecked(source), HostBridge::default(), options)
+        Self::with_host(&Startup::unchecked(source), GuestLink::default(), options)
     }
 
     pub(crate) fn with_host(
         startup: &Startup<'_>,
-        host: HostBridge,
+        host: GuestLink,
         options: V8Options,
     ) -> Result<Self> {
         options.validate()?;

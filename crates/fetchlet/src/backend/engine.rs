@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde_json::Value;
 
 use super::{Backend, CodeCache, Startup};
-use crate::bridge::HostBridge;
+use crate::bridge::GuestLink;
 use crate::execution::Interrupted;
 use crate::{Error, Instance, Limits, Module, Result};
 
@@ -20,7 +20,7 @@ impl Engine {
     pub(crate) fn new(
         backend: Backend,
         module: &Module,
-        host: HostBridge,
+        host: GuestLink,
         code_cache: Arc<CodeCache>,
         limits: &Limits,
     ) -> Result<Self> {

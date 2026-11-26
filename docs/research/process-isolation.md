@@ -17,8 +17,9 @@ budgets by killing the child or through OS limits, the same way on every
 engine. Optionally, an OS sandbox removes the child's authority beyond its
 connection to the parent.
 
-Status: design. The first phase, measurement, is done on Windows; nothing
-else is implemented. [Costs](#costs) gives the measurements.
+Status: design. The first phase, measurement, is done on Windows
+([Costs](#costs)), and the second, the `GuestLink` seam, is in place.
+Process isolation itself is not implemented.
 
 ## Goals
 
@@ -354,9 +355,11 @@ work, so this design does not offer it.
 1. **Measurement.** Done on Windows ([Costs](#costs)). Linux remains to
    be measured with the same tools before phase 3 settles the parent's
    threading.
-2. **The `GuestLink` seam.** Engines take a `GuestLink` (`Local(HostBridge)`
-   or `Remote`) in place of `HostBridge`. With only `Local`, this is a
-   refactor with no change in behavior, checked by the existing suites.
+2. **The `GuestLink` seam.** Done. Engines take a `GuestLink`
+   (`crates/fetchlet/src/bridge/guest_link.rs`) in place of `HostBridge`:
+   host operations, the byte store and the wake signal, and nothing else
+   of the bridge. Its only variant is `Local(HostBridge)`, so behavior is
+   unchanged; phase 3 adds `Remote`.
 3. **Process isolation.** Add the `process` feature, `Isolation`,
    `ProcessOptions`, the frame codec, `serve_if_child`, the remote `Engine`,
    the kill timer, the OS memory limits and `Error::InstanceLost`. The

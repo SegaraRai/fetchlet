@@ -19,7 +19,7 @@ use serde_json::Value;
 use super::{BoaOptions, array_buffer, stack_trace};
 use crate::Instance;
 use crate::backend::Startup;
-use crate::bridge::HostBridge;
+use crate::bridge::GuestLink;
 use crate::execution::{
     FLUSH_REJECTIONS, HOST_BOOTSTRAP, Interrupt, Interrupted, LOOP_STEP, LoopState, PRELUDE,
     SEAL_HOST, STACK_TRACE, WakeSignal, invocation, observed,
@@ -32,22 +32,22 @@ pub struct Boa {
     wake: WakeSignal,
 }
 
-/// The host bridge and the instance's interrupt, which Boa's natives and
-/// hooks reach through the context.
-struct BoaHost(HostBridge, Interrupt);
+/// The link to the host and the instance's interrupt, which Boa's natives
+/// and hooks reach through the context.
+struct BoaHost(GuestLink, Interrupt);
 
 impl Boa {
     pub fn new(source: &str) -> Result<Self> {
         Self::with_host(
             &Startup::unchecked(source),
-            HostBridge::default(),
+            GuestLink::default(),
             BoaOptions::default(),
         )
     }
 
     pub(crate) fn with_host(
         startup: &Startup<'_>,
-        host: HostBridge,
+        host: GuestLink,
         options: BoaOptions,
     ) -> Result<Self> {
         let mut context = Context::builder()
@@ -355,7 +355,7 @@ impl HostHooks for EngineHooks {
     }
 }
 
-fn host(context: &Context) -> HostBridge {
+fn host(context: &Context) -> GuestLink {
     context
         .get_data::<BoaHost>()
         .expect("host installed")

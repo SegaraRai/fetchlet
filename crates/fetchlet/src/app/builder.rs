@@ -94,7 +94,7 @@ impl AppBuilder {
         let engine = Engine::new(
             self.backend,
             &module,
-            host.clone(),
+            host.clone().into(),
             self.code_cache,
             &self.limits,
         )?;

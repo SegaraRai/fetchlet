@@ -146,8 +146,9 @@ off by default; report that gap to V8 with the loop as a reproduction
 [Process isolation](research/process-isolation.md) designs that boundary:
 each instance's engine in a child process behind the bridge, with host
 services kept in the parent, a kill timer and OS memory limits on every
-engine, and optional sandbox profiles. Next is its first phase, measuring
-host operations per request and pipe round trips.
+engine, and optional sandbox profiles. Its measurements on Windows and
+the `GuestLink` seam are done. Next are the same measurements on Linux and
+the process isolation itself.
 
 ### Instance pools
 
