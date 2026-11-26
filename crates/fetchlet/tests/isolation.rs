@@ -554,7 +554,7 @@ fn a_child_that_ends_at_startup_reports_instance_lost() -> TestResult {
 /// A memory budget that the instance starts within. On Linux the budget
 /// bounds the data segment, where V8 on x64 also reserves its code range,
 /// which needs more than 512 MiB.
-#[cfg(any(windows, target_os = "linux"))]
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 fn budget(backend: &Backend) -> usize {
     if cfg!(target_os = "linux") && format!("{backend:?}").starts_with("V8") {
         1 << 30
@@ -563,7 +563,7 @@ fn budget(backend: &Backend) -> usize {
     }
 }
 
-#[cfg(any(windows, target_os = "linux"))]
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 fn the_memory_budget_retires_the_instance() -> TestResult {
     block_on(async {
         for backend in backends() {
@@ -585,9 +585,10 @@ fn the_memory_budget_retires_the_instance() -> TestResult {
     })
 }
 
-#[cfg(not(any(windows, target_os = "linux")))]
+#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 fn the_memory_budget_retires_the_instance() -> TestResult {
-    // The budget is enforced on Windows and Linux; elsewhere it is refused.
+    // The budget is enforced on Windows, Linux and macOS; elsewhere it is
+    // refused.
     let options = ProcessOptions::new().memory_bytes(256 << 20);
     let result = build_with(
         backends()[0],

@@ -1,4 +1,6 @@
 mod child;
+#[cfg(target_os = "macos")]
+mod footprint;
 mod frame;
 #[cfg(windows)]
 mod job;

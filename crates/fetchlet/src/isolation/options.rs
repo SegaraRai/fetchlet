@@ -26,7 +26,7 @@ pub struct ProcessOptions {
     /// include the engine features of this build.
     pub program: Program,
     /// Caller budget for the child's whole memory: engine heap, compiled
-    /// code and stacks. The operating system enforces it, and reaching it
+    /// code and stacks. Reaching it
     /// fails the call with `LimitExceeded("process memory")` and retires the
     /// instance. None leaves the child unbounded beyond `Limits::heap_bytes`.
     ///
@@ -35,8 +35,11 @@ pub struct ProcessOptions {
     /// writable mappings and thread stacks, not the address space engines
     /// only reserve) before it builds the engine. V8 on x64 Linux reserves
     /// its code range writable, so a V8 budget there must exceed it: V8
-    /// starts under 768 MiB but not under 512 MiB. Elsewhere a value is
-    /// refused at build time.
+    /// starts under 768 MiB but not under 512 MiB. macOS has no limit the
+    /// kernel enforces per process, so the parent samples the child's
+    /// physical footprint every 10 ms and ends it at the budget; the child
+    /// can pass the budget by what it allocates in one interval. Elsewhere
+    /// a value is refused at build time.
     pub memory_bytes: Option<usize>,
     /// The native stack of the child's engine thread. None uses Rust's
     /// default for spawned threads (2 MiB unless `RUST_MIN_STACK` says
@@ -101,9 +104,11 @@ impl ProcessOptions {
                 "ProcessOptions::stack_bytes must be positive".into(),
             ));
         }
-        if self.memory_bytes.is_some() && !cfg!(any(windows, target_os = "linux")) {
+        if self.memory_bytes.is_some()
+            && !cfg!(any(windows, target_os = "linux", target_os = "macos"))
+        {
             return Err(crate::Error::Configuration(
-                "ProcessOptions::memory_bytes is enforced only on Windows and Linux".into(),
+                "ProcessOptions::memory_bytes is enforced only on Windows, Linux and macOS".into(),
             ));
         }
         Ok(())

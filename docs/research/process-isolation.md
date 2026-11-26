@@ -19,8 +19,10 @@ connection to the parent.
 
 Status: process isolation is implemented behind the `process` feature
 ([Implementation phases](#implementation-phases)), with the memory budget
-on Windows and Linux, and tested on both. Next are the measurements on
-Linux, the sandbox profiles and the remaining cost reductions.
+on Windows, Linux and macOS, tested on Windows and Linux; on macOS it is
+only compiled, since no macOS machine or CI runner is available. Next are
+the measurements on Linux, the sandbox profiles and the remaining cost
+reductions.
 
 ## Goals
 
@@ -121,7 +123,7 @@ App::builder(Backend::boa())
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Isolation::InProcess`         | The default; today's behavior                                                                                                                                                                                         |
 | `ProcessOptions::program`      | The caller: `CurrentExe` re-runs the embedder's binary in child mode; `Path` names a separate executable built with the same engine features                                                                          |
-| `ProcessOptions::memory_bytes` | Caller budget for the whole child (engine heap, code, stacks), enforced by the OS: a Job Object on Windows, `RLIMIT_DATA` on Linux. Refused on other platforms                                                        |
+| `ProcessOptions::memory_bytes` | Caller budget for the whole child (engine heap, code, stacks), bounded by a Job Object on Windows, `RLIMIT_DATA` on Linux, the parent sampling the physical footprint on macOS. Refused on other platforms            |
 | `ProcessOptions::stack_bytes`  | Caller budget: the native stack of the child's engine thread, which engine stack limits must fit. Rust's default for spawned threads unless set; fetchlet-http's `Server` passes its worker stack                     |
 | `ProcessOptions::kill_grace`   | Caller policy: how long past `busy_timeout` and `startup_timeout` the parent waits for the engine's own interrupt before it kills the child. The engine's interrupt keeps the error precise; the kill is the backstop |
 | `ProcessOptions::sandbox`      | Phase 4. Caller policy: `None`, or an OS profile ([Sandboxing](#sandboxing))                                                                                                                                          |
@@ -210,9 +212,8 @@ that each frame read writes back to bytes that read to the same frame.
 - **Cancellation.** Under `CancelledCalls::Retire`, dropping the call kills
   the child at once. Under `Finish`, the parent waits within the deadline,
   as today.
-- **Memory.** The OS limit fails allocations past `memory_bytes`, and the
-  parent reports `LimitExceeded("process memory")` and retires the
-  instance:
+- **Memory.** The child is bounded to `memory_bytes`, and the parent
+  reports `LimitExceeded("process memory")` and retires the instance:
   - Windows: a Job Object limits the committed memory; the parent reads
     its `JOB_OBJECT_MSG_PROCESS_MEMORY_LIMIT`.
   - Linux: the child sets `RLIMIT_DATA` on itself before it builds the
@@ -225,6 +226,13 @@ that each frame read writes back to bytes that read to the same frame.
     throws "out of memory", which the child reports. A cgroup v2
     `memory.max` would also bound file-backed memory, but needs a
     delegated cgroup, which a process cannot count on.
+  - macOS: the kernel enforces no per-process limit (`RLIMIT_DATA` and
+    `RLIMIT_AS` are not applied to allocations), so the parent samples the
+    child's physical footprint (`proc_pid_rusage`, `ri_phys_footprint`,
+    the figure macOS reports and applies memory pressure by) every 10 ms
+    and ends the child once it reaches the budget. The child can pass the
+    budget by what it allocates within one interval. This path is
+    compiled for `aarch64-apple-darwin` but has not run on macOS.
 
   The engine's own `heap_bytes` still stops the instance earlier with
   `LimitExceeded("engine heap")` where it applies.
@@ -385,7 +393,8 @@ work, so this design does not offer it.
 3. **Process isolation.** Done (`crates/fetchlet/src/isolation/`): the
    `process` feature, `AppBuilder::isolation`, `Isolation`,
    `ProcessOptions`, the frame codec, `serve_if_child`, the remote
-   `Engine`, the kill timer, the memory limits on Windows and Linux,
+   `Engine`, the kill timer, the memory limits on Windows, Linux and
+   macOS,
    `ProcessOptions::stack_bytes` and `Error::InstanceLost`. The child
    serves the operations that carry no authority, `fetch.limits` and
    `invocation.disconnected`, and sends stored bytes without waiting.

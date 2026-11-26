@@ -148,8 +148,9 @@ each instance's engine in a child process behind the bridge, with host
 services kept in the parent, a kill timer and OS memory limits on every
 engine, and optional sandbox profiles. `AppBuilder::isolation` and
 fetchlet-http's `Server::isolation` run it behind the `process` feature,
-with the memory budget on Windows and Linux. Next are the measurements on
-Linux, then the sandbox profiles and carrying taken bytes in replies.
+with the memory budget on Windows, Linux and macOS. Next are the
+measurements on Linux, running the isolation tests on macOS, then the
+sandbox profiles and carrying taken bytes in replies.
 
 ### Instance pools
 

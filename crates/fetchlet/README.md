@@ -171,7 +171,9 @@ invocation deadline, past `Limits::busy_timeout` plus
 `ProcessOptions::kill_grace`, and when a call is dropped, on every engine,
 so `Requirements::preemption` is met on Boa too.
 `ProcessOptions::memory_bytes` bounds the child's memory, with a Job Object
-on Windows and `RLIMIT_DATA` on Linux, and reaching it fails the call with
+on Windows, `RLIMIT_DATA` on Linux, and on macOS by sampling the child's
+physical footprint every 10 ms, which the child can pass by what it
+allocates within one interval. Reaching it fails the call with
 `LimitExceeded("process memory")`; other platforms refuse it. On x64
 Linux, V8 reserves its code range within that limit and needs more than
 512 MiB to start. `ProcessOptions::stack_bytes` sets the native stack of

@@ -67,6 +67,9 @@ struct Shared {
     reported_out_of_memory: AtomicBool,
     #[cfg(windows)]
     job: super::job::Job,
+    /// Set once the footprint watch ended the child at its budget (macOS).
+    #[cfg(target_os = "macos")]
+    over_budget: AtomicBool,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -85,13 +88,17 @@ impl Shared {
     }
 
     /// Whether the child reached its memory budget, by the Job Object's
-    /// report on Windows.
+    /// report on Windows and the footprint watch on macOS.
     fn exceeded_memory(&self) -> bool {
         #[cfg(windows)]
         {
             self.job.exceeded_memory()
         }
-        #[cfg(not(windows))]
+        #[cfg(target_os = "macos")]
+        {
+            self.over_budget.load(Ordering::Acquire)
+        }
+        #[cfg(not(any(windows, target_os = "macos")))]
         {
             false
         }
@@ -181,8 +188,8 @@ impl ProcessEngine {
         let input = child.stdin.take().expect("piped");
         let output = child.stdout.take().expect("piped");
         let errors = child.stderr.take().expect("piped");
-        // The child limits itself where the parent cannot.
-        let memory_bytes = options.memory_bytes.filter(|_| cfg!(not(windows)));
+        // The child limits itself on Linux; the parent bounds it elsewhere.
+        let memory_bytes = options.memory_bytes.filter(|_| cfg!(target_os = "linux"));
         let (startup, started) = mpsc::channel();
         let shared = Arc::new(Shared {
             child: Mutex::new(child),
@@ -197,7 +204,20 @@ impl ProcessEngine {
             reported_out_of_memory: AtomicBool::new(false),
             #[cfg(windows)]
             job,
+            #[cfg(target_os = "macos")]
+            over_budget: AtomicBool::new(false),
         });
+        #[cfg(target_os = "macos")]
+        if let Some(budget) = options.memory_bytes {
+            let watched = Arc::downgrade(&shared);
+            thread::Builder::new()
+                .name("fetchlet-isolated-footprint".into())
+                .spawn(move || watch_footprint(&watched, budget))
+                .map_err(|error| {
+                    shared.kill();
+                    Error::Configuration(format!("cannot start a thread: {error}"))
+                })?;
+        }
         let passer = shared.clone();
         let passing = thread::Builder::new()
             .name("fetchlet-isolated-stderr".into())
@@ -442,6 +462,33 @@ fn serve_child(shared: &Shared, mut output: ChildStdout, host: &HostBridge) {
     *lock(&shared.ended) = Some(reason);
     // Whoever waits sees the channel close and reads the reason.
     lock(&shared.waiter).take();
+}
+
+/// Sample the child's footprint until it ends, and end it once the
+/// footprint reaches the budget (macOS). The child stays unreaped while the
+/// lock on it is held, so the pid sampled is its own.
+#[cfg(target_os = "macos")]
+fn watch_footprint(shared: &std::sync::Weak<Shared>, budget: usize) {
+    let budget = u64::try_from(budget).unwrap_or(u64::MAX);
+    while let Some(shared) = shared.upgrade() {
+        {
+            let mut child = lock(&shared.child);
+            if !matches!(child.try_wait(), Ok(None)) {
+                return;
+            }
+            match super::footprint::footprint(child.id()) {
+                None => return,
+                Some(bytes) if bytes >= budget => {
+                    shared.over_budget.store(true, Ordering::Release);
+                    let _ = child.kill();
+                    return;
+                }
+                Some(_) => {}
+            }
+        }
+        drop(shared);
+        thread::sleep(super::footprint::SAMPLE_INTERVAL);
+    }
 }
 
 /// What the child's allocator or engine writes when an allocation fails:
