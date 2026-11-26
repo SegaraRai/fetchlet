@@ -81,7 +81,6 @@ impl Config {
         match self.backend {
             Engine::Quickjs => Ok(Backend::QuickJs(QuickJsOptions {
                 stack_limit_bytes: self.quickjs_stack_bytes,
-                ..QuickJsOptions::default()
             })),
             #[cfg(feature = "boa")]
             Engine::Boa => Ok(Backend::Boa(fetchlet::BoaOptions {

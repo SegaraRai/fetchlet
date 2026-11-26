@@ -41,7 +41,7 @@ impl QuickJs {
     ) -> Result<Self> {
         options.validate()?;
         let interrupt = startup.interrupt();
-        let runtime = match options.memory_limit_bytes {
+        let runtime = match startup.heap_bytes() {
             Some(limit) => Runtime::new_with_alloc(HeapLimit::new(limit, interrupt.clone()))?,
             None => Runtime::new()?,
         };

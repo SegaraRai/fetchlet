@@ -22,6 +22,9 @@ pub(crate) struct Startup<'a> {
     busy_timeout: Option<Duration>,
     /// `Limits::startup_timeout`.
     startup_timeout: Option<Duration>,
+    /// `Limits::heap_bytes`, which `AppBuilder::build` has checked against
+    /// the backend.
+    heap_bytes: Option<usize>,
 }
 
 impl<'a> Startup<'a> {
@@ -42,6 +45,7 @@ impl<'a> Startup<'a> {
             code_cache: Some(code_cache),
             busy_timeout: limits.busy_timeout,
             startup_timeout: limits.startup_timeout,
+            heap_bytes: limits.heap_bytes,
         }
     }
 
@@ -57,6 +61,7 @@ impl<'a> Startup<'a> {
             code_cache: None,
             busy_timeout: None,
             startup_timeout: None,
+            heap_bytes: None,
         }
     }
 
@@ -83,6 +88,12 @@ impl<'a> Startup<'a> {
     #[cfg_attr(not(feature = "v8"), allow(dead_code))]
     pub fn startup_timeout(&self) -> Option<Duration> {
         self.startup_timeout
+    }
+
+    /// `Limits::heap_bytes`, None for an engine built directly.
+    #[cfg_attr(not(any(feature = "quickjs", feature = "v8")), allow(dead_code))]
+    pub fn heap_bytes(&self) -> Option<usize> {
+        self.heap_bytes
     }
 
     /// The application's compiled code, None for an engine built directly.
@@ -140,6 +151,11 @@ fn static_unmet(requirements: &Requirements, backend: &Backend) -> Vec<String> {
     let mut unmet = Vec::new();
     if requirements.needs_async_context() && !backend.has_async_context() {
         unmet.push("async context".to_owned());
+    }
+    if requirements.needs_preemption()
+        && let Err(gap) = backend.preemption()
+    {
+        unmet.push(format!("preemption ({gap})"));
     }
     let capabilities = fetchlet_web::capabilities();
     let served: Vec<&str> = capabilities["apis"]

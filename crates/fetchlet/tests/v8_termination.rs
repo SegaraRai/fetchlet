@@ -9,7 +9,7 @@
 
 use std::time::{Duration, Instant};
 
-use fetchlet::{App, Backend, Error, Limits, Module, V8Options};
+use fetchlet::{App, Backend, Error, Limits, Module, Requirements, V8Options};
 
 const SOURCE: &str = r#"
 globalThis.fetchletExports = {
@@ -56,5 +56,17 @@ async fn the_busy_timeout_stops_allocating_loops() -> anyhow::Result<()> {
         }
         assert!(!app.is_reusable(), "{export}");
     }
+    Ok(())
+}
+
+/// The option is what `Requirements::preemption` asks of V8.
+#[test]
+fn reliable_termination_meets_the_preemption_requirement() -> anyhow::Result<()> {
+    App::builder(Backend::V8(V8Options {
+        reliable_termination: true,
+        ..V8Options::default()
+    }))
+    .module(Module::new(SOURCE).requires(Requirements::new().preemption()))
+    .build()?;
     Ok(())
 }

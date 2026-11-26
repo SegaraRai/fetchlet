@@ -16,9 +16,9 @@ bounding each instance's heap.
 
 | Engine         | Non-yielding JavaScript                                                                                                                                                                                                                                       | Heap                                                                                                                     |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| QuickJS (0.14) | Stopped at the deadline, past the busy timeout and past the startup timeout. The interrupt handler and the job loop check the instance's `Interrupt`; the evaluation fails and the instance retires.                                                          | A counting allocator enforces `memory_limit_bytes`; the instance stops and retires, even if JavaScript caught the error. |
-| Boa (0.22)     | Stopped at the next promise job or host call once the deadline, busy timeout or startup timeout passes. `loop_iteration_limit` stops a loop by count. JavaScript that queues no job, calls no host and runs no limited loop, such as deep recursion, runs on. | None.                                                                                                                    |
-| V8 (deno_core) | Stopped at the deadline, past the busy timeout and past the startup timeout. A watchdog thread per instance, and the caller dropping the call, terminate the isolate; the instance retires. Some allocating loops need `reliable_termination` (see below).    | `heap_limit_bytes` stops the isolate near the limit; `array_buffer_limit_bytes` refuses buffers with a `RangeError`.     |
+| QuickJS (0.14) | Stopped at the deadline, past the busy timeout and past the startup timeout. The interrupt handler and the job loop check the instance's `Interrupt`; the evaluation fails and the instance retires.                                                          | A counting allocator enforces `Limits::heap_bytes`; the instance stops and retires, even if JavaScript caught the error. |
+| Boa (0.22)     | Stopped at the next promise job or host call once the deadline, busy timeout or startup timeout passes. `loop_iteration_limit` stops a loop by count. JavaScript that queues no job, calls no host and runs no limited loop, such as deep recursion, runs on. | None; `Limits::heap_bytes` is refused at build time.                                                                     |
+| V8 (deno_core) | Stopped at the deadline, past the busy timeout and past the startup timeout. A watchdog thread per instance, and the caller dropping the call, terminate the isolate; the instance retires. Some allocating loops need `reliable_termination` (see below).    | `Limits::heap_bytes` stops the isolate near the limit; `array_buffer_limit_bytes` refuses buffers with a `RangeError`.   |
 
 `crates/fetchlet/tests/interrupts.rs` stops, on QuickJS and V8, a loop, a
 loop inside `try`/`catch`, a loop in a promise reaction, an endless
@@ -147,7 +147,7 @@ to recover either way.
 
 **QuickJS.** `set_memory_limit` is replaced by an `Allocator` passed to
 `Runtime::new_with_alloc`. The allocator counts each block's usable size
-plus its 8-byte header against `memory_limit_bytes`, the same total
+plus its 8-byte header against `Limits::heap_bytes`, the same total
 QuickJS's own `malloc_size` keeps, and refuses allocations past it. On a
 refusal it records `interrupt.stop(Heap)`. Then:
 
@@ -165,7 +165,7 @@ five: 2.31 s and 2.33 s in one round, 2.61 s and 2.29 s in another). Its
 counter has no atomics, because a QuickJS runtime allocates on one
 thread.
 
-**V8.** `V8Options::heap_limit_bytes` passes `heap_limits(0, max)` through
+**V8.** `Limits::heap_bytes` passes `heap_limits(0, max)` through
 `create_params`. A near-heap-limit callback records `interrupt.stop(Heap)`,
 calls `terminate_execution`, and the first time returns the current limit
 plus headroom (a quarter of the limit, at least 8 MiB) so that termination
@@ -196,24 +196,32 @@ reasons:
 - Memory freed on another thread is charged to the wrong instance.
 - It would impose a global allocator on the embedding application.
 
-Boa deployments that need a memory bound rely on the process boundary.
+Boa deployments that need a memory bound rely on the process boundary,
+and an App on Boa with `Limits::heap_bytes` fails to build, so that the
+budget is never silently unenforced.
 
 ### Configuration
 
-| Setting                               | Owner  | Default        | fetchlet-http `Server`                             |
-| ------------------------------------- | ------ | -------------- | -------------------------------------------------- |
-| `Limits::busy_timeout`                | Caller | `None`         | 10 s ([measured](#measured-needs-of-the-examples)) |
-| `Limits::startup_timeout`             | Caller | `None`         | 60 s                                               |
-| `QuickJsOptions::memory_limit_bytes`  | Caller | `None`         | 64 MiB                                             |
-| `V8Options::heap_limit_bytes`         | Caller | `None`         | 64 MiB; at least 16 MiB is accepted                |
-| `V8Options::array_buffer_limit_bytes` | Caller | The heap limit | The heap limit                                     |
-| `V8Options::reliable_termination`     | Caller | Off            | Off ([cost](#cost))                                |
-| `BoaOptions::loop_iteration_limit`    | Caller | `None`         | None                                               |
+| Setting                               | Owner  | Default        | fetchlet-http `Server`                                          |
+| ------------------------------------- | ------ | -------------- | --------------------------------------------------------------- |
+| `Limits::busy_timeout`                | Caller | `None`         | 10 s ([measured](#measured-needs-of-the-examples))              |
+| `Limits::startup_timeout`             | Caller | `None`         | 60 s                                                            |
+| `Limits::heap_bytes`                  | Caller | `None`         | 64 MiB on QuickJS and V8; at least 16 MiB on V8; refused on Boa |
+| `V8Options::array_buffer_limit_bytes` | Caller | The heap limit | The heap limit                                                  |
+| `V8Options::reliable_termination`     | Caller | Off            | Off ([cost](#cost))                                             |
+| `BoaOptions::loop_iteration_limit`    | Caller | `None`         | None                                                            |
 
 `Server::default_limits()` holds the two timeouts, which `Server::limits`
-replaces; `Backend::with_default_quickjs_memory` and
-`Backend::with_default_v8_heap` set the heaps where a default backend has
-none. A backend given to the `Server` is used as it is.
+replaces. With its default backend on an engine that bounds its heap, the
+`Server` sets `heap_bytes` where the limits have none. A backend given to
+the `Server` is used as it is, with the limits as they are.
+
+The heap budget is one engine-independent field so that a budget never
+depends on which engine's options happen to carry it: an engine maps it to
+its own mechanism, and `AppBuilder::build` refuses it on Boa, which has
+none, instead of running without it. `Requirements::preemption` does the
+same for stopping JavaScript that never yields: QuickJS meets it, V8 with
+`reliable_termination`, and Boa does not.
 
 ### Measured needs of the examples
 
@@ -229,7 +237,7 @@ run passed, one run per value:
 | ----------------------- | ------------------------ | -------------------------- | -------------------------- | ------------------------------------------ |
 | `busy_timeout`, ms      | 5, 10, 25, 50, 100       | 25 (Waku); 10 or less else | 100 (Waku), 50 (vinext)    | 100 (vinext), 50 (Astro, Nuxt, Qwik, Waku) |
 | `startup_timeout`, ms   | 10 to 10,000             | 500 (Astro), 250 (vinext)  | 250 (vinext); 100 else     | 5,000 (Astro), 2,500 (TanStack, vinext)    |
-| `heap_limit_bytes`, MiB | 4, 8, 16, 24, 32, 48, 64 |                            | 24 (vinext, Waku); 16 else |                                            |
+| `heap_bytes` on V8, MiB | 4, 8, 16, 24, 32, 48, 64 |                            | 24 (vinext, Waku); 16 else |                                            |
 | `loop_iteration_limit`  | 100 to 10,000,000        |                            |                            | 10,000 (Astro, vinext); 1,000 else         |
 
 - **Busy timeout.** A server-rendered page returns to the event loop
@@ -257,7 +265,7 @@ run passed, one run per value:
 
 Two defects turned up:
 
-- A `heap_limit_bytes` of 7 MiB or less aborted the process with V8's
+- A V8 heap limit of 7 MiB or less aborted the process with V8's
   `Fatal JavaScript out of memory` while `JsRuntime::new` built the
   isolate, before the near-heap-limit callback that turns exhaustion into
   `LimitExceeded("engine heap")` is installed; 8 MiB failed the build

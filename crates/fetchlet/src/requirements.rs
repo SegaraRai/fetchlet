@@ -26,6 +26,7 @@ pub struct Requirements {
     async_context: bool,
     host_apis: BTreeSet<String>,
     host_protocol: Option<u32>,
+    preemption: bool,
 }
 
 impl Requirements {
@@ -78,9 +79,22 @@ impl Requirements {
         self
     }
 
+    /// That the engine stops JavaScript that never yields wherever it
+    /// runs, when the deadline, busy timeout or startup timeout passes or
+    /// the call is cancelled. Builds do not record it: an embedder that
+    /// runs code it does not trust adds it to the module's requirements.
+    /// QuickJS meets it, and V8 with `V8Options::reliable_termination`; Boa
+    /// stops JavaScript only at its promise jobs and host calls, so it does
+    /// not.
+    pub fn preemption(mut self) -> Self {
+        self.preemption = true;
+        self
+    }
+
     pub fn is_empty(&self) -> bool {
         self.engine_apis.is_empty()
             && !self.async_context
+            && !self.preemption
             && self.host_apis.is_empty()
             && self.host_protocol.is_none()
     }
@@ -102,6 +116,10 @@ impl Requirements {
 
     pub(crate) fn needs_async_context(&self) -> bool {
         self.async_context
+    }
+
+    pub(crate) fn needs_preemption(&self) -> bool {
+        self.preemption
     }
 
     pub(crate) fn host_apis(&self) -> impl Iterator<Item = &str> {

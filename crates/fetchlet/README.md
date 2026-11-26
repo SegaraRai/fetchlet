@@ -136,13 +136,23 @@ Boa stops it at its next promise job or host call, and
 on Boa runs until it yields. A deadline that includes queueing can be
 applied in Rust to the whole call future.
 
-`QuickJsOptions::memory_limit_bytes` and `V8Options::heap_limit_bytes` bound
-an instance's heap: reaching the limit fails the call with
-`LimitExceeded("engine heap")` and retires the instance.
+`Limits::heap_bytes` bounds an instance's heap on QuickJS and V8: reaching
+it fails the call with `LimitExceeded("engine heap")` and retires the
+instance. Boa has no heap limit, so an App on Boa with a heap budget fails
+to build with `Error::Configuration` rather than run without it;
+`Backend::bounds_heap` tells which engines enforce it.
 `V8Options::array_buffer_limit_bytes` bounds `ArrayBuffer` storage, which
-lives outside V8's heap; past it, JavaScript gets a `RangeError`. A V8 heap
-limit below `MIN_V8_HEAP_LIMIT_BYTES`, 16 MiB, is refused, since V8 would end
-the process while the isolate starts.
+lives outside V8's heap, and defaults to the heap budget; past it,
+JavaScript gets a `RangeError`. A heap budget below
+`MIN_V8_HEAP_LIMIT_BYTES`, 16 MiB, is refused on V8, since V8 would end the
+process while the isolate starts.
+
+`Requirements::preemption` asks that the engine stop JavaScript that never
+yields wherever it runs. QuickJS meets it, and V8 with
+`V8Options::reliable_termination`; on Boa, or on V8 without the option, the
+App fails to build and names the gap. An embedder that runs code it does
+not trust adds it to the module's requirements:
+`Module::new(source).requires(artifact.requirements().preemption())`.
 
 V8 does not stop some hot loops that allocate, such as one around
 `new Array(1000).fill(0)`, while it compiles their optimized code on a

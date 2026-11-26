@@ -141,7 +141,7 @@ tables above.
 ## Memory
 
 Working set added per instance, in MiB, and the QuickJS heap
-(`QuickJsOptions::memory_limit_bytes`) under which the application built
+(`Limits::heap_bytes` on QuickJS) under which the application built
 and served 20 pages:
 
 | Application    | QuickJS |   V8 |  Boa | QuickJS heap, MiB |
@@ -166,7 +166,7 @@ and served 20 pages:
   MiB on V8 and 11 to 67 MiB on Boa.
 - These runs predate the engine heap limits. A QuickJS heap over its limit
   now fails with `LimitExceeded("engine heap")` and retires the instance,
-  and `V8Options::heap_limit_bytes` bounds a V8 heap; the examples need
+  and `Limits::heap_bytes` bounds a V8 heap; the examples need
   16 to 24 MiB of it ([interrupts and heap limits](interrupts-and-heap-limits.md#measured-needs-of-the-examples)).
   Boa instances grow without a bound of their own.
 
@@ -248,9 +248,9 @@ For server-rendering applications like these examples:
   with forty times the QuickJS margin and eight times Boa's; add the
   longest upstream fetch the handler awaits. The examples' 10 s leaves room
   for slow upstreams.
-- **`QuickJsOptions::memory_limit_bytes`.** 64 MiB per instance: twice the
+- **`Limits::heap_bytes` on QuickJS.** 64 MiB per instance: twice the
   largest measured need, Astro's 25 to 32 MiB, so larger pages have room.
-  fetchlet-http's `Server` sets it unless the backend has its own.
+  fetchlet-http's `Server` sets it unless the limits have their own.
   An application can measure its own need with `startup
   --quickjs-memory-mib`.
 - **`Instances::max`.** Bounded by memory as well as threads: the memory

@@ -39,12 +39,15 @@ such as deep recursion, holds its thread until it finishes. V8 does not
 terminate some hot loops that allocate, such as one around
 `new Array(n).fill(value)` for `n` of 17 or more, unless
 `V8Options::reliable_termination` is set.
-QuickJS's `memory_limit_bytes` and V8's `heap_limit_bytes` stop an instance
-at its heap limit and retire it; on V8 an allocation larger than the
-unwinding headroom still ends the process, and Boa has no heap limit
+`Limits::heap_bytes` stops a QuickJS or V8 instance at its heap budget and
+retires it; on V8 an allocation larger than the unwinding headroom still
+ends the process. Boa has no heap limit, and an App on Boa with a heap
+budget is refused at build time rather than run unbounded
 ([interrupts and heap limits](research/interrupts-and-heap-limits.md)). Running
-third-party code requires choosing the enforcement it needs and checking
-what each engine provides. Ahead-of-time compiled code is native code.
+third-party code requires choosing the enforcement it needs:
+`Requirements::preemption` refuses, at build time, an engine that cannot
+stop JavaScript that never yields, which is Boa and V8 without
+`reliable_termination`. Ahead-of-time compiled code is native code.
 
 The Web API profile is verified against pinned SSR applications and
 selected standards tests. [Conformance](conformance.md) records the

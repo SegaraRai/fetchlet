@@ -14,8 +14,8 @@
 //! the same state, and builds its App as fetchlet-http's axum server does:
 //! the artifact's module, requirements and handler, the HonoX example's host
 //! services, and one instance on a worker thread with a 64 MiB stack.
-//! `--quickjs-memory-mib` sets `QuickJsOptions::memory_limit_bytes`,
-//! `--v8-heap-mib` `V8Options::heap_limit_bytes`, `--boa-loop-limit`
+//! `--quickjs-memory-mib` and `--v8-heap-mib` set `Limits::heap_bytes` on
+//! their engine, `--boa-loop-limit`
 //! `BoaOptions::loop_iteration_limit`, and `--busy-timeout-ms` and
 //! `--startup-timeout-ms` the `Limits` of the same names, to find what an
 //! application needs: a run that fails names the limit it passed.
@@ -289,12 +289,7 @@ fn backend(artifact: &Artifact, name: &str, settings: &Settings) -> Result<Backe
         .with_default_quickjs_stack(4 * 1024 * 1024)
         .with_default_boa_stack(128 * 1024, 10_000);
     Ok(match backend {
-        Backend::QuickJs(mut options) if settings.quickjs_memory_bytes.is_some() => {
-            options.memory_limit_bytes = settings.quickjs_memory_bytes;
-            Backend::QuickJs(options)
-        }
         Backend::V8(mut options) => {
-            options.heap_limit_bytes = settings.v8_heap_bytes;
             options.reliable_termination = settings.v8_reliable_termination;
             Backend::V8(options)
         }
@@ -321,7 +316,14 @@ fn builder(
     settings: &Settings,
     source: &str,
 ) -> Result<AppBuilder> {
-    Ok(App::builder(backend(artifact, name, settings)?)
+    let backend = backend(artifact, name, settings)?;
+    // The heap flag of the backend's own engine sets `Limits::heap_bytes`.
+    let heap_bytes = match backend {
+        Backend::QuickJs(_) => settings.quickjs_memory_bytes,
+        Backend::V8(_) => settings.v8_heap_bytes,
+        _ => None,
+    };
+    Ok(App::builder(backend)
         .module(Module::new(source.to_owned()).requires(artifact.requirements()))
         .fetch_handler(artifact.handler())
         .host_services(host_services()?)
@@ -329,6 +331,7 @@ fn builder(
             timeout: Some(Duration::from_secs(30)),
             busy_timeout: settings.busy_timeout_ms.map(Duration::from_millis),
             startup_timeout: settings.startup_timeout_ms.map(Duration::from_millis),
+            heap_bytes,
             ..Limits::default()
         }))
 }

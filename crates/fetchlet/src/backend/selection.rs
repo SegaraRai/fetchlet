@@ -85,36 +85,6 @@ impl Backend {
         }
     }
 
-    /// Set QuickJS's heap limit to `bytes` when it has none; other engines
-    /// are unchanged.
-    #[cfg_attr(not(feature = "quickjs"), allow(unused_variables))]
-    pub fn with_default_quickjs_memory(self, bytes: usize) -> Self {
-        match self {
-            #[cfg(feature = "quickjs")]
-            Self::QuickJs(mut options) => {
-                options.memory_limit_bytes.get_or_insert(bytes);
-                Self::QuickJs(options)
-            }
-            #[allow(unreachable_patterns)]
-            other => other,
-        }
-    }
-
-    /// Set V8's heap limit to `bytes` when it has none; other engines are
-    /// unchanged.
-    #[cfg_attr(not(feature = "v8"), allow(unused_variables))]
-    pub fn with_default_v8_heap(self, bytes: usize) -> Self {
-        match self {
-            #[cfg(feature = "v8")]
-            Self::V8(mut options) => {
-                options.heap_limit_bytes.get_or_insert(bytes);
-                Self::V8(options)
-            }
-            #[allow(unreachable_patterns)]
-            other => other,
-        }
-    }
-
     /// Set Boa's value stack limit to `slots` and its recursion limit to
     /// `depth` where it has none; other engines are unchanged. Both must fit
     /// the native stack of the thread the engine runs on.
@@ -154,6 +124,60 @@ impl Backend {
             Self::QuickJs(_) => false,
             #[cfg(feature = "v8")]
             Self::V8(_) => true,
+        }
+    }
+
+    /// Whether the engine enforces `Limits::heap_bytes`: QuickJS and V8 do,
+    /// Boa has no heap limit.
+    pub fn bounds_heap(&self) -> bool {
+        match self {
+            #[cfg(feature = "boa")]
+            Self::Boa(_) => false,
+            #[cfg(feature = "quickjs")]
+            Self::QuickJs(_) => true,
+            #[cfg(feature = "v8")]
+            Self::V8(_) => true,
+        }
+    }
+
+    /// Whether the engine stops JavaScript that never yields wherever it
+    /// runs, or why not, for `Requirements::preemption`.
+    pub(crate) fn preemption(&self) -> Result<(), &'static str> {
+        match self {
+            #[cfg(feature = "boa")]
+            Self::Boa(_) => Err("Boa stops JavaScript only at its promise jobs and host calls"),
+            #[cfg(feature = "quickjs")]
+            Self::QuickJs(_) => Ok(()),
+            #[cfg(feature = "v8")]
+            Self::V8(options) if options.reliable_termination => Ok(()),
+            #[cfg(feature = "v8")]
+            Self::V8(_) => Err(
+                "V8 runs some allocating loops to their end unless V8Options::reliable_termination is set",
+            ),
+        }
+    }
+
+    /// Refuse budgets this engine cannot enforce, so that a budget the
+    /// caller set never goes silently unenforced.
+    #[cfg_attr(not(any(feature = "boa", feature = "v8")), allow(unused_variables))]
+    pub(crate) fn validate_limits(&self, limits: &crate::Limits) -> crate::Result<()> {
+        let Some(heap) = limits.heap_bytes else {
+            return Ok(());
+        };
+        match self {
+            #[cfg(feature = "boa")]
+            Self::Boa(_) => Err(crate::Error::Configuration(
+                "Limits::heap_bytes cannot be enforced on Boa, which has no heap limit; run on QuickJS or V8, or bound the process instead".into(),
+            )),
+            #[cfg(feature = "v8")]
+            Self::V8(_) if heap < super::MIN_V8_HEAP_LIMIT_BYTES => {
+                Err(crate::Error::Configuration(format!(
+                    "Limits::heap_bytes must be at least {} MiB on V8",
+                    super::MIN_V8_HEAP_LIMIT_BYTES >> 20
+                )))
+            }
+            #[allow(unreachable_patterns)]
+            _ => Ok(()),
         }
     }
 
@@ -220,19 +244,11 @@ mod tests {
             assert_eq!(options.stack_limit_bytes, Some(4096));
             let set = Backend::QuickJs(super::super::QuickJsOptions {
                 stack_limit_bytes: Some(1024),
-                ..Default::default()
             });
             let Backend::QuickJs(options) = set.with_default_quickjs_stack(4096) else {
                 unreachable!()
             };
             assert_eq!(options.stack_limit_bytes, Some(1024));
-            let Backend::QuickJs(options) = Backend::quickjs()
-                .with_default_quickjs_memory(64)
-                .with_default_quickjs_memory(32)
-            else {
-                unreachable!()
-            };
-            assert_eq!(options.memory_limit_bytes, Some(64));
         }
     }
 }

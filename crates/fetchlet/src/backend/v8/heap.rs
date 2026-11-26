@@ -1,4 +1,4 @@
-//! The heap and array buffer limits of a V8 isolate. `heap_limit_bytes`
+//! The heap and array buffer limits of a V8 isolate. `Limits::heap_bytes`
 //! caps the managed heap; just before V8 would fail, a near-heap-limit
 //! callback records the stop, terminates the isolate and raises the limit
 //! once so that the termination can unwind instead of ending the process.
@@ -22,10 +22,9 @@ use crate::execution::{Interrupt, StopReason};
 /// reports as a fatal error.
 const MIN_HEADROOM: usize = 8 << 20;
 
-/// The isolate's creation parameters for `options`' limits, or None to keep
-/// deno_core's defaults.
-pub(super) fn create_params(options: &V8Options) -> Option<v8::CreateParams> {
-    let heap = options.heap_limit_bytes;
+/// The isolate's creation parameters for the heap limit `heap` and
+/// `options`' array buffer limit, or None to keep deno_core's defaults.
+pub(super) fn create_params(heap: Option<usize>, options: &V8Options) -> Option<v8::CreateParams> {
     let buffers = options.array_buffer_limit_bytes.or(heap);
     if heap.is_none() && buffers.is_none() {
         return None;
@@ -47,9 +46,9 @@ pub(super) fn create_params(options: &V8Options) -> Option<v8::CreateParams> {
     Some(params)
 }
 
-/// Stop the isolate when it nears `options`' heap limit.
-pub(super) fn watch(runtime: &mut JsRuntime, options: &V8Options, interrupt: Interrupt) {
-    if options.heap_limit_bytes.is_none() {
+/// Stop the isolate when it nears the heap limit `heap`.
+pub(super) fn watch(runtime: &mut JsRuntime, heap: Option<usize>, interrupt: Interrupt) {
+    if heap.is_none() {
         return;
     }
     let isolate = runtime.v8_isolate().thread_safe_handle();

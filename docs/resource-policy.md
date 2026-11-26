@@ -19,6 +19,7 @@ process's total capacity.
 | `timeout`                 | Elapsed time of one app call, until its streaming body completes, or of a `FetchService` call from Rust                                   |
 | `busy_timeout`            | Time JavaScript may run from each entry into the engine before it returns to the event loop, in calls and held connections                |
 | `startup_timeout`         | Elapsed time of the module's evaluation when an instance is built, by `AppBuilder::build` or a pool                                       |
+| `heap_bytes`              | Engine heap of each instance on QuickJS and V8; an App on Boa, which cannot enforce it, refuses to build with it                          |
 | `request_body_bytes`      | Bytes of each incoming request body and each outbound request body; streams are checked against the declared length and the running total |
 | `request_body_chunks`     | Chunks read from an outbound request body in JavaScript, empty chunks included, read first or streamed                                    |
 | `response_body_bytes`     | Bytes of each outgoing response body and each upstream response body; declared length and running total                                   |
@@ -87,20 +88,22 @@ at its next promise job or host call, and `BoaOptions::loop_iteration_limit`
 stops a loop by count. JavaScript on Boa that does neither, such as deep
 recursion, can only be stopped by an external process supervisor, and so
 can a V8 loop around `new Array(n).fill(value)` for `n` of 17 or more,
-unless `V8Options::reliable_termination` is set. An instance that reaches its QuickJS or V8
-heap limit fails with `LimitExceeded("engine heap")` and retires
+unless `V8Options::reliable_termination` is set. `Requirements::preemption`
+turns those gaps into a build error for code that must be stoppable. An
+instance that reaches `heap_bytes` fails with `LimitExceeded("engine heap")`
+and retires
 ([interrupts and heap limits](research/interrupts-and-heap-limits.md)).
 
 ## Engine settings
 
-| Setting                         | Owner and default                                                  |
-| ------------------------------- | ------------------------------------------------------------------ |
-| `QuickJsOptions` heap and stack | The caller; unset values keep QuickJS's own defaults (1 MiB stack) |
-| `V8Options` worker stack        | The caller; unset keeps the platform's thread stack size           |
-| `V8Options` heap, array buffers | The caller; unset keeps V8's heap limit and no buffer limit        |
-| `BoaOptions` value stack, calls | The caller; unset values keep Boa's own (10,240 slots, 512 calls)  |
-| `BoaOptions` loop iterations    | The caller; unset keeps Boa's own, which is unlimited              |
-| `WorkerOptions` stack           | The caller; unset keeps the platform's thread stack size           |
+| Setting                         | Owner and default                                                 |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `QuickJsOptions` stack          | The caller; unset keeps QuickJS's own default (1 MiB)             |
+| `V8Options` worker stack        | The caller; unset keeps the platform's thread stack size          |
+| `V8Options` array buffers       | The caller; unset uses `Limits::heap_bytes`, or no buffer limit   |
+| `BoaOptions` value stack, calls | The caller; unset values keep Boa's own (10,240 slots, 512 calls) |
+| `BoaOptions` loop iterations    | The caller; unset keeps Boa's own, which is unlimited             |
+| `WorkerOptions` stack           | The caller; unset keeps the platform's thread stack size          |
 
 Explicit values must be positive. How well a setting is enforced depends on
 the engine and operating system. A QuickJS stack limit must be smaller than
@@ -108,9 +111,10 @@ the native stack of the thread running it. `fetchlet_http::Server` sets a
 64 MiB worker stack, a 4 MiB QuickJS limit and, on Boa, a recursion limit of
 10,000 calls, because framework recursion in debug builds exceeds the
 platform default and Boa's 512 calls stop ordinary code with an uncatchable
-error. It also limits each QuickJS heap to 64 MiB, twice what the largest
-example needs ([startup and memory](research/startup-and-memory.md#memory)),
-so that `Instances::max` times it bounds a pool's QuickJS heap. Boa's
+error. With its default backend on QuickJS or V8 it also sets
+`Limits::heap_bytes` to 64 MiB where the limits have none, twice what the
+largest example needs ([startup and memory](research/startup-and-memory.md#memory)),
+so that `Instances::max` times it bounds a pool's heap. Boa's
 `JSON.stringify` recurses on the native stack without a depth check, so
 deep enough data aborts the process instead of throwing.
 examples/vinext-axum also raises Boa's value stack to 131,072 slots for

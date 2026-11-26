@@ -35,18 +35,14 @@ const MINIMUM_STACK_FOR_DEFAULT_LIMITS: NonZeroUsize = NonZeroUsize::new(8 * 102
 /// partial tag behind, so the limit leaves it room.
 const DEFAULT_QUICKJS_STACK_BYTES: usize = 4 * 1024 * 1024;
 
-/// QuickJS's heap limit for each instance by default: a caller budget, so
-/// that `Instances::max` times it bounds a pool's JavaScript heap. The
-/// largest example, Astro with its Intl polyfills, needs 25 to 32 MiB to
-/// serve its pages; 64 MiB leaves room for larger pages
-/// (docs/research/startup-and-memory.md).
-const DEFAULT_QUICKJS_MEMORY_BYTES: usize = 64 * 1024 * 1024;
-
-/// V8's heap limit for each instance by default, a caller budget like
-/// QuickJS's above. The largest examples, vinext and Waku, need 24 MiB after
-/// their pages (docs/research/interrupts-and-heap-limits.md); 64 MiB leaves
-/// room for larger pages.
-const DEFAULT_V8_HEAP_BYTES: usize = 64 * 1024 * 1024;
+/// `Limits::heap_bytes` by default on an engine that bounds its heap: a
+/// caller budget, so that `Instances::max` times it bounds a pool's
+/// JavaScript heap. The largest examples need 25 to 32 MiB on QuickJS
+/// (Astro with its Intl polyfills, docs/research/startup-and-memory.md) and
+/// 24 MiB on V8 (vinext and Waku,
+/// docs/research/interrupts-and-heap-limits.md) to serve their pages; 64 MiB
+/// leaves room for larger pages.
+const DEFAULT_HEAP_BYTES: usize = 64 * 1024 * 1024;
 
 /// `Limits::busy_timeout` by default, a caller budget and a backstop for
 /// JavaScript stuck in a loop, such as in a held connection's handler. A
@@ -164,12 +160,13 @@ impl Server {
     }
 
     /// The engine and its options. By default, the engine the artifact was
-    /// built for, through [`Backend::for_target`], with a 64 MiB QuickJS or
-    /// V8 heap limit. While the worker keeps its default stack, QuickJS also
-    /// gets a 4 MiB stack limit and Boa a value stack of 131,072 slots and a
-    /// recursion limit of 10,000 calls. A backend given here is used as it
-    /// is. `V8Options::reliable_termination` stays off unless a backend
-    /// given here sets it.
+    /// built for, through [`Backend::for_target`]; on QuickJS or V8 the
+    /// limits then get a 64 MiB `Limits::heap_bytes` unless they set one.
+    /// While the worker keeps its default stack, QuickJS also gets a 4 MiB
+    /// stack limit and Boa a value stack of 131,072 slots and a recursion
+    /// limit of 10,000 calls. A backend given here is used as it is, with
+    /// the limits as they are. `V8Options::reliable_termination` stays off
+    /// unless a backend given here sets it.
     pub fn backend(mut self, backend: Backend) -> Self {
         self.backend = Some(backend);
         self
@@ -491,9 +488,16 @@ impl Settings {
         if let Some(cancelled_calls) = cancelled_calls {
             worker.cancelled_calls = cancelled_calls;
         }
+        let mut limits = self.limits.clone();
         let backend = match self.backend {
             Some(backend) => backend,
-            None => default_backend(artifact, &worker)?,
+            None => {
+                let backend = default_backend(artifact, &worker)?;
+                if backend.bounds_heap() {
+                    limits.heap_bytes.get_or_insert(DEFAULT_HEAP_BYTES);
+                }
+                backend
+            }
         };
         let mut builder =
             App::builder(backend)
@@ -508,7 +512,7 @@ impl Settings {
                 )
                 .fetch_handler(artifact.handler())
                 .host_services(services)
-                .limits(self.limits.clone());
+                .limits(limits);
         // Host transport tasks, such as pooled connections, run on the
         // server's runtime, so no instance's JavaScript holds them up. A
         // current-thread runtime progresses only while its own thread waits,
@@ -527,12 +531,10 @@ impl Settings {
     }
 }
 
-/// The artifact's own engine, with the default QuickJS and V8 heap limits,
-/// and QuickJS and Boa stack limits that fit the default worker stack.
+/// The artifact's own engine, with QuickJS and Boa stack limits that fit
+/// the default worker stack.
 fn default_backend(artifact: &Artifact, worker: &WorkerOptions) -> Result<Backend, ServerError> {
-    let backend = Backend::for_target(artifact.backend().unwrap_or("portable"))?
-        .with_default_quickjs_memory(DEFAULT_QUICKJS_MEMORY_BYTES)
-        .with_default_v8_heap(DEFAULT_V8_HEAP_BYTES);
+    let backend = Backend::for_target(artifact.backend().unwrap_or("portable"))?;
     if worker.stack_size_bytes >= Some(MINIMUM_STACK_FOR_DEFAULT_LIMITS) {
         return Ok(backend
             .with_default_quickjs_stack(DEFAULT_QUICKJS_STACK_BYTES)

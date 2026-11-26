@@ -22,6 +22,17 @@ pub struct Limits {
     /// Duration of the module's evaluation when an instance is built. A
     /// caller budget; exceeding it fails the build with `DeadlineExceeded`.
     pub startup_timeout: Option<Duration>,
+    /// The engine heap of each instance, a caller budget: `Instances::max`
+    /// times it bounds a pool's JavaScript heap. QuickJS counts every
+    /// allocation against it; V8 caps the isolate's managed heap with it, at
+    /// least `MIN_V8_HEAP_LIMIT_BYTES` (16 MiB), and
+    /// `ArrayBuffer` storage too unless `V8Options::array_buffer_limit_bytes`
+    /// sets its own. Reaching it fails the call with
+    /// `LimitExceeded("engine heap")` and retires the instance. Boa has no
+    /// heap limit, so building an App on Boa with it fails with
+    /// `Error::Configuration`; bound a Boa deployment with a process
+    /// boundary instead.
+    pub heap_bytes: Option<usize>,
     /// Byte budget for each input or outbound request body.
     pub request_body_bytes: Option<usize>,
     /// Chunk budget when reading a guest outbound request, including empty chunks.
@@ -104,6 +115,9 @@ impl Limits {
                     "{name} exceeds the platform clock range"
                 )));
             }
+        }
+        if self.heap_bytes == Some(0) {
+            return Err(Error::Configuration("heap_bytes must be positive".into()));
         }
 
         Ok(())

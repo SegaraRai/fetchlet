@@ -151,9 +151,9 @@ impl V8Runtime {
         self.cancelled = flag;
     }
 
-    /// Create the isolate, hand its handle to `on_isolate` so that a
-    /// watchdog can terminate it, and evaluate the module, which `interrupt`
-    /// stops at `deadline`.
+    /// Create the isolate with the heap limit `heap`, hand its handle to
+    /// `on_isolate` so that a watchdog can terminate it, and evaluate the
+    /// module, which `interrupt` stops at `deadline`.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn new(
         source: &str,
@@ -161,16 +161,17 @@ impl V8Runtime {
         cache: Option<&CodeCache>,
         host: HostBridge,
         options: &V8Options,
+        heap: Option<usize>,
         interrupt: Interrupt,
         deadline: Option<std::time::Instant>,
         on_isolate: impl FnOnce(v8::IsolateHandle),
     ) -> Result<Self> {
         let mut runtime = JsRuntime::new(RuntimeOptions {
             extensions: vec![fetchlet_host::init()],
-            create_params: heap::create_params(options),
+            create_params: heap::create_params(heap, options),
             ..Default::default()
         });
-        heap::watch(&mut runtime, options, interrupt.clone());
+        heap::watch(&mut runtime, heap, interrupt.clone());
         on_isolate(runtime.v8_isolate().thread_safe_handle());
         interrupt.arm_startup(deadline);
         let loaded = Self::load(&mut runtime, source, check, cache, host);

@@ -1,11 +1,10 @@
 //! The heap limit of a QuickJS runtime. QuickJS's own limit
 //! (`JS_SetMemoryLimit`) only makes allocations fail, and when the error
 //! object itself cannot be allocated the exception is `null`. This
-//! allocator counts what the runtime holds against
-//! `QuickJsOptions::memory_limit_bytes`, refuses allocations past it, and
-//! records the stop on the instance's interrupt, so that the failure is
-//! named and JavaScript that catches the out-of-memory error stops at the
-//! next interrupt poll.
+//! allocator counts what the runtime holds against `Limits::heap_bytes`,
+//! refuses allocations past it, and records the stop on the instance's
+//! interrupt, so that the failure is named and JavaScript that catches the
+//! out-of-memory error stops at the next interrupt poll.
 
 use std::ptr;
 
@@ -23,7 +22,7 @@ const ALIGN: usize = 8;
 pub(super) struct HeapLimit {
     /// Bytes the runtime holds, headers included.
     used: usize,
-    /// `QuickJsOptions::memory_limit_bytes`.
+    /// `Limits::heap_bytes`.
     limit: usize,
     interrupt: Interrupt,
 }

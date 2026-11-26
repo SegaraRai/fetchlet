@@ -130,6 +130,30 @@ fn async_context_is_missing_only_on_quickjs() {
     }
 }
 
+/// QuickJS polls for its interrupt everywhere; Boa only at promise jobs
+/// and host calls, and V8 without `reliable_termination` runs some
+/// allocating loops to their end, so both refuse. V8 with the option, which
+/// is process-wide, is covered by tests/v8_termination.rs.
+#[test]
+fn preemption_is_met_only_where_the_engine_stops_any_javascript() {
+    for backend in backends() {
+        let result = build(backend, RUNS, Requirements::new().preemption());
+        if is_quickjs(&backend) {
+            assert!(result.is_ok(), "{:?}", result.err());
+            continue;
+        }
+        let Err(Error::Configuration(message)) = result else {
+            panic!("expected a configuration error for {backend:?}");
+        };
+        assert!(message.contains("preemption"), "{message}");
+        if is_v8(&backend) {
+            assert!(message.contains("reliable_termination"), "{message}");
+        } else {
+            assert!(message.contains("Boa"), "{message}");
+        }
+    }
+}
+
 #[test]
 fn unknown_host_apis_and_other_protocols_are_missing() {
     for backend in backends() {

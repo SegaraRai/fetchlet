@@ -1,4 +1,5 @@
-/// The smallest `heap_limit_bytes` accepted: underlying capacity. V8 and
+/// The smallest `Limits::heap_bytes` a V8 instance accepts: underlying
+/// capacity. V8 and
 /// deno_core's bootstrap fill about 8 MiB of heap while the isolate is
 /// created, before the near-heap-limit callback that turns exhaustion into
 /// an error is installed, and V8 ends the process when that runs out. Twice
@@ -10,15 +11,16 @@ pub const MIN_V8_HEAP_LIMIT_BYTES: usize = 16 << 20;
 pub struct V8Options {
     /// None uses the platform's thread-stack setting.
     pub worker_stack_bytes: Option<usize>,
-    /// The isolate's managed heap, a caller budget, at least
+    /// The bytes of `ArrayBuffer` storage, which lives outside the managed
+    /// heap, a caller budget. An allocation past it throws a `RangeError`.
+    /// None uses `Limits::heap_bytes`, and without either it is unlimited.
+    ///
+    /// The managed heap itself is bounded by `Limits::heap_bytes`, at least
     /// [`MIN_V8_HEAP_LIMIT_BYTES`]. Near it the isolate is stopped, the call
     /// fails with `LimitExceeded("engine heap")` and the instance retires;
     /// the isolate may briefly use a quarter more, at least 8 MiB, to
-    /// unwind. None keeps V8's own limit, whose exhaustion ends the process.
-    pub heap_limit_bytes: Option<usize>,
-    /// The bytes of `ArrayBuffer` storage, which lives outside the managed
-    /// heap, a caller budget. An allocation past it throws a `RangeError`.
-    /// None uses `heap_limit_bytes`, and without either it is unlimited.
+    /// unwind. Without it V8 keeps its own limit, whose exhaustion ends the
+    /// process.
     pub array_buffer_limit_bytes: Option<usize>,
     /// Compile on-stack replacement code on the isolate's own thread
     /// (V8's `--no-concurrent-osr`), so that the time limits and the heap
@@ -38,22 +40,10 @@ pub struct V8Options {
 
 impl V8Options {
     pub(crate) fn validate(&self) -> crate::Result<()> {
-        if self.worker_stack_bytes == Some(0)
-            || self.heap_limit_bytes == Some(0)
-            || self.array_buffer_limit_bytes == Some(0)
-        {
+        if self.worker_stack_bytes == Some(0) || self.array_buffer_limit_bytes == Some(0) {
             return Err(crate::Error::Configuration(
                 "engine resource sizes must be positive".into(),
             ));
-        }
-        if self
-            .heap_limit_bytes
-            .is_some_and(|bytes| bytes < MIN_V8_HEAP_LIMIT_BYTES)
-        {
-            return Err(crate::Error::Configuration(format!(
-                "V8Options::heap_limit_bytes must be at least {} MiB",
-                MIN_V8_HEAP_LIMIT_BYTES >> 20
-            )));
         }
         Ok(())
     }

@@ -80,6 +80,7 @@ impl AppBuilder {
     pub fn build(self) -> Result<App> {
         self.limits.validate()?;
         self.backend.validate()?;
+        self.backend.validate_limits(&self.limits)?;
         let module = self
             .module
             .ok_or_else(|| Error::Configuration("a module is required".into()))?;

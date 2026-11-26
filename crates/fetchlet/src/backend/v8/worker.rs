@@ -61,6 +61,7 @@ impl V8 {
         let slot = IsolateSlot::default();
         let watchdog = Watchdog::start(&interrupt, startup.startup_timeout(), &slot)?;
         let deadline = startup.deadline();
+        let heap = startup.heap_bytes();
         let worker_interrupt = interrupt.clone();
         let (sender, receiver) = mpsc::channel::<Option<Call>>();
         let (ready, initialized) = mpsc::sync_channel(1);
@@ -86,6 +87,7 @@ impl V8 {
                 code_cache.as_deref(),
                 host,
                 &options,
+                heap,
                 worker_interrupt,
                 deadline,
                 |isolate| {
