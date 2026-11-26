@@ -436,6 +436,9 @@ check(
   async () => {
     const browserPage = await page();
     await browserPage.goto(base + "/new");
+    // Hydration sets the field from the form's state, which would clear a
+    // name typed before it, so the form is filled once the scripts have run.
+    await browserPage.waitForLoadState("networkidle");
     const input = browserPage.getByRole("textbox", { name: /Name/ });
     await input.fill("guide/getting-started");
     await browserPage.getByRole("button", { name: "Create and edit" }).click();

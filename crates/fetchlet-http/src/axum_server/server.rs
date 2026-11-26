@@ -73,7 +73,7 @@ pub enum ServerError {
 enum ArtifactSource {
     Directory(PathBuf),
     Embedded {
-        artifact: Artifact,
+        artifact: Box<Artifact>,
         dev_directory: Option<PathBuf>,
     },
 }
@@ -135,7 +135,7 @@ impl Server {
     /// artifact in release builds without `#[cfg]` branches.
     pub fn from_artifact(artifact: Artifact) -> Self {
         Self::with_source(ArtifactSource::Embedded {
-            artifact,
+            artifact: Box::new(artifact),
             dev_directory: None,
         })
     }

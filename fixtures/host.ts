@@ -77,8 +77,9 @@ export async function abortRequestBody(url: string) {
     await fetch(url, {
       method: "POST",
       body,
+      duplex: "half",
       signal: controller.signal,
-    });
+    } as RequestInit);
     return {
       aborted: false,
     };

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createServer as createHttpServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -16,7 +16,9 @@ let http: Server;
 let origin: string;
 
 beforeAll(async () => {
-  directory = mkdtempSync(join(tmpdir(), "fetchlet-vite-dev-"));
+  // The watcher reports the paths Vite resolved, which on Windows spell out
+  // short (8.3) names such as the runner's temporary directory.
+  directory = realpathSync.native(mkdtempSync(join(tmpdir(), "fetchlet-vite-dev-")));
   mkdirSync(join(directory, "src"));
   writeFileSync(join(directory, "src/message.ts"), 'export const message = "first";\n');
   writeFileSync(

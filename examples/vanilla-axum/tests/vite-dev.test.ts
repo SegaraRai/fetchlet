@@ -47,10 +47,18 @@ suite.check("a server module edit serves the next request and reloads pages", ["
 });
 
 suite.check("a stylesheet edit applies in place", ["assets"], async () => {
+  // The previous check's restored server module reloads every open page; wait
+  // until it is served so that reload cannot reach the page opened here.
+  await suite.until(
+    async () =>
+      (await (await fetch(suite.base + "/")).text()).includes("<title>Hello, guest</title>"),
+    "restored server module",
+  );
   const page = await suite.page();
   await page.goto(suite.base + "/");
   await page.locator('[data-counter][data-hydrated="true"]').waitFor();
   await page.locator("[data-counter]").click();
+  await expect.poll(() => page.locator("[data-counter]").textContent()).toBe("Clicks 1");
   await suite.edit("src/styles.css", "margin: 2rem;", "margin: 3rem;");
   await expect
     .poll(() => page.evaluate(() => getComputedStyle(document.body).marginTop), {
