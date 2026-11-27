@@ -55,10 +55,28 @@ suite.check("a stylesheet edit applies in place", ["assets"], async () => {
     "restored server module",
   );
   const page = await suite.page();
+  let loads = 0;
+  page.on("load", () => {
+    loads += 1;
+  });
   await page.goto(suite.base + "/");
-  await page.locator('[data-counter][data-hydrated="true"]').waitFor();
-  await page.locator("[data-counter]").click();
-  await expect.poll(() => page.locator("[data-counter]").textContent()).toBe("Clicks 1");
+  // Windows can report the restoring write as two changes, and the second
+  // one's reload may still reach this page. A reload before the stylesheet
+  // edit resets the counter, so click again on the reloaded page.
+  for (let attempt = 1; ; attempt += 1) {
+    const loaded = loads;
+    await page.locator('[data-counter][data-hydrated="true"]').waitFor();
+    await page.locator("[data-counter]").click();
+    try {
+      await expect.poll(() => page.locator("[data-counter]").textContent()).toBe("Clicks 1");
+      break;
+    } catch (error) {
+      if (loads === loaded || attempt === 3) {
+        throw error;
+      }
+    }
+  }
+  const clicked = loads;
   await suite.edit("src/styles.css", "margin: 2rem;", "margin: 3rem;");
   await expect
     .poll(() => page.evaluate(() => getComputedStyle(document.body).marginTop), {
@@ -66,6 +84,7 @@ suite.check("a stylesheet edit applies in place", ["assets"], async () => {
     })
     .toBe("48px");
   // The page kept its state, so it was not reloaded.
+  expect(loads).toBe(clicked);
   expect(await page.locator("[data-counter]").textContent()).toBe("Clicks 1");
   await page.close();
 });
