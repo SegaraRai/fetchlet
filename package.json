@@ -4,6 +4,9 @@
   "private": true,
   "description": "Rust-hosted JavaScript workspace, adapters and end-to-end examples",
   "type": "module",
+  "scripts": {
+    "prepare": "vp config --hooks --no-agent"
+  },
   "devDependencies": {
     "@fetchlet/node": "workspace:*",
     "@sveltejs/kit": "catalog:",

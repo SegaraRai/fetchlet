@@ -19,6 +19,10 @@ export default defineConfig({
     // The embedded scripts are generated from their formatted TypeScript sources.
     ignorePatterns: ["crates/*/js/**", "tests/conformance/upstream/**"],
   },
+  // The pre-commit hook rejects staged files that `check:format` would reject in CI.
+  staged: {
+    "*": "vp fmt --check --no-error-on-unmatched-pattern",
+  },
   lint: {
     categories: {
       correctness: "error",
