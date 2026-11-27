@@ -1,6 +1,6 @@
 {
   "name": "@fetchlet-crates/fetchlet-http",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Version and changelog of the fetchlet-http crate for pnpm change; tools/release/sync-version.ts copies the version to Cargo"
 }

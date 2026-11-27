@@ -1,6 +1,6 @@
 {
   "name": "fetchlet",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Build JavaScript web frameworks into artifacts that Rust serves through fetchlet",
   "license": "MIT OR Apache-2.0",
   "repository": {

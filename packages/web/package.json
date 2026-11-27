@@ -1,6 +1,6 @@
 {
   "name": "@fetchlet/web",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Web API implementations that run inside a fetchlet engine on the host operations of fetchlet-web",
   "license": "MIT OR Apache-2.0",
   "repository": {
