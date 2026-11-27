@@ -182,15 +182,27 @@ jobs:
         with:
           run-install: false
       - run: vp install --frozen-lockfile --ignore-scripts --filter @fetchlet-internal/tools-release...
-      # The draft becomes public when a maintainer publishes it after approving the staged npm
-      # packages, and GitHub creates the tag at that time.
+      # The draft holds a request and instructions for a coding agent, which writes the release
+      # notes from the changelogs and checks the registries. The draft becomes public when a
+      # maintainer publishes it after approving the staged npm packages, and GitHub creates the
+      # tag at that time. A rerun keeps an existing draft and its notes.
       - name: Create the draft
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag=$(node tools/release/notes.ts "$RUNNER_TEMP/release-body.md")
+          version=$(node --print "require('./crates/fetchlet/package.json').version")
+          flags=()
+          list=(--exclude-drafts --limit 1000 --json tagName --jq '.[].tagName')
+          case "$version" in
+            *-*) flags+=(--prerelease --latest=false) ;;
+            # The notes of a stable release cover every change since the previous stable release.
+            *) list+=(--exclude-pre-releases) ;;
+          esac
+          export RELEASE_TAGS
+          RELEASE_TAGS=$(gh release list "${list[@]}")
+          tag=$(node tools/release/draft.ts --repository "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --body-file "$RUNNER_TEMP/release-body.md")
           if gh release view "$tag" > /dev/null 2>&1; then
             echo "The GitHub Release $tag already exists."
           else
-            gh release create "$tag" --draft --target "$GITHUB_SHA" --title "$tag" --notes-file "$RUNNER_TEMP/release-body.md"
+            gh release create "$tag" --draft --target "$GITHUB_SHA" --title "$tag" --notes-file "$RUNNER_TEMP/release-body.md" "${flags[@]}"
           fi

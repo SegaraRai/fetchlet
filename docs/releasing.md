@@ -51,8 +51,35 @@ Before 1.0, `maxBump: minor` turns a major bump into a minor one.
      `tools/release/publish-crates.ts` publishes the crates whose version
      crates.io does not have yet, so a rerun after a partial failure
      publishes the rest.
-   - a draft GitHub Release `v<version>` collects the changelog sections of
-     the version; publishing the draft creates the tag.
+   - a draft GitHub Release `v<version>` is created for a coding agent to
+     finish (see [Release notes](#release-notes)); publishing the draft
+     creates the tag.
+
+## Release notes
+
+`tools/release/draft.ts` writes the body of the draft. It links the
+changelog section of every package and crate version since the previous
+GitHub Release, which it finds in `.changeset/ledger.yaml`, and starts with
+a request for a coding agent. The instructions the request refers to,
+`tools/release/draft-prompt.md`, sit in an HTML comment of the body, so
+they do not show on the release page.
+
+To finish a release, start a coding agent in a checkout of the repository
+and give it the request at the top of the draft. The agent
+
+1. writes the release notes for users from the linked changelog sections,
+   checked against the code at the release commit, grouped under Breaking
+   changes, Features and Fixes with a scope label per entry, and replaces
+   the body of the draft with them;
+2. checks that npm and crates.io serve every package and crate of the
+   version, and whether `stable` points to the release commit;
+3. reports differences between the code and the changelogs, the result of
+   the checks and the next action, such as approving the staged npm
+   packages, and publishes the draft only when the maintainer says so.
+
+Change the writing rules or the checks in `draft-prompt.md`. It must not
+contain `--`, which would end the HTML comment; the request in `draft.ts`
+holds the commands that need options.
 
 Private packages are not published: pnpm skips them, and Cargo publishes only
 the crates whose manifest sets `publish = true`.

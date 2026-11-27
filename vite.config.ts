@@ -66,8 +66,9 @@ export default defineConfig({
       "packages/fetchlet/vite.config.ts",
       "packages/node/vite.config.ts",
       "packages/web/vite.config.ts",
-      "tools/site-html/vite.config.ts",
       "tools/conformance/vite.config.ts",
+      "tools/release/vite.config.ts",
+      "tools/site-html/vite.config.ts",
     ],
   },
   run: {
