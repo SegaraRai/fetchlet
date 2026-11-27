@@ -41,7 +41,6 @@
     "./zlib": "./src/zlib.ts"
   },
   "publishConfig": {
-    "access": "public",
     "exports": {
       "./assert": "./dist/assert.js",
       "./assert/strict": "./dist/assert-strict.js",
@@ -67,7 +66,8 @@
       "./util": "./dist/util.js",
       "./util/types": "./dist/util-types.js",
       "./zlib": "./dist/zlib.js"
-    }
+    },
+    "access": "public"
   },
   "dependencies": {
     "@fetchlet/web": "workspace:*",

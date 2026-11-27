@@ -55,7 +55,6 @@
     "./waku/context": "./src/integrations/waku/context.ts"
   },
   "publishConfig": {
-    "access": "public",
     "bin": {
       "fetchlet": "./dist/cli/index.js"
     },
@@ -92,7 +91,8 @@
       "./waku": "./dist/integrations/waku/adapter.js",
       "./waku/build-enhancer": "./dist/integrations/waku/build-enhancer.js",
       "./waku/context": "./dist/integrations/waku/context.js"
-    }
+    },
+    "access": "public"
   },
   "dependencies": {
     "@fetchlet/node": "workspace:*",

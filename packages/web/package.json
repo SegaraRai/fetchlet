@@ -26,7 +26,6 @@
     "./wire": "./src/wire.ts"
   },
   "publishConfig": {
-    "access": "public",
     "exports": {
       ".": "./dist/index.js",
       "./async-context": "./dist/async-context.js",
@@ -37,7 +36,8 @@
       "./sockets": "./dist/sockets.js",
       "./websocket": "./dist/websocket.js",
       "./wire": "./dist/wire.js"
-    }
+    },
+    "access": "public"
   },
   "dependencies": {
     "@exodus/bytes": "catalog:dep",
