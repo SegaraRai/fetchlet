@@ -1,6 +1,6 @@
 {
   "name": "@fetchlet/node",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Node.js built-in modules for code that runs inside a fetchlet engine, over the Web API profile and the host operations of fetchlet-web",
   "license": "MIT OR Apache-2.0",
   "repository": {
