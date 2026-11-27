@@ -88,7 +88,10 @@ resolves with the close code and reason. Channels close automatically when the
 invocation ends.
 
 ```ts
-const channel = env.PROGRESS.connect({ steps: 3, bytes: true });
+const channel = env.PROGRESS.connect({
+  steps: 3,
+  bytes: true,
+});
 return new Response(channel.stream().readable);
 ```
 

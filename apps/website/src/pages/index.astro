@@ -187,17 +187,41 @@ const frameworks = [
     slug: "react-router",
     icon: style("icon-aside icon-simple-icons--reactrouter"),
   },
-  { name: "vinext", slug: "vinext", icon: style("icon-aside icon-simple-icons--nextdotjs") },
-  { name: "Astro", slug: "astro", icon: style("icon-aside icon-simple-icons--astro") },
-  { name: "SvelteKit", slug: "sveltekit", icon: style("icon-aside icon-simple-icons--svelte") },
-  { name: "Nuxt / Nitro", slug: "nitro", icon: style("icon-aside icon-simple-icons--nuxt") },
+  {
+    name: "vinext",
+    slug: "vinext",
+    icon: style("icon-aside icon-simple-icons--nextdotjs"),
+  },
+  {
+    name: "Astro",
+    slug: "astro",
+    icon: style("icon-aside icon-simple-icons--astro"),
+  },
+  {
+    name: "SvelteKit",
+    slug: "sveltekit",
+    icon: style("icon-aside icon-simple-icons--svelte"),
+  },
+  {
+    name: "Nuxt / Nitro",
+    slug: "nitro",
+    icon: style("icon-aside icon-simple-icons--nuxt"),
+  },
   {
     name: "SolidStart",
     slug: "solid-start",
     icon: style("icon-aside icon-simple-icons--solid"),
   },
-  { name: "Solid 2", slug: "solid", icon: style("icon-aside icon-simple-icons--solid") },
-  { name: "Waku", slug: "waku", icon: style("icon-aside icon-lucide--waves") },
+  {
+    name: "Solid 2",
+    slug: "solid",
+    icon: style("icon-aside icon-simple-icons--solid"),
+  },
+  {
+    name: "Waku",
+    slug: "waku",
+    icon: style("icon-aside icon-lucide--waves"),
+  },
   {
     name: "Qwik City",
     slug: "qwik-city",
@@ -210,7 +234,11 @@ const frameworks = [
     subpath: "hono/vite",
     icon: style("icon-aside icon-simple-icons--hono"),
   },
-  { name: "Vite", slug: "vite", icon: style("icon-aside icon-simple-icons--vite") },
+  {
+    name: "Vite",
+    slug: "vite",
+    icon: style("icon-aside icon-simple-icons--vite"),
+  },
 ];
 
 const hostPillars = [
@@ -218,25 +246,46 @@ const hostPillars = [
     title: "Three engines, one profile",
     text: "Run the same WinterTC Web APIs and Node.js subset on QuickJS (fast startup), Boa (pure Rust), or V8 (JIT, native Intl, WebAssembly). Switch engines with one Cargo feature.",
     links: [
-      { label: "Compare engines", href: "/docs/overview#choosing-an-engine" },
-      { label: "Web API matrix", href: "/docs/compatibility/web-api" },
-      { label: "Node.js", href: "/docs/compatibility/node" },
+      {
+        label: "Compare engines",
+        href: "/docs/overview#choosing-an-engine",
+      },
+      {
+        label: "Web API matrix",
+        href: "/docs/compatibility/web-api",
+      },
+      {
+        label: "Node.js",
+        href: "/docs/compatibility/node",
+      },
     ],
   },
   {
     title: "Deny-by-default permissions",
     text: "JavaScript cannot touch the network, filesystem, or host env unless Rust grants it. Outbound HTTP, TCP, and WebSockets enforce exact allowlists and block private IPs to prevent SSRF.",
     links: [
-      { label: "Host services", href: "/docs/rust/host-services" },
-      { label: "Outbound networking", href: "/docs/rust/fetchlet-net" },
+      {
+        label: "Host services",
+        href: "/docs/rust/host-services",
+      },
+      {
+        label: "Outbound networking",
+        href: "/docs/rust/fetchlet-net",
+      },
     ],
   },
   {
     title: "Limits & process isolation",
     text: "Bound timeouts, CPU busy time, engine heaps, body sizes, and subrequests in Rust. Enable the process feature to isolate each instance in a child process with OS memory limits.",
     links: [
-      { label: "Resource limits", href: "/docs/rust/resource-policy" },
-      { label: "Security model", href: "/docs/shipping/security" },
+      {
+        label: "Resource limits",
+        href: "/docs/rust/resource-policy",
+      },
+      {
+        label: "Security model",
+        href: "/docs/shipping/security",
+      },
     ],
   },
 ];

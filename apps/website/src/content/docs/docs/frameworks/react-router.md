@@ -17,7 +17,11 @@ import type { Config } from "@react-router/dev/config";
 import { fetchletPreset } from "fetchlet/react-router";
 
 export default {
-  presets: [fetchletPreset({ backend: "quickjs" })],
+  presets: [
+    fetchletPreset({
+      backend: "quickjs",
+    }),
+  ],
 } satisfies Config;
 ```
 
@@ -79,7 +83,12 @@ import { fetchletDevServer } from "fetchlet/react-router";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [reactRouter(), fetchletDevServer({ backend: "quickjs" })],
+  plugins: [
+    reactRouter(),
+    fetchletDevServer({
+      backend: "quickjs",
+    }),
+  ],
 });
 ```
 

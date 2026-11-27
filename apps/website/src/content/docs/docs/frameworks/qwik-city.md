@@ -24,10 +24,16 @@ export default defineConfig({
   plugins: [
     qwikCity(),
     qwikVite({
-      client: { outDir: "build/client" },
-      ssr: { outDir: "node_modules/.cache/fetchlet-qwik-city" },
+      client: {
+        outDir: "build/client",
+      },
+      ssr: {
+        outDir: "node_modules/.cache/fetchlet-qwik-city",
+      },
     }),
-    fetchletAdapter({ backend: "quickjs" }),
+    fetchletAdapter({
+      backend: "quickjs",
+    }),
   ],
 });
 ```
@@ -42,7 +48,11 @@ import { createQwikCity } from "fetchlet/qwik-city/middleware";
 
 import render from "./entry.ssr";
 
-export default createQwikCity({ render, qwikCityPlan, manifest });
+export default createQwikCity({
+  render,
+  qwikCityPlan,
+  manifest,
+});
 ```
 
 Build both client and SSR bundles:

@@ -46,7 +46,13 @@ import fetchletAdapter from "fetchlet/sveltekit";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [sveltekit({ adapter: fetchletAdapter({ out: "build" }) })],
+  plugins: [
+    sveltekit({
+      adapter: fetchletAdapter({
+        out: "build",
+      }),
+    }),
+  ],
 });
 ```
 

@@ -23,7 +23,9 @@ const modules = Object.fromEntries(
   ]),
 );
 
-export default adapter(fsRouter(modules), { backend: "quickjs" });
+export default adapter(fsRouter(modules), {
+  backend: "quickjs",
+});
 ```
 
 `backend`, `intl`, `requirements`, `outDir`, and `assets` follow the

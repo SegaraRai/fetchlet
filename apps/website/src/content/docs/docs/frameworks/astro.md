@@ -20,7 +20,10 @@ export default defineConfig({
   output: "server",
   adapter: fetchletAdapter({
     backend: "quickjs",
-    intl: { locales: ["en", "ja"], timeZoneData: "golden" },
+    intl: {
+      locales: ["en", "ja"],
+      timeZoneData: "golden",
+    },
   }),
 });
 ```

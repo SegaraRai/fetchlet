@@ -9,20 +9,32 @@ export interface SearchResult {
   /** Pagefind excerpt as HTML. Pagefind escapes the page text and wraps matched words in `<mark>`. */
   excerpt: string;
   /** Sections of the page that match, in page order. Each URL links to the section heading. */
-  sections: { title: string; url: string }[];
+  sections: {
+    title: string;
+    url: string;
+  }[];
 }
 
 interface PagefindResultData {
   url: string;
   excerpt: string;
-  meta: { title?: string };
-  sub_results: { title: string; url: string }[];
+  meta: {
+    title?: string;
+  };
+  sub_results: {
+    title: string;
+    url: string;
+  }[];
 }
 
 interface Pagefind {
   options(options: { baseUrl: string }): Promise<void>;
   init(): Promise<void>;
-  search(query: string): Promise<{ results: { data(): Promise<PagefindResultData> }[] }>;
+  search(query: string): Promise<{
+    results: {
+      data(): Promise<PagefindResultData>;
+    }[];
+  }>;
 }
 
 let loading: Promise<Pagefind> | undefined;
@@ -37,7 +49,9 @@ export function loadPagefind(): Promise<Pagefind> {
     const pagefind = (await import(
       /* @vite-ignore */ new URL(`${searchIndex.bundle}pagefind.js`, location.origin).href
     )) as Pagefind;
-    await pagefind.options({ baseUrl: import.meta.env.BASE_URL });
+    await pagefind.options({
+      baseUrl: import.meta.env.BASE_URL,
+    });
     await pagefind.init();
     return pagefind;
   })();
@@ -61,7 +75,10 @@ export async function searchDocs(query: string, limit = 10): Promise<SearchResul
     excerpt: page.excerpt,
     sections: page.sub_results
       .filter((section) => section.url !== page.url)
-      .map((section) => ({ title: section.title, url: withoutTrailingSlash(section.url) })),
+      .map((section) => ({
+        title: section.title,
+        url: withoutTrailingSlash(section.url),
+      })),
   }));
 }
 

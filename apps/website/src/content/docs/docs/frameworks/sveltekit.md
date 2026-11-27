@@ -74,9 +74,17 @@ Pass `assets: true` to pack `client/` into `build/assets.flpk`:
 
 ```ts
 sveltekit({
-  compilerOptions: { experimental: { async: true } },
-  experimental: { remoteFunctions: true },
-  adapter: fetchletAdapter({ rendering: "async" }),
+  compilerOptions: {
+    experimental: {
+      async: true,
+    },
+  },
+  experimental: {
+    remoteFunctions: true,
+  },
+  adapter: fetchletAdapter({
+    rendering: "async",
+  }),
 });
 ```
 
