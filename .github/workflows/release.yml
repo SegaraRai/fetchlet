@@ -106,23 +106,15 @@ jobs:
             *-*) echo 'name=next' >> "$GITHUB_OUTPUT" ;;
             *) echo 'name=latest' >> "$GITHUB_OUTPUT" ;;
           esac
-      - name: Configure the bootstrap token
-        # Trusted publishing needs no token. A package must exist before npm can trust this
-        # workflow, so the first publication of a new package uses NPM_TOKEN.
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -n "$NPM_TOKEN" ]; then
-            echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> "$HOME/.npmrc"
-          fi
       - name: Stage
         env:
           NPM_TAG: ${{ steps.tag.outputs.name }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        # Branch rules and the job condition replace pnpm's Git checks. Recursive staging skips
-        # private packages and versions that already exist on npm. A maintainer publishes the
-        # staged versions by approving them with 2FA.
-        run: vp exec pnpm stage publish -r --no-git-checks --tag "$NPM_TAG" --report-summary
+        # Trusted publishing authenticates with the workflow's OIDC token, and the provenance
+        # attestation records this workflow run as the build of each package. Branch rules and
+        # the job condition replace pnpm's Git checks. Recursive staging skips private packages
+        # and versions that already exist on npm. A maintainer publishes the staged versions by
+        # approving them with 2FA.
+        run: vp exec pnpm stage publish -r --no-git-checks --provenance --tag "$NPM_TAG" --report-summary
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
@@ -143,8 +135,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    env:
-      BOOTSTRAP_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -154,16 +144,13 @@ jobs:
           run-install: false
       - run: vp install --frozen-lockfile --ignore-scripts --filter @fetchlet-internal/tools-release...
       - run: rustup toolchain install stable --profile minimal
-      # Trusted publishing exchanges the workflow's OIDC token for a short-lived crates.io
-      # token. A crate must exist before crates.io can trust this workflow, so the first
-      # publication of a new crate uses CARGO_REGISTRY_TOKEN from the environment's secrets.
+      # Trusted publishing exchanges the workflow's OIDC token for a short-lived crates.io token.
       - name: Authenticate with crates.io
         id: auth
-        if: env.BOOTSTRAP_TOKEN == ''
         uses: rust-lang/crates-io-auth-action@v1.0.6
       - name: Publish the crates crates.io does not have yet
         env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token || env.BOOTSTRAP_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: node tools/release/publish-crates.ts
 
   github-release:

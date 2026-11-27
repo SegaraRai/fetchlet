@@ -108,17 +108,22 @@ and runs `pnpm change check` over the pending intents.
 
 ## Registry setup
 
-Both registries use trusted publishing from the Release workflow, which
-needs a package to exist first:
+Both registries trust the Release workflow, which authenticates with its
+OIDC token and holds no registry token:
 
-- npm: the first publication of a package uses the `NPM_TOKEN` secret of the
-  `npm-release` environment. Afterwards, configure trusted publishing for the
-  package and remove the secret.
-- crates.io: the first publication of a crate uses the `CARGO_REGISTRY_TOKEN`
-  secret of the `crates-release` environment. Afterwards, add the Release
-  workflow and the `crates-release` environment as a trusted publisher of
-  each crate and remove the secret; the workflow then authenticates with
-  `rust-lang/crates-io-auth-action`.
+- npm: each package names the Release workflow and the `npm-release`
+  environment as its trusted publisher. `pnpm stage publish --provenance`
+  attaches a provenance attestation that links each version to the workflow
+  run that built it.
+- crates.io: each crate names the Release workflow and the `crates-release`
+  environment as its trusted publisher, and
+  `rust-lang/crates-io-auth-action` exchanges the OIDC token for a
+  short-lived publish token.
+
+A registry trusts a publisher only for a package that already exists. A new
+npm package or crate is therefore published once by a maintainer, by hand
+from the release commit, and then configured for trusted publishing before
+the next release.
 
 The `crates-release` environment needs required reviewers, because its
 approval is the gate before an irreversible upload.
