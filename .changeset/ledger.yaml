@@ -1,0 +1,28 @@
+"@fetchlet-crates/fetchlet-http@0.1.0":
+  dir: crates/fetchlet-http
+  intents:
+    - initial-release
+"@fetchlet-crates/fetchlet-net@0.1.0":
+  dir: crates/fetchlet-net
+  intents:
+    - initial-release
+"@fetchlet-crates/fetchlet-web@0.1.0":
+  dir: crates/fetchlet-web
+  intents:
+    - initial-release
+"@fetchlet-crates/fetchlet@0.1.0":
+  dir: crates/fetchlet
+  intents:
+    - initial-release
+"@fetchlet/node@0.1.0":
+  dir: packages/node
+  intents:
+    - initial-release
+"@fetchlet/web@0.1.0":
+  dir: packages/web
+  intents:
+    - initial-release
+fetchlet@0.1.0:
+  dir: packages/fetchlet
+  intents:
+    - initial-release

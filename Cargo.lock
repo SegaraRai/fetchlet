@@ -1983,7 +1983,7 @@ dependencies = [
 
 [[package]]
 name = "example-astro-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -1996,7 +1996,7 @@ dependencies = [
 
 [[package]]
 name = "example-honox-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2009,7 +2009,7 @@ dependencies = [
 
 [[package]]
 name = "example-honox-tauri"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2023,7 +2023,7 @@ dependencies = [
 
 [[package]]
 name = "example-nuxt-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2036,7 +2036,7 @@ dependencies = [
 
 [[package]]
 name = "example-qwik-city-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2049,7 +2049,7 @@ dependencies = [
 
 [[package]]
 name = "example-react-router-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2062,7 +2062,7 @@ dependencies = [
 
 [[package]]
 name = "example-solid-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2075,7 +2075,7 @@ dependencies = [
 
 [[package]]
 name = "example-solidstart-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2088,7 +2088,7 @@ dependencies = [
 
 [[package]]
 name = "example-sveltekit-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2101,7 +2101,7 @@ dependencies = [
 
 [[package]]
 name = "example-sveltekit-axum-tauri"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2125,7 +2125,7 @@ dependencies = [
 
 [[package]]
 name = "example-tanstack-start-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2138,7 +2138,7 @@ dependencies = [
 
 [[package]]
 name = "example-vanilla-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2151,7 +2151,7 @@ dependencies = [
 
 [[package]]
 name = "example-vanilla-cli"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "fetchlet",
@@ -2162,7 +2162,7 @@ dependencies = [
 
 [[package]]
 name = "example-vinext-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2175,7 +2175,7 @@ dependencies = [
 
 [[package]]
 name = "example-waku-axum"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2220,7 +2220,7 @@ dependencies = [
 
 [[package]]
 name = "fetchlet"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "boa_engine",
@@ -2246,7 +2246,7 @@ dependencies = [
 
 [[package]]
 name = "fetchlet-bench"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "fetchlet",
@@ -2274,7 +2274,7 @@ dependencies = [
 
 [[package]]
 name = "fetchlet-http"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "actix-http",
  "actix-web",
@@ -2303,7 +2303,7 @@ dependencies = [
 
 [[package]]
 name = "fetchlet-lab"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2315,7 +2315,7 @@ dependencies = [
 
 [[package]]
 name = "fetchlet-net"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "brotli",
@@ -2338,7 +2338,7 @@ dependencies = [
 
 [[package]]
 name = "fetchlet-web"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "aes",
  "aes-kw",
