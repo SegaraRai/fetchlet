@@ -95,9 +95,11 @@ vp run example:embed
 Browser checks need Chromium: `vp run setup:browser`.
 
 `vp install` runs the root `prepare` script, which installs the Vite+ Git hook
-dispatcher. Its pre-commit hook (`.vite-hooks/pre-commit`) runs `vp staged`,
-which checks the staged files with `vp fmt --check` and rejects the commit when
-`check:format` would fail. Run `vp fmt` to fix them; `vp hooks disable` or
+dispatcher. Its pre-commit hook (`.vite-hooks/pre-commit`) runs
+`vp run check:staged`, which runs the checks that need no build on the staged
+files: `vp fmt --check` on every file, `vp lint` on scripts, and
+`check:rust-format` (`cargo fmt --check`) when Rust files are staged. Type
+checking and Clippy stay in `vp run check`. `vp hooks disable` or
 `VP_GIT_HOOKS=0` turns the hook off.
 
 Cargo keeps the artifacts of every engine, feature and example combination

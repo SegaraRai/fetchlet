@@ -19,9 +19,12 @@ export default defineConfig({
     // The embedded scripts are generated from their formatted TypeScript sources.
     ignorePatterns: ["crates/*/js/**", "tests/conformance/upstream/**"],
   },
-  // The pre-commit hook rejects staged files that `check:format` would reject in CI.
+  // `check:staged` (the pre-commit hook) runs the checks that need no build on the
+  // staged files. Type checking and Clippy stay in `check`.
   staged: {
     "*": "vp fmt --check --no-error-on-unmatched-pattern",
+    "*.{js,jsx,ts,tsx,mts,cts,svelte,astro,vue}": "vp lint --no-error-on-unmatched-pattern",
+    "*.rs": "vp run check:rust-format",
   },
   lint: {
     categories: {
@@ -119,8 +122,18 @@ export default defineConfig({
         command: "vp lint",
         cache: false,
       },
+      "check:rust-format": {
+        command: "node tools/rust/format.ts",
+        cache: false,
+      },
       "check:rust": {
         command: "node tools/rust/check.ts",
+        dependsOn: ["check:rust-format"],
+        cache: false,
+      },
+      // The checks of `staged` above, on the files staged for commit.
+      "check:staged": {
+        command: "vp staged",
         cache: false,
       },
       "check:generated": {

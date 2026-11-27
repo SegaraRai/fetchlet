@@ -1,4 +1,4 @@
-// Checks formatting and lints the Rust workspace: `vp run check:rust`.
+// Lints the Rust workspace: `vp run check:rust`, after `check:rust-format`.
 // Clippy runs over the same feature combinations as `test:rust` and over the
 // examples' Rust code, which `test:rust` does not compile.
 
@@ -36,8 +36,6 @@ function clippy(...args: string[]): string[] {
 }
 
 cargoAll([
-  ["fmt", "--all", "--check"],
-  ["fmt", "--manifest-path", "fuzz/Cargo.toml", "--check"],
   // The host API stays usable without any JavaScript engine feature.
   clippy("-p", "fetchlet", "--all-targets", "--no-default-features"),
   // Web API host implementations build with every optional API and with none.
