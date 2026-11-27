@@ -4,7 +4,7 @@ default-members = ["crates/fetchlet"]
 resolver = "3"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.100.0"
 license = "MIT OR Apache-2.0"
@@ -14,9 +14,9 @@ repository = "https://github.com/SegaraRai/fetchlet"
 publish = false
 
 [workspace.dependencies]
-fetchlet = { path = "crates/fetchlet", version = "=0.1.0", default-features = false }
-fetchlet-http = { path = "crates/fetchlet-http", version = "=0.1.0" }
-fetchlet-web = { path = "crates/fetchlet-web", version = "=0.1.0", default-features = false }
+fetchlet = { path = "crates/fetchlet", version = "=0.1.1", default-features = false }
+fetchlet-http = { path = "crates/fetchlet-http", version = "=0.1.1" }
+fetchlet-web = { path = "crates/fetchlet-web", version = "=0.1.1", default-features = false }
 actix-web = { version = "4", default-features = false }
 axum = "0.8"
 hyper = { version = "1", features = ["http1", "server"] }

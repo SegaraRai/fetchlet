@@ -18,11 +18,23 @@
   dir: packages/node
   intents:
     - initial-release
+"@fetchlet/node@0.1.1":
+  dir: packages/node
+  intents:
+    - dry-foxes-drum
 "@fetchlet/web@0.1.0":
   dir: packages/web
   intents:
     - initial-release
+"@fetchlet/web@0.1.1":
+  dir: packages/web
+  intents:
+    - dry-foxes-drum
 fetchlet@0.1.0:
   dir: packages/fetchlet
   intents:
     - initial-release
+fetchlet@0.1.1:
+  dir: packages/fetchlet
+  intents:
+    - dry-foxes-drum
