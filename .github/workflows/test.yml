@@ -140,6 +140,15 @@ jobs:
         with:
           name: results-examples-${{ matrix.os }}
           path: results/
+      # The output of the example servers and their Vite dev servers, for
+      # checks that time out without it.
+      - uses: actions/upload-artifact@v7.0.2
+        if: failure()
+        with:
+          name: logs-examples-${{ matrix.os }}
+          path: |
+            .cache/*/server.log
+            .cache/*/vite-dev/server.log
 
   fuzz:
     runs-on: ubuntu-latest

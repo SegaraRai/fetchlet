@@ -4,6 +4,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use anyhow::Context as _;
 use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
@@ -286,7 +287,9 @@ async fn tls_verifies_the_server_and_carries_bytes() -> anyhow::Result<()> {
         let policy = SocketPolicy::deny_all().allow("127.0.0.1", port)?;
         let mut app = app(backend, trusting()?, policy)?;
         assert_eq!(
-            exchange(&mut app, "127.0.0.1", port, "on", "ping", 8).await?,
+            exchange(&mut app, "127.0.0.1", port, "on", "ping", 8)
+                .await
+                .with_context(|| format!("{backend:?}"))?,
             json!({ "received": "tls:ping", "close": { "code": 1000, "reason": "" } })
         );
     }
