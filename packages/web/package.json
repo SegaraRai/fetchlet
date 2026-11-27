@@ -26,6 +26,7 @@
     "./wire": "./src/wire.ts"
   },
   "publishConfig": {
+    "access": "public",
     "exports": {
       ".": "./dist/index.js",
       "./async-context": "./dist/async-context.js",

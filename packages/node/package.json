@@ -41,6 +41,7 @@
     "./zlib": "./src/zlib.ts"
   },
   "publishConfig": {
+    "access": "public",
     "exports": {
       "./assert": "./dist/assert.js",
       "./assert/strict": "./dist/assert-strict.js",

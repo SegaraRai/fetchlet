@@ -55,6 +55,7 @@
     "./waku/context": "./src/integrations/waku/context.ts"
   },
   "publishConfig": {
+    "access": "public",
     "bin": {
       "fetchlet": "./dist/cli/index.js"
     },
