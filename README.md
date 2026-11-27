@@ -26,10 +26,10 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark) and (not (prefers-reduced-motion: reduce))" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/fetchlet-overview-dark-%7Blang%7D.svg?langs=en%2Cja">
-    <source media="(not (prefers-reduced-motion: reduce))" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/fetchlet-overview-light-%7Blang%7D.svg?langs=en%2Cja">
-    <source media="(prefers-color-scheme: dark)" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/fetchlet-overview-dark-%7Blang%7D.still.svg?langs=en%2Cja">
-    <img src="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/fetchlet-overview-light-%7Blang%7D.still.svg?langs=en%2Cja" alt="fetchlet overview" width="100%">
+    <source media="(prefers-color-scheme: dark) and (not (prefers-reduced-motion: reduce))" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/overview/fetchlet-overview-dark-%7Blang%7D.svg?langs=en%2Cja">
+    <source media="(not (prefers-reduced-motion: reduce))" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/overview/fetchlet-overview-light-%7Blang%7D.svg?langs=en%2Cja">
+    <source media="(prefers-color-scheme: dark)" srcset="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/overview/fetchlet-overview-dark-%7Blang%7D.still.svg?langs=en%2Cja">
+    <img src="https://svgreel-localize.roundtrip.dev/github/SegaraRai/fetchlet/assets/overview/fetchlet-overview-light-%7Blang%7D.still.svg?langs=en%2Cja" alt="fetchlet overview" width="100%">
   </picture>
 </p>
 
